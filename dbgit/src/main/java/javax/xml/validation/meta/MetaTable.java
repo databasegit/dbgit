@@ -9,6 +9,10 @@ public class MetaTable implements IMetaObject {
 	
 	private String name;
 	
+	//list fields
+	//list indexes
+	//list FKs
+	
 	public MetaTable(String namePath) {
 		name = namePath;
 	}

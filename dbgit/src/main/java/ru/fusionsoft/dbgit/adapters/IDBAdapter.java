@@ -4,6 +4,8 @@ import java.io.OutputStream;
 import java.sql.Connection;
 import java.util.Map;
 
+import javax.xml.validation.meta.IMapMetaObject;
+
 import ru.fusionsoft.dbgit.dbobjects.DBConstraint;
 import ru.fusionsoft.dbgit.dbobjects.DBFuntion;
 import ru.fusionsoft.dbgit.dbobjects.DBIndex;
@@ -23,9 +25,12 @@ public interface IDBAdapter {
 	public void setConnection(Connection conn);
 	public Connection getConnection();
 	
+	public IFactoryDBAdapterRestoteMetaData getFactoryRestore();
+	
 	public void setDumpSqlCommand(OutputStream stream, Boolean isExec);
 	
 	public void startUpdateDB();
+	public void restoreDataBase(IMapMetaObject updateObjs);
 	public void endUpdateDB();
 	
 	public Map<String, DBSchema> getSchemes();
@@ -58,5 +63,5 @@ public interface IDBAdapter {
 	public Map<String, DBUser> getUsers();
 	public Map<String, DBRole> getRoles();
 	
-	
+	/*Если будет нужно - сюда можно добавить подписчиков на события*/
 }

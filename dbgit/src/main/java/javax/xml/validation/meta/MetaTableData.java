@@ -51,11 +51,6 @@ public class MetaTableData implements IMetaObject {
 
 	}
 
-	@Override
-	public void restoreDB() {
-		// TODO Auto-generated method stub
-
-	}
 
 	@Override
 	public String getHash() {

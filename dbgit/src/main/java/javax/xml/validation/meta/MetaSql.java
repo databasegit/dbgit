@@ -52,12 +52,6 @@ public class MetaSql implements IMetaObject {
 	}
 
 	@Override
-	public void restoreDB() {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
 	public String getHash() {
 		// TODO Auto-generated method stub
 		return null;

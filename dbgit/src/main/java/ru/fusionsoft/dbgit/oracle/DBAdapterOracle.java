@@ -3,8 +3,11 @@ package ru.fusionsoft.dbgit.oracle;
 import java.sql.Connection;
 import java.util.Map;
 
+import javax.xml.validation.meta.IMapMetaObject;
+
 import ru.fusionsoft.dbgit.adapters.DBAdapter;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
+import ru.fusionsoft.dbgit.adapters.IFactoryDBAdapterRestoteMetaData;
 import ru.fusionsoft.dbgit.dbobjects.DBConstraint;
 import ru.fusionsoft.dbgit.dbobjects.DBFuntion;
 import ru.fusionsoft.dbgit.dbobjects.DBIndex;
@@ -23,13 +26,7 @@ import ru.fusionsoft.dbgit.dbobjects.DBView;
 public class DBAdapterOracle extends DBAdapter {
 
 	@Override
-	public void setConnection(Connection conn) {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public Connection getConnection() {
+	public IFactoryDBAdapterRestoteMetaData getFactoryRestore() {
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -38,6 +35,11 @@ public class DBAdapterOracle extends DBAdapter {
 	public void startUpdateDB() {
 		// TODO Auto-generated method stub
 
+	}
+	
+	@Override
+	public void restoreDataBase(IMapMetaObject updateObjs) {
+		
 	}
 
 	@Override

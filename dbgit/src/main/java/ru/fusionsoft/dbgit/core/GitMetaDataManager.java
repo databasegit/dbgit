@@ -52,10 +52,8 @@ public class GitMetaDataManager {
 		
 		adapter.startUpdateDB();
 		
-		for (IMetaObject obj : updateObjs.values()) {
-			obj.restoreDB();
-		}
-		
+		adapter.restoreDataBase(updateObjs);
+				
 		adapter.endUpdateDB();
 		
 	}

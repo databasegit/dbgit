@@ -16,9 +16,7 @@ public interface IMetaObject {
 	public void deSerialize(InputStream stream);
 	
 	public void loadFromDB();
-	
-	public void restoreDB();
-	
+		
 	public String getHash();
 	
 	default void saveToFile(String basePath) {

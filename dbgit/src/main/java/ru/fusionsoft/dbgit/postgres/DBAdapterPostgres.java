@@ -4,7 +4,11 @@ import java.sql.Connection;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.xml.validation.meta.IMapMetaObject;
+import javax.xml.validation.meta.IMetaObject;
+
 import ru.fusionsoft.dbgit.adapters.DBAdapter;
+import ru.fusionsoft.dbgit.adapters.IFactoryDBAdapterRestoteMetaData;
 import ru.fusionsoft.dbgit.dbobjects.DBConstraint;
 import ru.fusionsoft.dbgit.dbobjects.DBFuntion;
 import ru.fusionsoft.dbgit.dbobjects.DBIndex;
@@ -22,6 +26,13 @@ import ru.fusionsoft.dbgit.dbobjects.DBView;
 
 public class DBAdapterPostgres extends DBAdapter {
 
+	private FactoryDBAdapterRestorePostgres restoreFactory = new FactoryDBAdapterRestorePostgres();
+	
+	@Override
+	public IFactoryDBAdapterRestoteMetaData getFactoryRestore() {
+		return restoreFactory;
+	}
+	
 	@Override
 	public void startUpdateDB() {
 		// TODO Auto-generated method stub
