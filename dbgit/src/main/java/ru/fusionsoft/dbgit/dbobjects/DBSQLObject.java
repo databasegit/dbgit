@@ -8,11 +8,21 @@ public class DBSQLObject extends DBSchemaObject {
 	
 	public String getHash() {
 		CalcHash ch = new CalcHash();
-		ch.addData(schema.getName());
+		ch.addData(schema);
 		ch.addData(name);
 		ch.addData(sql);
 		
 		return ch.calcHashStr();
 	}
+
+	public String getSql() {
+		return sql;
+	}
+
+	public void setSql(String sql) {
+		this.sql = sql;
+	}
+	
+	
 	
 }

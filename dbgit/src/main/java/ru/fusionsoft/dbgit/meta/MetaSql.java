@@ -1,11 +1,11 @@
-package javax.xml.validation.meta;
+package ru.fusionsoft.dbgit.meta;
 
 import java.io.InputStream;
 import java.io.OutputStream;
 
-public class MetaTableData implements IMetaObject {
+public class MetaSql extends MetaBase {
 
-	public MetaTableData(String name) {
+	public MetaSql(String name) {
 		
 	}
 	
@@ -15,17 +15,6 @@ public class MetaTableData implements IMetaObject {
 		return null;
 	}
 
-	@Override
-	public String getName() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public void setName(String name) {
-		// TODO Auto-generated method stub
-
-	}
 
 	@Override
 	public String getFileName() {
@@ -40,9 +29,9 @@ public class MetaTableData implements IMetaObject {
 	}
 
 	@Override
-	public void deSerialize(InputStream stream) {
+	public IMetaObject deSerialize(InputStream stream) {
 		// TODO Auto-generated method stub
-
+		return null;
 	}
 
 	@Override
@@ -50,7 +39,6 @@ public class MetaTableData implements IMetaObject {
 		// TODO Auto-generated method stub
 
 	}
-
 
 	@Override
 	public String getHash() {

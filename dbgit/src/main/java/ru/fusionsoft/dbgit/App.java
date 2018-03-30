@@ -17,6 +17,7 @@ import ru.fusionsoft.dbgit.command.ExceptionCmdNotFound;
 import ru.fusionsoft.dbgit.command.IDBGitCommand;
 import ru.fusionsoft.dbgit.utils.LoggerUtil;
 
+
 /**
  * Hello world!
  *
@@ -52,7 +53,7 @@ public class App
 		commands.get(cmd).execute(cmdParams);
 	}
 	
-    public static void main( String[] args )
+    public static void main( String[] args ) throws Exception
     {
         System.out.println( "Hello World dbgit!" );
         
@@ -64,5 +65,8 @@ public class App
         	LoggerUtil.getGlobalLogger().error(e.getMessage(), e);
         	System.out.println("dbgit error: "+e.getMessage());
         }
+        
     }
+    
 }
+

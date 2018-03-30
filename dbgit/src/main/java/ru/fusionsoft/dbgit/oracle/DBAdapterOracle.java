@@ -3,8 +3,6 @@ package ru.fusionsoft.dbgit.oracle;
 import java.sql.Connection;
 import java.util.Map;
 
-import javax.xml.validation.meta.IMapMetaObject;
-
 import ru.fusionsoft.dbgit.adapters.DBAdapter;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBAdapterRestoteMetaData;
@@ -20,8 +18,10 @@ import ru.fusionsoft.dbgit.dbobjects.DBTable;
 import ru.fusionsoft.dbgit.dbobjects.DBTableData;
 import ru.fusionsoft.dbgit.dbobjects.DBTableField;
 import ru.fusionsoft.dbgit.dbobjects.DBTableRow;
+import ru.fusionsoft.dbgit.dbobjects.DBTableSpace;
 import ru.fusionsoft.dbgit.dbobjects.DBUser;
 import ru.fusionsoft.dbgit.dbobjects.DBView;
+import ru.fusionsoft.dbgit.meta.IMapMetaObject;
 
 public class DBAdapterOracle extends DBAdapter {
 
@@ -47,9 +47,20 @@ public class DBAdapterOracle extends DBAdapter {
 		// TODO Auto-generated method stub
 
 	}
+	
+	@Override
+	public IMapMetaObject loadCustomMetaObjects() {
+		return null;
+	}
 
 	@Override
 	public Map<String, DBSchema> getSchemes() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
+	@Override
+	public Map<String, DBTableSpace> getTableSpaces() {
 		// TODO Auto-generated method stub
 		return null;
 	}

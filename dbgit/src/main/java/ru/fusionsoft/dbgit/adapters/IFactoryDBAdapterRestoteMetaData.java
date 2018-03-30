@@ -2,8 +2,8 @@ package ru.fusionsoft.dbgit.adapters;
 
 import java.sql.Connection;
 
-import javax.xml.validation.meta.DBGitMetaType;
+import ru.fusionsoft.dbgit.meta.DBGitMetaType;
 
 public interface IFactoryDBAdapterRestoteMetaData {
-	public IDBAdapterRestoreMetaData getAdapterRestore(DBGitMetaType tp, Connection conn);
+	public IDBAdapterRestoreMetaData getAdapterRestore(DBGitMetaType tp, IDBAdapter adapter);
 }

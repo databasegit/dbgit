@@ -3,8 +3,8 @@ package ru.fusionsoft.dbgit.adapters;
 import java.io.OutputStream;
 import java.sql.Connection;
 
-import javax.xml.validation.meta.IMapMetaObject;
-import javax.xml.validation.meta.IMetaObject;
+import ru.fusionsoft.dbgit.meta.IMapMetaObject;
+import ru.fusionsoft.dbgit.meta.IMetaObject;
 
 public abstract class DBAdapter implements IDBAdapter {
 	protected Connection connect;
@@ -30,7 +30,7 @@ public abstract class DBAdapter implements IDBAdapter {
 	@Override
 	public void restoreDataBase(IMapMetaObject updateObjs) {
 		for (IMetaObject obj : updateObjs.values()) {
-			getFactoryRestore().getAdapterRestore(obj.getType(), getConnection()).restoreMetaObject(obj);
+			getFactoryRestore().getAdapterRestore(obj.getType(), this).restoreMetaObject(obj);
 		}
 	}
 }

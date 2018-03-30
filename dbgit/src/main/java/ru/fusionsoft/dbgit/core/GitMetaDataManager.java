@@ -3,15 +3,15 @@ package ru.fusionsoft.dbgit.core;
 import java.util.Map;
 
 import javax.xml.validation.Schema;
-import javax.xml.validation.meta.IMapMetaObject;
-import javax.xml.validation.meta.IMetaObject;
-import javax.xml.validation.meta.MetaTable;
-import javax.xml.validation.meta.TreeMapMetaObject;
 
 import ru.fusionsoft.dbgit.adapters.AdapterFactory;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
 import ru.fusionsoft.dbgit.dbobjects.DBSchema;
 import ru.fusionsoft.dbgit.dbobjects.DBTable;
+import ru.fusionsoft.dbgit.meta.IMapMetaObject;
+import ru.fusionsoft.dbgit.meta.IMetaObject;
+import ru.fusionsoft.dbgit.meta.MetaTable;
+import ru.fusionsoft.dbgit.meta.TreeMapMetaObject;
 
 public class GitMetaDataManager {
 	
@@ -19,6 +19,8 @@ public class GitMetaDataManager {
 		IDBAdapter adapter = AdapterFactory.createAdapter();
 		
 		IMapMetaObject objs = new TreeMapMetaObject();
+		
+		//load MetaDBInfo
 		
 		//load sequence
 		
@@ -35,6 +37,8 @@ public class GitMetaDataManager {
 		//load views
 		
 		//load code
+		
+		//merge with adapter.loadCustomMetaObjects();
 		
 		return objs;
 	}

@@ -1,4 +1,4 @@
-package javax.xml.validation.meta;
+package ru.fusionsoft.dbgit.meta;
 
 import java.util.Map;
 

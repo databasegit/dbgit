@@ -4,8 +4,6 @@ import java.io.OutputStream;
 import java.sql.Connection;
 import java.util.Map;
 
-import javax.xml.validation.meta.IMapMetaObject;
-
 import ru.fusionsoft.dbgit.dbobjects.DBConstraint;
 import ru.fusionsoft.dbgit.dbobjects.DBFuntion;
 import ru.fusionsoft.dbgit.dbobjects.DBIndex;
@@ -18,8 +16,10 @@ import ru.fusionsoft.dbgit.dbobjects.DBTable;
 import ru.fusionsoft.dbgit.dbobjects.DBTableData;
 import ru.fusionsoft.dbgit.dbobjects.DBTableField;
 import ru.fusionsoft.dbgit.dbobjects.DBTableRow;
+import ru.fusionsoft.dbgit.dbobjects.DBTableSpace;
 import ru.fusionsoft.dbgit.dbobjects.DBUser;
 import ru.fusionsoft.dbgit.dbobjects.DBView;
+import ru.fusionsoft.dbgit.meta.IMapMetaObject;
 
 public interface IDBAdapter {
 	public void setConnection(Connection conn);
@@ -33,7 +33,11 @@ public interface IDBAdapter {
 	public void restoreDataBase(IMapMetaObject updateObjs);
 	public void endUpdateDB();
 	
+	public IMapMetaObject loadCustomMetaObjects();
+	
 	public Map<String, DBSchema> getSchemes();
+	
+	public Map<String, DBTableSpace> getTableSpaces();
 	
 	public Map<String, DBSequence> getSequences(DBSchema schema);
 	public DBSequence getSequence(DBSchema schema, String name);

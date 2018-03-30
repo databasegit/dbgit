@@ -2,10 +2,9 @@ package ru.fusionsoft.dbgit.postgres;
 
 import java.sql.Connection;
 
-import javax.xml.validation.meta.IMetaObject;
-
 import ru.fusionsoft.dbgit.adapters.DBRestoreAdapter;
 import ru.fusionsoft.dbgit.adapters.IDBAdapterRestoreMetaData;
+import ru.fusionsoft.dbgit.meta.IMetaObject;
 
 public class DBRestoreTablePostgres extends DBRestoreAdapter {
 

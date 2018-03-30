@@ -2,10 +2,9 @@ package ru.fusionsoft.dbgit.command;
 
 import java.util.Map;
 
-import javax.xml.validation.meta.IMetaObject;
-import javax.xml.validation.meta.TreeMapMetaObject;
-
 import ru.fusionsoft.dbgit.core.GitMetaDataManager;
+import ru.fusionsoft.dbgit.meta.IMetaObject;
+import ru.fusionsoft.dbgit.meta.TreeMapMetaObject;
 
 public class CmdScript implements IDBGitCommand {
 

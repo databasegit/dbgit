@@ -1,34 +1,16 @@
-package javax.xml.validation.meta;
+package ru.fusionsoft.dbgit.meta;
 
 import java.io.InputStream;
 import java.io.OutputStream;
 
-public class MetaSql implements IMetaObject {
+public class MetaBlobData extends MetaBase {
 
-	public MetaSql(String name) {
+	public MetaBlobData(String name) {
 		
 	}
 	
 	@Override
 	public DBGitMetaType getType() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public String getName() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public void setName(String name) {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public String getFileName() {
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -40,9 +22,9 @@ public class MetaSql implements IMetaObject {
 	}
 
 	@Override
-	public void deSerialize(InputStream stream) {
+	public IMetaObject deSerialize(InputStream stream) {
 		// TODO Auto-generated method stub
-
+		return null;
 	}
 
 	@Override

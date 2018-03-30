@@ -4,9 +4,6 @@ import java.sql.Connection;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.xml.validation.meta.IMapMetaObject;
-import javax.xml.validation.meta.IMetaObject;
-
 import ru.fusionsoft.dbgit.adapters.DBAdapter;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBAdapterRestoteMetaData;
 import ru.fusionsoft.dbgit.dbobjects.DBConstraint;
@@ -21,8 +18,11 @@ import ru.fusionsoft.dbgit.dbobjects.DBTable;
 import ru.fusionsoft.dbgit.dbobjects.DBTableData;
 import ru.fusionsoft.dbgit.dbobjects.DBTableField;
 import ru.fusionsoft.dbgit.dbobjects.DBTableRow;
+import ru.fusionsoft.dbgit.dbobjects.DBTableSpace;
 import ru.fusionsoft.dbgit.dbobjects.DBUser;
 import ru.fusionsoft.dbgit.dbobjects.DBView;
+import ru.fusionsoft.dbgit.meta.IMapMetaObject;
+import ru.fusionsoft.dbgit.meta.IMetaObject;
 
 public class DBAdapterPostgres extends DBAdapter {
 
@@ -44,6 +44,11 @@ public class DBAdapterPostgres extends DBAdapter {
 		// TODO Auto-generated method stub
 
 	}
+	
+	@Override
+	public IMapMetaObject loadCustomMetaObjects() {
+		return null;
+	}
 
 	@Override
 	public Map<String, DBSchema> getSchemes() {
@@ -51,6 +56,12 @@ public class DBAdapterPostgres extends DBAdapter {
 		//connect.cre
 		//select *from pg_catalog.pg_namespace;
 		return listScheme;
+	}
+	
+	@Override
+	public Map<String, DBTableSpace> getTableSpaces() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 	@Override

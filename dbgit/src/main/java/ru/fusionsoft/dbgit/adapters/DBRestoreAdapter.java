@@ -3,9 +3,9 @@ package ru.fusionsoft.dbgit.adapters;
 import java.sql.Connection;
 
 public abstract class DBRestoreAdapter implements IDBAdapterRestoreMetaData {
-	protected Connection connect = null;
+	protected IDBAdapter adapter = null;
 	
-	public void setConnection(Connection conn) {
-		connect = conn;
+	public void  setAdapter(IDBAdapter adapter) {
+		this.adapter = adapter;
 	}
 }

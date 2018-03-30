@@ -2,7 +2,7 @@ package ru.fusionsoft.dbgit.dbobjects;
 
 public abstract class DBSchemaObject implements IDBObject {
 	protected String name;
-	protected DBSchema schema;
+	protected String schema;
 		
 	public String getName() {
 		return name;
@@ -10,10 +10,10 @@ public abstract class DBSchemaObject implements IDBObject {
 	public void setName(String name) {
 		this.name = name;
 	}
-	public DBSchema getSchema() {
+	public String getSchema() {
 		return schema;
 	}
-	public void setSchema(DBSchema schema) {
+	public void setSchema(String schema) {
 		this.schema = schema;
 	}
 		

@@ -1,5 +1,6 @@
-package javax.xml.validation.meta;
+package ru.fusionsoft.dbgit.meta;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
@@ -11,9 +12,9 @@ public interface IMetaObject {
 	
 	public String getFileName();
 		
-	public void serialize(OutputStream stream);
+	public void serialize(OutputStream stream) throws IOException;
 	
-	public void deSerialize(InputStream stream);
+	public IMetaObject deSerialize(InputStream stream) throws IOException;
 	
 	public void loadFromDB();
 		
