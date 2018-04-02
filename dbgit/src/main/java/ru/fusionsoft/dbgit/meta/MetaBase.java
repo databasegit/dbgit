@@ -11,6 +11,12 @@ import org.yaml.snakeyaml.Yaml;
 import ru.fusionsoft.dbgit.yaml.DBGitYamlConstructor;
 import ru.fusionsoft.dbgit.yaml.DBGitYamlRepresenter;
 
+
+/**
+ * Base class for all meta objects
+ * @author mikle
+ *
+ */
 public abstract class MetaBase implements IMetaObject {
 	protected String name;
 	
@@ -29,7 +35,13 @@ public abstract class MetaBase implements IMetaObject {
 	public String getFileName() {
 		return "";
 	}
-		
+	
+	/**
+	 * <div class="en">When you save the yaml object, the library ignores properties for which there is no getter and setter</div>
+	 * <div class="ru">При сохранении объекта yaml библиотека игнорирует свойсва для которых нет геттера и сеттера</div>
+	 * @param stream
+	 * @throws IOException
+	 */
 	public void yamlSerialize(OutputStream stream) throws IOException {
         Yaml yaml = createYaml();
         

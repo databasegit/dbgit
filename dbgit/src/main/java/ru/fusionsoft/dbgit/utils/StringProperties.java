@@ -3,7 +3,12 @@ package ru.fusionsoft.dbgit.utils;
 import java.util.HashMap;
 import java.util.Map;
 
-
+/**
+ * Tree string properties 
+ * 
+ * @author mikle
+ *
+ */
 public class StringProperties {
 	private String data = null;
 	private StringProperties parent = null;

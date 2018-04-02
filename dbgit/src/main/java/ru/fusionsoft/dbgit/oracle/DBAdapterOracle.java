@@ -49,7 +49,7 @@ public class DBAdapterOracle extends DBAdapter {
 	}
 	
 	@Override
-	public IMapMetaObject loadCustomMetaObjects() {
+	public Map<String, IMapMetaObject> loadCustomMetaObjects() {
 		return null;
 	}
 

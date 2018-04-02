@@ -46,7 +46,7 @@ public class DBAdapterPostgres extends DBAdapter {
 	}
 	
 	@Override
-	public IMapMetaObject loadCustomMetaObjects() {
+	public Map<String, IMapMetaObject> loadCustomMetaObjects() {
 		return null;
 	}
 

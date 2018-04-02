@@ -5,6 +5,12 @@ import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
+/**
+ * Class utility for calculate hash 
+ * 
+ * @author mikle
+ *
+ */
 public class CalcHash {
 	private MessageDigest md;
 	

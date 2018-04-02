@@ -11,6 +11,12 @@ import org.yaml.snakeyaml.nodes.Node;
 
 import ru.fusionsoft.dbgit.utils.StringProperties;
 
+/**
+ * <div class="en">A class that allows you to use your own constructor for an object from yaml</div>
+ * <div class="ru">Класс, позволяющий использовать собственный конструктор для объекта из yaml</div>
+ * @author mikle
+ *
+ */
 public class DBGitYamlConstructor extends Constructor {
 	protected final Map<Class<?>, Construct> constructorsByClass = new HashMap<Class<?>, Construct>();
 	

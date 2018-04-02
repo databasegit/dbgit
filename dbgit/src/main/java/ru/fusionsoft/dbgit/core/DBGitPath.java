@@ -1,5 +1,11 @@
 package ru.fusionsoft.dbgit.core;
 
+/**
+ * Different path use in project
+ * 
+ * @author mikle
+ *
+ */
 public class DBGitPath {
 	public static final String DB_GIT_PATH = ".dbgit";
 	public static final String DB_LINK_FILE = ".dblink";

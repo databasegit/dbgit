@@ -1,5 +1,11 @@
 package ru.fusionsoft.dbgit.meta;
 
+
+/**
+ * Types meta objects
+ * @author mikle
+ *
+ */
 public enum DBGitMetaType {
 	DBGitUser("usr"){		
 		public Class<?> getMetaClass() {
@@ -139,6 +145,15 @@ public enum DBGitMetaType {
         return val;
     }
 	
+	/**
+	 * 
+	 * @return class working with meta object this type 
+	 */
 	public abstract Class<?> getMetaClass();
+	
+	/**
+	 * Priority type
+	 * @return
+	 */
 	public abstract Integer getPriority();
 }

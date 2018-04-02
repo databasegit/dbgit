@@ -2,6 +2,13 @@ package ru.fusionsoft.dbgit.core;
 
 import java.sql.Connection;
 
+/**
+ * Class for real connection to Database. Load parameters connection from .dblink file
+ * DBConnection is Singleton
+ * 
+ * @author mikle
+ *
+ */
 public class DBConnection {
 	private static DBConnection dbGitConnection = null;
 	private Connection connect = null;

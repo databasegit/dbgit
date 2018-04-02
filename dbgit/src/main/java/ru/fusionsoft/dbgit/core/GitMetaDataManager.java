@@ -13,8 +13,19 @@ import ru.fusionsoft.dbgit.meta.IMetaObject;
 import ru.fusionsoft.dbgit.meta.MetaTable;
 import ru.fusionsoft.dbgit.meta.TreeMapMetaObject;
 
+/**
+ * <div class="en">Manager of meta description objects.</div>
+ * <div class="ru">Менеджер объектов метаописания.</div>
+ * 
+ * @author mikle
+ *
+ */
 public class GitMetaDataManager {
 	
+	/**
+	 * Load meta data from DB
+	 * @return
+	 */
 	public IMapMetaObject loadDBMetaData() {
 		IDBAdapter adapter = AdapterFactory.createAdapter();
 		
@@ -43,14 +54,20 @@ public class GitMetaDataManager {
 		return objs;
 	}
 	
-	
+	/**
+	 * Load meta data from git files
+	 * @return
+	 */
 	public IMapMetaObject loadFileMetaData() {
 		IMapMetaObject objs = new TreeMapMetaObject();
 		//scan files and load object memory
 		return objs;
 	}
 	
-	
+	/**
+	 * Restore map meta object to DB
+	 * @param updateObjs
+	 */
 	public void restoreDataBase(IMapMetaObject updateObjs) {
 		IDBAdapter adapter = AdapterFactory.createAdapter();
 		

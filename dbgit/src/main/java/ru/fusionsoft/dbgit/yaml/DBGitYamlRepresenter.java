@@ -13,6 +13,12 @@ import org.yaml.snakeyaml.representer.Representer;
 
 import ru.fusionsoft.dbgit.utils.StringProperties;
 
+/**
+ * <div class="en">A class that allows you to use your own view for an object in yaml</div>
+ * <div class="ru">Класс, позволяющий использовать собственное представление для объекта в yaml</div>
+ * @author mikle
+ *
+ */
 public class DBGitYamlRepresenter extends Representer {
 	public DBGitYamlRepresenter() {        
         this.representers.put(StringProperties.class, new RepresentYamlStringProperties());

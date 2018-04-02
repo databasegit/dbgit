@@ -1,5 +1,11 @@
 package ru.fusionsoft.dbgit.dbobjects;
 
+
+/**
+ * Base class for database objects in scheme 
+ * @author mikle
+ *
+ */
 public abstract class DBSchemaObject implements IDBObject {
 	protected String name;
 	protected String schema;

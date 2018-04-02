@@ -1,5 +1,11 @@
 package ru.fusionsoft.dbgit.core;
 
+/**
+ * Base class for all Exception in dbgit project
+ * 
+ * @author mikle
+ *
+ */
 public class ExceptionDBGit extends Exception {
 
 	private static final long serialVersionUID = -4613368557825624023L;

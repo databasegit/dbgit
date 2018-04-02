@@ -21,19 +21,52 @@ import ru.fusionsoft.dbgit.dbobjects.DBUser;
 import ru.fusionsoft.dbgit.dbobjects.DBView;
 import ru.fusionsoft.dbgit.meta.IMapMetaObject;
 
+/**
+ * <div class="en">The adapter hides the differences between different databases.</div>
+ * <div class="ru">Адаптер скрывающий различия между разными БД.</div>
+ * 
+ * @author mikle
+ *
+ *
+ */
 public interface IDBAdapter {
 	public void setConnection(Connection conn);
 	public Connection getConnection();
 	
+	/**
+	 * 
+	 * @return Factory Adapter for create restore adapter
+	 */
 	public IFactoryDBAdapterRestoteMetaData getFactoryRestore();
 	
+	/**
+	 * 
+	 * @param stream Stream for output sql command
+	 * @param isExec - Execute action sql command or only write command to stream
+	 */
 	public void setDumpSqlCommand(OutputStream stream, Boolean isExec);
 	
+	/**
+	 * Run before start update databse
+	 */
 	public void startUpdateDB();
+	
+	/**
+	 * Restore Meta Objects to DataBase
+	 * @param updateObjs
+	 */
 	public void restoreDataBase(IMapMetaObject updateObjs);
+	
+	/**
+	 * Run after end restore database
+	 */
 	public void endUpdateDB();
 	
-	public IMapMetaObject loadCustomMetaObjects();
+	/**
+	 * Load from database custom objects
+	 * @return custom meta objects
+	 */
+	public Map<String, IMapMetaObject> loadCustomMetaObjects();
 	
 	public Map<String, DBSchema> getSchemes();
 	
