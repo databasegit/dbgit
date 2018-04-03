@@ -11,7 +11,7 @@ public class DBOptionsObject implements IDBObject {
 	}
 
 	public DBOptionsObject(String name) {
-		this.name = name;
+		this.setName(name);
 	}
 	
 	public StringProperties getOptions() {
@@ -32,7 +32,8 @@ public class DBOptionsObject implements IDBObject {
 
 	public String getHash() {
 		CalcHash ch = new CalcHash();
-		ch.addData(name);
+		ch.addData(this.getName());
+		ch.addData(this.getOptions().toString());
 
 		return ch.calcHashStr();
 	}	

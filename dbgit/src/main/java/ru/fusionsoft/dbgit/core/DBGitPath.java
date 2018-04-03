@@ -18,4 +18,8 @@ public class DBGitPath {
 	public static String getFullPath(String path) {
 		return DB_GIT_PATH + "/" + path + "/";
 	}
+	
+	public static String getFullPath() {
+		return DB_GIT_PATH + "/";
+	}
 }

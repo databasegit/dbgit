@@ -2,6 +2,9 @@ package ru.fusionsoft.dbgit.utils;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
+
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * Tree string properties 
@@ -15,7 +18,7 @@ public class StringProperties {
     private Map<String, StringProperties> children = null;
 
     public StringProperties() {        
-        this.children = new HashMap<String, StringProperties>();
+        this.children = new TreeMap<String, StringProperties>();
     }
     
     public StringProperties(String data) {        
@@ -87,13 +90,31 @@ public class StringProperties {
     	return null;
 	}
 	
-	public void setChildren(Map<String, StringProperties> children) {
+	public void setChildren(Map<String, StringProperties> lst) {
 		if (children != null) {
-			this.children = children;
+			for (String item : lst.keySet()) {
+				addChild(item, lst.get(item));
+			}
 		}
 	}
 	
+	public StringBuilder toString(Integer level) {
+		StringBuilder sb = new StringBuilder("");
+		String prefix = StringUtils.leftPad("", 4*level, " ");
+		if (children.size() > 0) {
+			for (String item : children.keySet()) {
+				sb.append("\n"+prefix+item+":"+" "+children.get(item).toString(level+1));
+			}
+		} else {
+			sb.append(getData());
+		}
+		
+		return sb;
+	}
 	
+	public String toString() {
+		return toString(0).toString();
+	}
 
 }
 

@@ -3,6 +3,11 @@ package ru.fusionsoft.dbgit.meta;
 import java.io.InputStream;
 import java.io.OutputStream;
 
+/**
+ * Meta class for sql data
+ * @author mikle
+ *
+ */
 public class MetaSql extends MetaBase {
 
 	public MetaSql(String name) {
@@ -15,12 +20,6 @@ public class MetaSql extends MetaBase {
 		return null;
 	}
 
-
-	@Override
-	public String getFileName() {
-		// TODO Auto-generated method stub
-		return null;
-	}
 
 	@Override
 	public void serialize(OutputStream stream) {

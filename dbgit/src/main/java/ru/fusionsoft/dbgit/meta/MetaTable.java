@@ -6,19 +6,26 @@ import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 import ru.fusionsoft.dbgit.dbobjects.DBConstraint;
 import ru.fusionsoft.dbgit.dbobjects.DBIndex;
 import ru.fusionsoft.dbgit.dbobjects.DBTable;
 import ru.fusionsoft.dbgit.dbobjects.DBTableField;
+import ru.fusionsoft.dbgit.utils.CalcHash;
 
+/**
+ * Meta class for db Table 
+ * @author mikle
+ *
+ */
 public class MetaTable extends MetaBase {	
 
 	private DBTable table;
 	
-	private Map<String, DBTableField> fields = new HashMap<String, DBTableField>();
-	private Map<String, DBIndex> indexes = new HashMap<String, DBIndex>();
-	private Map<String, DBConstraint> constraints = new HashMap<String, DBConstraint>();
+	private Map<String, DBTableField> fields = new TreeMap<String, DBTableField>();
+	private Map<String, DBIndex> indexes = new TreeMap<String, DBIndex>();
+	private Map<String, DBConstraint> constraints = new TreeMap<String, DBConstraint>();
 	
 	public MetaTable() {	
 	}
@@ -53,7 +60,26 @@ public class MetaTable extends MetaBase {
 	
 	@Override
 	public String getHash() {
-		return "1";
+		CalcHash ch = new CalcHash();
+		ch.addData(this.getName());
+		ch.addData(this.getTable().getHash());
+		
+		for (String item : fields.keySet()) {
+			ch.addData(item);
+			ch.addData(fields.get(item).getHash());
+		}
+		
+		for (String item : indexes.keySet()) {
+			ch.addData(item);
+			ch.addData(indexes.get(item).getHash());
+		}
+		
+		for (String item : constraints.keySet()) {
+			ch.addData(item);
+			ch.addData(constraints.get(item).getHash());
+		}
+
+		return ch.calcHashStr();		
 	}
 
 	public DBTable getTable() {

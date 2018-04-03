@@ -8,7 +8,8 @@ import ru.fusionsoft.dbgit.meta.IMetaObject;
 
 public class CmdDump implements IDBGitCommand {
 
-	public void execute(String[] args) {
+	@Override
+	public void execute(String[] args) throws Exception {
 		// TODO Auto-generated method stub
 		
 		GitMetaDataManager gmdm = new GitMetaDataManager();

@@ -1,8 +1,13 @@
 package ru.fusionsoft.dbgit.meta;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+
+import ru.fusionsoft.dbgit.core.DBGitPath;
 
 /**
  * <div class="en">
@@ -62,11 +67,37 @@ public interface IMetaObject {
 		
 	public String getHash();
 	
-	default void saveToFile(String basePath) {
-		System.out.println("I1 logging::");
+	/**
+	 * Save meta file to base path
+	 * Example - .dbgit/basePath/path_and_filename_meta_object
+	 * 
+	 * @param basePath
+	 * @throws IOException
+	 */
+	default void saveToFile(String basePath) throws IOException {
+		String filename = DBGitPath.getFullPath(basePath);
+		FileOutputStream out = new FileOutputStream(filename);
+		this.serialize(out);
+		out.close();
+		
+		System.out.println("write file "+filename);
 	}
 	
-	default void loadFromFile(String basePath) {
-		System.out.println("I1 logging::");
+	/**
+	 * Load meta file to base path
+	 * Example - .dbgit/basePath/path_and_filename_meta_object
+	 * 
+	 * @param basePath
+	 * @throws IOException
+	 */
+	default IMetaObject loadFromFile(String basePath) throws IOException {
+		String filename = DBGitPath.getFullPath(basePath);
+		File file = new File(filename);
+		FileInputStream fis = new FileInputStream(file);
+		IMetaObject meta = this.deSerialize(fis);
+		fis.close();
+		
+		System.out.println("read file " + filename);
+		return meta;
 	}
 }

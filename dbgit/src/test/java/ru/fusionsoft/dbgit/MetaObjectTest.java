@@ -10,6 +10,8 @@ import ru.fusionsoft.dbgit.dbobjects.DBIndex;
 import ru.fusionsoft.dbgit.dbobjects.DBSchema;
 import ru.fusionsoft.dbgit.dbobjects.DBTable;
 import ru.fusionsoft.dbgit.dbobjects.DBTableField;
+import ru.fusionsoft.dbgit.meta.DBGitMetaType;
+import ru.fusionsoft.dbgit.meta.MetaObjOptions;
 import ru.fusionsoft.dbgit.meta.MetaTable;
 import ru.fusionsoft.dbgit.utils.StringProperties;
 
@@ -110,6 +112,18 @@ public class MetaObjectTest extends TestCase {
     	StringProperties sub = pr.addChild("subparams");
     	sub.addChild("subparam1", "asd1");
     	sub.addChild("subparam2", "asd2");
+    	
+    	MetaObjOptions meta = new MetaObjOptions(); 
+    	meta.setType(DBGitMetaType.DBGitSchema);
+    	meta.setObjectOption(sh);
+    	
+    	assertEquals("Assert hash!", meta.getHash(), "5c376e1836f4cbc763808fe077a84f2eaf9cdb9dc7e22107fc44a9567f4cf264");
+    	
+    	/*
+    	System.out.println(meta.getHash());
+    	
+    	System.out.println(pr.toString());
+    	*/
     	//TODO to yaml and assert    	
 	}
 }

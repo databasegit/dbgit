@@ -36,7 +36,7 @@ public enum DBGitMetaType {
 	},
 	DBGitSchema("sch"){		
 		public Class<?> getMetaClass() {
-			return MetaObjOptions.class;
+			return MetaShema.class;
 		}
 		
 		public Integer getPriority() {
@@ -152,7 +152,7 @@ public enum DBGitMetaType {
 	public abstract Class<?> getMetaClass();
 	
 	/**
-	 * Priority type
+	 * Priority type. Use in TreeMapMetaObject
 	 * @return
 	 */
 	public abstract Integer getPriority();

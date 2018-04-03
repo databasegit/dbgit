@@ -3,6 +3,11 @@ package ru.fusionsoft.dbgit.meta;
 import java.io.InputStream;
 import java.io.OutputStream;
 
+/**
+ * Class for meta data of blob field value
+ * @author mikle
+ *
+ */
 public class MetaBlobData extends MetaBase {
 
 	public MetaBlobData(String name) {

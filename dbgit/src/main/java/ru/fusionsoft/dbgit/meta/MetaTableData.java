@@ -3,7 +3,11 @@ package ru.fusionsoft.dbgit.meta;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-public class MetaTableData extends MetaBase {
+/**
+ * Meta class for Table data
+ * @author mikle
+ *
+ */public class MetaTableData extends MetaBase {
 
 	public MetaTableData(String name) {
 		

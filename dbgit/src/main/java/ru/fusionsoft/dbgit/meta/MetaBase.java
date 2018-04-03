@@ -33,7 +33,7 @@ public abstract class MetaBase implements IMetaObject {
 	
 	@Override
 	public String getFileName() {
-		return "";
+		return getName();
 	}
 	
 	/**

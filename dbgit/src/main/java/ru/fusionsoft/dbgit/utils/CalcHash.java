@@ -16,9 +16,7 @@ public class CalcHash {
 	
 	public CalcHash() {
 		try {
-			MessageDigest md = MessageDigest.getInstance("SHA-256");
-						
-
+			md = MessageDigest.getInstance("SHA-256");						
 		} catch (NoSuchAlgorithmException e) {
 			LoggerUtil.getGlobalLogger().error("error search MessageDigest SHA-256", e);			
 		}		
