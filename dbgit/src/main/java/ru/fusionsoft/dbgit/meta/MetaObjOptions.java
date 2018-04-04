@@ -12,9 +12,16 @@ import ru.fusionsoft.dbgit.utils.CalcHash;
  * @author mikle
  *
  */
-public class MetaObjOptions extends MetaBase {
-	private DBGitMetaType type;
+public abstract class MetaObjOptions extends MetaBase {
+
 	private DBOptionsObject objectOption = null;
+	
+	public MetaObjOptions() {}
+	
+	public MetaObjOptions(DBOptionsObject objectOption) {
+		this();
+		setObjectOption(objectOption);
+	}
 	
 	public DBOptionsObject getObjectOption() {
 		return objectOption;
@@ -26,15 +33,6 @@ public class MetaObjOptions extends MetaBase {
 	}
 
 	@Override
-	public DBGitMetaType getType() {
-		return type;
-	}
-	
-	public void setType(DBGitMetaType type) {
-		this.type = type;
-	}
-	
-	@Override
 	public void serialize(OutputStream stream) throws IOException {
 		yamlSerialize(stream);
 	}
@@ -44,11 +42,6 @@ public class MetaObjOptions extends MetaBase {
 		return yamlDeSerialize(stream);
 	}
 
-	@Override
-	public void loadFromDB() {
-		// TODO Auto-generated method stub
-
-	}
 
 	@Override
 	public String getHash() {

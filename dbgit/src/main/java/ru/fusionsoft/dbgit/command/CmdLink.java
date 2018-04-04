@@ -1,45 +1,47 @@
 package ru.fusionsoft.dbgit.command;
 
 
+import java.util.Arrays;
 import java.util.Properties;
 
 import ru.fusionsoft.dbgit.core.DBConnection;
+import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 
 
 public class CmdLink implements IDBGitCommand {
 
-	public void execute(String[] args) {
-		// TODO Auto-generated method stub
-		if(args==null) {
-			System.out.println("Url database is empty");
+	public void execute(String[] args) throws ExceptionDBGit {
+		try {
+		if(args == null || args.length == 0) {
+			System.out.println("Url database is empty");			
+		} else {
+			String url = args[0];
+			Properties props = CreateProperties(Arrays.copyOfRange(args, 1, args.length));
 			
-		}else {
-			DBConnection conn = DBConnection.getInctance();
-			String[] properties = CreateStringProperties(args);
-			Properties props = CreateProperties(properties);
+			DBConnection conn = DBConnection.getInctance(false);
 			
-			if(conn.testingConnection(args[0], props)) {
-				DBConnection.createFileDBLink(args[0], properties);
+			if(conn.testingConnection(url, props)) {
+				DBConnection.createFileDBLink(url, props);
+				System.out.println("Create file DB link success!!!");
 			}
 			else {
 				System.out.println("Connection no established!!!");
 			}
+		}
+		} catch(Exception e) {
+			System.out.println("Error parce command!");
+			throw new ExceptionDBGit(e);
 		}
 	}
 	
 	public Properties CreateProperties(String[] args) {
 		Properties props = new Properties();
 		for(String prop: args){
-			props.put(prop.split("=")[0], prop.split("=")[1]);
+			String[] tmp = prop.split("=");
+			props.put(tmp[0], tmp[1]);
 		}
 		return props;
 	}
-	public String[] CreateStringProperties(String[] args) {
-		String[] props = new String[args.length-1];
-		for(int i=0;i<props.length;i++) {
-			props[i]=args[i+1];
-		}
-		return props;
-	}
+	
 
 }

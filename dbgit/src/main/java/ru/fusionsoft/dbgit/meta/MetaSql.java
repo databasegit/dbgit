@@ -3,23 +3,32 @@ package ru.fusionsoft.dbgit.meta;
 import java.io.InputStream;
 import java.io.OutputStream;
 
+import ru.fusionsoft.dbgit.dbobjects.DBSQLObject;
+
 /**
  * Meta class for sql data
  * @author mikle
  *
  */
-public class MetaSql extends MetaBase {
-
-	public MetaSql(String name) {
-		
-	}
+public abstract class MetaSql extends MetaBase {
+	protected DBSQLObject sqlObject;
 	
-	@Override
-	public DBGitMetaType getType() {
-		// TODO Auto-generated method stub
-		return null;
+	public MetaSql() {}
+	
+	public MetaSql(DBSQLObject sqlObject) {
+		this();
+		setSqlObject(sqlObject);
+	}	
+	
+	public DBSQLObject getSqlObject() {
+		return sqlObject;
 	}
 
+
+	public void setSqlObject(DBSQLObject sqlObject) {
+		this.sqlObject = sqlObject;
+		setName(sqlObject.getSchema()+"/"+sqlObject.getName()+"."+getType().getValue());
+	}
 
 	@Override
 	public void serialize(OutputStream stream) {
@@ -31,12 +40,6 @@ public class MetaSql extends MetaBase {
 	public IMetaObject deSerialize(InputStream stream) {
 		// TODO Auto-generated method stub
 		return null;
-	}
-
-	@Override
-	public void loadFromDB() {
-		// TODO Auto-generated method stub
-
 	}
 
 	@Override

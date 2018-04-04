@@ -9,13 +9,13 @@ import ru.fusionsoft.dbgit.utils.CalcHash;
  */
 public class DBSQLObject extends DBSchemaObject {
 	
-	private String sql;
+	protected String sql;
 	
 	public String getHash() {
 		CalcHash ch = new CalcHash();
-		ch.addData(schema);
-		ch.addData(name);
-		ch.addData(sql);
+		ch.addData(getSchema());
+		ch.addData(getName());
+		ch.addData(getSql());
 		
 		return ch.calcHashStr();
 	}

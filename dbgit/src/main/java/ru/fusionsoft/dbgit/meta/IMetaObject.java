@@ -8,6 +8,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 import ru.fusionsoft.dbgit.core.DBGitPath;
+import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 
 /**
  * <div class="en">
@@ -63,7 +64,7 @@ public interface IMetaObject {
 	/**
 	 * load current object from DB
 	 */
-	public void loadFromDB();
+	public void loadFromDB() throws ExceptionDBGit;
 		
 	public String getHash();
 	
@@ -74,7 +75,7 @@ public interface IMetaObject {
 	 * @param basePath
 	 * @throws IOException
 	 */
-	default void saveToFile(String basePath) throws IOException {
+	default void saveToFile(String basePath) throws IOException, ExceptionDBGit {
 		String filename = DBGitPath.getFullPath(basePath);
 		FileOutputStream out = new FileOutputStream(filename);
 		this.serialize(out);
@@ -90,7 +91,7 @@ public interface IMetaObject {
 	 * @param basePath
 	 * @throws IOException
 	 */
-	default IMetaObject loadFromFile(String basePath) throws IOException {
+	default IMetaObject loadFromFile(String basePath) throws IOException, ExceptionDBGit {
 		String filename = DBGitPath.getFullPath(basePath);
 		File file = new File(filename);
 		FileInputStream fis = new FileInputStream(file);

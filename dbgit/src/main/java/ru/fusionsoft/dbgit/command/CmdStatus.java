@@ -6,7 +6,7 @@ import ru.fusionsoft.dbgit.core.GitMetaDataManager;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
 
 public class CmdStatus implements IDBGitCommand {
-	public void execute(String[] args) {
+	public void execute(String[] args) throws Exception {
 		GitMetaDataManager gmdm = new GitMetaDataManager();
 		
 		Map<String, IMetaObject> dbObjs = gmdm.loadDBMetaData();

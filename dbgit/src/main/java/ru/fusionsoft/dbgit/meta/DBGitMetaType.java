@@ -9,7 +9,7 @@ package ru.fusionsoft.dbgit.meta;
 public enum DBGitMetaType {
 	DBGitUser("usr"){		
 		public Class<?> getMetaClass() {
-			return MetaObjOptions.class;
+			return MetaUser.class;
 		}
 		
 		public Integer getPriority() {
@@ -18,7 +18,7 @@ public enum DBGitMetaType {
 	},
 	DBGitRole("role"){		
 		public Class<?> getMetaClass() {
-			return MetaObjOptions.class;
+			return MetaRole.class;
 		}
 		
 		public Integer getPriority() {
@@ -27,7 +27,7 @@ public enum DBGitMetaType {
 	},
 	DBGitTableSpace("ts"){		
 		public Class<?> getMetaClass() {
-			return MetaObjOptions.class;
+			return MetaTableSpace.class;
 		}
 		
 		public Integer getPriority() {
@@ -36,7 +36,7 @@ public enum DBGitMetaType {
 	},
 	DBGitSchema("sch"){		
 		public Class<?> getMetaClass() {
-			return MetaShema.class;
+			return MetaSchema.class;
 		}
 		
 		public Integer getPriority() {
@@ -46,7 +46,7 @@ public enum DBGitMetaType {
 	
 	DBGitSequence("seq"){		
 		public Class<?> getMetaClass() {
-			return MetaSql.class;
+			return MetaSequence.class;
 		}
 		
 		public Integer getPriority() {
@@ -66,7 +66,7 @@ public enum DBGitMetaType {
 	
     DbGitPakage("pkg") {		
 		public Class<?> getMetaClass() {
-			return MetaSql.class;
+			return MetaPackage.class;
 		}
 		
 		public Integer getPriority() {
@@ -76,7 +76,7 @@ public enum DBGitMetaType {
     
     DbGitTrigger("trg") {		
 		public Class<?> getMetaClass() {
-			return MetaSql.class;
+			return MetaTrigger.class;
 		}
 		
 		public Integer getPriority() {
@@ -86,7 +86,7 @@ public enum DBGitMetaType {
 	
 	DbGitProcedure("prc") {		
 		public Class<?> getMetaClass() {
-			return MetaSql.class;
+			return MetaProcedure.class;
 		}
 		
 		public Integer getPriority() {
@@ -96,7 +96,7 @@ public enum DBGitMetaType {
 	
 	DbGitFunction("fnc") {		
 		public Class<?> getMetaClass() {
-			return MetaSql.class;
+			return MetaFunction.class;
 		}
 		
 		public Integer getPriority() {
@@ -106,7 +106,7 @@ public enum DBGitMetaType {
 	
 	DbGitView("vw") {		
 		public Class<?> getMetaClass() {
-			return MetaSql.class;
+			return MetaView.class;
 		}
 		
 		public Integer getPriority() {

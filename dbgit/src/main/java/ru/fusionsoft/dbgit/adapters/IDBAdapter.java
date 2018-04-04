@@ -5,9 +5,9 @@ import java.sql.Connection;
 import java.util.Map;
 
 import ru.fusionsoft.dbgit.dbobjects.DBConstraint;
-import ru.fusionsoft.dbgit.dbobjects.DBFuntion;
+import ru.fusionsoft.dbgit.dbobjects.DBFunction;
 import ru.fusionsoft.dbgit.dbobjects.DBIndex;
-import ru.fusionsoft.dbgit.dbobjects.DBPakage;
+import ru.fusionsoft.dbgit.dbobjects.DBPackage;
 import ru.fusionsoft.dbgit.dbobjects.DBProcedure;
 import ru.fusionsoft.dbgit.dbobjects.DBRole;
 import ru.fusionsoft.dbgit.dbobjects.DBSchema;
@@ -17,6 +17,7 @@ import ru.fusionsoft.dbgit.dbobjects.DBTableData;
 import ru.fusionsoft.dbgit.dbobjects.DBTableField;
 import ru.fusionsoft.dbgit.dbobjects.DBTableRow;
 import ru.fusionsoft.dbgit.dbobjects.DBTableSpace;
+import ru.fusionsoft.dbgit.dbobjects.DBTrigger;
 import ru.fusionsoft.dbgit.dbobjects.DBUser;
 import ru.fusionsoft.dbgit.dbobjects.DBView;
 import ru.fusionsoft.dbgit.meta.IMapMetaObject;
@@ -66,7 +67,7 @@ public interface IDBAdapter {
 	 * Load from database custom objects
 	 * @return custom meta objects
 	 */
-	public Map<String, IMapMetaObject> loadCustomMetaObjects();
+	public IMapMetaObject loadCustomMetaObjects();
 	
 	public Map<String, DBSchema> getSchemes();
 	
@@ -85,14 +86,17 @@ public interface IDBAdapter {
 	public Map<String, DBView> getViews(DBSchema schema);
 	public DBView getView(DBSchema schema, String name);
 	
-	public Map<String, DBPakage> getPackages(DBSchema schema);
-	public DBPakage getPackage(DBSchema schema, String name);
+	public Map<String, DBPackage> getPackages(DBSchema schema);
+	public DBPackage getPackage(DBSchema schema, String name);
 	
 	public Map<String, DBProcedure> getProcedures(DBSchema schema);
 	public DBProcedure getProcedure(DBSchema schema, String name);
 	
-	public Map<String, DBFuntion> getFunctions(DBSchema schema);
-	public DBFuntion getFunction(DBSchema schema, String name);
+	public Map<String, DBFunction> getFunctions(DBSchema schema);
+	public DBFunction getFunction(DBSchema schema, String name);
+	
+	public Map<String, DBTrigger> getTriggers(DBSchema schema);
+	public DBTrigger getTrigger(DBSchema schema, String name);
 	
 	public DBTableData getTableData(DBTable tbl);
 	public DBTableRow getTableRow(DBTable tbl, Object id); //TODO multi id

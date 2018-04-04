@@ -1,6 +1,7 @@
 package ru.fusionsoft.dbgit.adapters;
 
 import ru.fusionsoft.dbgit.core.DBConnection;
+import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.postgres.DBAdapterPostgres;
 
 /**
@@ -18,7 +19,7 @@ import ru.fusionsoft.dbgit.postgres.DBAdapterPostgres;
 public class AdapterFactory {
 	private static IDBAdapter adapter = null;
 	
-	public static IDBAdapter createAdapter() {
+	public static IDBAdapter createAdapter() throws ExceptionDBGit {
 		if (adapter == null) {
 			DBConnection conn = DBConnection.getInctance();
 			//TODO

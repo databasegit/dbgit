@@ -12,6 +12,8 @@ import ru.fusionsoft.dbgit.dbobjects.DBTable;
 import ru.fusionsoft.dbgit.dbobjects.DBTableField;
 import ru.fusionsoft.dbgit.meta.DBGitMetaType;
 import ru.fusionsoft.dbgit.meta.MetaObjOptions;
+import ru.fusionsoft.dbgit.meta.MetaObjectFactory;
+import ru.fusionsoft.dbgit.meta.MetaSchema;
 import ru.fusionsoft.dbgit.meta.MetaTable;
 import ru.fusionsoft.dbgit.utils.StringProperties;
 
@@ -101,7 +103,7 @@ public class MetaObjectTest extends TestCase {
 		}        
     }
 	
-	public void testMetaShema() {
+	public void testMetaShema() throws Exception {
 		DBSchema sh = new DBSchema("myshema");
     	StringProperties pr = sh.getOptions();
     	pr.setData("info value");
@@ -113,8 +115,7 @@ public class MetaObjectTest extends TestCase {
     	sub.addChild("subparam1", "asd1");
     	sub.addChild("subparam2", "asd2");
     	
-    	MetaObjOptions meta = new MetaObjOptions(); 
-    	meta.setType(DBGitMetaType.DBGitSchema);
+    	MetaObjOptions meta = (MetaObjOptions)MetaObjectFactory.createMetaObject(DBGitMetaType.DBGitSchema);     	
     	meta.setObjectOption(sh);
     	
     	assertEquals("Assert hash!", meta.getHash(), "5c376e1836f4cbc763808fe077a84f2eaf9cdb9dc7e22107fc44a9567f4cf264");

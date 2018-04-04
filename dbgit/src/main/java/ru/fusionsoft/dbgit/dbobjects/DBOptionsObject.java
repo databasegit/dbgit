@@ -7,8 +7,7 @@ public class DBOptionsObject implements IDBObject {
 	private String name;	
 	private StringProperties options = new StringProperties();
 	
-	public DBOptionsObject() {
-	}
+	public DBOptionsObject() {}
 
 	public DBOptionsObject(String name) {
 		this.setName(name);

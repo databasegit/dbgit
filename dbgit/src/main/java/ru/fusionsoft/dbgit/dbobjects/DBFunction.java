@@ -1,5 +1,5 @@
 package ru.fusionsoft.dbgit.dbobjects;
 
-public class DBFuntion extends DBCode {
+public class DBFunction extends DBCode {
 
 }

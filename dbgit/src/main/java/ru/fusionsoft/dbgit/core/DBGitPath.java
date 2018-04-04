@@ -1,5 +1,7 @@
 package ru.fusionsoft.dbgit.core;
 
+import java.io.File;
+
 /**
  * Different path use in project
  * 
@@ -15,11 +17,20 @@ public class DBGitPath {
 	
 	//path utils
 	
-	public static String getFullPath(String path) {
-		return DB_GIT_PATH + "/" + path + "/";
+	public static String getFullPath(String path) throws ExceptionDBGit {		
+		return getFullPath() + path + "/";
 	}
 	
-	public static String getFullPath() {
-		return DB_GIT_PATH + "/";
+	public static String getFullPath() throws ExceptionDBGit {
+		DBGit dbGit = DBGit.getInctance();
+		return dbGit.getRootDirectory()+"/"+DB_GIT_PATH + "/";
 	}
+	
+	public static boolean createDir(String path) {
+		File dir = new File(path);
+		return dir.mkdirs();
+	}
+	
+	
+	
 }

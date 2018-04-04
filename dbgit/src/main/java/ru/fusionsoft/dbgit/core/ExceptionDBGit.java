@@ -17,5 +17,9 @@ public class ExceptionDBGit extends Exception {
 	public ExceptionDBGit(String message, Throwable cause) {
 		super(message, cause);
 	}
+	
+	public ExceptionDBGit(Throwable cause) {
+		super(cause);
+	}
 
 }
