@@ -1,11 +1,10 @@
 package ru.fusionsoft.dbgit.command;
 
 
-import ru.fusionsoft.dbgit.core.DBGitPath;
-import java.io.FileWriter;
-import java.sql.Connection;
-import java.sql.DriverManager;
 import java.util.Properties;
+
+import ru.fusionsoft.dbgit.core.DBConnection;
+
 
 public class CmdLink implements IDBGitCommand {
 
@@ -15,12 +14,12 @@ public class CmdLink implements IDBGitCommand {
 			System.out.println("Url database is empty");
 			
 		}else {
-			Connection conn = null;
+			DBConnection conn = DBConnection.getInctance();
 			String[] properties = CreateStringProperties(args);
 			Properties props = CreateProperties(properties);
 			
-			if(testingConnection(conn, args[0], props)) {
-				createFile(args[0], properties);
+			if(conn.testingConnection(args[0], props)) {
+				DBConnection.createFileDBLink(args[0], properties);
 			}
 			else {
 				System.out.println("Connection no established!!!");
@@ -42,29 +41,5 @@ public class CmdLink implements IDBGitCommand {
 		}
 		return props;
 	}
-	public boolean testingConnection(Connection conn, String url, Properties props) {
-		try {
-			conn = DriverManager.getConnection(url, props);
-			System.out.println("Connection established");
-			conn.close();
-			return true;
-		}catch(Exception e) {
-			e.printStackTrace();
-			return false;
-		}
-		
-	}
-	public void createFile(String url, String[] props) {
-		try{
-			FileWriter writer = new FileWriter(DBGitPath.getFullPath(DBGitPath.DB_LINK_FILE));		
-		    writer.write("url="+url+"\n");
-		    for(String prop: props) {
-		    	writer.write(prop+"\n");
-		    }
-		    writer.close();
-		    System.out.println("File " + DBGitPath.getFullPath(DBGitPath.DB_LINK_FILE) + " has been created.");
-	    }catch(Exception e) {
-	    	e.printStackTrace();
-	    }
-	}
+
 }
