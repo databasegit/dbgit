@@ -66,8 +66,10 @@ public class DBConnection {
 	}
 	
 	public static void createFileDBLink(String url, Properties props) throws ExceptionDBGit {
-		try{			
-			FileWriter writer = new FileWriter(DBGitPath.getFullPath(DBGitPath.DB_LINK_FILE));		
+		try{	
+			File file = new File(DBGitPath.getFullPath(DBGitPath.DB_LINK_FILE));				
+			DBGitPath.createDir(file.getParent());
+			FileWriter writer = new FileWriter(file.getAbsolutePath());		
 		    writer.write("url="+url+"\n");
 		    Enumeration e = props.propertyNames();
 
@@ -87,9 +89,7 @@ public class DBConnection {
 			
 			String filename = DBGitPath.getFullPath(DBGitPath.DB_LINK_FILE);	
 						
-			File file = new File(filename);
-			
-			DBGitPath.createDir(file.getParent());
+			File file = new File(filename);						
 			
 			if (!file.exists()) {
 				return null;

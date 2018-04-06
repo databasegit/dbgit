@@ -7,6 +7,7 @@ import java.util.Map;
 
 import ru.fusionsoft.dbgit.command.CmdAdd;
 import ru.fusionsoft.dbgit.command.CmdDump;
+import ru.fusionsoft.dbgit.command.CmdHelp;
 import ru.fusionsoft.dbgit.command.CmdLink;
 import ru.fusionsoft.dbgit.command.CmdRestore;
 import ru.fusionsoft.dbgit.command.CmdRm;
@@ -35,16 +36,14 @@ public class App
         aMap.put("rm", new CmdRm());
         aMap.put("valid", new CmdValid());
         aMap.put("script", new CmdScript());
+        aMap.put("help", new CmdHelp());
 
         commands = Collections.unmodifiableMap(aMap);
 	}
 
 	public static void executeDbGitCommand(String[] args) throws Exception {
-		if (args.length == 0) {
-			throw new ExceptionCmdNotFound("Command not found!");
-		}
-		
-		String cmd = args[0].toLowerCase();
+		String cmd = args.length == 0 ? "help" : args[0].toLowerCase();
+
 		if (!commands.containsKey(cmd)) {
 			throw new ExceptionCmdNotFound("Command "+cmd+ " not found!");
 		}

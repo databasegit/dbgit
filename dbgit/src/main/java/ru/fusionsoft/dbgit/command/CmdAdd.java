@@ -2,6 +2,9 @@ package ru.fusionsoft.dbgit.command;
 
 import java.util.Map;
 
+import ru.fusionsoft.dbgit.core.DBGit;
+import ru.fusionsoft.dbgit.core.DBGitPath;
+import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.GitMetaDataManager;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
 import ru.fusionsoft.dbgit.meta.MetaObjectFactory;
@@ -9,22 +12,20 @@ import ru.fusionsoft.dbgit.meta.MetaObjectFactory;
 public class CmdAdd implements IDBGitCommand {
 
 	public void execute(String[] args)  throws Exception {
-		// TODO Auto-generated method stub
-		GitMetaDataManager gmdm = new GitMetaDataManager();
+		if (args.length == 0) {
+			throw new ExceptionDBGit("Bad command. Not founnd object to add!");
+		}
+						
+		String nameObj = args[0];
 		
-		//возжно позже оптимизация
-		//Map<String, IMetaObject> dbObjs = gmdm.loadDBMetaData();
+		//TODO ignore dbgit
 		
-		String name = "name from args";
-		
-		IMetaObject obj = MetaObjectFactory.createMetaObject(name);
+		IMetaObject obj = MetaObjectFactory.createMetaObject(nameObj);
 		obj.loadFromDB();
 		
-		//obj.serialize(stream);
+		obj.saveToFile();
 		
-		//find obj by name and save to file 
-		//добавить в гит этот файл
+		DBGit dbGit = DBGit.getInctance();
+		dbGit.addFileToIndexGit(DBGitPath.DB_GIT_PATH+"/"+obj.getFileName());
 	}
-
-
 }

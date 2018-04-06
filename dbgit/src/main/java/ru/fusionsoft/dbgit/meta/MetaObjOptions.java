@@ -3,8 +3,12 @@ package ru.fusionsoft.dbgit.meta;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Map;
 
+import ru.fusionsoft.dbgit.adapters.AdapterFactory;
+import ru.fusionsoft.dbgit.adapters.IDBAdapter;
 import ru.fusionsoft.dbgit.dbobjects.DBOptionsObject;
+import ru.fusionsoft.dbgit.dbobjects.DBUser;
 import ru.fusionsoft.dbgit.utils.CalcHash;
 
 /**
@@ -51,6 +55,15 @@ public abstract class MetaObjOptions extends MetaBase {
 		ch.addData(objectOption.getHash());
 
 		return ch.calcHashStr();
+	}
+	
+	/**
+	 * select from map object with current name MetaObject and set ObjectOption
+	 * @param map
+	 */
+	public void setObjectOptionFromMap(Map<String, ? extends DBOptionsObject> map) {
+		NameMeta nm = MetaObjectFactory.parseMetaName(getName());
+		setObjectOption(map.get(nm.getName()));
 	}
 
 }

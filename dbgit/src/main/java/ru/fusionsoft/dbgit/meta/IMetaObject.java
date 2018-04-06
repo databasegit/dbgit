@@ -76,12 +76,18 @@ public interface IMetaObject {
 	 * @throws IOException
 	 */
 	default void saveToFile(String basePath) throws IOException, ExceptionDBGit {
-		String filename = DBGitPath.getFullPath(basePath);
-		FileOutputStream out = new FileOutputStream(filename);
+		File file = new File(DBGitPath.getFullPath(basePath)+"/"+getFileName());
+		DBGitPath.createDir(file.getAbsolutePath());
+				
+		FileOutputStream out = new FileOutputStream(file.getAbsolutePath());
 		this.serialize(out);
 		out.close();
 		
-		System.out.println("write file "+filename);
+		System.out.println("write file "+getFileName());
+	}
+	
+	default void saveToFile() throws IOException, ExceptionDBGit {
+		saveToFile(null);
 	}
 	
 	/**
@@ -93,12 +99,16 @@ public interface IMetaObject {
 	 */
 	default IMetaObject loadFromFile(String basePath) throws IOException, ExceptionDBGit {
 		String filename = DBGitPath.getFullPath(basePath);
-		File file = new File(filename);
+		File file = new File(filename+"/"+getFileName());
 		FileInputStream fis = new FileInputStream(file);
 		IMetaObject meta = this.deSerialize(fis);
 		fis.close();
 		
 		System.out.println("read file " + filename);
 		return meta;
+	}
+	
+	default IMetaObject loadFromFile() throws IOException, ExceptionDBGit {
+		return loadFromFile(null);
 	}
 }

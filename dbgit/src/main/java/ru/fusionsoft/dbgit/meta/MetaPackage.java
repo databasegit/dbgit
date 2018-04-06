@@ -13,7 +13,7 @@ public class MetaPackage extends MetaSql {
 	
 	@Override
 	public DBGitMetaType getType() {
-		return DBGitMetaType.DbGitPakage;
+		return DBGitMetaType.DbGitPackage;
 	}
 	
 	@Override

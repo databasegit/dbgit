@@ -3,6 +3,8 @@ package ru.fusionsoft.dbgit.meta;
 import java.util.Comparator;
 import java.util.TreeMap;
 
+import ru.fusionsoft.dbgit.utils.LoggerUtil;
+
 /**
  * Order map for IMapMetaObject
  * compare function use priority type of IMapMetaObject 
@@ -19,7 +21,7 @@ public class TreeMapMetaObject extends TreeMap<String, IMetaObject> implements I
 			new Comparator<String>() {
 	            @Override
 	            public int compare(String nm1, String nm2) {
-	                return this.compare(nm1, nm2);
+	                return compareMeta(nm1, nm2);
 	            }
         });
 		
@@ -28,20 +30,25 @@ public class TreeMapMetaObject extends TreeMap<String, IMetaObject> implements I
 		super(
 			(Comparator<String>) (nm1, nm2) -> this.compare(nm1, nm2)
 		);
-		*/
-
-				
+		*/			
 	}
 	
-	protected int compare(String nm1, String nm2) {
-		//тут порядок объектов -
-		/*
-		 seq, tbl, fnc, prc, pkg, vw
-		 * */
-		//map.get(nm1).getType().getPriority();
-		return 0;
+	public static int compareMeta(String nm1, String nm2) {
+		//тут порядок объектов
+		try {
+			NameMeta obj1 = MetaObjectFactory.parseMetaName(nm1);
+			NameMeta obj2 = MetaObjectFactory.parseMetaName(nm2);
+			
+			int comparePriority = obj1.getType().getPriority() - obj2.getType().getPriority();
+			
+			if (comparePriority != 0) {
+				return comparePriority;
+			}
+			
+			return nm1.compareTo(nm2);
+		} catch (Exception e) {
+			LoggerUtil.getGlobalLogger().error("compareMeta Error!", e);
+			return 0;
+		}
 	}
-	
-	
-
 }

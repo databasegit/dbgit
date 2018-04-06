@@ -1,18 +1,16 @@
 package ru.fusionsoft.dbgit.core;
 
+import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-
-import javax.xml.validation.Schema;
 
 import ru.fusionsoft.dbgit.adapters.AdapterFactory;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
 import ru.fusionsoft.dbgit.dbobjects.DBOptionsObject;
-import ru.fusionsoft.dbgit.dbobjects.DBRole;
 import ru.fusionsoft.dbgit.dbobjects.DBSQLObject;
 import ru.fusionsoft.dbgit.dbobjects.DBSchema;
 import ru.fusionsoft.dbgit.dbobjects.DBTable;
-import ru.fusionsoft.dbgit.dbobjects.DBUser;
 import ru.fusionsoft.dbgit.meta.DBGitMetaType;
 import ru.fusionsoft.dbgit.meta.IMapMetaObject;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
@@ -37,6 +35,8 @@ public class GitMetaDataManager {
 			Map<String, ? extends DBOptionsObject> map,
 			DBGitMetaType type
 	) throws ExceptionDBGit {
+		if (map == null) return ;
+		
 		for (DBOptionsObject item : map.values()) {
 			//TODO ignore dbgit
 			 MetaObjOptions obj = (MetaObjOptions)MetaObjectFactory.createMetaObject(type);
@@ -50,6 +50,8 @@ public class GitMetaDataManager {
 			Map<String, ? extends DBSQLObject> map,
 			DBGitMetaType type
 	) throws ExceptionDBGit {
+		if (map == null) return ;
+		
 		for (DBSQLObject item : map.values()) {
 			//TODO ignore dbgit
 			MetaSql obj = (MetaSql)MetaObjectFactory.createMetaObject(type);
@@ -97,22 +99,22 @@ public class GitMetaDataManager {
 		
 		//packages
 		for (DBSchema schema : schemes.values()) {
-			addToMapSqlObject(objs, adapter.getPackages(schema), DBGitMetaType.DbGitTrigger);
+			addToMapSqlObject(objs, adapter.getPackages(schema), DBGitMetaType.DbGitPackage);
 		}
 		
 		//functions
 		for (DBSchema schema : schemes.values()) {
-			addToMapSqlObject(objs, adapter.getFunctions(schema), DBGitMetaType.DbGitTrigger);
+			addToMapSqlObject(objs, adapter.getFunctions(schema), DBGitMetaType.DbGitFunction);
 		}
 		
 		//procedures
 		for (DBSchema schema : schemes.values()) {
-			addToMapSqlObject(objs, adapter.getProcedures(schema), DBGitMetaType.DbGitTrigger);
+			addToMapSqlObject(objs, adapter.getProcedures(schema), DBGitMetaType.DbGitProcedure);
 		}
 		
 		//views
 		for (DBSchema schema : schemes.values()) {
-			addToMapSqlObject(objs, adapter.getViews(schema), DBGitMetaType.DbGitTrigger);
+			addToMapSqlObject(objs, adapter.getViews(schema), DBGitMetaType.DbGitView);
 		}
 				
 		//data tables
@@ -135,10 +137,26 @@ public class GitMetaDataManager {
 	 * Load meta data from git files
 	 * @return
 	 */
-	public IMapMetaObject loadFileMetaData() {
-		IMapMetaObject objs = new TreeMapMetaObject();
-		//scan files and load object memory
-		return objs;
+	public IMapMetaObject loadFileMetaData() throws ExceptionDBGit {
+		try {
+			IMapMetaObject objs = new TreeMapMetaObject();
+			DBGit dbGit = DBGit.getInctance();  
+			
+			List<String> files = dbGit.getGitIndexFiles(DBGitPath.DB_GIT_PATH);
+			for (int i = 0; i < files.size(); i++) {
+	    		String filename = files.get(i);
+
+	    		if (DBGitPath.isServiceFile(filename)) continue;
+	    		
+	    		IMetaObject obj = MetaObjectFactory.createMetaObject(filename);
+	    		obj = obj.loadFromFile();
+	    		objs.put(obj.getName(), obj);
+	    	}
+			
+			return objs;
+		} catch(IOException e) {
+			throw new ExceptionDBGit(e);
+		}
 	}
 	
 	/**

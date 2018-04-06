@@ -1,5 +1,7 @@
 package ru.fusionsoft.dbgit.meta;
 
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Types meta objects
@@ -64,7 +66,7 @@ public enum DBGitMetaType {
 		}
 	},
 	
-    DbGitPakage("pkg") {		
+    DbGitPackage("pkg") {		
 		public Class<?> getMetaClass() {
 			return MetaPackage.class;
 		}
@@ -135,7 +137,16 @@ public enum DBGitMetaType {
 	}
 	;
 	
-	private final String val;
+	private static Map<String, DBGitMetaType> listAllTypes;
+	static {
+		listAllTypes = new HashMap<String, DBGitMetaType>();
+		DBGitMetaType[] types = DBGitMetaType.values();
+		for(int i = 0; i < types.length; i++) {
+			listAllTypes.put(types[i].getValue(), types[i]);
+		}
+	}
+	
+	private String val;
 	
 	DBGitMetaType(String val) {
 		this.val = val;
@@ -156,4 +167,9 @@ public enum DBGitMetaType {
 	 * @return
 	 */
 	public abstract Integer getPriority();
+	
+	
+	public static DBGitMetaType valueByCode(String type) {
+		return listAllTypes.get(type);
+	}
 }

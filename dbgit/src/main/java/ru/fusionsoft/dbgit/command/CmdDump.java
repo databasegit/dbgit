@@ -9,26 +9,22 @@ import ru.fusionsoft.dbgit.meta.IMetaObject;
 public class CmdDump implements IDBGitCommand {
 
 	@Override
-	public void execute(String[] args) throws Exception {
-		// TODO Auto-generated method stub
-		
+	public void execute(String[] args) throws Exception {		
 		GitMetaDataManager gmdm = new GitMetaDataManager();
 		
-		//возможно за списком файлов нужно будет сходить в гит индекс
-		
+		//TODO флаг по которому исправления добавляются в гит
+				
 		Map<String, IMetaObject> fileObjs = gmdm.loadFileMetaData();
-		
 		
 		for (IMetaObject obj : fileObjs.values()) {
 			String hash = obj.getHash();
 			obj.loadFromDB();
 			if (!obj.getHash().equals(hash)) {
 				//сохранили файл если хеш разный
-				obj.saveToFile(DBGitPath.getFullPath(DBGitPath.OBJECTS_PATH));
+				obj.saveToFile();
+				System.out.println("Save file "+obj.getName());
 			}
+			//TODO если флаг добавить в гит - то обновляем файл в индексе
 		}
-		
-
 	}
-
 }
