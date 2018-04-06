@@ -2,16 +2,14 @@ package ru.fusionsoft.dbgit.postgres;
 
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
 
+import ru.fusionsoft.dbgit.adapters.AdapterFactory;
 import ru.fusionsoft.dbgit.adapters.DBAdapter;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBAdapterRestoteMetaData;
-import ru.fusionsoft.dbgit.core.DBConnection;
 import ru.fusionsoft.dbgit.dbobjects.DBConstraint;
 import ru.fusionsoft.dbgit.dbobjects.DBFunction;
 import ru.fusionsoft.dbgit.dbobjects.DBIndex;
@@ -62,8 +60,7 @@ public class DBAdapterPostgres extends DBAdapter {
 		Map<String, DBSchema> listScheme = new HashMap<String, DBSchema>();
 		try {
 			String query = "select *from pg_namespace";
-			DBConnection dbConnection = DBConnection.getInctance();
-			Connection connect = dbConnection.getConnect();
+			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
 			while(rs.next()){
@@ -72,7 +69,6 @@ public class DBAdapterPostgres extends DBAdapter {
 				listScheme.put(name, scheme);
 				System.out.println(name);
 			}
-			connect.close();
 			System.out.println("Collection schemes:");
 			for(DBSchema schema:listScheme.values())
 				System.out.println(schema.getName());
@@ -90,8 +86,7 @@ public class DBAdapterPostgres extends DBAdapter {
 		String sql = "Select * from pg_tablespace";
 		try {
 			String query = "select *from pg_tablespace";
-			DBConnection dbConnection = DBConnection.getInctance();
-			Connection connect = dbConnection.getConnect();
+			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
 			while(rs.next()){
@@ -99,7 +94,6 @@ public class DBAdapterPostgres extends DBAdapter {
 				DBTableSpace dbTableSpace = new DBTableSpace(name);
 				listTableSpace.put(name, dbTableSpace);
 			}
-			connect.close();
 			System.out.println("Collection TableSpaces:");
 			for(DBTableSpace tableSpace:listTableSpace.values())
 				System.out.println(tableSpace.getName());
@@ -228,8 +222,7 @@ public class DBAdapterPostgres extends DBAdapter {
 		Map<String, DBUser> listUser = new HashMap<String, DBUser>();
 		try {
 			String query = "select *from pg_user";
-			DBConnection dbConnection = DBConnection.getInctance();
-			Connection connect = dbConnection.getConnect();
+			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
 			while(rs.next()){
@@ -237,7 +230,6 @@ public class DBAdapterPostgres extends DBAdapter {
 				DBUser user = new DBUser(name);
 				listUser.put(name, user);
 			}
-			connect.close();
 			System.out.println("Collection users:");
 			for(DBUser user:listUser.values())
 				System.out.println(user.getName());
@@ -254,8 +246,7 @@ public class DBAdapterPostgres extends DBAdapter {
 		Map<String, DBRole> listRole = new HashMap<String, DBRole>();
 		try {
 			String query = "select *from pg_roles";
-			DBConnection dbConnection = DBConnection.getInctance();
-			Connection connect = dbConnection.getConnect();
+			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
 			while(rs.next()){
@@ -263,7 +254,6 @@ public class DBAdapterPostgres extends DBAdapter {
 				DBRole role = new DBRole(name);
 				listRole.put(name, role);
 			}
-			connect.close();
 			System.out.println("Collection roles:");
 			for(DBRole role:listRole.values())
 				System.out.println(role.getName());
@@ -276,8 +266,11 @@ public class DBAdapterPostgres extends DBAdapter {
 	
 	public static void main(String[] args) {
 		System.out.println("start");
-		DBAdapterPostgres dbAdapter = new DBAdapterPostgres();
-
+		try {
+		DBAdapterPostgres dbAdapter = (DBAdapterPostgres) AdapterFactory.createAdapter();
 		dbAdapter.getRoles();
+		}catch(Exception e) {
+			e.printStackTrace();
+		}
 	}
 }
