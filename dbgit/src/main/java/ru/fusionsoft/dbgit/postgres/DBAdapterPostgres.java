@@ -1,11 +1,17 @@
 package ru.fusionsoft.dbgit.postgres;
 
+
 import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 
 import ru.fusionsoft.dbgit.adapters.DBAdapter;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBAdapterRestoteMetaData;
+import ru.fusionsoft.dbgit.core.DBConnection;
 import ru.fusionsoft.dbgit.dbobjects.DBConstraint;
 import ru.fusionsoft.dbgit.dbobjects.DBFunction;
 import ru.fusionsoft.dbgit.dbobjects.DBIndex;
@@ -54,6 +60,25 @@ public class DBAdapterPostgres extends DBAdapter {
 	@Override
 	public Map<String, DBSchema> getSchemes() {
 		Map<String, DBSchema> listScheme = new HashMap<String, DBSchema>();
+		try {
+			String query = "select *from pg_namespace";
+			DBConnection dbConnection = DBConnection.getInctance();
+			Connection connect = dbConnection.getConnect();
+			Statement stmt = connect.createStatement();
+			ResultSet rs = stmt.executeQuery(query);
+			while(rs.next()){
+				String name = rs.getString(1);
+				DBSchema scheme = new DBSchema(name);
+				listScheme.put(name, scheme);
+				System.out.println(name);
+			}
+			connect.close();
+			System.out.println("Collection schemes:");
+			for(DBSchema schema:listScheme.values())
+				System.out.println(schema.getName());
+		}catch(Exception e) {
+			e.printStackTrace();
+		}
 		//connect.cre
 		//select *from pg_catalog.pg_namespace;
 		return listScheme;
@@ -61,12 +86,32 @@ public class DBAdapterPostgres extends DBAdapter {
 	
 	@Override
 	public Map<String, DBTableSpace> getTableSpaces() {
-		// TODO Auto-generated method stub
-		return null;
+		Map<String, DBTableSpace> listTableSpace = new HashMap<String, DBTableSpace>();
+		String sql = "Select * from pg_tablespace";
+		try {
+			String query = "select *from pg_tablespace";
+			DBConnection dbConnection = DBConnection.getInctance();
+			Connection connect = dbConnection.getConnect();
+			Statement stmt = connect.createStatement();
+			ResultSet rs = stmt.executeQuery(query);
+			while(rs.next()){
+				String name = rs.getString(1);
+				DBTableSpace dbTableSpace = new DBTableSpace(name);
+				listTableSpace.put(name, dbTableSpace);
+			}
+			connect.close();
+			System.out.println("Collection TableSpaces:");
+			for(DBTableSpace tableSpace:listTableSpace.values())
+				System.out.println(tableSpace.getName());
+		}catch(Exception e) {
+			e.printStackTrace();
+		}
+		return listTableSpace;
 	}
 
 	@Override
 	public Map<String, DBSequence> getSequences(DBSchema schema) {
+		Map<String, DBSequence> listSequence = new HashMap<String, DBSequence>();
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -79,9 +124,9 @@ public class DBAdapterPostgres extends DBAdapter {
 
 	@Override
 	public Map<String, DBTable> getTables(DBSchema schema) {
-		Map<String, DBTable> listTables = new HashMap<String, DBTable>();
+		Map<String, DBTable> listTable = new HashMap<String, DBTable>();
 		
-		return listTables;
+		return listTable;
 	}
 
 	@Override
@@ -180,14 +225,59 @@ public class DBAdapterPostgres extends DBAdapter {
 
 	@Override
 	public Map<String, DBUser> getUsers() {
-		// TODO Auto-generated method stub
-		return null;
+		Map<String, DBUser> listUser = new HashMap<String, DBUser>();
+		try {
+			String query = "select *from pg_user";
+			DBConnection dbConnection = DBConnection.getInctance();
+			Connection connect = dbConnection.getConnect();
+			Statement stmt = connect.createStatement();
+			ResultSet rs = stmt.executeQuery(query);
+			while(rs.next()){
+				String name = rs.getString(1);
+				DBUser user = new DBUser(name);
+				listUser.put(name, user);
+			}
+			connect.close();
+			System.out.println("Collection users:");
+			for(DBUser user:listUser.values())
+				System.out.println(user.getName());
+		}catch(Exception e) {
+			e.printStackTrace();
+		}
+		//connect.cre
+		//select *from pg_catalog.pg_namespace;
+		return listUser;
 	}
 
 	@Override
 	public Map<String, DBRole> getRoles() {
+		Map<String, DBRole> listRole = new HashMap<String, DBRole>();
+		try {
+			String query = "select *from pg_roles";
+			DBConnection dbConnection = DBConnection.getInctance();
+			Connection connect = dbConnection.getConnect();
+			Statement stmt = connect.createStatement();
+			ResultSet rs = stmt.executeQuery(query);
+			while(rs.next()){
+				String name = rs.getString(1);
+				DBRole role = new DBRole(name);
+				listRole.put(name, role);
+			}
+			connect.close();
+			System.out.println("Collection roles:");
+			for(DBRole role:listRole.values())
+				System.out.println(role.getName());
+		}catch(Exception e) {
+			e.printStackTrace();
+		}
 		// TODO Auto-generated method stub
-		return null;
+		return listRole;
 	}
 	
+	public static void main(String[] args) {
+		System.out.println("start");
+		DBAdapterPostgres dbAdapter = new DBAdapterPostgres();
+
+		dbAdapter.getRoles();
+	}
 }

@@ -52,6 +52,7 @@ public class DBConnection {
 	public Connection getConnect() throws ExceptionDBGit {
 		return connect;
 	}
+	
 	public boolean testingConnection(String url, Properties props) {
 		try {
 			Connection conTest = DriverManager.getConnection(url, props);
