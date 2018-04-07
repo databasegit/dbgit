@@ -10,6 +10,7 @@ import java.util.Map;
 import ru.fusionsoft.dbgit.adapters.AdapterFactory;
 import ru.fusionsoft.dbgit.adapters.DBAdapter;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBAdapterRestoteMetaData;
+import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
 import ru.fusionsoft.dbgit.dbobjects.DBConstraint;
 import ru.fusionsoft.dbgit.dbobjects.DBFunction;
 import ru.fusionsoft.dbgit.dbobjects.DBIndex;
@@ -28,9 +29,12 @@ import ru.fusionsoft.dbgit.dbobjects.DBUser;
 import ru.fusionsoft.dbgit.dbobjects.DBView;
 import ru.fusionsoft.dbgit.meta.IMapMetaObject;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
+import ru.fusionsoft.dbgit.utils.LoggerUtil;
+import org.slf4j.Logger;
 
 public class DBAdapterPostgres extends DBAdapter {
 
+	private Logger logger = LoggerUtil.getLogger(this.getClass());
 	private FactoryDBAdapterRestorePostgres restoreFactory = new FactoryDBAdapterRestorePostgres();
 	
 	@Override
@@ -59,12 +63,15 @@ public class DBAdapterPostgres extends DBAdapter {
 	public Map<String, DBSchema> getSchemes() {
 		Map<String, DBSchema> listScheme = new HashMap<String, DBSchema>();
 		try {
-			String query = "select *from pg_namespace";
+			String query = "select *from pg_namespace where nspname!='pg_toast' and nspname!='pg_temp_1'"+
+					"and nspname!='pg_toast_temp_1' and nspname!='pg_catalog'"+
+					"and nspname!='information_schema' and nspname!='pgagent'"+
+					"and nspname!='pg_temp_3' and nspname!='pg_toast_temp_3'";
 			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
 			while(rs.next()){
-				String name = rs.getString(1);
+				String name = rs.getString("nspname");
 				DBSchema scheme = new DBSchema(name);
 				listScheme.put(name, scheme);
 				System.out.println(name);
@@ -73,7 +80,9 @@ public class DBAdapterPostgres extends DBAdapter {
 			for(DBSchema schema:listScheme.values())
 				System.out.println(schema.getName());
 		}catch(Exception e) {
-			e.printStackTrace();
+			logger.error(e.getMessage());
+			System.out.println(e.getMessage());
+			throw new ExceptionDBGitRunTime(e.getMessage());
 		}
 		//connect.cre
 		//select *from pg_catalog.pg_namespace;
@@ -83,9 +92,8 @@ public class DBAdapterPostgres extends DBAdapter {
 	@Override
 	public Map<String, DBTableSpace> getTableSpaces() {
 		Map<String, DBTableSpace> listTableSpace = new HashMap<String, DBTableSpace>();
-		String sql = "Select * from pg_tablespace";
 		try {
-			String query = "select *from pg_tablespace";
+			String query = "Select * from pg_tablespace where spcname!='pg_default' and spcname!='pg_global'";
 			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
@@ -98,7 +106,9 @@ public class DBAdapterPostgres extends DBAdapter {
 			for(DBTableSpace tableSpace:listTableSpace.values())
 				System.out.println(tableSpace.getName());
 		}catch(Exception e) {
-			e.printStackTrace();
+			logger.error(e.getMessage());
+			System.out.println(e.getMessage());
+			throw new ExceptionDBGitRunTime(e.getMessage());
 		}
 		return listTableSpace;
 	}
@@ -234,7 +244,9 @@ public class DBAdapterPostgres extends DBAdapter {
 			for(DBUser user:listUser.values())
 				System.out.println(user.getName());
 		}catch(Exception e) {
-			e.printStackTrace();
+			logger.error(e.getMessage());
+			System.out.println(e.getMessage());
+			throw new ExceptionDBGitRunTime(e.getMessage());
 		}
 		//connect.cre
 		//select *from pg_catalog.pg_namespace;
@@ -245,7 +257,7 @@ public class DBAdapterPostgres extends DBAdapter {
 	public Map<String, DBRole> getRoles() {
 		Map<String, DBRole> listRole = new HashMap<String, DBRole>();
 		try {
-			String query = "select *from pg_roles";
+			String query = "select *from pg_roles where rolname not like 'pg_%'";
 			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
@@ -258,7 +270,9 @@ public class DBAdapterPostgres extends DBAdapter {
 			for(DBRole role:listRole.values())
 				System.out.println(role.getName());
 		}catch(Exception e) {
-			e.printStackTrace();
+			logger.error(e.getMessage());
+			System.out.println(e.getMessage());
+			throw new ExceptionDBGitRunTime(e.getMessage());
 		}
 		// TODO Auto-generated method stub
 		return listRole;
@@ -267,10 +281,12 @@ public class DBAdapterPostgres extends DBAdapter {
 	public static void main(String[] args) {
 		System.out.println("start");
 		try {
-		DBAdapterPostgres dbAdapter = (DBAdapterPostgres) AdapterFactory.createAdapter();
-		dbAdapter.getRoles();
-		}catch(Exception e) {
+			DBAdapterPostgres dbAdapter = (DBAdapterPostgres) AdapterFactory.createAdapter();
+			dbAdapter.getRoles();
+		}catch(ExceptionDBGitRunTime e) {
 			e.printStackTrace();
+		}catch(Exception e) {
+			System.out.println(e.getMessage());
 		}
 	}
 }
