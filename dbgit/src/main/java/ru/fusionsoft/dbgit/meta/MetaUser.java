@@ -26,9 +26,7 @@ public class MetaUser extends MetaObjOptions {
 	public void loadFromDB() throws ExceptionDBGit {
 		IDBAdapter adapter = AdapterFactory.createAdapter();
 		Map<String, DBUser> users = adapter.getUsers();
-		//find by name 
 		
-		
-
+		setObjectOptionFromMap(users);
 	}
 }

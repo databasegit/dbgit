@@ -40,4 +40,11 @@ public abstract class DBAdapter implements IDBAdapter {
 			getFactoryRestore().getAdapterRestore(obj.getType(), this).restoreMetaObject(obj);
 		}
 	}
+	
+	@Override
+	public void deleteDataBase(IMapMetaObject deleteObjs) {
+		for (IMetaObject obj : deleteObjs.values()) {
+			getFactoryRestore().getAdapterRestore(obj.getType(), this).removeMetaObject(obj);
+		}
+	}
 }

@@ -3,11 +3,13 @@ package ru.fusionsoft.dbgit.command;
 import java.util.Map;
 
 import ru.fusionsoft.dbgit.core.DBGit;
+import ru.fusionsoft.dbgit.core.DBGitIndex;
 import ru.fusionsoft.dbgit.core.DBGitPath;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.GitMetaDataManager;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
 import ru.fusionsoft.dbgit.meta.MetaObjectFactory;
+import ru.fusionsoft.dbgit.utils.MaskFilter;
 
 public class CmdAdd implements IDBGitCommand {
 
@@ -17,15 +19,30 @@ public class CmdAdd implements IDBGitCommand {
 		}
 						
 		String nameObj = args[0];
+		MaskFilter maskAdd = new MaskFilter(nameObj);
 		
-		//TODO ignore dbgit
+		DBGitIndex index = DBGitIndex.getInctance();
 		
-		IMetaObject obj = MetaObjectFactory.createMetaObject(nameObj);
-		obj.loadFromDB();
+		GitMetaDataManager gmdm = new GitMetaDataManager();		
+		Map<String, IMetaObject> dbObjs = gmdm.loadDBMetaData();	
 		
-		obj.saveToFile();
+		Integer countSave = 0;
 		
-		DBGit dbGit = DBGit.getInctance();
-		dbGit.addFileToIndexGit(DBGitPath.DB_GIT_PATH+"/"+obj.getFileName());
+		for (IMetaObject obj : dbObjs.values()) {
+			if (maskAdd.match(obj.getName())) {			
+				obj.saveToFile();
+				
+				DBGit dbGit = DBGit.getInctance();
+				dbGit.addFileToIndexGit(DBGitPath.DB_GIT_PATH+"/"+obj.getFileName());				
+				
+				index.addItem(obj);
+				countSave++;
+			}
+		}
+
+		if (countSave > 0) {
+			index.saveDBIndex();
+			index.addToGit();
+		}
 	}
 }

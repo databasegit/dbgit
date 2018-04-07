@@ -2,6 +2,8 @@ package ru.fusionsoft.dbgit.command;
 
 import java.util.Map;
 
+import ru.fusionsoft.dbgit.core.DBGit;
+import ru.fusionsoft.dbgit.core.DBGitIndex;
 import ru.fusionsoft.dbgit.core.DBGitPath;
 import ru.fusionsoft.dbgit.core.GitMetaDataManager;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
@@ -10,10 +12,14 @@ public class CmdDump implements IDBGitCommand {
 
 	@Override
 	public void execute(String[] args) throws Exception {		
-		GitMetaDataManager gmdm = new GitMetaDataManager();
+		Boolean isAddToGit = (args.length > 1 && args[0].equals("-a")); 
 		
-		//TODO флаг по которому исправления добавляются в гит
+		GitMetaDataManager gmdm = new GitMetaDataManager();
 				
+		DBGitIndex index = DBGitIndex.getInctance();
+		DBGit dbGit = DBGit.getInctance();
+		
+
 		Map<String, IMetaObject> fileObjs = gmdm.loadFileMetaData();
 		
 		for (IMetaObject obj : fileObjs.values()) {
@@ -22,9 +28,19 @@ public class CmdDump implements IDBGitCommand {
 			if (!obj.getHash().equals(hash)) {
 				//сохранили файл если хеш разный
 				obj.saveToFile();
+				index.addItem(obj);
 				System.out.println("Save file "+obj.getName());
-			}
-			//TODO если флаг добавить в гит - то обновляем файл в индексе
+				
+				if (isAddToGit) {
+					dbGit.addFileToIndexGit(DBGitPath.DB_GIT_PATH+"/"+obj.getFileName());
+				}
+			}			
+			
 		}
+		
+		index.saveDBIndex();
+		if (isAddToGit) {
+			index.addToGit();
+		}		
 	}
 }

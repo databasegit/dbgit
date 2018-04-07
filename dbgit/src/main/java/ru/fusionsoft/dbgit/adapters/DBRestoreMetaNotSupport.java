@@ -24,4 +24,10 @@ public class DBRestoreMetaNotSupport implements IDBAdapterRestoreMetaData {
 		//throw exception not support
 
 	}
+	
+	@Override
+	public void removeMetaObject(IMetaObject obj) {
+		// TODO Auto-generated method stub
+		//throw exception not support
+	}
 }

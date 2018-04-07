@@ -6,7 +6,6 @@
   <artifactId>dbgit</artifactId>
   <version>0.0.1-SNAPSHOT</version>
   <packaging>jar</packaging>
-  
   <build>
 	  <plugins>
 	    <plugin>
@@ -23,6 +22,39 @@
 	        </archive>
 	      </configuration>
 	    </plugin>
+	    
+	    <plugin> 
+	      <groupId>org.codehaus.mojo</groupId>  
+	      <artifactId>appassembler-maven-plugin</artifactId>  
+	      <configuration>
+	       <programs>  
+	         <program>  
+	            <mainClass>ru.fusionsoft.dbgit.App</mainClass>
+	            <name>dbgit</name>
+	         </program>
+	       </programs>   
+	      </configuration>  
+	    </plugin>  
+	    
+	    <plugin>
+	        <groupId>org.apache.maven.plugins</groupId>
+	        <artifactId>maven-compiler-plugin</artifactId>
+	        <version>3.7.0</version>
+	        <configuration>
+	          <source>1.8</source>
+	          <target>1.8</target>
+	        </configuration>
+	      </plugin>
+	      
+	      <plugin>
+	        <groupId>org.apache.maven.plugins</groupId>
+	        <artifactId>maven-javadoc-plugin</artifactId>
+	        <version>2.9.1</version>
+	        <configuration>
+	            <additionalparam>-Xdoclint:none</additionalparam>
+	        </configuration>
+	        
+	     </plugin>
 	    
 	  </plugins>
   </build>  
@@ -90,9 +122,9 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
-        <version>3.0.0</version>
+        <version>2.9.1</version>
         <configuration>
-          ...
+            <additionalparam>-Xdoclint:none</additionalparam>
         </configuration>
       </plugin>
     </plugins>

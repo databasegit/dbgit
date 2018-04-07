@@ -45,7 +45,7 @@ public class Experiment {
     	System.out.println(dbGit.getRootDirectory());
     	
     	
-    	List<String> files = dbGit.getGitIndexFiles("dbgit/src/main/java/ru/fusionsoft/dbgit/command/");
+    	List<String> files = dbGit.getGitIndexFiles("/");
     	for (int i = 0; i < files.size(); i++) {
     		System.out.println(files.get(i));
     	}
@@ -92,14 +92,14 @@ public class Experiment {
         
     	TreeWalk treeWalk = new TreeWalk(repository);
     	treeWalk.addTree(tree);
-    	treeWalk.setFilter(PathFilter.create("dbgit/src/main/java/ru/fusionsoft/dbgit/command/"));
+    	//treeWalk.setFilter(PathFilter.create("dbgit/src/main/java/ru/fusionsoft/dbgit/command/"));
     	//TreeFilter newFilter = new TreeFilter
     	//treeWalk.setFilter(newFilter);
     	
     	treeWalk.setRecursive(true);
     	while (treeWalk.next()) {
     	    if (treeWalk.isSubtree()) {
-    	        System.out.println("dir: " + treeWalk.getPathString());
+    	        System.out.println("dir: " + treeWalk.getPathString());    	        
     	        treeWalk.enterSubtree();
     	    } else {
     	        System.out.println("file: " + treeWalk.getPathString());

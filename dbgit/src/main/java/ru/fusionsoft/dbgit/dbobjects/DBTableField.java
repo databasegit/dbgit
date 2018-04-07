@@ -1,5 +1,7 @@
 package ru.fusionsoft.dbgit.dbobjects;
 
+import ru.fusionsoft.dbgit.utils.CalcHash;
+
 public class DBTableField implements IDBObject {
 	private String name;
 	private String typeSQL;
@@ -17,8 +19,11 @@ public class DBTableField implements IDBObject {
 	}
 
 	public String getHash() {
-		// TODO Auto-generated method stub
-		return null;
+		CalcHash ch = new CalcHash();
+		ch.addData(this.getName());
+		ch.addData(this.getTypeSQL());
+
+		return ch.calcHashStr();
 	}
 
 	public String getName() {

@@ -9,5 +9,5 @@ import java.util.Map;
  *
  */
 public interface IMapMetaObject extends Map<String, IMetaObject> {
-
+	public IMapMetaObject put(IMetaObject obj);
 }

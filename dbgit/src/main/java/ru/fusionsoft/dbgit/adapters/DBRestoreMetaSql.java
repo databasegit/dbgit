@@ -17,4 +17,10 @@ public class DBRestoreMetaSql extends DBRestoreAdapter  {
 	public void restoreMetaObject(IMetaObject obj) {
 		// restore 
 	}
+	
+	@Override
+	public void removeMetaObject(IMetaObject obj) {
+		// TODO Auto-generated method stub
+		//throw exception not support
+	}
 }

@@ -7,6 +7,7 @@ import java.util.Map;
 
 import ru.fusionsoft.dbgit.adapters.AdapterFactory;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
+import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.dbobjects.DBOptionsObject;
 import ru.fusionsoft.dbgit.dbobjects.DBUser;
 import ru.fusionsoft.dbgit.utils.CalcHash;
@@ -61,8 +62,11 @@ public abstract class MetaObjOptions extends MetaBase {
 	 * select from map object with current name MetaObject and set ObjectOption
 	 * @param map
 	 */
-	public void setObjectOptionFromMap(Map<String, ? extends DBOptionsObject> map) {
+	public void setObjectOptionFromMap(Map<String, ? extends DBOptionsObject> map) throws ExceptionDBGit {
 		NameMeta nm = MetaObjectFactory.parseMetaName(getName());
+		if (!map.containsKey(nm.getName())) {
+			throw new ExceptionDBGit("Not found object "+getName());
+		}
 		setObjectOption(map.get(nm.getName()));
 	}
 

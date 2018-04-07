@@ -63,6 +63,7 @@ public class MetaObjectTest extends TestCase {
 		
 		idx = new DBIndex();
 		idx.setName("idx2");
+		idx.setSchema("myschema");
 		idx.setSql("CREATE INDEX idx2 ON crtd.notice  USING btree  (depart);");
 		tblMeta.getIndexes().put(idx.getName(), idx);
 		
@@ -74,6 +75,7 @@ public class MetaObjectTest extends TestCase {
 		
 		ct = new DBConstraint();
 		ct.setName("fk2");
+		ct.setSchema("myschema");
 		ct.setSql("ALTER TABLE crtd.notice ADD CONSTRAINT fk2 FOREIGN KEY (arrive) REFERENCES crtd.ptstation (id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION;");
 		tblMeta.getConstraints().put(ct.getName(), ct);
 		

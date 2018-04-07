@@ -8,6 +8,7 @@ import org.yaml.snakeyaml.constructor.Construct;
 import org.yaml.snakeyaml.constructor.Constructor;
 import org.yaml.snakeyaml.nodes.MappingNode;
 import org.yaml.snakeyaml.nodes.Node;
+import org.yaml.snakeyaml.nodes.ScalarNode;
 
 import ru.fusionsoft.dbgit.utils.StringProperties;
 
@@ -41,13 +42,23 @@ public class DBGitYamlConstructor extends Constructor {
 	
     private class ConstructYamlStringProperties extends AbstractConstruct { 
         @Override
-        public Object construct(Node node) {        	
-        	Object obj = constructMapping((MappingNode)node);
-    		
-    		StringProperties properties = new StringProperties();
-    		parseMap(properties, obj);
-        	
-        	return properties;
+        public Object construct(Node node) {
+        	if (node instanceof MappingNode) {
+	        	Object obj = constructMapping((MappingNode)node);
+	    		
+	    		StringProperties properties = new StringProperties();
+	    		parseMap(properties, obj);
+	        	
+	        	return properties;
+        	}
+        	if (node instanceof ScalarNode) {
+	        	
+	    		//TODO
+	    		StringProperties properties = new StringProperties();
+	        	
+	        	return properties;
+        	}
+        	return null;
         }
         
         @SuppressWarnings("unchecked")

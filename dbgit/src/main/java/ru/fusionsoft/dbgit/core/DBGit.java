@@ -62,6 +62,10 @@ public class DBGit {
 	    	    	
 	    	for (int i = 0; i < cache.getEntryCount(); i++) {
 	    		String file = cache.getEntry(i).getPathString();
+	    		
+	    		//System.out.println(cache.getEntry(i).getPathString() +"   "+cache.getEntry(i).getObjectId().getName());
+	    		
+	    		
 	    		if (file.startsWith(path)) {
 	    			files.add(file.substring(pathLen));
 	    		}	    		

@@ -37,11 +37,15 @@ public class GitMetaDataManager {
 	) throws ExceptionDBGit {
 		if (map == null) return ;
 		
+		DBGitIgnore ignore = DBGitIgnore.getInctance(); 
+		
 		for (DBOptionsObject item : map.values()) {
-			//TODO ignore dbgit
-			 MetaObjOptions obj = (MetaObjOptions)MetaObjectFactory.createMetaObject(type);
-			 obj.setObjectOption(item);
-			 objs.put(obj.getName(), obj);
+			MetaObjOptions obj = (MetaObjOptions)MetaObjectFactory.createMetaObject(type);
+			obj.setObjectOption(item);
+			 
+			if (ignore.matchOne(obj.getName())) continue ;
+			
+			objs.put(obj);
 		 }
 	}
 	
@@ -52,11 +56,15 @@ public class GitMetaDataManager {
 	) throws ExceptionDBGit {
 		if (map == null) return ;
 		
+		DBGitIgnore ignore = DBGitIgnore.getInctance(); 
+		
 		for (DBSQLObject item : map.values()) {
-			//TODO ignore dbgit
 			MetaSql obj = (MetaSql)MetaObjectFactory.createMetaObject(type);
 			obj.setSqlObject(item);
-			objs.put(obj.getName(), obj);
+			
+			if (ignore.matchOne(obj.getName())) continue ;
+			
+			objs.put(obj);
 		 }
 	}
 	
@@ -66,6 +74,8 @@ public class GitMetaDataManager {
 	 */
 	public IMapMetaObject loadDBMetaData() throws ExceptionDBGit {		
 		IDBAdapter adapter = AdapterFactory.createAdapter();
+		
+		DBGitIgnore ignore = DBGitIgnore.getInctance(); 
 		
 		IMapMetaObject objs = new TreeMapMetaObject();
 		Map<String, MetaTable> tbls = new HashMap<String, MetaTable>();
@@ -84,10 +94,12 @@ public class GitMetaDataManager {
 		//load tables
 		for (DBSchema sch : schemes.values()) {
 			for (DBTable tbl : adapter.getTables(sch).values()) {
-				//TODO ignore dbgit
 				MetaTable tblMeta = new MetaTable(tbl);
+				
+				if (ignore.matchOne(tblMeta.getName())) continue ;
+				
 				tblMeta.loadFromDB();
-				objs.put(tblMeta.getName(), tblMeta);
+				objs.put(tblMeta);
 				tbls.put(tblMeta.getName(), tblMeta);
 			}
 		}
@@ -119,14 +131,21 @@ public class GitMetaDataManager {
 				
 		//data tables
 		for (MetaTable tbl : tbls.values()) {
-			//TODO ignore dbgit
 			MetaTableData data = new MetaTableData(tbl.getTable());
+			
+			if (ignore.matchOne(data.getName())) continue ;
+			
 			data.loadFromDB();
-			objs.put(data.getName(), data);
+			objs.put(data);
 		}
 		
 		IMapMetaObject customObjs = adapter.loadCustomMetaObjects();
 		if (customObjs != null) {
+			IMapMetaObject customObjsNoIgnore = new TreeMapMetaObject();
+			for (IMetaObject item : customObjs.values()) {
+				if (ignore.matchOne(item.getName())) continue ;
+				customObjsNoIgnore.put(item);				
+			}
 			objs.putAll(customObjs);
 		}
 		
@@ -150,7 +169,7 @@ public class GitMetaDataManager {
 	    		
 	    		IMetaObject obj = MetaObjectFactory.createMetaObject(filename);
 	    		obj = obj.loadFromFile();
-	    		objs.put(obj.getName(), obj);
+	    		objs.put(obj);
 	    	}
 			
 			return objs;
@@ -172,6 +191,16 @@ public class GitMetaDataManager {
 				
 		adapter.endUpdateDB();
 		
+	}
+	
+	/**
+	 * Restore map meta object to DB
+	 * @param updateObjs
+	 */
+	public void deleteDataBase(IMapMetaObject deleteObjs) throws ExceptionDBGit {
+		IDBAdapter adapter = AdapterFactory.createAdapter();
+		
+		adapter.deleteDataBase(deleteObjs);	
 	}
 	
 	

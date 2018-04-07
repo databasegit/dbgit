@@ -17,6 +17,7 @@ public class TreeMapMetaObject extends TreeMap<String, IMetaObject> implements I
 	private static final long serialVersionUID = -1939887173598208816L;
 	
 	public TreeMapMetaObject() {
+		/*
 		super(
 			new Comparator<String>() {
 	            @Override
@@ -24,13 +25,19 @@ public class TreeMapMetaObject extends TreeMap<String, IMetaObject> implements I
 	                return compareMeta(nm1, nm2);
 	            }
         });
+		*/
 		
-		/*
-		 * как в лямбду сунуть ф-цию объекта? Вообщем постарославянски 
+		// как в лямбду сунуть ф-цию объекта? Вообщем постарославянски 
 		super(
-			(Comparator<String>) (nm1, nm2) -> this.compare(nm1, nm2)
+			(Comparator<String>) (nm1, nm2) -> compareMeta(nm1, nm2)
 		);
-		*/			
+					
+	}
+	
+	@Override
+	public IMapMetaObject put(IMetaObject obj) {
+		put(obj.getName(), obj);
+		return this;
 	}
 	
 	public static int compareMeta(String nm1, String nm2) {

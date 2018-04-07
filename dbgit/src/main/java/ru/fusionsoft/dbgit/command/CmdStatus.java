@@ -18,9 +18,9 @@ public class CmdStatus implements IDBGitCommand {
 			if (dbObjs.containsKey(name)) {
 				if (!fileObjs.get(name).getHash().equals(dbObjs.get(name).getHash())) {
 					System.out.println("   "+name);
-				} else {
-					System.out.println("   "+name+"   not found!!! ");
-				}
+				} 
+			} else {
+				System.out.println("   "+name+"   not found!!! ");
 			}
 		}
 				

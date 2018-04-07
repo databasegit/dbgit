@@ -59,6 +59,12 @@ public interface IDBAdapter {
 	public void restoreDataBase(IMapMetaObject updateObjs);
 	
 	/**
+	 * delete map DB objects
+	 * @param updateObjs
+	 */
+	public void deleteDataBase(IMapMetaObject updateObjs);
+	
+	/**
 	 * Run after end restore database
 	 */
 	public void endUpdateDB();

@@ -77,7 +77,7 @@ public interface IMetaObject {
 	 */
 	default void saveToFile(String basePath) throws IOException, ExceptionDBGit {
 		File file = new File(DBGitPath.getFullPath(basePath)+"/"+getFileName());
-		DBGitPath.createDir(file.getAbsolutePath());
+		DBGitPath.createDir(file.getParent());
 				
 		FileOutputStream out = new FileOutputStream(file.getAbsolutePath());
 		this.serialize(out);
