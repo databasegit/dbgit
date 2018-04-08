@@ -4,7 +4,17 @@ import ru.fusionsoft.dbgit.utils.CalcHash;
 
 public class DBSequence extends DBSQLObject {
 	protected Long value;
+	private String name;
 
+	public DBSequence(String name) {
+		super();
+		this.name = name;
+	}
+
+	public String getName() {
+		return this.name;
+	}
+	
 	public Long getValue() {
 		return value;
 	}

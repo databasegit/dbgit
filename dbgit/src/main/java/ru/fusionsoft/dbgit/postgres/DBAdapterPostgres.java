@@ -116,8 +116,25 @@ public class DBAdapterPostgres extends DBAdapter {
 	@Override
 	public Map<String, DBSequence> getSequences(DBSchema schema) {
 		Map<String, DBSequence> listSequence = new HashMap<String, DBSequence>();
-		// TODO Auto-generated method stub
-		return null;
+		try {
+			String query = "select * from " + schema.getName()+".sequences";
+			Connection connect = getConnection();
+			Statement stmt = connect.createStatement();
+			ResultSet rs = stmt.executeQuery(query);
+			while(rs.next()){
+				String name = rs.getString(3);
+				DBSequence sequence = new DBSequence(name);
+				listSequence.put(name, sequence);
+			}
+			System.out.println("Collection TableSpaces:");
+			for(DBSequence sequence:listSequence.values())
+				System.out.println(sequence.getName());
+		}catch(Exception e) {
+			logger.error(e.getMessage());
+			System.out.println(e.getMessage());
+			throw new ExceptionDBGitRunTime(e.getMessage());
+		}
+		return listSequence;
 	}
 
 	@Override
@@ -282,7 +299,7 @@ public class DBAdapterPostgres extends DBAdapter {
 		System.out.println("start");
 		try {
 			DBAdapterPostgres dbAdapter = (DBAdapterPostgres) AdapterFactory.createAdapter();
-			dbAdapter.getRoles();
+			dbAdapter.getSequences(new DBSchema("information_schema"));
 		}catch(ExceptionDBGitRunTime e) {
 			e.printStackTrace();
 		}catch(Exception e) {
