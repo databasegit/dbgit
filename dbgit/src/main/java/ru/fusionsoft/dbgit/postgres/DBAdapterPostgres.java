@@ -126,7 +126,7 @@ public class DBAdapterPostgres extends DBAdapter {
 				DBSequence sequence = new DBSequence(name);
 				listSequence.put(name, sequence);
 			}
-			System.out.println("Collection TableSpaces:");
+			System.out.println("Collection sequences:");
 			for(DBSequence sequence:listSequence.values())
 				System.out.println(sequence.getName());
 		}catch(Exception e) {
@@ -146,7 +146,24 @@ public class DBAdapterPostgres extends DBAdapter {
 	@Override
 	public Map<String, DBTable> getTables(DBSchema schema) {
 		Map<String, DBTable> listTable = new HashMap<String, DBTable>();
-		
+		try {
+			String query = "select * from " + schema.getName()+".tables";
+			Connection connect = getConnection();
+			Statement stmt = connect.createStatement();
+			ResultSet rs = stmt.executeQuery(query);
+			while(rs.next()){
+				String name = rs.getString(3);
+				DBTable table = new DBTable(name);
+				listTable.put(name, table);
+			}
+			System.out.println("Collection tables:");
+			for(DBTable table:listTable.values())
+				System.out.println(table.getName());
+		}catch(Exception e) {
+			logger.error(e.getMessage());
+			System.out.println(e.getMessage());
+			throw new ExceptionDBGitRunTime(e.getMessage());
+		}
 		return listTable;
 	}
 
@@ -176,8 +193,26 @@ public class DBAdapterPostgres extends DBAdapter {
 
 	@Override
 	public Map<String, DBView> getViews(DBSchema schema) {
-		// TODO Auto-generated method stub
-		return null;
+		Map<String, DBView> listView = new HashMap<String, DBView>();
+		try {
+			String query = "select * from " + schema.getName()+".views";
+			Connection connect = getConnection();
+			Statement stmt = connect.createStatement();
+			ResultSet rs = stmt.executeQuery(query);
+			while(rs.next()){
+				String name = rs.getString(3);
+				DBView view = new DBView(name);
+				listView.put(name, view);
+			}
+			System.out.println("Collection views:");
+			for(DBView view:listView.values())
+				System.out.println(view.getName());
+		}catch(Exception e) {
+			logger.error(e.getMessage());
+			System.out.println(e.getMessage());
+			throw new ExceptionDBGitRunTime(e.getMessage());
+		}
+		return listView;
 	}
 
 	@Override
@@ -299,7 +334,7 @@ public class DBAdapterPostgres extends DBAdapter {
 		System.out.println("start");
 		try {
 			DBAdapterPostgres dbAdapter = (DBAdapterPostgres) AdapterFactory.createAdapter();
-			dbAdapter.getSequences(new DBSchema("information_schema"));
+			dbAdapter.getViews(new DBSchema("information_schema"));
 		}catch(ExceptionDBGitRunTime e) {
 			e.printStackTrace();
 		}catch(Exception e) {
