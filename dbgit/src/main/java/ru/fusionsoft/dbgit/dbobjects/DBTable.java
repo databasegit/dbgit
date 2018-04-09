@@ -5,6 +5,11 @@ import ru.fusionsoft.dbgit.utils.StringProperties;
 
 public class DBTable extends DBSchemaObject {
 	private StringProperties options = new StringProperties();
+	
+	public DBTable() {
+		super();
+	}
+	
 	public DBTable(String name) {
 		super();
 		this.name = name;

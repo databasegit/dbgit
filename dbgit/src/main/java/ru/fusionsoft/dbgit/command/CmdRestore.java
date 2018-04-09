@@ -31,13 +31,14 @@ public class CmdRestore implements IDBGitCommand {
 					IMetaObject obj = MetaObjectFactory.createMetaObject(item.getName());
 					obj.loadFromDB();
 					if (item.getHash().equals(obj.getHash())) {
-						
+						deleteObjs.put(obj);
 					}
 				} catch(ExceptionDBGit e) {
 					LoggerUtil.getGlobalLogger().error("Error load and delete object: "+item.getName(), e);
 				}
 			}
-		}		
+		}
+		gmdm.deleteDataBase(deleteObjs);
 		
 		
 		for (IMetaObject obj : fileObjs.values()) {

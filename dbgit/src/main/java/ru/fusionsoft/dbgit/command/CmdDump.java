@@ -6,6 +6,7 @@ import ru.fusionsoft.dbgit.core.DBGit;
 import ru.fusionsoft.dbgit.core.DBGitIndex;
 import ru.fusionsoft.dbgit.core.DBGitPath;
 import ru.fusionsoft.dbgit.core.GitMetaDataManager;
+import ru.fusionsoft.dbgit.meta.IMapMetaObject;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
 
 public class CmdDump implements IDBGitCommand {
@@ -20,7 +21,7 @@ public class CmdDump implements IDBGitCommand {
 		DBGit dbGit = DBGit.getInctance();
 		
 
-		Map<String, IMetaObject> fileObjs = gmdm.loadFileMetaData();
+		IMapMetaObject fileObjs = gmdm.loadFileMetaData();
 		
 		for (IMetaObject obj : fileObjs.values()) {
 			String hash = obj.getHash();

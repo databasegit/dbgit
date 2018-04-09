@@ -2,6 +2,7 @@ package ru.fusionsoft.dbgit.postgres;
 
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.HashMap;
@@ -31,6 +32,8 @@ import ru.fusionsoft.dbgit.meta.IMapMetaObject;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
 import ru.fusionsoft.dbgit.utils.LoggerUtil;
 import org.slf4j.Logger;
+
+import com.axiomalaska.jdbc.NamedParameterPreparedStatement;
 
 public class DBAdapterPostgres extends DBAdapter {
 
@@ -117,22 +120,22 @@ public class DBAdapterPostgres extends DBAdapter {
 	public Map<String, DBSequence> getSequences(DBSchema schema) {
 		Map<String, DBSequence> listSequence = new HashMap<String, DBSequence>();
 		try {
-			String query = "select * from " + schema.getName()+".sequences";
 			Connection connect = getConnection();
-			Statement stmt = connect.createStatement();
-			ResultSet rs = stmt.executeQuery(query);
+			String query = "select c.* from pg_class c join pg_namespace n on c.relnamespace = n.oid  where c.relkind='S' and lower(n.nspname) = :schema  ";
+			
+			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);
+			stmt.setString("schema", schema.getName().toLowerCase());
+						
+			ResultSet rs = stmt.executeQuery();
 			while(rs.next()){
-				String name = rs.getString(3);
+				String name = rs.getString("relname");
 				DBSequence sequence = new DBSequence(name);
+				//TODO set other params for Sequence
 				listSequence.put(name, sequence);
 			}
-			System.out.println("Collection sequences:");
-			for(DBSequence sequence:listSequence.values())
-				System.out.println(sequence.getName());
 		}catch(Exception e) {
-			logger.error(e.getMessage());
-			System.out.println(e.getMessage());
-			throw new ExceptionDBGitRunTime(e.getMessage());
+			logger.error(e.getMessage(), e);
+			throw new ExceptionDBGitRunTime(e.getMessage(), e);
 		}
 		return listSequence;
 	}

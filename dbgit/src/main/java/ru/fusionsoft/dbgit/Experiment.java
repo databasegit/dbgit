@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.Status;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.diff.DiffFormatter;
@@ -45,7 +46,13 @@ public class Experiment {
     	System.out.println(dbGit.getRootDirectory());
     	
     	
-    	List<String> files = dbGit.getGitIndexFiles("/");
+    	List<String> files = dbGit.getGitIndexFiles("");
+    	for (int i = 0; i < files.size(); i++) {
+    		System.out.println(files.get(i));
+    	}
+    	
+    	System.out.println("Add  =======================================");
+    	files = dbGit.getAddedObjects("");
     	for (int i = 0; i < files.size(); i++) {
     		System.out.println(files.get(i));
     	}
@@ -57,6 +64,11 @@ public class Experiment {
     	Git git = new Git(repository);
     	
     	RevWalk walk = new RevWalk(repository, 10);
+    	
+    	Status st = git.status().call();
+    	for (String s : st.getAdded()) {
+    		System.out.println("Added: "+s);
+    	}
     	
     	
     	/*
@@ -102,7 +114,7 @@ public class Experiment {
     	        System.out.println("dir: " + treeWalk.getPathString());    	        
     	        treeWalk.enterSubtree();
     	    } else {
-    	        System.out.println("file: " + treeWalk.getPathString());
+    	        System.out.println("file: " + treeWalk.getPathString() +" "+treeWalk.getOperationType().name());
     	    }
     	}
     	

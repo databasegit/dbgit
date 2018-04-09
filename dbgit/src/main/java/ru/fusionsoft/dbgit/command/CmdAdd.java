@@ -7,6 +7,7 @@ import ru.fusionsoft.dbgit.core.DBGitIndex;
 import ru.fusionsoft.dbgit.core.DBGitPath;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.GitMetaDataManager;
+import ru.fusionsoft.dbgit.meta.IMapMetaObject;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
 import ru.fusionsoft.dbgit.meta.MetaObjectFactory;
 import ru.fusionsoft.dbgit.utils.MaskFilter;
@@ -22,17 +23,17 @@ public class CmdAdd implements IDBGitCommand {
 		MaskFilter maskAdd = new MaskFilter(nameObj);
 		
 		DBGitIndex index = DBGitIndex.getInctance();
+		DBGit dbGit = DBGit.getInctance();
 		
 		GitMetaDataManager gmdm = new GitMetaDataManager();		
-		Map<String, IMetaObject> dbObjs = gmdm.loadDBMetaData();	
+		IMapMetaObject dbObjs = gmdm.loadDBMetaData();	
 		
 		Integer countSave = 0;
 		
 		for (IMetaObject obj : dbObjs.values()) {
 			if (maskAdd.match(obj.getName())) {			
 				obj.saveToFile();
-				
-				DBGit dbGit = DBGit.getInctance();
+								
 				dbGit.addFileToIndexGit(DBGitPath.DB_GIT_PATH+"/"+obj.getFileName());				
 				
 				index.addItem(obj);
