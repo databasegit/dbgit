@@ -15,4 +15,8 @@ public abstract class DBRestoreAdapter implements IDBAdapterRestoreMetaData {
 	public void  setAdapter(IDBAdapter adapter) {
 		this.adapter = adapter;
 	}
+	
+	public IDBAdapter getAdapter() {
+		return adapter;
+	}
 }

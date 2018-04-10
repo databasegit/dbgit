@@ -10,6 +10,7 @@ import org.yaml.snakeyaml.Yaml;
 
 import ru.fusionsoft.dbgit.yaml.DBGitYamlConstructor;
 import ru.fusionsoft.dbgit.yaml.DBGitYamlRepresenter;
+import ru.fusionsoft.dbgit.yaml.YamlOrder;
 
 
 /**
@@ -18,6 +19,7 @@ import ru.fusionsoft.dbgit.yaml.DBGitYamlRepresenter;
  *
  */
 public abstract class MetaBase implements IMetaObject {
+	@YamlOrder(0)
 	protected String name;
 	
 	@Override

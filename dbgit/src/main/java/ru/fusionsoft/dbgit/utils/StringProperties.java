@@ -91,10 +91,9 @@ public class StringProperties {
 	}
 	
 	public void setChildren(Map<String, StringProperties> lst) {
-		if (children != null) {
-			for (String item : lst.keySet()) {
-				addChild(item, lst.get(item));
-			}
+		if (lst != null) {
+			children.clear();
+			children.putAll(lst);			
 		}
 	}
 	

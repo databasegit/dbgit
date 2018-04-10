@@ -191,7 +191,7 @@ public class GitMetaDataManager {
 	 * Restore map meta object to DB
 	 * @param updateObjs
 	 */
-	public void restoreDataBase(IMapMetaObject updateObjs) throws ExceptionDBGit {
+	public void restoreDataBase(IMapMetaObject updateObjs) throws Exception {
 		IDBAdapter adapter = AdapterFactory.createAdapter();
 		
 		adapter.startUpdateDB();
@@ -206,7 +206,7 @@ public class GitMetaDataManager {
 	 * Restore map meta object to DB
 	 * @param updateObjs
 	 */
-	public void deleteDataBase(IMapMetaObject deleteObjs) throws ExceptionDBGit {
+	public void deleteDataBase(IMapMetaObject deleteObjs) throws Exception {
 		IDBAdapter adapter = AdapterFactory.createAdapter();
 		
 		adapter.deleteDataBase(deleteObjs);	

@@ -16,7 +16,7 @@ import ru.fusionsoft.dbgit.utils.LoggerUtil;
 
 public class CmdRestore implements IDBGitCommand {
 
-	public void execute(String[] args) throws ExceptionDBGit {
+	public void execute(String[] args) throws Exception {
 		GitMetaDataManager gmdm = new GitMetaDataManager();
 		IMapMetaObject fileObjs = gmdm.loadFileMetaData();		
 		IMapMetaObject updateObjs = new TreeMapMetaObject();

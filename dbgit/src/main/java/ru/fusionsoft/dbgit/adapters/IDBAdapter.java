@@ -68,13 +68,13 @@ public interface IDBAdapter {
 	 * Restore Meta Objects to DataBase
 	 * @param updateObjs
 	 */
-	public void restoreDataBase(IMapMetaObject updateObjs);
+	public void restoreDataBase(IMapMetaObject updateObjs) throws Exception;
 	
 	/**
 	 * delete map DB objects
 	 * @param updateObjs
 	 */
-	public void deleteDataBase(IMapMetaObject updateObjs);
+	public void deleteDataBase(IMapMetaObject updateObjs) throws Exception;
 	
 	/**
 	 * Run after end restore database

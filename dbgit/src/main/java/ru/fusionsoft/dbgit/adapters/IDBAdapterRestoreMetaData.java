@@ -2,6 +2,7 @@ package ru.fusionsoft.dbgit.adapters;
 
 import java.sql.Connection;
 
+import ru.fusionsoft.dbgit.core.ExceptionDBGitRestore;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
 
 
@@ -15,6 +16,10 @@ import ru.fusionsoft.dbgit.meta.IMetaObject;
  */
 public interface IDBAdapterRestoreMetaData {
 	public void setAdapter(IDBAdapter adapter);
-	public void restoreMetaObject(IMetaObject obj);
-	public void removeMetaObject(IMetaObject obj);
+	
+	public IDBAdapter getAdapter();
+	
+	public void restoreMetaObject(IMetaObject obj) throws Exception;
+	
+	public void removeMetaObject(IMetaObject obj) throws Exception;
 }

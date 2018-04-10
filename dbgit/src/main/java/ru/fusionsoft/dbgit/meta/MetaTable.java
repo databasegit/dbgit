@@ -17,6 +17,7 @@ import ru.fusionsoft.dbgit.dbobjects.DBSchema;
 import ru.fusionsoft.dbgit.dbobjects.DBTable;
 import ru.fusionsoft.dbgit.dbobjects.DBTableField;
 import ru.fusionsoft.dbgit.utils.CalcHash;
+import ru.fusionsoft.dbgit.yaml.YamlOrder;
 
 /**
  * Meta class for db Table 
@@ -25,10 +26,16 @@ import ru.fusionsoft.dbgit.utils.CalcHash;
  */
 public class MetaTable extends MetaBase {	
 
+	@YamlOrder(1)
 	private DBTable table;
 	
+	@YamlOrder(2)
 	private Map<String, DBTableField> fields = new TreeMap<String, DBTableField>();
+	
+	@YamlOrder(3)
 	private Map<String, DBIndex> indexes = new TreeMap<String, DBIndex>();
+	
+	@YamlOrder(4)
 	private Map<String, DBConstraint> constraints = new TreeMap<String, DBConstraint>();
 	
 	public MetaTable() {	
@@ -115,7 +122,8 @@ public class MetaTable extends MetaBase {
 	}
 
 	public void setFields(Map<String, DBTableField> fields) {
-		this.fields = fields;
+		this.fields.clear();
+		this.fields.putAll(fields);
 	}
 
 	public Map<String, DBIndex> getIndexes() {
@@ -123,7 +131,8 @@ public class MetaTable extends MetaBase {
 	}
 
 	public void setIndexes(Map<String, DBIndex> indexes) {
-		this.indexes = indexes;
+		this.indexes.clear(); 
+		this.indexes.putAll(indexes);
 	}
 
 	public Map<String, DBConstraint> getConstraints() {
@@ -131,7 +140,8 @@ public class MetaTable extends MetaBase {
 	}
 
 	public void setConstraints(Map<String, DBConstraint> constraints) {
-		this.constraints = constraints;
+		this.constraints.clear(); 
+		this.constraints.putAll(constraints);
 	}
 	
 	

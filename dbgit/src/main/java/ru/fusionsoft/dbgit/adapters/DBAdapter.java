@@ -6,6 +6,7 @@ import java.sql.ResultSet;
 
 import com.axiomalaska.jdbc.NamedParameterPreparedStatement;
 
+import ru.fusionsoft.dbgit.core.ExceptionDBGitRestore;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
 import ru.fusionsoft.dbgit.dbobjects.DBSequence;
 import ru.fusionsoft.dbgit.meta.IMapMetaObject;
@@ -51,17 +52,34 @@ public abstract class DBAdapter implements IDBAdapter {
 	}
 	
 	@Override
-	public void restoreDataBase(IMapMetaObject updateObjs) {
-		for (IMetaObject obj : updateObjs.values()) {
-			getFactoryRestore().getAdapterRestore(obj.getType(), this).restoreMetaObject(obj);
+	public void restoreDataBase(IMapMetaObject updateObjs) throws Exception {
+		Connection connect = getConnection();
+		try {
+			//start transaction
+			for (IMetaObject obj : updateObjs.values()) {
+				getFactoryRestore().getAdapterRestore(obj.getType(), this).restoreMetaObject(obj);
+			}
+			connect.commit();
+		} catch (Exception e) {
+			connect.rollback();
+			throw new ExceptionDBGitRestore("Restore objects error", e);
 		}
 	}
 	
 	@Override
-	public void deleteDataBase(IMapMetaObject deleteObjs) {
-		for (IMetaObject obj : deleteObjs.values()) {
-			getFactoryRestore().getAdapterRestore(obj.getType(), this).removeMetaObject(obj);
+	public void deleteDataBase(IMapMetaObject deleteObjs)  throws Exception {
+		Connection connect = getConnection();
+		try {
+			//start transaction
+			for (IMetaObject obj : deleteObjs.values()) {
+				getFactoryRestore().getAdapterRestore(obj.getType(), this).removeMetaObject(obj);
+			}
+			connect.commit();
+		} catch (Exception e) {
+			connect.rollback();
+			throw new ExceptionDBGitRestore("Remove objects error", e);
 		}
+
 	}
 	
 	//-----------------------------------------------------------------

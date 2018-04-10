@@ -95,16 +95,16 @@ public class App
 	
     public static void main( String[] args ) throws Exception
     {    	
-    	ConsoleWriter.printlnColor( "dbgit utils - Hello!", FColor.BLUE, 0);
+    	ConsoleWriter.println( "dbgit utils - Hello!");
         
         //configureLogback();
                
         try {
         	executeDbGitCommand(args);
         	
-        	ConsoleWriter.printlnColor( "execute command success!", FColor.BLUE, 0);
+        	ConsoleWriter.println( "execute command success!");
         } catch (Exception e) {
-        	ConsoleWriter.println("Error execute dbgit: "+e.getMessage());
+        	ConsoleWriter.printlnRed("Error execute dbgit: "+e.getMessage());
         	LoggerUtil.getGlobalLogger().error(e.getMessage(), e);
         }
         

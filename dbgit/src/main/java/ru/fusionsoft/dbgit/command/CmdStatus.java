@@ -24,6 +24,7 @@ public class CmdStatus implements IDBGitCommand {
 		for (String name : dbGit.getAddedObjects(DBGitPath.DB_GIT_PATH)) {
 			ConsoleWriter.printlnColor(name, FColor.GREEN, 1);		
 		}
+		ConsoleWriter.println(" ");
 		
 		ConsoleWriter.println("Changes databse objects not staged for commit:");
 		for (String name : fileObjs.keySet()) {
@@ -35,6 +36,7 @@ public class CmdStatus implements IDBGitCommand {
 				ConsoleWriter.printlnColor(name, FColor.RED, 2);
 			}
 		}
+		ConsoleWriter.println(" ");
 				
 		ConsoleWriter.println("Untracked databse objects:");
 		for (String name : dbObjs.keySet()) {
@@ -42,5 +44,6 @@ public class CmdStatus implements IDBGitCommand {
 				ConsoleWriter.println(name, 1);
 			}
 		}
+		ConsoleWriter.println(" ");
 	}
 }

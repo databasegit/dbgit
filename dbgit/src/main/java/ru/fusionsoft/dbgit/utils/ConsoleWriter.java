@@ -22,6 +22,10 @@ public class ConsoleWriter {
 	
 	public static void printlnColor(String msg, FColor color, Integer level) {
 		String tab = StringUtils.leftPad("", 4*level, " ");
+		/*
+		System.out.println(tab + msg);
+		if (1==1) return ;
+		*/
 		cp.println(tab+msg, Attribute.NONE, color, BColor.BLACK);
 		cp.clear();
 		logger.info(msg);
@@ -29,9 +33,13 @@ public class ConsoleWriter {
 	
 	public static void printColor(String msg, FColor color, Integer level) {
 		String tab = StringUtils.leftPad("", 4*level, " ");
+		/*
+		System.out.println(tab + msg);
+		if (1==1) return ;
+		*/
 		cp.print(tab+msg, Attribute.NONE, color, BColor.BLACK);
 		cp.clear();
-		logger.info(msg);
+		logger.info(msg);		
 	}
 	
 	public static void println(String msg) {
@@ -39,13 +47,23 @@ public class ConsoleWriter {
 	}
 	public static void println(String msg, Integer level) {
 		String tab = StringUtils.leftPad("", 4*level, " ");
-		cp.print(tab+msg);
+		/*
+		System.out.println(tab + msg);
+		if (1==1) return ;
+		*/
+		cp.println(tab+msg);
+		cp.clear();
 		logger.info(msg);
 	}
 	
 	public static void print(String msg, Integer level) {
 		String tab = StringUtils.leftPad("", 4*level, " ");
+		/*
+		System.out.println(tab + msg);
+		if (1==1) return ;
+		*/
 		cp.print(tab+msg);
+		cp.clear();
 		logger.info(msg);
 	}
 }

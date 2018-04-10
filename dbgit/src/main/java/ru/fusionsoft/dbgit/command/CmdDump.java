@@ -19,28 +19,27 @@ public class CmdDump implements IDBGitCommand {
 				
 		DBGitIndex index = DBGitIndex.getInctance();
 		DBGit dbGit = DBGit.getInctance();
-		
 
 		IMapMetaObject fileObjs = gmdm.loadFileMetaData();
 		
 		for (IMetaObject obj : fileObjs.values()) {
 			String hash = obj.getHash();
+		
 			obj.loadFromDB();
 			if (!obj.getHash().equals(hash)) {
 				//сохранили файл если хеш разный
 				obj.saveToFile();
 				index.addItem(obj);				
-				
+			
 				if (isAddToGit) {
 					dbGit.addFileToIndexGit(DBGitPath.DB_GIT_PATH+"/"+obj.getFileName());
 				}
 			}			
-			
 		}
 		
 		index.saveDBIndex();
 		if (isAddToGit) {
 			index.addToGit();
-		}		
+		}			
 	}
 }
