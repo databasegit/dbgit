@@ -341,23 +341,20 @@ public class DBAdapterPostgres extends DBAdapter {
 	public Map<String, DBTrigger> getTriggers(DBSchema schema) {
 		Map<String, DBTrigger> listTrigger = new HashMap<String, DBTrigger>();
 		try {
-			String query = "SELECT pg_trigger.*, pg_class.relname, pg_namespace.nspname --, relname, nspname \r\n" + 
+			String query = "SELECT pg_trigger.tgname, pg_get_triggerdef(pg_trigger.oid) AS src \r\n" + 
 					"FROM pg_trigger, pg_class, pg_namespace\r\n" + 
 					"where pg_namespace.nspname like '" + schema.getName()+"' and pg_namespace.oid=pg_class.relnamespace and pg_trigger.tgrelid=pg_class.oid ";
 			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
 			while(rs.next()){
-				String name = rs.getString(2);
+				String name = rs.getString(1);
+				String sql = rs.getString(2);
 				DBTrigger trigger = new DBTrigger(name);
+				trigger.setSql(sql);
 				listTrigger.put(name, trigger);
 			}
-			System.out.println("Collection triggers:");
-			for(DBTrigger trigger:listTrigger.values())
-				System.out.println(trigger.getName());
 		}catch(Exception e) {
-			logger.error(e.getMessage());
-			System.out.println(e.getMessage());
 			throw new ExceptionDBGitRunTime(e.getMessage());
 		}
 		// TODO Auto-generated method stub
@@ -464,8 +461,7 @@ public class DBAdapterPostgres extends DBAdapter {
 		try {
 			DBAdapterPostgres dbAdapter = (DBAdapterPostgres) AdapterFactory.createAdapter();
 			DBSchema schema = new DBSchema("pgagent");
-			dbAdapter.getTriggers(schema);
-			
+			dbAdapter.getTriggers(schema);		
 			
 		}catch(ExceptionDBGitRunTime e) {
 			e.printStackTrace();
