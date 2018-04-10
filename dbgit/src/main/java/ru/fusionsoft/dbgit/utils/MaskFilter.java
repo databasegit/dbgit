@@ -8,12 +8,10 @@ public class MaskFilter {
 		this.mask = mask;
 		
 		regex = mask.replace("/", "\\/").replace(".", "\\.").replace("?", ".?").replace("*", ".*"); 
-		System.out.println(regex);
 	}
 	
 	public boolean match(String exp) {
 		String tmp = exp.replace("\\", "/");
-		System.out.println(tmp);
 		return tmp.matches(regex);
 	}
 

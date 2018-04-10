@@ -8,8 +8,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import ru.fusionsoft.dbgit.adapters.AdapterFactory;
+import ru.fusionsoft.dbgit.adapters.IDBAdapter;
+import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.dbobjects.DBConstraint;
 import ru.fusionsoft.dbgit.dbobjects.DBIndex;
+import ru.fusionsoft.dbgit.dbobjects.DBSchema;
 import ru.fusionsoft.dbgit.dbobjects.DBTable;
 import ru.fusionsoft.dbgit.dbobjects.DBTableField;
 import ru.fusionsoft.dbgit.utils.CalcHash;
@@ -54,8 +58,23 @@ public class MetaTable extends MetaBase {
 	}
 	
 	@Override
-	public void loadFromDB() {
+	public void loadFromDB() throws ExceptionDBGit {
+		IDBAdapter adapter = AdapterFactory.createAdapter();
+		NameMeta nm = MetaObjectFactory.parseMetaName(getName());
+		DBSchema sh = new DBSchema(nm.getSchema());
 		
+		DBTable tbl = adapter.getTable(sh, nm.getName());
+		loadFromDB(tbl);
+	}
+	
+	public void loadFromDB(DBTable tbl) throws ExceptionDBGit {
+		setTable(tbl);
+		
+		IDBAdapter adapter = AdapterFactory.createAdapter();
+		
+		fields.putAll(adapter.getTableFields(getTable()));
+		indexes.putAll(adapter.getIndexes(getTable()));
+		constraints.putAll(adapter.getConstraints(getTable()));
 	}
 	
 	@Override

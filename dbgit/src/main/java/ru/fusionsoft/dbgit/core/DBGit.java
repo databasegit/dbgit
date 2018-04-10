@@ -67,7 +67,7 @@ public class DBGit {
 	    	for (int i = 0; i < cache.getEntryCount(); i++) {
 	    		String file = cache.getEntry(i).getPathString();
 	    		
-	    		//System.out.println(cache.getEntry(i).getPathString() +"   "+cache.getEntry(i).getObjectId().getName());
+	    		//System.out.rintln(cache.getEntry(i).getPathString() +"   "+cache.getEntry(i).getObjectId().getName());
 	    		
 	    		
 	    		if (file.startsWith(path)) {
@@ -106,12 +106,10 @@ public class DBGit {
 		//https://github.com/centic9/jgit-cookbook/blob/master/src/main/java/org/dstadler/jgit/porcelain/AddFile.java
         try {
         	/*
-        	System.out.println(repository.getBranch());        	
-        	System.out.println(filename);
+        	System.out.rintln(repository.getBranch());        	
+        	System.out.rintln(filename);
         	 */
             git.add().addFilepattern(filename).call();
-
-            System.out.println("Added file " + filename + " to repository at " + repository.getDirectory());
         } catch (Exception e) {
         	throw new ExceptionDBGit(e);
         }         
@@ -119,9 +117,7 @@ public class DBGit {
 	
 	public void removeFileFromIndexGit(String filename) throws ExceptionDBGit {
 		try {        	      
-            git.rm().addFilepattern(filename).call();
-
-            System.out.println("Remove file " + filename + " in repository at " + repository.getDirectory());
+            git.rm().addFilepattern(filename).call();           
         } catch (Exception e) {
         	throw new ExceptionDBGit(e);
         } 

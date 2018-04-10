@@ -66,7 +66,7 @@ public class DBAdapterPostgres extends DBAdapter {
 	public Map<String, DBSchema> getSchemes() {
 		Map<String, DBSchema> listScheme = new HashMap<String, DBSchema>();
 		try {
-			String query = "select *from pg_namespace where nspname!='pg_toast' and nspname!='pg_temp_1'"+
+			String query = "select * from pg_namespace where nspname!='pg_toast' and nspname!='pg_temp_1'"+
 					"and nspname!='pg_toast_temp_1' and nspname!='pg_catalog'"+
 					"and nspname!='information_schema' and nspname!='pgagent'"+
 					"and nspname!='pg_temp_3' and nspname!='pg_toast_temp_3'";
@@ -76,19 +76,13 @@ public class DBAdapterPostgres extends DBAdapter {
 			while(rs.next()){
 				String name = rs.getString("nspname");
 				DBSchema scheme = new DBSchema(name);
-				listScheme.put(name, scheme);
-				System.out.println(name);
-			}
-			System.out.println("Collection schemes:");
-			for(DBSchema schema:listScheme.values())
-				System.out.println(schema.getName());
+				listScheme.put(name, scheme);	
+			}			
 		}catch(Exception e) {
-			logger.error(e.getMessage());
-			System.out.println(e.getMessage());
-			throw new ExceptionDBGitRunTime(e.getMessage());
+			logger.error("Error load schemes!", e);
+			throw new ExceptionDBGitRunTime("Error load schemes!", e);
 		}
-		//connect.cre
-		//select *from pg_catalog.pg_namespace;
+
 		return listScheme;
 	}
 	
@@ -104,13 +98,9 @@ public class DBAdapterPostgres extends DBAdapter {
 				String name = rs.getString(1);
 				DBTableSpace dbTableSpace = new DBTableSpace(name);
 				listTableSpace.put(name, dbTableSpace);
-			}
-			System.out.println("Collection TableSpaces:");
-			for(DBTableSpace tableSpace:listTableSpace.values())
-				System.out.println(tableSpace.getName());
+			}			
 		}catch(Exception e) {
 			logger.error(e.getMessage());
-			System.out.println(e.getMessage());
 			throw new ExceptionDBGitRunTime(e.getMessage());
 		}
 		return listTableSpace;
@@ -121,17 +111,28 @@ public class DBAdapterPostgres extends DBAdapter {
 		Map<String, DBSequence> listSequence = new HashMap<String, DBSequence>();
 		try {
 			Connection connect = getConnection();
-			String query = "select c.* from pg_class c join pg_namespace n on c.relnamespace = n.oid  where c.relkind='S' and lower(n.nspname) = :schema  ";
+			String query = 
+					"select s.*, rol.rolname as owner " + 
+					"from pg_class cls " + 
+					"  join pg_roles rol on rol.oid = cls.relowner  " + 
+					"  join pg_namespace nsp on nsp.oid = cls.relnamespace " + 
+					"  join information_schema.sequences s on cls.relname = s.sequence_name " + 
+					"where nsp.nspname not in ('information_schema', 'pg_catalog') " + 
+					"  and nsp.nspname not like 'pg_toast%' " + 
+					"  and cls.relkind = 'S' and nsp.nspname = :schema ";
 			
 			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);
-			stmt.setString("schema", schema.getName().toLowerCase());
+			stmt.setString("schema", schema.getName());
 						
 			ResultSet rs = stmt.executeQuery();
 			while(rs.next()){
-				String name = rs.getString("relname");
-				DBSequence sequence = new DBSequence(name);
-				//TODO set other params for Sequence
-				listSequence.put(name, sequence);
+				String nameSeq = rs.getString("sequence_name");
+				DBSequence sequence = new DBSequence();
+				sequence.setName(nameSeq);
+				sequence.setSchema(schema.getName());
+				sequence.setValue(0L);
+				rowToProperties(rs, sequence.getOptions());
+				listSequence.put(nameSeq, sequence);
 			}
 		}catch(Exception e) {
 			logger.error(e.getMessage(), e);
@@ -142,60 +143,172 @@ public class DBAdapterPostgres extends DBAdapter {
 
 	@Override
 	public DBSequence getSequence(DBSchema schema, String name) {
-		// TODO Auto-generated method stub
-		return null;
+		try {
+			Connection connect = getConnection();
+			String query = 
+					"select s.*, rol.rolname as owner " + 
+					"from pg_class cls " + 
+					"  join pg_roles rol on rol.oid = cls.relowner  " + 
+					"  join pg_namespace nsp on nsp.oid = cls.relnamespace " + 
+					"  join information_schema.sequences s on cls.relname = s.sequence_name " + 
+					"where nsp.nspname not in ('information_schema', 'pg_catalog') " + 
+					"  and nsp.nspname not like 'pg_toast%' " + 
+					"  and cls.relkind = 'S' and nsp.nspname = :schema and nsp.relname = :name ";
+			
+			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);
+			stmt.setString("schema", schema.getName());
+			stmt.setString("name", name);
+						
+			ResultSet rs = stmt.executeQuery();
+			rs.next();
+			String nameSeq = rs.getString("relname");
+			DBSequence sequence = new DBSequence();
+			sequence.setName(nameSeq);
+			sequence.setSchema(schema.getName());
+			sequence.setValue(0L);
+			rowToProperties(rs, sequence.getOptions());
+				
+			return sequence;
+		}catch(Exception e) {
+			logger.error(e.getMessage(), e);
+			throw new ExceptionDBGitRunTime(e.getMessage(), e);
+		}
 	}
 
 	@Override
 	public Map<String, DBTable> getTables(DBSchema schema) {
 		Map<String, DBTable> listTable = new HashMap<String, DBTable>();
 		try {
-			String query = "select * from " + schema.getName()+".tables";
+			String query = 
+					"select nsp.nspname as object_schema, " + 
+					"       cls.relname as object_name,  rol.rolname as owner " + 
+					"from pg_class cls " + 
+					"  join pg_roles rol on rol.oid = cls.relowner " + 
+					"  join pg_namespace nsp on nsp.oid = cls.relnamespace " + 
+					"where nsp.nspname not in ('information_schema', 'pg_catalog')  " + 
+					"  and nsp.nspname not like 'pg_toast%'" + 
+					"  and cls.relkind = 'r' and nsp.nspname = :schema ";
 			Connection connect = getConnection();
-			Statement stmt = connect.createStatement();
-			ResultSet rs = stmt.executeQuery(query);
+			
+			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);			
+			stmt.setString("schema", schema.getName());
+			
+			ResultSet rs = stmt.executeQuery();
 			while(rs.next()){
-				String name = rs.getString(3);
-				DBTable table = new DBTable(name);
-				listTable.put(name, table);
-			}
-			System.out.println("Collection tables:");
-			for(DBTable table:listTable.values())
-				System.out.println(table.getName());
+				String nameTable = rs.getString("object_name");
+				DBTable table = new DBTable(nameTable);
+				table.setSchema(schema.getName());
+				table.getOptions().addChild("owner", rs.getString("owner"));
+				listTable.put(nameTable, table);
+			}			
 		}catch(Exception e) {
-			logger.error(e.getMessage());
-			System.out.println(e.getMessage());
-			throw new ExceptionDBGitRunTime(e.getMessage());
+			logger.error("Error load tables.", e);			
+			throw new ExceptionDBGitRunTime("Error load tables.", e);
 		}
 		return listTable;
 	}
 
 	@Override
 	public DBTable getTable(DBSchema schema, String name) {
-		// TODO Auto-generated method stub
-		return null;
+		try {
+			String query = 
+					"select nsp.nspname as object_schema, " + 
+					"       cls.relname as object_name,  rol.rolname as owner " + 
+					"from pg_class cls " + 
+					"  join pg_roles rol on rol.oid = cls.relowner " + 
+					"  join pg_namespace nsp on nsp.oid = cls.relnamespace " + 
+					"where nsp.nspname not in ('information_schema', 'pg_catalog')  " + 
+					"  and nsp.nspname not like 'pg_toast%'" + 
+					"  and cls.relkind = 'r' and nsp.nspname = :schema and cls.relname = :name ";
+			Connection connect = getConnection();
+			
+			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);			
+			stmt.setString("schema", schema.getName());
+			stmt.setString("name", name);
+			
+			ResultSet rs = stmt.executeQuery();
+			rs.next();
+			String nameTable = rs.getString("object_name");
+			DBTable table = new DBTable(nameTable);
+			table.setSchema(schema.getName());
+			table.getOptions().addChild("owner", rs.getString("owner"));
+
+			return table;
+		
+		}catch(Exception e) {
+			logger.error("Error load tables.", e);			
+			throw new ExceptionDBGitRunTime("Error load tables.", e);
+		}
 	}
 
 	@Override
 	public Map<String, DBTableField> getTableFields(DBTable tbl) {
-		// TODO Auto-generated method stub
-		return null;
+		
+		try {
+			Map<String, DBTableField> listField = new HashMap<String, DBTableField>();
+			
+			String query = 
+					"SELECT * FROM information_schema.columns where table_schema = :schema and table_name = :table ";
+			Connection connect = getConnection();
+			
+			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);			
+			stmt.setString("schema", tbl.getSchema());
+			stmt.setString("table", tbl.getName());
+			
+			ResultSet rs = stmt.executeQuery();
+			while(rs.next()){				
+				DBTableField field = new DBTableField();
+				field.setName(rs.getString("column_name"));
+				field.setTypeSQL(getFieldType(rs));
+				listField.put(field.getName(), field);
+			}			
+			return listField;
+		}catch(Exception e) {
+			logger.error("Error load tables.", e);			
+			throw new ExceptionDBGitRunTime("Error load tables.", e);
+		}		
+	}
+	
+	protected String getFieldType(ResultSet rs) {
+		try {
+			StringBuilder type = new StringBuilder(); 
+			type.append(rs.getString("data_type"));
+			
+			Integer max_length = rs.getInt("character_maximum_length");
+			if (!rs.wasNull()) {
+				type.append("("+max_length.toString()+")");
+			}
+			
+			if (rs.getString("is_nullable") == "NO") {
+				type.append(" NOT NULL");
+			}
+			
+			
+			return type.toString();
+		}catch(Exception e) {
+			logger.error("Error load tables.", e);			
+			throw new ExceptionDBGitRunTime("Error load tables.", e);
+		}	
 	}
 
 	@Override
 	public Map<String, DBIndex> getIndexes(DBTable tbl) {
+		Map<String, DBIndex> indexes = new HashMap<>();
 		// TODO Auto-generated method stub
-		return null;
+		return indexes;
 	}
 
 	@Override
 	public Map<String, DBConstraint> getConstraints(DBTable tbl) {
+		Map<String, DBConstraint> constraints = new HashMap<>();
 		// TODO Auto-generated method stub
-		return null;
+		return constraints;
 	}
 
 	@Override
 	public Map<String, DBView> getViews(DBSchema schema) {
+		return null;
+		/*
 		Map<String, DBView> listView = new HashMap<String, DBView>();
 		try {
 			String query = "select * from " + schema.getName()+".views";
@@ -216,6 +329,7 @@ public class DBAdapterPostgres extends DBAdapter {
 			throw new ExceptionDBGitRunTime(e.getMessage());
 		}
 		return listView;
+		*/
 	}
 
 	@Override
@@ -295,12 +409,8 @@ public class DBAdapterPostgres extends DBAdapter {
 				DBUser user = new DBUser(name);
 				listUser.put(name, user);
 			}
-			System.out.println("Collection users:");
-			for(DBUser user:listUser.values())
-				System.out.println(user.getName());
 		}catch(Exception e) {
 			logger.error(e.getMessage());
-			System.out.println(e.getMessage());
 			throw new ExceptionDBGitRunTime(e.getMessage());
 		}
 		//connect.cre
@@ -321,15 +431,10 @@ public class DBAdapterPostgres extends DBAdapter {
 				DBRole role = new DBRole(name);
 				listRole.put(name, role);
 			}
-			System.out.println("Collection roles:");
-			for(DBRole role:listRole.values())
-				System.out.println(role.getName());
 		}catch(Exception e) {
 			logger.error(e.getMessage());
-			System.out.println(e.getMessage());
 			throw new ExceptionDBGitRunTime(e.getMessage());
 		}
-		// TODO Auto-generated method stub
 		return listRole;
 	}
 	

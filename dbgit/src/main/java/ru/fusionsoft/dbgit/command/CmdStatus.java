@@ -2,12 +2,15 @@ package ru.fusionsoft.dbgit.command;
 
 import java.util.Map;
 
+import com.diogonunes.jcdp.color.api.Ansi.FColor;
+
 import ru.fusionsoft.dbgit.core.DBGit;
 import ru.fusionsoft.dbgit.core.DBGitPath;
 import ru.fusionsoft.dbgit.core.GitMetaDataManager;
 import ru.fusionsoft.dbgit.meta.DBGitMetaType;
 import ru.fusionsoft.dbgit.meta.IMapMetaObject;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
+import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
 public class CmdStatus implements IDBGitCommand {
 	public void execute(String[] args) throws Exception {
@@ -17,26 +20,26 @@ public class CmdStatus implements IDBGitCommand {
 		IMapMetaObject fileObjs = gmdm.loadFileMetaData();
 		DBGit dbGit = DBGit.getInctance();
 		
-		System.out.println("Changes to be committed::");
+		ConsoleWriter.println("Changes to be committed::");
 		for (String name : dbGit.getAddedObjects(DBGitPath.DB_GIT_PATH)) {
-			System.out.println("   "+name);
+			ConsoleWriter.printlnColor(name, FColor.GREEN, 1);		
 		}
 		
-		System.out.println("Changes databse objects not staged for commit:");
+		ConsoleWriter.println("Changes databse objects not staged for commit:");
 		for (String name : fileObjs.keySet()) {
 			if (dbObjs.containsKey(name)) {
 				if (!fileObjs.get(name).getHash().equals(dbObjs.get(name).getHash())) {
-					System.out.println("   "+name);
+					ConsoleWriter.printlnColor(name, FColor.RED, 1);
 				} 
 			} else {
-				System.out.println("   "+name+"   not found!!! ");
+				ConsoleWriter.printlnColor(name, FColor.RED, 2);
 			}
 		}
 				
-		System.out.println("Untracked databse objects:");
+		ConsoleWriter.println("Untracked databse objects:");
 		for (String name : dbObjs.keySet()) {
 			if (!fileObjs.containsKey(name)) {
-				System.out.println("   "+name);
+				ConsoleWriter.println(name, 1);
 			}
 		}
 	}

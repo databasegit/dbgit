@@ -10,6 +10,7 @@ import ru.fusionsoft.dbgit.core.GitMetaDataManager;
 import ru.fusionsoft.dbgit.meta.IMapMetaObject;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
 import ru.fusionsoft.dbgit.meta.MetaObjectFactory;
+import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 import ru.fusionsoft.dbgit.utils.MaskFilter;
 
 public class CmdAdd implements IDBGitCommand {
@@ -38,6 +39,8 @@ public class CmdAdd implements IDBGitCommand {
 				
 				index.addItem(obj);
 				countSave++;
+				
+				ConsoleWriter.println("Add object to git: "+obj.getName());
 			}
 		}
 

@@ -45,7 +45,19 @@ public interface IDBAdapter {
 	 * @param stream Stream for output sql command
 	 * @param isExec - Execute action sql command or only write command to stream
 	 */
-	public void setDumpSqlCommand(OutputStream stream, Boolean isExec);
+	public void setDumpSqlCommand(OutputStream stream, Boolean isExecSql);
+	
+	/**
+	 * Get stream for output sql command for logging
+	 * @return
+	 */
+	public OutputStream getStreamOutputSqlCommand();
+	
+	/**
+	 * Get state execute sql command for restore DB
+	 * @return
+	 */
+	public Boolean isExecSql();
 	
 	/**
 	 * Run before start update databse

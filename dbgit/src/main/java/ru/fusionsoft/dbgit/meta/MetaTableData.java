@@ -26,12 +26,13 @@ import ru.fusionsoft.dbgit.dbobjects.DBTable;
 
 	public void setTable(DBTable table) {
 		this.table = table;
+		setName(table.getSchema()+"/"+table.getName()+"."+getType().getValue());
 	}
 
 	@Override
 	public DBGitMetaType getType() {
 		// TODO Auto-generated method stub
-		return null;
+		return DBGitMetaType.DbGitTableData;
 	}
 
 	

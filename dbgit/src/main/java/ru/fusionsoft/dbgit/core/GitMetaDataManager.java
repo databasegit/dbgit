@@ -10,12 +10,14 @@ import ru.fusionsoft.dbgit.adapters.IDBAdapter;
 import ru.fusionsoft.dbgit.dbobjects.DBOptionsObject;
 import ru.fusionsoft.dbgit.dbobjects.DBSQLObject;
 import ru.fusionsoft.dbgit.dbobjects.DBSchema;
+import ru.fusionsoft.dbgit.dbobjects.DBSequence;
 import ru.fusionsoft.dbgit.dbobjects.DBTable;
 import ru.fusionsoft.dbgit.meta.DBGitMetaType;
 import ru.fusionsoft.dbgit.meta.IMapMetaObject;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
 import ru.fusionsoft.dbgit.meta.MetaObjOptions;
 import ru.fusionsoft.dbgit.meta.MetaObjectFactory;
+import ru.fusionsoft.dbgit.meta.MetaSequence;
 import ru.fusionsoft.dbgit.meta.MetaSql;
 import ru.fusionsoft.dbgit.meta.MetaTable;
 import ru.fusionsoft.dbgit.meta.MetaTableData;
@@ -88,7 +90,13 @@ public class GitMetaDataManager {
 		
 		//load sequence
 		for (DBSchema schema : schemes.values()) {
-			addToMapSqlObject(objs, adapter.getSequences(schema), DBGitMetaType.DBGitSchema);
+			for (DBSequence seq : adapter.getSequences(schema).values()) {
+				MetaSequence metaSeq = new MetaSequence();
+				metaSeq.setSequence(seq);
+				if (ignore.matchOne(metaSeq.getName())) continue ;
+				objs.put(metaSeq);
+			}
+			
 		}
 			
 		//load tables
@@ -98,7 +106,7 @@ public class GitMetaDataManager {
 				
 				if (ignore.matchOne(tblMeta.getName())) continue ;
 				
-				tblMeta.loadFromDB();
+				tblMeta.loadFromDB(tbl);
 				objs.put(tblMeta);
 				tbls.put(tblMeta.getName(), tblMeta);
 			}
@@ -169,7 +177,8 @@ public class GitMetaDataManager {
 	    		
 	    		IMetaObject obj = MetaObjectFactory.createMetaObject(filename);
 	    		obj = obj.loadFromFile();
-	    		objs.put(obj);
+	    		if (obj != null)
+	    			objs.put(obj);
 	    	}
 			
 			return objs;

@@ -29,8 +29,7 @@ public class CmdDump implements IDBGitCommand {
 			if (!obj.getHash().equals(hash)) {
 				//сохранили файл если хеш разный
 				obj.saveToFile();
-				index.addItem(obj);
-				System.out.println("Save file "+obj.getName());
+				index.addItem(obj);				
 				
 				if (isAddToGit) {
 					dbGit.addFileToIndexGit(DBGitPath.DB_GIT_PATH+"/"+obj.getFileName());

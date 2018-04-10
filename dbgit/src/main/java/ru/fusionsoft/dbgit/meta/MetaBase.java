@@ -46,7 +46,7 @@ public abstract class MetaBase implements IMetaObject {
         Yaml yaml = createYaml();
         
         String output = yaml.dump(this);
-        //System.out.println(output);//TODO delete
+        //System.out.rintln(output);//TODO delete
         stream.write(output.getBytes(Charset.forName("UTF-8")));
 	}
 	

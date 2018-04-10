@@ -10,6 +10,7 @@ import java.util.Properties;
 
 import org.slf4j.Logger;
 
+import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 import ru.fusionsoft.dbgit.utils.LoggerUtil;
 
 /**
@@ -56,12 +57,12 @@ public class DBConnection {
 	public boolean testingConnection(String url, Properties props) {
 		try {
 			Connection conTest = DriverManager.getConnection(url, props);
-			System.out.println("Connection established");
+			ConsoleWriter.printlnGreen("Connection established");
 			conTest.close();
 			conTest = null;
 			return true;
 		} catch(Exception e) {
-			logger.error("Test connection error!", e);
+			ConsoleWriter.printlnRed("Test connection error: "+e.getMessage());			
 			return false;
 		}	
 	}
@@ -79,7 +80,7 @@ public class DBConnection {
 		      writer.write(key+"="+ props.getProperty(key)+"\n");		      
 		    }		   
 		    writer.close();
-		    System.out.println("File " + DBGitPath.getFullPath(DBGitPath.DB_LINK_FILE) + " has been created.");
+		    ConsoleWriter.println("File " + DBGitPath.getFullPath(DBGitPath.DB_LINK_FILE) + " has been created.");
 	    } catch(Exception e) {
 	    	throw new ExceptionDBGit(e);
 	    }
@@ -105,8 +106,7 @@ public class DBConnection {
 			
 			return url;			
 	    } catch(Exception e) {
-	    	System.out.println("Error load file " + DBGitPath.DB_LINK_FILE);
-	    	throw new ExceptionDBGit(e);
+	    	throw new ExceptionDBGit("Error load file " + DBGitPath.DB_LINK_FILE, e);
 	    }
 	}
 }

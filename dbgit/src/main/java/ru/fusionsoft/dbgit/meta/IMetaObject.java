@@ -9,6 +9,7 @@ import java.io.OutputStream;
 
 import ru.fusionsoft.dbgit.core.DBGitPath;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
+import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
 /**
  * <div class="en">
@@ -83,7 +84,7 @@ public interface IMetaObject {
 		this.serialize(out);
 		out.close();
 		
-		System.out.println("write file "+getFileName());
+		ConsoleWriter.println("Write file object: "+getName());
 	}
 	
 	default void saveToFile() throws IOException, ExceptionDBGit {
@@ -103,8 +104,10 @@ public interface IMetaObject {
 		FileInputStream fis = new FileInputStream(file);
 		IMetaObject meta = this.deSerialize(fis);
 		fis.close();
+		if (meta != null) {
+			meta.setName(this.getName());
+		}
 		
-		System.out.println("read file " + filename);
 		return meta;
 	}
 	

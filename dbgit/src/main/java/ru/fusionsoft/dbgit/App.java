@@ -11,6 +11,8 @@ import java.util.Map;
 
 import org.slf4j.LoggerFactory;
 
+import com.diogonunes.jcdp.color.api.Ansi.FColor;
+
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
 import ch.qos.logback.core.joran.spi.JoranException;
@@ -26,6 +28,7 @@ import ru.fusionsoft.dbgit.command.CmdValid;
 import ru.fusionsoft.dbgit.command.ExceptionCmdNotFound;
 import ru.fusionsoft.dbgit.command.IDBGitCommand;
 import ru.fusionsoft.dbgit.core.DBGitPath;
+import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 import ru.fusionsoft.dbgit.utils.LoggerUtil;
 
 
@@ -72,7 +75,7 @@ public class App
 		String logDirProperty = ".";// ... get alternative log directory location
 				
 		context.putProperty("LOG_DIR", logDirProperty);		
-		//System.out.println(CProperties.getProperty("log_root_level"));
+		//System.out.rintln(CProperties.getProperty("log_root_level"));
 		context.putProperty("log_root_level", "debug");
 		
 		
@@ -91,18 +94,18 @@ public class App
 
 	
     public static void main( String[] args ) throws Exception
-    {
-        System.out.println( "dbgit utils - Hello!" );
+    {    	
+    	ConsoleWriter.printlnColor( "dbgit utils - Hello!", FColor.BLUE, 0);
         
         //configureLogback();
                
         try {
         	executeDbGitCommand(args);
         	
-        	System.out.println( "executeDbGitCommand ok!" );
+        	ConsoleWriter.printlnColor( "execute command success!", FColor.BLUE, 0);
         } catch (Exception e) {
+        	ConsoleWriter.println("Error execute dbgit: "+e.getMessage());
         	LoggerUtil.getGlobalLogger().error(e.getMessage(), e);
-        	System.out.println("dbgit error: "+e.getMessage());
         }
         
     }

@@ -6,32 +6,25 @@ import java.util.Properties;
 
 import ru.fusionsoft.dbgit.core.DBConnection;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
+import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
 
 public class CmdLink implements IDBGitCommand {
 
 	public void execute(String[] args) throws ExceptionDBGit {
-		try {
+
 		if(args == null || args.length == 0) {
-			System.out.println("Url database is empty");			
-		} else {
-			String url = args[0];
-			Properties props = CreateProperties(Arrays.copyOfRange(args, 1, args.length));
-			
-			DBConnection conn = DBConnection.getInctance(false);
-			
-			if(conn.testingConnection(url, props)) {
-				DBConnection.createFileDBLink(url, props);
-				System.out.println("Create file DB link success!!!");
-			}
-			else {
-				System.out.println("Connection no established!!!");
-			}
+			throw new ExceptionDBGit("Url database is empty");			
 		}
-		} catch(Exception e) {
-			System.out.println("Error parce command!");
-			throw new ExceptionDBGit(e);
-		}
+		
+		String url = args[0];
+		Properties props = CreateProperties(Arrays.copyOfRange(args, 1, args.length));
+		
+		DBConnection conn = DBConnection.getInctance(false);
+		
+		if(conn.testingConnection(url, props)) {
+			DBConnection.createFileDBLink(url, props);					
+		}			
 	}
 	
 	public Properties CreateProperties(String[] args) {
