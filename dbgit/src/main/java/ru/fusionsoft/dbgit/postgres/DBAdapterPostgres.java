@@ -362,8 +362,24 @@ public class DBAdapterPostgres extends DBAdapter {
 	}
 	
 	public DBTrigger getTrigger(DBSchema schema, String name) {
+		DBTrigger trigger = null;
+		try {
+			String query = "SELECT pg_trigger.tgname, pg_get_triggerdef(pg_trigger.oid) AS src \r\n" + 
+					"FROM pg_trigger, pg_class, pg_namespace\r\n" + 
+					"where pg_namespace.nspname like '" + schema.getName()+"' and tgname='"+name+"' and pg_namespace.oid=pg_class.relnamespace and pg_trigger.tgrelid=pg_class.oid ";
+			Connection connect = getConnection();
+			Statement stmt = connect.createStatement();
+			ResultSet rs = stmt.executeQuery(query);
+			while(rs.next()){
+				String sql = rs.getString(2);
+				trigger = new DBTrigger(name);
+				trigger.setSql(sql);				
+			}
+		}catch(Exception e) {
+			throw new ExceptionDBGitRunTime(e.getMessage());
+		}
 		// TODO Auto-generated method stub
-				return null;
+		return trigger;
 	}
 
 	@Override
@@ -461,7 +477,9 @@ public class DBAdapterPostgres extends DBAdapter {
 		try {
 			DBAdapterPostgres dbAdapter = (DBAdapterPostgres) AdapterFactory.createAdapter();
 			DBSchema schema = new DBSchema("pgagent");
-			dbAdapter.getTriggers(schema);		
+			DBTrigger trigger = dbAdapter.getTrigger(schema, "RI_ConstraintTrigger_c_16546");		
+			System.out.println(trigger.getName());
+			System.out.println(trigger.getSql());
 			
 		}catch(ExceptionDBGitRunTime e) {
 			e.printStackTrace();
