@@ -3,6 +3,7 @@ package ru.fusionsoft.dbgit.meta;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -144,5 +145,15 @@ public class MetaTable extends MetaBase {
 		this.constraints.putAll(constraints);
 	}
 	
-	
+	public List<String> getIdColumns() {
+		List<String> idColumns = new ArrayList<>();
+		
+		for (DBTableField field : fields.values()) {
+			if (field.getIsPrimaryKey()) {
+				idColumns.add(field.getName());
+			}
+		}
+		
+		return idColumns;
+	}
 }

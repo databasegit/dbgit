@@ -15,7 +15,7 @@ public class CmdDump implements IDBGitCommand {
 	public void execute(String[] args) throws Exception {		
 		Boolean isAddToGit = (args.length > 1 && args[0].equals("-a")); 
 		
-		GitMetaDataManager gmdm = new GitMetaDataManager();
+		GitMetaDataManager gmdm = GitMetaDataManager.getInctance();
 				
 		DBGitIndex index = DBGitIndex.getInctance();
 		DBGit dbGit = DBGit.getInctance();

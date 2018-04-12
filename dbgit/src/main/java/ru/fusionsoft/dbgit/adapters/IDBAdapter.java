@@ -31,7 +31,12 @@ import ru.fusionsoft.dbgit.meta.IMapMetaObject;
  *
  */
 public interface IDBAdapter {
+	public static final int MAX_ROW_COUNT_FETCH = 10000;
+	public static final int LIMIT_FETCH = 1;
+	public static final int NOLIMIT_FETCH = 2;
+	
 	public void setConnection(Connection conn);
+	
 	public Connection getConnection();
 	
 	/**
@@ -116,7 +121,7 @@ public interface IDBAdapter {
 	public Map<String, DBTrigger> getTriggers(DBSchema schema);
 	public DBTrigger getTrigger(DBSchema schema, String name);
 	
-	public DBTableData getTableData(DBTable tbl);
+	public DBTableData getTableData(DBTable tbl, int paramFetch);
 	public DBTableRow getTableRow(DBTable tbl, Object id); //TODO multi id
 	
 	public Map<String, DBUser> getUsers();

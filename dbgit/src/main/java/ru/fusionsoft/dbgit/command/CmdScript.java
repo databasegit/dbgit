@@ -10,7 +10,7 @@ public class CmdScript implements IDBGitCommand {
 
 	public void execute(String[] args) {
 		// TODO Auto-generated method stub
-		GitMetaDataManager gmdm = new GitMetaDataManager();
+		GitMetaDataManager gmdm = GitMetaDataManager.getInctance();
 		
 
 	}

@@ -8,7 +8,7 @@ import java.util.Map;
  * @author mikle
  *
  */
-public enum DBGitMetaType {
+public enum DBGitMetaType implements IDBGitMetaType {
 	DBGitUser("usr"){		
 		public Class<?> getMetaClass() {
 			return MetaUser.class;
@@ -137,9 +137,9 @@ public enum DBGitMetaType {
 	}
 	;
 	
-	private static Map<String, DBGitMetaType> listAllTypes;
+	private static Map<String, IDBGitMetaType> listAllTypes;
 	static {
-		listAllTypes = new HashMap<String, DBGitMetaType>();
+		listAllTypes = new HashMap<String, IDBGitMetaType>();
 		DBGitMetaType[] types = DBGitMetaType.values();
 		for(int i = 0; i < types.length; i++) {
 			listAllTypes.put(types[i].getValue(), types[i]);
@@ -169,7 +169,12 @@ public enum DBGitMetaType {
 	public abstract Integer getPriority();
 	
 	
-	public static DBGitMetaType valueByCode(String type) {
+	public static IDBGitMetaType valueByCode(String type) {
 		return listAllTypes.get(type);
 	}
+	
+	public static void regMetaType(IDBGitMetaType type) {
+		listAllTypes.put(type.getValue(), type);
+	}
+	
 }

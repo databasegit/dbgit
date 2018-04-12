@@ -3,7 +3,7 @@ package ru.fusionsoft.dbgit.meta;
 public class NameMeta {
 	private String schema;
 	private String name;
-	private DBGitMetaType type;
+	private IDBGitMetaType type;
 	public String getSchema() {
 		return schema;
 	}
@@ -16,10 +16,10 @@ public class NameMeta {
 	public void setName(String name) {
 		this.name = name;
 	}
-	public DBGitMetaType getType() {
+	public IDBGitMetaType getType() {
 		return type;
 	}
-	public void setType(DBGitMetaType type) {
+	public void setType(IDBGitMetaType type) {
 		this.type = type;
 	}
 	

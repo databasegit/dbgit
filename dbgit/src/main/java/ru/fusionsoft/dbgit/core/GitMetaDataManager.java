@@ -31,6 +31,20 @@ import ru.fusionsoft.dbgit.meta.TreeMapMetaObject;
  *
  */
 public class GitMetaDataManager {
+	private static GitMetaDataManager manager = null;
+	
+	protected IMapMetaObject dbObjs; 
+	
+	protected GitMetaDataManager() {
+		dbObjs = new TreeMapMetaObject();
+	}
+	
+	public static GitMetaDataManager getInctance() {
+		if (manager == null) {
+			manager = new GitMetaDataManager();
+		}
+		return manager;
+	}
 	
 	private void addToMapDBOptionsObject(
 			IMapMetaObject objs, 
@@ -71,6 +85,14 @@ public class GitMetaDataManager {
 	}
 	
 	/**
+	 * Get cache meta objects
+	 * @return
+	 */
+	public IMapMetaObject getCacheDBMetaData() {
+		return dbObjs;
+	}
+	
+	/**
 	 * Load meta data from DB
 	 * @return
 	 */
@@ -79,14 +101,14 @@ public class GitMetaDataManager {
 		
 		DBGitIgnore ignore = DBGitIgnore.getInctance(); 
 		
-		IMapMetaObject objs = new TreeMapMetaObject();
+		dbObjs.clear();
 		Map<String, MetaTable> tbls = new HashMap<String, MetaTable>();
 		
-		addToMapDBOptionsObject(objs, adapter.getUsers(), DBGitMetaType.DBGitUser);
-		addToMapDBOptionsObject(objs, adapter.getRoles(), DBGitMetaType.DBGitRole);
-		addToMapDBOptionsObject(objs, adapter.getTableSpaces(), DBGitMetaType.DBGitTableSpace);
+		addToMapDBOptionsObject(dbObjs, adapter.getUsers(), DBGitMetaType.DBGitUser);
+		addToMapDBOptionsObject(dbObjs, adapter.getRoles(), DBGitMetaType.DBGitRole);
+		addToMapDBOptionsObject(dbObjs, adapter.getTableSpaces(), DBGitMetaType.DBGitTableSpace);
 		Map<String, DBSchema> schemes = adapter.getSchemes();
-		addToMapDBOptionsObject(objs, schemes, DBGitMetaType.DBGitSchema);
+		addToMapDBOptionsObject(dbObjs, schemes, DBGitMetaType.DBGitSchema);
 		
 		//load sequence
 		for (DBSchema schema : schemes.values()) {
@@ -94,7 +116,7 @@ public class GitMetaDataManager {
 				MetaSequence metaSeq = new MetaSequence();
 				metaSeq.setSequence(seq);
 				if (ignore.matchOne(metaSeq.getName())) continue ;
-				objs.put(metaSeq);
+				dbObjs.put(metaSeq);
 			}
 			
 		}
@@ -107,34 +129,34 @@ public class GitMetaDataManager {
 				if (ignore.matchOne(tblMeta.getName())) continue ;
 				
 				tblMeta.loadFromDB(tbl);
-				objs.put(tblMeta);
+				dbObjs.put(tblMeta);
 				tbls.put(tblMeta.getName(), tblMeta);
 			}
 		}
 		
 		//triggers
 		for (DBSchema schema : schemes.values()) {
-			addToMapSqlObject(objs, adapter.getTriggers(schema), DBGitMetaType.DbGitTrigger);
+			addToMapSqlObject(dbObjs, adapter.getTriggers(schema), DBGitMetaType.DbGitTrigger);
 		}
 		
 		//packages
 		for (DBSchema schema : schemes.values()) {
-			addToMapSqlObject(objs, adapter.getPackages(schema), DBGitMetaType.DbGitPackage);
+			addToMapSqlObject(dbObjs, adapter.getPackages(schema), DBGitMetaType.DbGitPackage);
 		}
 		
 		//functions
 		for (DBSchema schema : schemes.values()) {
-			addToMapSqlObject(objs, adapter.getFunctions(schema), DBGitMetaType.DbGitFunction);
+			addToMapSqlObject(dbObjs, adapter.getFunctions(schema), DBGitMetaType.DbGitFunction);
 		}
 		
 		//procedures
 		for (DBSchema schema : schemes.values()) {
-			addToMapSqlObject(objs, adapter.getProcedures(schema), DBGitMetaType.DbGitProcedure);
+			addToMapSqlObject(dbObjs, adapter.getProcedures(schema), DBGitMetaType.DbGitProcedure);
 		}
 		
 		//views
 		for (DBSchema schema : schemes.values()) {
-			addToMapSqlObject(objs, adapter.getViews(schema), DBGitMetaType.DbGitView);
+			addToMapSqlObject(dbObjs, adapter.getViews(schema), DBGitMetaType.DbGitView);
 		}
 				
 		//data tables
@@ -144,7 +166,7 @@ public class GitMetaDataManager {
 			if (ignore.matchOne(data.getName())) continue ;
 			
 			data.loadFromDB();
-			objs.put(data);
+			dbObjs.put(data);
 		}
 		
 		IMapMetaObject customObjs = adapter.loadCustomMetaObjects();
@@ -154,10 +176,10 @@ public class GitMetaDataManager {
 				if (ignore.matchOne(item.getName())) continue ;
 				customObjsNoIgnore.put(item);				
 			}
-			objs.putAll(customObjs);
+			dbObjs.putAll(customObjs);
 		}
 		
-		return objs;
+		return dbObjs;
 	}
 	
 	/**
@@ -182,7 +204,7 @@ public class GitMetaDataManager {
 	    	}
 			
 			return objs;
-		} catch(IOException e) {
+		} catch(Exception e) {
 			throw new ExceptionDBGit(e);
 		}
 	}

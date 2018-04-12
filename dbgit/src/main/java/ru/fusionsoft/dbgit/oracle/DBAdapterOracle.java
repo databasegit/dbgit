@@ -167,7 +167,7 @@ public class DBAdapterOracle extends DBAdapter {
 	}
 
 	@Override
-	public DBTableData getTableData(DBTable tbl) {
+	public DBTableData getTableData(DBTable tbl, int paramFetch) {
 		// TODO Auto-generated method stub
 		return null;
 	}

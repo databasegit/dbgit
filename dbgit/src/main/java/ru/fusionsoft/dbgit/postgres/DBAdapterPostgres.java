@@ -35,6 +35,8 @@ import org.slf4j.Logger;
 
 import com.axiomalaska.jdbc.NamedParameterPreparedStatement;
 
+import ch.qos.logback.classic.db.names.TableName;
+
 public class DBAdapterPostgres extends DBAdapter {
 
 	private Logger logger = LoggerUtil.getLogger(this.getClass());
@@ -403,9 +405,35 @@ public class DBAdapterPostgres extends DBAdapter {
 	}
 
 	@Override
-	public DBTableData getTableData(DBTable tbl) {
-		// TODO Auto-generated method stub
-		return null;
+	public DBTableData getTableData(DBTable tbl, int paramFetch) {
+		String tableName = tbl.getSchema()+"."+tbl.getName();
+		try {
+			DBTableData data = new DBTableData();
+			
+			
+			if (paramFetch == LIMIT_FETCH) {
+				Statement st = getConnection().createStatement();
+				String query = "select COALESCE(count(*), 0) kolvo from ( select 1 from "+
+						tableName+" limit "+(MAX_ROW_COUNT_FETCH+1)+" ) tbl";
+				ResultSet rs = st.executeQuery(query);
+				rs.next();
+				if (rs.getInt("kolvo") > MAX_ROW_COUNT_FETCH) {
+					data.setErrorFlag(DBTableData.ERROR_LIMIT_ROWS);
+					return data;
+				}
+				
+				rs = st.executeQuery("select * from "+tableName);
+				data.setResultSet(rs);
+				return data;
+			}
+			
+			//TODO other state
+			
+			return data;
+		} catch(Exception e) {
+			logger.error("Error load data from "+tableName, e);
+			throw new ExceptionDBGitRunTime(e.getMessage());
+		}
 	}
 
 	@Override

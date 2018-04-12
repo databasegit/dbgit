@@ -9,7 +9,7 @@ public class CmdValid implements IDBGitCommand {
 
 	public void execute(String[] args)  throws Exception {
 		// TODO Auto-generated method stub
-		GitMetaDataManager gmdm = new GitMetaDataManager();
+		GitMetaDataManager gmdm = GitMetaDataManager.getInctance();
 		
 		//возможно за списком файлов нужно будет сходить в гит индекс
 		Map<String, IMetaObject> fileObjs = gmdm.loadFileMetaData();

@@ -14,7 +14,7 @@ import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
 public class CmdStatus implements IDBGitCommand {
 	public void execute(String[] args) throws Exception {
-		GitMetaDataManager gmdm = new GitMetaDataManager();
+		GitMetaDataManager gmdm = GitMetaDataManager.getInctance();
 		
 		IMapMetaObject dbObjs = gmdm.loadDBMetaData();		
 		IMapMetaObject fileObjs = gmdm.loadFileMetaData();

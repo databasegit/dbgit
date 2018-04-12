@@ -12,14 +12,14 @@ import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
  */
 public class MetaObjectFactory  {
 	public static IMetaObject createMetaObject(String name) throws ExceptionDBGit {		
-		DBGitMetaType tp = parseMetaName(name).getType();
+		IDBGitMetaType tp = parseMetaName(name).getType();
 		
 		IMetaObject obj = createMetaObject(tp);
 		obj.setName(name);
 		return obj;
 	}
 	
-	public static IMetaObject createMetaObject(DBGitMetaType tp) throws ExceptionDBGit {		
+	public static IMetaObject createMetaObject(IDBGitMetaType tp) throws ExceptionDBGit {		
 		try {		
 			Class<?> c = tp.getMetaClass();
 			/*

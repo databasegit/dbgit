@@ -30,11 +30,12 @@ import ru.fusionsoft.dbgit.utils.ConsoleWriter;
  *
  */
 public interface IMetaObject {
+	public static final String EMPTY_HASH = "<EMPTY>"; 
 	/**
 	 * 
 	 * @return Type meta object
 	 */
-	public DBGitMetaType getType();
+	public IDBGitMetaType getType();
 	
 	/**
 	 * Full name meta object with path and extension type  
@@ -52,7 +53,7 @@ public interface IMetaObject {
 	 * @param stream
 	 * @throws IOException
 	 */
-	public void serialize(OutputStream stream) throws IOException;
+	public void serialize(OutputStream stream) throws Exception;
 	
 	/**
 	 * Load object from stream
@@ -60,7 +61,7 @@ public interface IMetaObject {
 	 * @return New object current class
 	 * @throws IOException
 	 */
-	public IMetaObject deSerialize(InputStream stream) throws IOException;
+	public IMetaObject deSerialize(InputStream stream) throws Exception;
 	
 	/**
 	 * load current object from DB
@@ -76,7 +77,7 @@ public interface IMetaObject {
 	 * @param basePath
 	 * @throws IOException
 	 */
-	default void saveToFile(String basePath) throws IOException, ExceptionDBGit {
+	default void saveToFile(String basePath) throws Exception {
 		File file = new File(DBGitPath.getFullPath(basePath)+"/"+getFileName());
 		DBGitPath.createDir(file.getParent());
 				
@@ -87,7 +88,7 @@ public interface IMetaObject {
 		ConsoleWriter.println("Write file object: "+getName());
 	}
 	
-	default void saveToFile() throws IOException, ExceptionDBGit {
+	default void saveToFile() throws Exception {
 		saveToFile(null);
 	}
 	
@@ -98,7 +99,7 @@ public interface IMetaObject {
 	 * @param basePath
 	 * @throws IOException
 	 */
-	default IMetaObject loadFromFile(String basePath) throws IOException, ExceptionDBGit {
+	default IMetaObject loadFromFile(String basePath) throws Exception {
 		String filename = DBGitPath.getFullPath(basePath);
 		File file = new File(filename+"/"+getFileName());
 		FileInputStream fis = new FileInputStream(file);
@@ -111,7 +112,7 @@ public interface IMetaObject {
 		return meta;
 	}
 	
-	default IMetaObject loadFromFile() throws IOException, ExceptionDBGit {
+	default IMetaObject loadFromFile() throws Exception {
 		return loadFromFile(null);
 	}
 }

@@ -1,5 +1,11 @@
 package ru.fusionsoft.dbgit.meta;
 
+import java.util.Map;
+
+import ru.fusionsoft.dbgit.adapters.AdapterFactory;
+import ru.fusionsoft.dbgit.adapters.IDBAdapter;
+import ru.fusionsoft.dbgit.core.ExceptionDBGit;
+import ru.fusionsoft.dbgit.dbobjects.DBRole;
 import ru.fusionsoft.dbgit.dbobjects.DBTableSpace;
 
 public class MetaTableSpace extends MetaObjOptions {
@@ -17,8 +23,11 @@ public class MetaTableSpace extends MetaObjOptions {
 	}
 	
 	@Override
-	public void loadFromDB() {
-		// load data shema by name
+	public void loadFromDB() throws ExceptionDBGit {
+		IDBAdapter adapter = AdapterFactory.createAdapter();
+		Map<String, DBTableSpace> tbs = adapter.getTableSpaces();
+		
+		setObjectOptionFromMap(tbs);
 
 	}
 

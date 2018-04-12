@@ -26,7 +26,7 @@ public class CmdAdd implements IDBGitCommand {
 		DBGitIndex index = DBGitIndex.getInctance();
 		DBGit dbGit = DBGit.getInctance();
 		
-		GitMetaDataManager gmdm = new GitMetaDataManager();		
+		GitMetaDataManager gmdm = GitMetaDataManager.getInctance();		
 		IMapMetaObject dbObjs = gmdm.loadDBMetaData();	
 		
 		Integer countSave = 0;

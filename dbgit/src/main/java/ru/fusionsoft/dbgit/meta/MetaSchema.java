@@ -23,7 +23,6 @@ public class MetaSchema extends MetaObjOptions {
 	
 	@Override
 	public void loadFromDB() throws ExceptionDBGit {
-		// load data shema by name
 		IDBAdapter adapter = AdapterFactory.createAdapter();
 		Map<String, DBSchema> schemes = adapter.getSchemes();
 		

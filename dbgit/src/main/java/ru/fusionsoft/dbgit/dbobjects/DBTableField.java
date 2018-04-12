@@ -6,7 +6,7 @@ public class DBTableField implements IDBObject {
 	private String name;
 	private String typeSQL;
 	
-	private Boolean isPrimaryKey;
+	private Boolean isPrimaryKey = false;
 	
 	//private DBTable table;
 

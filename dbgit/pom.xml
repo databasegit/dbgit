@@ -121,6 +121,14 @@
 	    <artifactId>JCDP</artifactId>
 	    <version>2.0.3.1</version>
 	</dependency>
+
+	<!-- https://mvnrepository.com/artifact/org.apache.commons/commons-csv -->
+	<dependency>
+	    <groupId>org.apache.commons</groupId>
+	    <artifactId>commons-csv</artifactId>
+	    <version>1.5</version>
+	</dependency>
+
 		
 		
 			
