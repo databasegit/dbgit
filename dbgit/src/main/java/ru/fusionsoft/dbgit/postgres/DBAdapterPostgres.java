@@ -364,8 +364,24 @@ public class DBAdapterPostgres extends DBAdapter {
 	}
 	
 	public DBTrigger getTrigger(DBSchema schema, String name) {
+		DBTrigger trigger = null;
+		try {
+			String query = "SELECT pg_trigger.tgname, pg_get_triggerdef(pg_trigger.oid) AS src \r\n" + 
+					"FROM pg_trigger, pg_class, pg_namespace\r\n" + 
+					"where pg_namespace.nspname like '" + schema.getName()+"' and tgname='"+name+"' and pg_namespace.oid=pg_class.relnamespace and pg_trigger.tgrelid=pg_class.oid ";
+			Connection connect = getConnection();
+			Statement stmt = connect.createStatement();
+			ResultSet rs = stmt.executeQuery(query);
+			while(rs.next()){
+				String sql = rs.getString(2);
+				trigger = new DBTrigger(name);
+				trigger.setSql(sql);				
+			}
+		}catch(Exception e) {
+			throw new ExceptionDBGitRunTime(e.getMessage());
+		}
 		// TODO Auto-generated method stub
-				return null;
+		return trigger;
 	}
 
 	@Override
@@ -394,14 +410,48 @@ public class DBAdapterPostgres extends DBAdapter {
 
 	@Override
 	public Map<String, DBFunction> getFunctions(DBSchema schema) {
+		Map<String, DBFunction> listFunction = new HashMap<String, DBFunction>();
+		try {
+			String query = "SELECT pg_proc.proname, pg_get_functiondef(pg_proc.oid) AS src \r\n" + 
+					"FROM pg_proc, pg_namespace\r\n" + 
+					"where pg_namespace.nspname like '" + schema.getName()+"' and pg_namespace.oid=pg_proc.pronamespace";
+			Connection connect = getConnection();
+			Statement stmt = connect.createStatement();
+			ResultSet rs = stmt.executeQuery(query);
+			while(rs.next()){
+				String name = rs.getString(1);
+				String sql = rs.getString(2);
+				DBFunction func = new DBFunction(name);
+				func.setSql(sql);
+				listFunction.put(name, func);
+			}
+		}catch(Exception e) {
+			throw new ExceptionDBGitRunTime(e.getMessage());
+		}
 		// TODO Auto-generated method stub
-		return null;
+		return listFunction;
 	}
 
 	@Override
 	public DBFunction getFunction(DBSchema schema, String name) {
-		// TODO Auto-generated method stub
-		return null;
+		DBFunction func = new DBFunction(name);
+		try {
+			String query = "SELECT pg_proc.proname, pg_get_functiondef(pg_proc.oid) AS src \r\n" + 
+					"FROM pg_proc, pg_namespace\r\n" + 
+					"where pg_namespace.nspname like '" + schema.getName()+"' and pg_namespace.oid=pg_proc.pronamespace" +
+					"pg_proc.name='"+name+"'";
+			Connection connect = getConnection();
+			Statement stmt = connect.createStatement();
+			ResultSet rs = stmt.executeQuery(query);
+			while(rs.next()){
+				String sql = rs.getString(2);
+				func.setSql(sql);
+				return func;
+			}
+		}catch(Exception e) {
+			throw new ExceptionDBGitRunTime(e.getMessage());			
+		}
+		return func;
 	}
 
 	@Override
@@ -488,9 +538,16 @@ public class DBAdapterPostgres extends DBAdapter {
 		System.out.println("start");
 		try {
 			DBAdapterPostgres dbAdapter = (DBAdapterPostgres) AdapterFactory.createAdapter();
-			DBSchema schema = new DBSchema("pgagent");
-			dbAdapter.getTriggers(schema);		
-			
+			Map<String, DBSchema> schemes = dbAdapter.getSchemes();
+			for(DBSchema schema: schemes.values())
+			{
+				Map<String, DBFunction> funcList = dbAdapter.getFunctions(schema);	
+				System.out.println(schema.getName());
+				for(DBFunction func: funcList.values()) {
+					System.out.println(func.getName());
+					System.out.println(func.getSql());
+				}
+			}
 		}catch(ExceptionDBGitRunTime e) {
 			e.printStackTrace();
 		}catch(Exception e) {
