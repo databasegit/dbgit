@@ -307,18 +307,23 @@ public class DBAdapterPostgres extends DBAdapter {
 
 	@Override
 	public Map<String, DBView> getViews(DBSchema schema) {
-		return null;
-		/*
 		Map<String, DBView> listView = new HashMap<String, DBView>();
 		try {
-			String query = "select * from " + schema.getName()+".views";
+			String query = "select nsp.nspname as object_schema, " + 
+				       "cls.relname as object_name,  rol.rolname as owner, pg_get_viewdef(cls.oid) as sql "+
+				       "from pg_class cls " + 
+				         " join pg_roles rol on rol.oid = cls.relowner" +
+				         " join pg_namespace nsp on nsp.oid = cls.relnamespace " + 
+				       " where nsp.nspname not in ('information_schema', 'pg_catalog') " + 
+				       " and nsp.nspname not like 'pg_toast%' " +
+				       "and cls.relkind = 'v' and nsp.nspname = '" + schema.getName() + "'";
 			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
 			while(rs.next()){
-				String name = rs.getString(3);
-				DBView view = new DBView(name);
-				listView.put(name, view);
+				DBView view = new DBView(rs.getString("object_name"));
+				view.setSql(rs.getString("sql"));
+				listView.put(rs.getString("object_name"), view);
 			}
 			System.out.println("Collection views:");
 			for(DBView view:listView.values())
@@ -329,13 +334,33 @@ public class DBAdapterPostgres extends DBAdapter {
 			throw new ExceptionDBGitRunTime(e.getMessage());
 		}
 		return listView;
-		*/
 	}
 
 	@Override
 	public DBView getView(DBSchema schema, String name) {
-		// TODO Auto-generated method stub
-		return null;
+		DBView view = new DBView(name);
+		try {
+			String query = "select nsp.nspname as object_schema, " + 
+				       "cls.relname as object_name,  rol.rolname as owner, pg_get_viewdef(cls.oid) as sql "+
+				       "from pg_class cls " + 
+				         " join pg_roles rol on rol.oid = cls.relowner" +
+				         " join pg_namespace nsp on nsp.oid = cls.relnamespace " + 
+				       " where nsp.nspname not in ('information_schema', 'pg_catalog') " + 
+				       " and nsp.nspname not like 'pg_toast%' " +
+				       "and cls.relkind = 'v' and nsp.nspname = '" + schema.getName() + "' and cls.relname='"+name+"'";
+			Connection connect = getConnection();
+			Statement stmt = connect.createStatement();
+			ResultSet rs = stmt.executeQuery(query);
+			while(rs.next()){
+				view.setSql(rs.getString("sql"));
+			}
+			
+		}catch(Exception e) {
+			logger.error(e.getMessage());
+			System.out.println(e.getMessage());
+			throw new ExceptionDBGitRunTime(e.getMessage());
+		}
+		return view;
 	}
 	
 	public Map<String, DBTrigger> getTriggers(DBSchema schema) {
@@ -343,7 +368,8 @@ public class DBAdapterPostgres extends DBAdapter {
 		try {
 			String query = "SELECT pg_trigger.tgname, pg_get_triggerdef(pg_trigger.oid) AS src \r\n" + 
 					"FROM pg_trigger, pg_class, pg_namespace\r\n" + 
-					"where pg_namespace.nspname like '" + schema.getName()+"' and pg_namespace.oid=pg_class.relnamespace and pg_trigger.tgrelid=pg_class.oid ";
+					"where pg_namespace.nspname like '" + schema.getName()+"' and pg_namespace.oid=pg_class.relnamespace and pg_trigger.tgrelid=pg_class.oid " +
+					"and pg_trigger not like '%Constraint%'";
 			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
@@ -510,16 +536,10 @@ public class DBAdapterPostgres extends DBAdapter {
 		System.out.println("start");
 		try {
 			DBAdapterPostgres dbAdapter = (DBAdapterPostgres) AdapterFactory.createAdapter();
-			Map<String, DBSchema> schemes = dbAdapter.getSchemes();
-			for(DBSchema schema: schemes.values())
-			{
-				Map<String, DBFunction> funcList = dbAdapter.getFunctions(schema);	
-				System.out.println(schema.getName());
-				for(DBFunction func: funcList.values()) {
-					System.out.println(func.getName());
-					System.out.println(func.getSql());
-				}
-			}
+			
+			DBView view = dbAdapter.getView(new DBSchema("fusion"), "sa_types");
+			System.out.println(view.getName());
+			System.out.println(view.getSql());
 		}catch(ExceptionDBGitRunTime e) {
 			e.printStackTrace();
 		}catch(Exception e) {
