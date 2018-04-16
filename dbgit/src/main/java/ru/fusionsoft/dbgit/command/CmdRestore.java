@@ -10,6 +10,7 @@ import ru.fusionsoft.dbgit.core.DBGitIndex;
 import ru.fusionsoft.dbgit.core.DBGitPath;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitObjectNotFound;
+import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
 import ru.fusionsoft.dbgit.core.GitMetaDataManager;
 import ru.fusionsoft.dbgit.core.ItemIndex;
 import ru.fusionsoft.dbgit.meta.IMapMetaObject;
@@ -74,7 +75,9 @@ public class CmdRestore implements IDBGitCommand {
 				IMetaObject dbObj = MetaObjectFactory.createMetaObject(obj.getName());
 				dbObj.loadFromDB();
 				isRestore = !obj.getHash().equals(hash);
-			} catch (ExceptionDBGitObjectNotFound e) {
+			} catch (ExceptionDBGit e) {
+				isRestore = true;
+			} catch (ExceptionDBGitRunTime e) {
 				isRestore = true;
 			}
 			if (isRestore) {
