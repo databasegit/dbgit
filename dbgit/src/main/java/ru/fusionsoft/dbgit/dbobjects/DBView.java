@@ -5,4 +5,7 @@ public class DBView extends DBSQLObject {
 		super();
 		this.name = name;
 	}
+	public DBView() {
+		super();
+	}
 }
