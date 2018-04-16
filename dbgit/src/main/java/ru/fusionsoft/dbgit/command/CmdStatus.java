@@ -1,19 +1,42 @@
 package ru.fusionsoft.dbgit.command;
 
-import java.util.Map;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Options;
 
 import com.diogonunes.jcdp.color.api.Ansi.FColor;
 
 import ru.fusionsoft.dbgit.core.DBGit;
 import ru.fusionsoft.dbgit.core.DBGitPath;
 import ru.fusionsoft.dbgit.core.GitMetaDataManager;
-import ru.fusionsoft.dbgit.meta.DBGitMetaType;
 import ru.fusionsoft.dbgit.meta.IMapMetaObject;
-import ru.fusionsoft.dbgit.meta.IMetaObject;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
 public class CmdStatus implements IDBGitCommand {
-	public void execute(String[] args) throws Exception {
+	
+	private Options opts = new Options();
+	
+	public CmdStatus() {
+		
+	}
+	
+	public String getCommandName() {
+		return "status";
+	}
+	
+	public String getParams() {
+		return "";
+	}
+	
+	public String getHelperInfo() {
+		return "Command status databse object";
+	}
+	
+	public Options getOptions() {
+		return opts;
+	}
+	
+	@Override
+	public void execute(CommandLine cmdLine) throws Exception {
 		GitMetaDataManager gmdm = GitMetaDataManager.getInctance();
 		
 		IMapMetaObject dbObjs = gmdm.loadDBMetaData();		

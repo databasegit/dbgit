@@ -256,11 +256,12 @@ public class DBAdapterPostgres extends DBAdapter {
 			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);			
 			stmt.setString("schema", tbl.getSchema());
 			stmt.setString("table", tbl.getName());
-			
+
 			ResultSet rs = stmt.executeQuery();
 			while(rs.next()){				
 				DBTableField field = new DBTableField();
-				field.setName(rs.getString("column_name"));
+				field.setName(rs.getString("column_name"));  
+				if (field.getName().equals("id"))field.setIsPrimaryKey(true);
 				field.setTypeSQL(getFieldType(rs));
 				listField.put(field.getName(), field);
 			}			
@@ -353,6 +354,7 @@ public class DBAdapterPostgres extends DBAdapter {
 				String name = rs.getString(1);
 				String sql = rs.getString(2);
 				DBTrigger trigger = new DBTrigger(name);
+				trigger.setSchema(schema.getName());
 				trigger.setSql(sql);
 				listTrigger.put(name, trigger);
 			}
@@ -375,6 +377,7 @@ public class DBAdapterPostgres extends DBAdapter {
 			while(rs.next()){
 				String sql = rs.getString(2);
 				trigger = new DBTrigger(name);
+				trigger.setSchema(schema.getName());
 				trigger.setSql(sql);				
 			}
 		}catch(Exception e) {
@@ -423,6 +426,7 @@ public class DBAdapterPostgres extends DBAdapter {
 				String sql = rs.getString(2);
 				DBFunction func = new DBFunction(name);
 				func.setSql(sql);
+				func.setSchema(schema.getName());
 				listFunction.put(name, func);
 			}
 		}catch(Exception e) {
@@ -446,6 +450,7 @@ public class DBAdapterPostgres extends DBAdapter {
 			while(rs.next()){
 				String sql = rs.getString(2);
 				func.setSql(sql);
+				func.setSchema(schema.getName());
 				return func;
 			}
 		}catch(Exception e) {

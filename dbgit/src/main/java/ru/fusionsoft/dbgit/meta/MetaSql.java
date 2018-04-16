@@ -2,6 +2,10 @@ package ru.fusionsoft.dbgit.meta;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.StringWriter;
+import java.nio.charset.Charset;
+
+import org.apache.commons.io.IOUtils;
 
 import ru.fusionsoft.dbgit.dbobjects.DBSQLObject;
 
@@ -31,21 +35,30 @@ public abstract class MetaSql extends MetaBase {
 	}
 
 	@Override
-	public void serialize(OutputStream stream) {
-		// TODO Auto-generated method stub
-
+	public boolean serialize(OutputStream stream) throws Exception {
+		stream.write(getSqlObject().getSql().getBytes(Charset.forName("UTF-8")));
+		return true;
 	}
 
 	@Override
-	public IMetaObject deSerialize(InputStream stream) {
-		// TODO Auto-generated method stub
-		return null;
+	public IMetaObject deSerialize(InputStream stream) throws Exception {
+		NameMeta nm = MetaObjectFactory.parseMetaName(getName());
+		sqlObject = new DBSQLObject();
+		
+		sqlObject.setName(nm.getName());
+		sqlObject.setSchema(nm.getSchema());
+				
+		//Charset.forName("UTF-8")
+		StringWriter writer = new StringWriter();
+		IOUtils.copy(stream, writer);
+		sqlObject.setSql(writer.toString());
+		
+		return this;
 	}
 
 	@Override
 	public String getHash() {
-		// TODO Auto-generated method stub
-		return null;
+		return sqlObject.getHash();
 	}
 
 }

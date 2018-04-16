@@ -4,10 +4,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 import ru.fusionsoft.dbgit.adapters.AdapterFactory;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
@@ -31,13 +35,14 @@ public class MetaTable extends MetaBase {
 	private DBTable table;
 	
 	@YamlOrder(2)
-	private Map<String, DBTableField> fields = new TreeMap<String, DBTableField>();
+	//private IMapFields fields = new TreeMapFields();
+	private Map<String, DBTableField> fields = new TreeMap<>();
 	
 	@YamlOrder(3)
-	private Map<String, DBIndex> indexes = new TreeMap<String, DBIndex>();
+	private Map<String, DBIndex> indexes = new TreeMap<>();
 	
 	@YamlOrder(4)
-	private Map<String, DBConstraint> constraints = new TreeMap<String, DBConstraint>();
+	private Map<String, DBConstraint> constraints = new TreeMap<>();
 	
 	public MetaTable() {	
 	}
@@ -56,8 +61,8 @@ public class MetaTable extends MetaBase {
 	}
 	
 	@Override
-	public void serialize(OutputStream stream) throws IOException {
-		yamlSerialize(stream);
+	public boolean serialize(OutputStream stream) throws IOException {
+		return yamlSerialize(stream);
 	}
 
 	@Override
@@ -118,7 +123,23 @@ public class MetaTable extends MetaBase {
 		name = table.getSchema()+"/"+table.getName()+"."+getType().getValue();
 	}
 
+	/**
+	 * return sorted map. Not use for add element. See function getFieldsMap
+	 * @return
+	 */
 	public Map<String, DBTableField> getFields() {
+		return  
+				fields.entrySet().stream()
+			    .sorted(Entry.comparingByValue())
+			    .collect(Collectors.toMap(Entry::getKey, Entry::getValue,
+			                              (e1, e2) -> e1, LinkedHashMap::new));
+	}
+	
+	/**
+	 * Return map fields. This map can be used for add/edit/delete elements
+	 * @return
+	 */
+	public Map<String, DBTableField> getFieldsMap() {
 		return fields;
 	}
 

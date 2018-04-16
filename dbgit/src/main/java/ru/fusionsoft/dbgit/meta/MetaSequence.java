@@ -20,8 +20,8 @@ public class MetaSequence extends MetaBase {
 	}
 	
 	@Override
-	public void serialize(OutputStream stream) throws IOException {
-		yamlSerialize(stream);
+	public boolean serialize(OutputStream stream) throws IOException {
+		return yamlSerialize(stream);
 	}
 
 	@Override

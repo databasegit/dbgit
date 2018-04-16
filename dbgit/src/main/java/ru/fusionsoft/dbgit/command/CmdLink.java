@@ -4,15 +4,41 @@ package ru.fusionsoft.dbgit.command;
 import java.util.Arrays;
 import java.util.Properties;
 
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Options;
+
 import ru.fusionsoft.dbgit.core.DBConnection;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
 
 public class CmdLink implements IDBGitCommand {
-
-	public void execute(String[] args) throws ExceptionDBGit {
-
+	private Options opts = new Options();
+	
+	public CmdLink() {
+		
+	}
+	
+	public String getCommandName() {
+		return "link";
+	}
+	
+	public String getParams() {
+		return "";
+	}
+	
+	public String getHelperInfo() {
+		return "Command create link to database";
+	}
+	
+	public Options getOptions() {
+		return opts;
+	}
+	
+	@Override
+	public void execute(CommandLine cmdLine) throws Exception {
+		String[] args = cmdLine.getArgs();
+		
 		if(args == null || args.length == 0) {
 			throw new ExceptionDBGit("Url database is empty");			
 		}

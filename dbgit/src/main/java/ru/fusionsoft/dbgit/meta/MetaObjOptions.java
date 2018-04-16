@@ -8,6 +8,7 @@ import java.util.Map;
 import ru.fusionsoft.dbgit.adapters.AdapterFactory;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
+import ru.fusionsoft.dbgit.core.ExceptionDBGitObjectNotFound;
 import ru.fusionsoft.dbgit.dbobjects.DBOptionsObject;
 import ru.fusionsoft.dbgit.dbobjects.DBUser;
 import ru.fusionsoft.dbgit.utils.CalcHash;
@@ -38,8 +39,8 @@ public abstract class MetaObjOptions extends MetaBase {
 	}
 
 	@Override
-	public void serialize(OutputStream stream) throws IOException {
-		yamlSerialize(stream);
+	public boolean serialize(OutputStream stream) throws IOException {
+		return yamlSerialize(stream);
 	}
 
 	@Override
@@ -65,7 +66,7 @@ public abstract class MetaObjOptions extends MetaBase {
 	public void setObjectOptionFromMap(Map<String, ? extends DBOptionsObject> map) throws ExceptionDBGit {
 		NameMeta nm = MetaObjectFactory.parseMetaName(getName());
 		if (!map.containsKey(nm.getName())) {
-			throw new ExceptionDBGit("Not found object "+getName());
+			throw new ExceptionDBGitObjectNotFound("Not found object "+getName());
 		}
 		setObjectOption(map.get(nm.getName()));
 	}

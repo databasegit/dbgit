@@ -84,9 +84,13 @@ import ru.fusionsoft.dbgit.utils.CalcHash;
 	}
 	
 	@Override
-	public void serialize(OutputStream stream) throws Exception {
+	public boolean serialize(OutputStream stream) throws Exception {
 		Integer count = 0;
 		Set<String> fields = null;
+		
+		if (mapRows == null) {
+			return false;
+		}
 		
 		CSVPrinter csvPrinter = new CSVPrinter(new OutputStreamWriter(stream), getCSVFormat());
 		
@@ -97,36 +101,12 @@ import ru.fusionsoft.dbgit.utils.CalcHash;
 			}
 						
 			csvPrinter.printRecord(rd.getData().values());
+			
 
 			count++;
 		}
 		csvPrinter.close();
-	}
-
-	@Override
-	public IMetaObject deSerialize(InputStream stream) throws Exception {
-		
-		MetaTable metaTable = getMetaTable();		
-		List<String> idColumns = metaTable.getIdColumns();
-		
-		CSVParser csvParser = new CSVParser(new InputStreamReader(stream), getCSVFormat());
-		List<CSVRecord> csvRecords = csvParser.getRecords(); 
-		
-		if (csvRecords.size() > 0) {
-			CSVRecord titleColumns = csvRecords.get(0);
-				
-			mapRows = new TreeMapRowData(); 
-			
-			for (int i = 1; i < csvRecords.size(); i++) {	
-				CSVRecord record = csvRecords.get(i);
-				RowData rd = new RowData(record, idColumns, titleColumns);
-				mapRows.put(rd);			
-			}
-		}
-
-		csvParser.close();
-		
-		return this;
+		return true;
 	}
 	
 	public MetaTable getMetaTable() throws ExceptionDBGit {
@@ -143,6 +123,40 @@ import ru.fusionsoft.dbgit.utils.CalcHash;
 	}
 
 	@Override
+	public IMetaObject deSerialize(InputStream stream) throws Exception {
+		
+		MetaTable metaTable = getMetaTable();		
+		List<String> idColumns = metaTable.getIdColumns();
+		
+		CSVParser csvParser = new CSVParser(new InputStreamReader(stream), getCSVFormat());
+		List<CSVRecord> csvRecords = csvParser.getRecords(); 
+		
+		if (csvRecords.size() > 0) {
+			CSVRecord titleColumns = csvRecords.get(0);
+				
+			mapRows = new TreeMapRowData(); 
+			//System.out.println("read file "+getName());
+			for (int i = 1; i < csvRecords.size(); i++) {	
+				CSVRecord record = csvRecords.get(i);
+				RowData rd = new RowData(record, idColumns, titleColumns);
+				mapRows.put(rd);			
+			}
+			/*
+			System.out.println("******************************************");
+			System.out.println();
+			*/
+		}
+
+		csvParser.close();
+		
+		//saveToFile("test");
+		
+		return this;
+	}
+	
+	
+
+	@Override
 	public void loadFromDB() throws ExceptionDBGit {	
 		try {			
 			IDBAdapter adapter = AdapterFactory.createAdapter();
@@ -156,10 +170,15 @@ import ru.fusionsoft.dbgit.utils.CalcHash;
 			
 			mapRows = new TreeMapRowData(); 
 			
+			//System.out.println("load from db file "+getName());
 			while(rs.next()){
 				RowData rd = new RowData(rs, idColumns);
 				mapRows.put(rd);
 			}
+			/*
+			System.out.println("******************************************");
+			System.out.println();
+			*/
 		} catch (Exception e) {
 			if (e instanceof ExceptionDBGit) 
 				throw (ExceptionDBGit)e;
@@ -174,9 +193,12 @@ import ru.fusionsoft.dbgit.utils.CalcHash;
 		CalcHash ch = new CalcHash();
 		if (mapRows == null) 
 			return EMPTY_HASH;
-		
+		//System.out.println(getName());
+		int n = 0;
 		for (RowData rd : mapRows.values()) {
 			ch.addData(rd.getHashRow());
+			//System.out.println("row "+n+" "+rd.getHashRow());
+			n++;
 		}
 				
 		return ch.calcHashStr();

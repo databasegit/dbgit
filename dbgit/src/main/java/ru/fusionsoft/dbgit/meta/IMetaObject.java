@@ -53,7 +53,7 @@ public interface IMetaObject {
 	 * @param stream
 	 * @throws IOException
 	 */
-	public void serialize(OutputStream stream) throws Exception;
+	public boolean serialize(OutputStream stream) throws Exception;
 	
 	/**
 	 * Load object from stream
@@ -77,19 +77,20 @@ public interface IMetaObject {
 	 * @param basePath
 	 * @throws IOException
 	 */
-	default void saveToFile(String basePath) throws Exception {
+	default boolean saveToFile(String basePath) throws Exception {
 		File file = new File(DBGitPath.getFullPath(basePath)+"/"+getFileName());
 		DBGitPath.createDir(file.getParent());
 				
 		FileOutputStream out = new FileOutputStream(file.getAbsolutePath());
-		this.serialize(out);
+		boolean res = this.serialize(out);
 		out.close();
 		
 		ConsoleWriter.println("Write file object: "+getName());
+		return res;
 	}
 	
-	default void saveToFile() throws Exception {
-		saveToFile(null);
+	default boolean saveToFile() throws Exception {
+		return saveToFile(null);
 	}
 	
 	/**

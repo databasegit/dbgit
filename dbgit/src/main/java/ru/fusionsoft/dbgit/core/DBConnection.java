@@ -32,6 +32,7 @@ public class DBConnection {
 			
 			if (url != null) {
 				connect = DriverManager.getConnection(url, props);
+				connect.setAutoCommit(false);
 			}
 		} catch(Exception e) {
 			logger.error("Error connection to database", e);

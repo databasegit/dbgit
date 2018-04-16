@@ -44,12 +44,13 @@ public abstract class MetaBase implements IMetaObject {
 	 * @param stream
 	 * @throws IOException
 	 */
-	public void yamlSerialize(OutputStream stream) throws IOException {
+	public boolean yamlSerialize(OutputStream stream) throws IOException {
         Yaml yaml = createYaml();
         
         String output = yaml.dump(this);
         //System.out.rintln(output);//TODO delete
         stream.write(output.getBytes(Charset.forName("UTF-8")));
+        return true;
 	}
 	
 	public IMetaObject yamlDeSerialize(InputStream stream) {

@@ -21,8 +21,9 @@ public class MetaBlobData extends MetaBase {
 	}
 
 	@Override
-	public void serialize(OutputStream stream) {
+	public boolean serialize(OutputStream stream) {
 		// TODO Auto-generated method stub
+		return false;
 
 	}
 

@@ -2,7 +2,7 @@ package ru.fusionsoft.dbgit.dbobjects;
 
 import ru.fusionsoft.dbgit.utils.CalcHash;
 
-public class DBTableField implements IDBObject {
+public class DBTableField implements IDBObject, Comparable<DBTableField> {
 	private String name;
 	private String typeSQL;
 	
@@ -22,6 +22,7 @@ public class DBTableField implements IDBObject {
 		CalcHash ch = new CalcHash();
 		ch.addData(this.getName());
 		ch.addData(this.getTypeSQL());
+		ch.addData(isPrimaryKey.toString());
 
 		return ch.calcHashStr();
 	}
@@ -43,6 +44,12 @@ public class DBTableField implements IDBObject {
 	}
 
 
+	@Override
+	public int compareTo(DBTableField o) {
+		int res = - isPrimaryKey.compareTo(o.getIsPrimaryKey());
+		if (res != 0) return res;
+		return name.compareTo(o.getName());
+	}
 	
 
 }

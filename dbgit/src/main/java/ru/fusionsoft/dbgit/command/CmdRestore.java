@@ -3,9 +3,13 @@ package ru.fusionsoft.dbgit.command;
 import java.io.IOException;
 import java.util.Map;
 
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Options;
+
 import ru.fusionsoft.dbgit.core.DBGitIndex;
 import ru.fusionsoft.dbgit.core.DBGitPath;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
+import ru.fusionsoft.dbgit.core.ExceptionDBGitObjectNotFound;
 import ru.fusionsoft.dbgit.core.GitMetaDataManager;
 import ru.fusionsoft.dbgit.core.ItemIndex;
 import ru.fusionsoft.dbgit.meta.IMapMetaObject;
@@ -15,8 +19,30 @@ import ru.fusionsoft.dbgit.meta.TreeMapMetaObject;
 import ru.fusionsoft.dbgit.utils.LoggerUtil;
 
 public class CmdRestore implements IDBGitCommand {
-
-	public void execute(String[] args) throws Exception {
+	private Options opts = new Options();
+	
+	public CmdRestore() {
+		
+	}
+	
+	public String getCommandName() {
+		return "restore";
+	}
+	
+	public String getParams() {
+		return "";
+	}
+	
+	public String getHelperInfo() {
+		return "Command restore database";
+	}
+	
+	public Options getOptions() {
+		return opts;
+	}
+	
+	@Override
+	public void execute(CommandLine cmdLine) throws Exception {
 		GitMetaDataManager gmdm = GitMetaDataManager.getInctance();
 		IMapMetaObject fileObjs = gmdm.loadFileMetaData();		
 		IMapMetaObject updateObjs = new TreeMapMetaObject();
@@ -42,12 +68,18 @@ public class CmdRestore implements IDBGitCommand {
 		
 		
 		for (IMetaObject obj : fileObjs.values()) {
+			Boolean isRestore = false;
 			String hash = obj.getHash();
-			obj.loadFromDB();
-			if (!obj.getHash().equals(hash)) {
-				//запомнили файл если хеш разный
-				
-				updateObjs.put(obj.getName(), obj);
+			try {
+				IMetaObject dbObj = MetaObjectFactory.createMetaObject(obj.getName());
+				dbObj.loadFromDB();
+				isRestore = !obj.getHash().equals(hash);
+			} catch (ExceptionDBGitObjectNotFound e) {
+				isRestore = true;
+			}
+			if (isRestore) {
+				//запомнили файл если хеш разный или объекта нет				
+				updateObjs.put(obj);
 			}
 		}
 		

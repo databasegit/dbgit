@@ -9,6 +9,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.commons.cli.CommandLine;
 import org.slf4j.LoggerFactory;
 
 import com.diogonunes.jcdp.color.api.Ansi.FColor;
@@ -27,6 +28,7 @@ import ru.fusionsoft.dbgit.command.CmdStatus;
 import ru.fusionsoft.dbgit.command.CmdValid;
 import ru.fusionsoft.dbgit.command.ExceptionCmdNotFound;
 import ru.fusionsoft.dbgit.command.IDBGitCommand;
+import ru.fusionsoft.dbgit.command.RequestCmd;
 import ru.fusionsoft.dbgit.core.DBGitPath;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 import ru.fusionsoft.dbgit.utils.LoggerUtil;
@@ -38,31 +40,17 @@ import ru.fusionsoft.dbgit.utils.LoggerUtil;
  */
 public class App 
 {
-	private static final Map<String, IDBGitCommand> commands;
-	static {
-        Map<String, IDBGitCommand> aMap = new HashMap<String, IDBGitCommand>();
-        aMap.put("link", new CmdLink());
-        aMap.put("dump", new CmdDump());
-        aMap.put("restore", new CmdRestore());
-        aMap.put("status", new CmdStatus());
-        aMap.put("add", new CmdAdd());
-        aMap.put("rm", new CmdRm());
-        aMap.put("valid", new CmdValid());
-        aMap.put("script", new CmdScript());
-        aMap.put("help", new CmdHelp());
-
-        commands = Collections.unmodifiableMap(aMap);
-	}
-
 	public static void executeDbGitCommand(String[] args) throws Exception {
-		String cmd = args.length == 0 ? "help" : args[0].toLowerCase();		
-
-		if (!commands.containsKey(cmd)) {
-			throw new ExceptionCmdNotFound("Command "+cmd+ " not found!");
+		RequestCmd cmd = RequestCmd.getInctance();
+		
+		CommandLine cmdLine = cmd.parseCommand(args);
+		
+		if (cmdLine.hasOption('h')) {
+			cmd.printHelpAboutCommand(cmd.getCommand());
+			return ;
 		}
 		
-		String[] cmdParams = args.length > 0 ? Arrays.copyOfRange(args, 1, args.length) : null; 
-		commands.get(cmd).execute(cmdParams);
+		cmd.getCurrentCommand().execute(cmdLine);
 	}
 	
 	private static void configureLogback() throws JoranException, IOException {

@@ -1,6 +1,7 @@
 package ru.fusionsoft.dbgit.command;
 
-import java.util.Map;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Options;
 
 import ru.fusionsoft.dbgit.core.DBGit;
 import ru.fusionsoft.dbgit.core.DBGitIndex;
@@ -9,18 +10,39 @@ import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.GitMetaDataManager;
 import ru.fusionsoft.dbgit.meta.IMapMetaObject;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
-import ru.fusionsoft.dbgit.meta.MetaObjectFactory;
 import ru.fusionsoft.dbgit.meta.TreeMapMetaObject;
 import ru.fusionsoft.dbgit.utils.MaskFilter;
 
 public class CmdRm implements IDBGitCommand {
-
-	public void execute(String[] args)  throws Exception {
-		if (args.length == 0) {
+	private Options opts = new Options();
+	
+	public CmdRm() {
+		
+	}
+	
+	public String getCommandName() {
+		return "rm";
+	}
+	
+	public String getParams() {
+		return "object";
+	}
+	
+	public String getHelperInfo() {
+		return "Command remove object from dbgit";
+	}
+	
+	public Options getOptions() {
+		return opts;
+	}
+	
+	@Override
+	public void execute(CommandLine cmdLine) throws Exception {
+		if (cmdLine.getArgs().length == 0) {
 			throw new ExceptionDBGit("Bad command. Not founnd object remove!");
 		}
 						
-		String nameObj = args[0];
+		String nameObj = cmdLine.getArgs()[0];
 		MaskFilter maskAdd = new MaskFilter(nameObj);
 		
 		DBGitIndex index = DBGitIndex.getInctance();
