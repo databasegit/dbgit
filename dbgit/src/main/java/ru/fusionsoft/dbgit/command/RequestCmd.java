@@ -8,15 +8,13 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 
-import ru.fusionsoft.dbgit.core.DBConnection;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 import ru.fusionsoft.dbgit.utils.LoggerUtil;
 
 public class RequestCmd {
 	public static final String FOOTER_HELPER = "Info about dbgit commands";
-	//Commons CLI
-	//https://commons.apache.org/proper/commons-cli/usage.html
+
 	private static RequestCmd cmdReq = null;
 	
 	protected CommandMap commands = new CommandMap();

@@ -18,6 +18,8 @@ import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.csv.QuoteMode;
 
+import com.diogonunes.jcdp.color.api.Ansi.FColor;
+
 import ru.fusionsoft.dbgit.adapters.AdapterFactory;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
@@ -27,6 +29,7 @@ import ru.fusionsoft.dbgit.data_table.TreeMapRowData;
 import ru.fusionsoft.dbgit.dbobjects.DBTable;
 import ru.fusionsoft.dbgit.dbobjects.DBTableData;
 import ru.fusionsoft.dbgit.utils.CalcHash;
+import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
 /**
  * Meta class for Table data
@@ -157,14 +160,20 @@ import ru.fusionsoft.dbgit.utils.CalcHash;
 	
 
 	@Override
-	public void loadFromDB() throws ExceptionDBGit {	
+	public boolean loadFromDB() throws ExceptionDBGit {	
 		try {			
 			IDBAdapter adapter = AdapterFactory.createAdapter();
 						
 			MetaTable metaTable = getMetaTable();		
 			List<String> idColumns = metaTable.getIdColumns();
 			
-			dataTable = adapter.getTableData(table, IDBAdapter.LIMIT_FETCH);
+			dataTable = adapter.getTableData(table.getSchema(), table.getName(), IDBAdapter.LIMIT_FETCH);
+			
+			if (dataTable.getErrorFlag() > 0) {
+				ConsoleWriter.printlnColor("Table "+getName()+" have more "+IDBAdapter.LIMIT_FETCH+
+						" records. dbgit can't save data this table.", FColor.RED, 0);
+				return false;
+			}
 			
 			ResultSet rs = dataTable.getResultSet();
 			
@@ -175,6 +184,7 @@ import ru.fusionsoft.dbgit.utils.CalcHash;
 				RowData rd = new RowData(rs, idColumns);
 				mapRows.put(rd);
 			}
+			return true;
 			/*
 			System.out.println("******************************************");
 			System.out.println();

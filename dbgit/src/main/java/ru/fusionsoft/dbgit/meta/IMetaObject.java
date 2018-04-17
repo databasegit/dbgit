@@ -66,7 +66,7 @@ public interface IMetaObject {
 	/**
 	 * load current object from DB
 	 */
-	public void loadFromDB() throws ExceptionDBGit;
+	public boolean loadFromDB() throws ExceptionDBGit;
 		
 	public String getHash();
 	

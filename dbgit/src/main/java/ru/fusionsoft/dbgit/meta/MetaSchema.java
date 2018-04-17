@@ -22,10 +22,11 @@ public class MetaSchema extends MetaObjOptions {
 	}
 	
 	@Override
-	public void loadFromDB() throws ExceptionDBGit {
+	public boolean loadFromDB() throws ExceptionDBGit {
 		IDBAdapter adapter = AdapterFactory.createAdapter();
 		Map<String, DBSchema> schemes = adapter.getSchemes();
 		
 		setObjectOptionFromMap(schemes);
+		return true;
 	}
 }

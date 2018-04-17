@@ -67,117 +67,117 @@ public class DBAdapterOracle extends DBAdapter {
 	}
 
 	@Override
-	public Map<String, DBSequence> getSequences(DBSchema schema) {
+	public Map<String, DBSequence> getSequences(String schema) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public DBSequence getSequence(DBSchema schema, String name) {
+	public DBSequence getSequence(String schema, String name) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public Map<String, DBTable> getTables(DBSchema schema) {
+	public Map<String, DBTable> getTables(String schema) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public DBTable getTable(DBSchema schema, String name) {
+	public DBTable getTable(String schema, String name) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public Map<String, DBTableField> getTableFields(DBTable tbl) {
+	public Map<String, DBTableField> getTableFields(String schema, String nameTable) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public Map<String, DBIndex> getIndexes(DBTable tbl) {
+	public Map<String, DBIndex> getIndexes(String schema, String nameTable) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public Map<String, DBConstraint> getConstraints(DBTable tbl) {
+	public Map<String, DBConstraint> getConstraints(String schema, String nameTable) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public Map<String, DBView> getViews(DBSchema schema) {
+	public Map<String, DBView> getViews(String schema) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public DBView getView(DBSchema schema, String name) {
+	public DBView getView(String schema, String name) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 	
-	public Map<String, DBTrigger> getTriggers(DBSchema schema) {
+	public Map<String, DBTrigger> getTriggers(String schema) {
 		// TODO Auto-generated method stub
 				return null;
 	}
 	
-	public DBTrigger getTrigger(DBSchema schema, String name) {
+	public DBTrigger getTrigger(String schema, String name) {
 		// TODO Auto-generated method stub
 				return null;
 	}
 
 	@Override
-	public Map<String, DBPackage> getPackages(DBSchema schema) {
+	public Map<String, DBPackage> getPackages(String schema) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public DBPackage getPackage(DBSchema schema, String name) {
+	public DBPackage getPackage(String schema, String name) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public Map<String, DBProcedure> getProcedures(DBSchema schema) {
+	public Map<String, DBProcedure> getProcedures(String schema) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public DBProcedure getProcedure(DBSchema schema, String name) {
+	public DBProcedure getProcedure(String schema, String name) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public Map<String, DBFunction> getFunctions(DBSchema schema) {
+	public Map<String, DBFunction> getFunctions(String schema) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public DBFunction getFunction(DBSchema schema, String name) {
+	public DBFunction getFunction(String schema, String name) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public DBTableData getTableData(DBTable tbl, int paramFetch) {
+	public DBTableData getTableData(String schema, String nameTable, int paramFetch) {
 		// TODO Auto-generated method stub
 		return null;
 	}
-
+/*
 	@Override
-	public DBTableRow getTableRow(DBTable tbl, Object id) {
+	public DBTableRow getTableRow(String schema, String nameTable, Object id) {
 		// TODO Auto-generated method stub
 		return null;
 	}
-
+*/
 	@Override
 	public Map<String, DBUser> getUsers() {
 		// TODO Auto-generated method stub

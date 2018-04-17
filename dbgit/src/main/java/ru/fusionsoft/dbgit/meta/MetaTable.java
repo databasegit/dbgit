@@ -71,23 +71,23 @@ public class MetaTable extends MetaBase {
 	}
 	
 	@Override
-	public void loadFromDB() throws ExceptionDBGit {
+	public boolean loadFromDB() throws ExceptionDBGit {
 		IDBAdapter adapter = AdapterFactory.createAdapter();
 		NameMeta nm = MetaObjectFactory.parseMetaName(getName());
-		DBSchema sh = new DBSchema(nm.getSchema());
 		
-		DBTable tbl = adapter.getTable(sh, nm.getName());
-		loadFromDB(tbl);
+		DBTable tbl = adapter.getTable(nm.getSchema(), nm.getName());
+		return loadFromDB(tbl);
 	}
 	
-	public void loadFromDB(DBTable tbl) throws ExceptionDBGit {
+	public boolean loadFromDB(DBTable tbl) throws ExceptionDBGit {
 		setTable(tbl);
 		
 		IDBAdapter adapter = AdapterFactory.createAdapter();
 		
-		fields.putAll(adapter.getTableFields(getTable()));
-		indexes.putAll(adapter.getIndexes(getTable()));
-		constraints.putAll(adapter.getConstraints(getTable()));
+		fields.putAll(adapter.getTableFields(tbl.getSchema(), tbl.getName()));
+		indexes.putAll(adapter.getIndexes(tbl.getSchema(), tbl.getName()));
+		constraints.putAll(adapter.getConstraints(tbl.getSchema(), tbl.getName()));
+		return true;
 	}
 	
 	@Override

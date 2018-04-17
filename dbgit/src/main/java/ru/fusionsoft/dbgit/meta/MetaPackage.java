@@ -1,6 +1,10 @@
 package ru.fusionsoft.dbgit.meta;
 
+import ru.fusionsoft.dbgit.adapters.AdapterFactory;
+import ru.fusionsoft.dbgit.adapters.IDBAdapter;
+import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.dbobjects.DBPackage;
+import ru.fusionsoft.dbgit.dbobjects.DBSchema;
 
 public class MetaPackage extends MetaSql {
 	public MetaPackage() {
@@ -17,9 +21,14 @@ public class MetaPackage extends MetaSql {
 	}
 	
 	@Override
-	public void loadFromDB() {
-		// load data shema by name
+	public boolean loadFromDB() throws ExceptionDBGit {
+		IDBAdapter adapter = AdapterFactory.createAdapter();
+		NameMeta nm = MetaObjectFactory.parseMetaName(getName());
 
+		DBPackage pkg = adapter.getPackage(nm.getSchema(), nm.getName());
+		setSqlObject(pkg);
+		
+		return true;
 	}
 
 }

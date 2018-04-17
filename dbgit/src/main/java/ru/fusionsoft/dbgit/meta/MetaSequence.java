@@ -4,6 +4,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
+import ru.fusionsoft.dbgit.adapters.AdapterFactory;
+import ru.fusionsoft.dbgit.adapters.IDBAdapter;
+import ru.fusionsoft.dbgit.core.ExceptionDBGit;
+import ru.fusionsoft.dbgit.dbobjects.DBPackage;
+import ru.fusionsoft.dbgit.dbobjects.DBSchema;
 import ru.fusionsoft.dbgit.dbobjects.DBSchemaObject;
 import ru.fusionsoft.dbgit.dbobjects.DBSequence;
 import ru.fusionsoft.dbgit.utils.CalcHash;
@@ -58,9 +63,15 @@ public class MetaSequence extends MetaBase {
 	}
 	
 	@Override
-	public void loadFromDB() {
-		// load data shema by name
+	public boolean loadFromDB() throws ExceptionDBGit {
+		IDBAdapter adapter = AdapterFactory.createAdapter();
+		NameMeta nm = MetaObjectFactory.parseMetaName(getName());
 
+		DBSequence seq = adapter.getSequence(nm.getSchema(), nm.getName());
+		setSequence(seq);
+		
+		return true;
 	}
+
 
 }

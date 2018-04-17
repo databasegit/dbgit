@@ -23,12 +23,12 @@ public class MetaTableSpace extends MetaObjOptions {
 	}
 	
 	@Override
-	public void loadFromDB() throws ExceptionDBGit {
+	public boolean loadFromDB() throws ExceptionDBGit {
 		IDBAdapter adapter = AdapterFactory.createAdapter();
 		Map<String, DBTableSpace> tbs = adapter.getTableSpaces();
 		
 		setObjectOptionFromMap(tbs);
-
+		return true;
 	}
 
 }

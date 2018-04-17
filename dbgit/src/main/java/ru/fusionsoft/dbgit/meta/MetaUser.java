@@ -23,10 +23,11 @@ public class MetaUser extends MetaObjOptions {
 	}
 	
 	@Override
-	public void loadFromDB() throws ExceptionDBGit {
+	public boolean loadFromDB() throws ExceptionDBGit {
 		IDBAdapter adapter = AdapterFactory.createAdapter();
 		Map<String, DBUser> users = adapter.getUsers();
 		
 		setObjectOptionFromMap(users);
+		return true;
 	}
 }

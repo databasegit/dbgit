@@ -23,11 +23,12 @@ public class MetaRole extends MetaObjOptions {
 	}
 	
 	@Override
-	public void loadFromDB() throws ExceptionDBGit {
+	public boolean loadFromDB() throws ExceptionDBGit {
 		IDBAdapter adapter = AdapterFactory.createAdapter();
 		Map<String, DBRole> roles = adapter.getRoles();
 		
 		setObjectOptionFromMap(roles);
+		return true;
 	}
 
 }

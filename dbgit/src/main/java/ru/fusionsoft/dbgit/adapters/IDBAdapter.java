@@ -96,33 +96,33 @@ public interface IDBAdapter {
 	
 	public Map<String, DBTableSpace> getTableSpaces();
 	
-	public Map<String, DBSequence> getSequences(DBSchema schema);
-	public DBSequence getSequence(DBSchema schema, String name);
+	public Map<String, DBSequence> getSequences(String schema);
+	public DBSequence getSequence(String schema, String name);
 	
-	public Map<String, DBTable> getTables(DBSchema schema);
-	public DBTable getTable(DBSchema schema, String name);
+	public Map<String, DBTable> getTables(String schema);
+	public DBTable getTable(String schema, String name);
 	
-	public Map<String, DBTableField> getTableFields(DBTable tbl);	
-	public Map<String, DBIndex> getIndexes(DBTable tbl);	
-	public Map<String, DBConstraint> getConstraints(DBTable tbl);
+	public Map<String, DBTableField> getTableFields(String schema, String nameTable);	
+	public Map<String, DBIndex> getIndexes(String schema, String nameTable);	
+	public Map<String, DBConstraint> getConstraints(String schema, String nameTable);
 	
-	public Map<String, DBView> getViews(DBSchema schema);
-	public DBView getView(DBSchema schema, String name);
+	public Map<String, DBView> getViews(String schema);
+	public DBView getView(String schema, String name);
 	
-	public Map<String, DBPackage> getPackages(DBSchema schema);
-	public DBPackage getPackage(DBSchema schema, String name);
+	public Map<String, DBPackage> getPackages(String schema);
+	public DBPackage getPackage(String schema, String name);
 	
-	public Map<String, DBProcedure> getProcedures(DBSchema schema);
-	public DBProcedure getProcedure(DBSchema schema, String name);
+	public Map<String, DBProcedure> getProcedures(String schema);
+	public DBProcedure getProcedure(String schema, String name);
 	
-	public Map<String, DBFunction> getFunctions(DBSchema schema);
-	public DBFunction getFunction(DBSchema schema, String name);
+	public Map<String, DBFunction> getFunctions(String schema);
+	public DBFunction getFunction(String schema, String name);
 	
-	public Map<String, DBTrigger> getTriggers(DBSchema schema);
-	public DBTrigger getTrigger(DBSchema schema, String name);
+	public Map<String, DBTrigger> getTriggers(String schema);
+	public DBTrigger getTrigger(String schema, String name);
 	
-	public DBTableData getTableData(DBTable tbl, int paramFetch);
-	public DBTableRow getTableRow(DBTable tbl, Object id); //TODO multi id
+	public DBTableData getTableData(String schema, String nameTable, int paramFetch);
+	//public DBTableRow getTableRow(DBTable tbl, Object id); //TODO multi id
 	
 	public Map<String, DBUser> getUsers();
 	public Map<String, DBRole> getRoles();

@@ -112,7 +112,7 @@ public class GitMetaDataManager {
 		
 		//load sequence
 		for (DBSchema schema : schemes.values()) {
-			for (DBSequence seq : adapter.getSequences(schema).values()) {
+			for (DBSequence seq : adapter.getSequences(schema.getName()).values()) {
 				MetaSequence metaSeq = new MetaSequence();
 				metaSeq.setSequence(seq);
 				if (ignore.matchOne(metaSeq.getName())) continue ;
@@ -123,40 +123,41 @@ public class GitMetaDataManager {
 			
 		//load tables
 		for (DBSchema sch : schemes.values()) {
-			for (DBTable tbl : adapter.getTables(sch).values()) {
+			for (DBTable tbl : adapter.getTables(sch.getName()).values()) {
 				MetaTable tblMeta = new MetaTable(tbl);
 				
 				if (ignore.matchOne(tblMeta.getName())) continue ;
 				
-				tblMeta.loadFromDB(tbl);
-				dbObjs.put(tblMeta);
-				tbls.put(tblMeta.getName(), tblMeta);
+				if ( tblMeta.loadFromDB(tbl) ) {
+					dbObjs.put(tblMeta);
+					tbls.put(tblMeta.getName(), tblMeta);
+				}
 			}
 		}
 		
 		//triggers
 		for (DBSchema schema : schemes.values()) {
-			addToMapSqlObject(dbObjs, adapter.getTriggers(schema), DBGitMetaType.DbGitTrigger);
+			addToMapSqlObject(dbObjs, adapter.getTriggers(schema.getName()), DBGitMetaType.DbGitTrigger);
 		}
 		
 		//packages
 		for (DBSchema schema : schemes.values()) {
-			addToMapSqlObject(dbObjs, adapter.getPackages(schema), DBGitMetaType.DbGitPackage);
+			addToMapSqlObject(dbObjs, adapter.getPackages(schema.getName()), DBGitMetaType.DbGitPackage);
 		}
 		
 		//functions
 		for (DBSchema schema : schemes.values()) {
-			addToMapSqlObject(dbObjs, adapter.getFunctions(schema), DBGitMetaType.DbGitFunction);
+			addToMapSqlObject(dbObjs, adapter.getFunctions(schema.getName()), DBGitMetaType.DbGitFunction);
 		}
 		
 		//procedures
 		for (DBSchema schema : schemes.values()) {
-			addToMapSqlObject(dbObjs, adapter.getProcedures(schema), DBGitMetaType.DbGitProcedure);
+			addToMapSqlObject(dbObjs, adapter.getProcedures(schema.getName()), DBGitMetaType.DbGitProcedure);
 		}
 		
 		//views
 		for (DBSchema schema : schemes.values()) {
-			addToMapSqlObject(dbObjs, adapter.getViews(schema), DBGitMetaType.DbGitView);
+			addToMapSqlObject(dbObjs, adapter.getViews(schema.getName()), DBGitMetaType.DbGitView);
 		}
 				
 		//data tables
@@ -165,8 +166,8 @@ public class GitMetaDataManager {
 			
 			if (ignore.matchOne(data.getName())) continue ;
 			
-			data.loadFromDB();
-			dbObjs.put(data);
+			if (data.loadFromDB()) 
+				dbObjs.put(data);
 		}
 		
 		IMapMetaObject customObjs = adapter.loadCustomMetaObjects();

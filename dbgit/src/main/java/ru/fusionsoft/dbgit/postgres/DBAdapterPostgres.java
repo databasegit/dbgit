@@ -35,7 +35,6 @@ import org.slf4j.Logger;
 
 import com.axiomalaska.jdbc.NamedParameterPreparedStatement;
 
-import ch.qos.logback.classic.db.names.TableName;
 
 public class DBAdapterPostgres extends DBAdapter {
 
@@ -109,7 +108,7 @@ public class DBAdapterPostgres extends DBAdapter {
 	}
 
 	@Override
-	public Map<String, DBSequence> getSequences(DBSchema schema) {
+	public Map<String, DBSequence> getSequences(String schema) {
 		Map<String, DBSequence> listSequence = new HashMap<String, DBSequence>();
 		try {
 			Connection connect = getConnection();
@@ -124,14 +123,14 @@ public class DBAdapterPostgres extends DBAdapter {
 					"  and cls.relkind = 'S' and nsp.nspname = :schema ";
 			
 			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);
-			stmt.setString("schema", schema.getName());
+			stmt.setString("schema", schema);
 						
 			ResultSet rs = stmt.executeQuery();
 			while(rs.next()){
 				String nameSeq = rs.getString("sequence_name");
 				DBSequence sequence = new DBSequence();
 				sequence.setName(nameSeq);
-				sequence.setSchema(schema.getName());
+				sequence.setSchema(schema);
 				sequence.setValue(0L);
 				rowToProperties(rs, sequence.getOptions());
 				listSequence.put(nameSeq, sequence);
@@ -144,7 +143,7 @@ public class DBAdapterPostgres extends DBAdapter {
 	}
 
 	@Override
-	public DBSequence getSequence(DBSchema schema, String name) {
+	public DBSequence getSequence(String schema, String name) {
 		try {
 			Connection connect = getConnection();
 			String query = 
@@ -155,18 +154,18 @@ public class DBAdapterPostgres extends DBAdapter {
 					"  join information_schema.sequences s on cls.relname = s.sequence_name " + 
 					"where nsp.nspname not in ('information_schema', 'pg_catalog') " + 
 					"  and nsp.nspname not like 'pg_toast%' " + 
-					"  and cls.relkind = 'S' and nsp.nspname = :schema and nsp.relname = :name ";
+					"  and cls.relkind = 'S' and nsp.nspname = :schema and s.sequence_name = :name ";
 			
 			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);
-			stmt.setString("schema", schema.getName());
+			stmt.setString("schema", schema);
 			stmt.setString("name", name);
 						
 			ResultSet rs = stmt.executeQuery();
 			rs.next();
-			String nameSeq = rs.getString("relname");
+			String nameSeq = rs.getString("sequence_name");
 			DBSequence sequence = new DBSequence();
 			sequence.setName(nameSeq);
-			sequence.setSchema(schema.getName());
+			sequence.setSchema(schema);
 			sequence.setValue(0L);
 			rowToProperties(rs, sequence.getOptions());
 				
@@ -178,7 +177,7 @@ public class DBAdapterPostgres extends DBAdapter {
 	}
 
 	@Override
-	public Map<String, DBTable> getTables(DBSchema schema) {
+	public Map<String, DBTable> getTables(String schema) {
 		Map<String, DBTable> listTable = new HashMap<String, DBTable>();
 		try {
 			String query = 
@@ -193,13 +192,13 @@ public class DBAdapterPostgres extends DBAdapter {
 			Connection connect = getConnection();
 			
 			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);			
-			stmt.setString("schema", schema.getName());
+			stmt.setString("schema", schema);
 			
 			ResultSet rs = stmt.executeQuery();
 			while(rs.next()){
 				String nameTable = rs.getString("object_name");
 				DBTable table = new DBTable(nameTable);
-				table.setSchema(schema.getName());
+				table.setSchema(schema);
 				table.getOptions().addChild("owner", rs.getString("owner"));
 				listTable.put(nameTable, table);
 			}			
@@ -211,7 +210,7 @@ public class DBAdapterPostgres extends DBAdapter {
 	}
 
 	@Override
-	public DBTable getTable(DBSchema schema, String name) {
+	public DBTable getTable(String schema, String name) {
 		try {
 			String query = 
 					"select nsp.nspname as object_schema, " + 
@@ -225,14 +224,14 @@ public class DBAdapterPostgres extends DBAdapter {
 			Connection connect = getConnection();
 			
 			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);			
-			stmt.setString("schema", schema.getName());
+			stmt.setString("schema", schema);
 			stmt.setString("name", name);
 			
 			ResultSet rs = stmt.executeQuery();
 			rs.next();
 			String nameTable = rs.getString("object_name");
 			DBTable table = new DBTable(nameTable);
-			table.setSchema(schema.getName());
+			table.setSchema(schema);
 			table.getOptions().addChild("owner", rs.getString("owner"));
 
 			return table;
@@ -244,24 +243,31 @@ public class DBAdapterPostgres extends DBAdapter {
 	}
 
 	@Override
-	public Map<String, DBTableField> getTableFields(DBTable tbl) {
+	public Map<String, DBTableField> getTableFields(String schema, String nameTable) {
 		
 		try {
 			Map<String, DBTableField> listField = new HashMap<String, DBTableField>();
 			
 			String query = 
-					"SELECT * FROM information_schema.columns where table_schema = :schema and table_name = :table ";
+					"SELECT distinct col.*, tc.constraint_name  FROM " + 
+					"information_schema.columns col  " + 
+					"left join information_schema.key_column_usage kc on col.table_schema = kc.table_schema and col.table_name = kc.table_name and col.column_name=kc.column_name " + 
+					"left join information_schema.table_constraints tc on col.table_schema = kc.table_schema and col.table_name = kc.table_name and kc.constraint_name = tc.constraint_name and tc.constraint_type = 'PRIMARY KEY' " + 
+					"where col.table_schema = :schema and col.table_name = :table " + 
+					"order by col.column_name ";
 			Connection connect = getConnection();
 			
 			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);			
-			stmt.setString("schema", tbl.getSchema());
-			stmt.setString("table", tbl.getName());
+			stmt.setString("schema", schema);
+			stmt.setString("table", nameTable);
 
 			ResultSet rs = stmt.executeQuery();
 			while(rs.next()){				
 				DBTableField field = new DBTableField();
 				field.setName(rs.getString("column_name"));  
-				if (field.getName().equals("id"))field.setIsPrimaryKey(true);
+				if (rs.getString("constraint_name") != null) { 
+					field.setIsPrimaryKey(true);
+				}
 				field.setTypeSQL(getFieldType(rs));
 				listField.put(field.getName(), field);
 			}			
@@ -295,21 +301,83 @@ public class DBAdapterPostgres extends DBAdapter {
 	}
 
 	@Override
-	public Map<String, DBIndex> getIndexes(DBTable tbl) {
+	public Map<String, DBIndex> getIndexes(String schema, String nameTable) {
 		Map<String, DBIndex> indexes = new HashMap<>();
-		// TODO Auto-generated method stub
-		return indexes;
+		try {
+			String query = "select i.* from pg_indexes i " + 
+				    "where i.tablename not like 'pg%' and i.schemaname = :schema and i.tablename = :table ";
+			
+			Connection connect = getConnection();
+			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);			
+			stmt.setString("schema", schema);
+			stmt.setString("table", nameTable);
+
+			ResultSet rs = stmt.executeQuery();
+			while(rs.next()){
+				DBIndex index = new DBIndex();
+				index.setName(rs.getString("indexname"));
+				index.setSchema(schema);
+				index.setSql(rs.getString("indexdef"));
+				
+				indexes.put(index.getName(), index);
+			}
+			
+			return indexes;
+
+		}catch(Exception e) {
+			logger.error("Error load Indexes");
+			throw new ExceptionDBGitRunTime(e.getMessage());
+		}
+		
 	}
 
 	@Override
-	public Map<String, DBConstraint> getConstraints(DBTable tbl) {
+	public Map<String, DBConstraint> getConstraints(String schema, String nameTable) {
 		Map<String, DBConstraint> constraints = new HashMap<>();
-		// TODO Auto-generated method stub
-		return constraints;
+		try {
+			String query = "select  " + 
+					"        tc.constraint_name,         " + 
+					"        tc.constraint_schema, " + 
+					"        tc.table_name,  " + 
+					"        kcu.column_name,  " + 
+					"        ccu.table_name as foreign_table_name,  " + 
+					"        ccu.column_name as foreign_column_name, " + 
+					"        tc.constraint_type " + 
+					"    from  " + 
+					"        information_schema.table_constraints as tc   " + 
+					"        join information_schema.key_column_usage as kcu on (tc.constraint_name = kcu.constraint_name and tc.table_name = kcu.table_name) " + 
+					"        join information_schema.constraint_column_usage as ccu on ccu.constraint_name = tc.constraint_name " + 
+					"    where  " + 
+					"        constraint_type in ('PRIMARY KEY','FOREIGN KEY') " + 
+					"        and tc.constraint_schema = :schema and tc.table_name = :table ";
+				       
+			Connection connect = getConnection();
+			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);			
+			stmt.setString("schema", schema);
+			stmt.setString("table", nameTable);
+
+			ResultSet rs = stmt.executeQuery();
+			while(rs.next()){
+				DBConstraint con = new DBConstraint();
+				con.setName(rs.getString("constraint_name"));
+				con.setColumnName(rs.getString("column_name"));
+				con.setForeignColumnName(rs.getString("foreign_column_name"));
+				con.setForeignTableName(rs.getString("foreign_table_name"));
+				con.setConstraintType(rs.getString("constraint_type"));
+				con.setSchema(schema);
+				constraints.put(con.getName(), con);
+			}
+			
+			return constraints;		
+			
+		}catch(Exception e) {
+			logger.error("Error load Constraints");
+			throw new ExceptionDBGitRunTime(e.getMessage());
+		}
 	}
 
 	@Override
-	public Map<String, DBView> getViews(DBSchema schema) {
+	public Map<String, DBView> getViews(String schema) {
 		Map<String, DBView> listView = new HashMap<String, DBView>();
 		try {
 			String query = "select nsp.nspname as object_schema, " + 
@@ -319,7 +387,7 @@ public class DBAdapterPostgres extends DBAdapter {
 				         " join pg_namespace nsp on nsp.oid = cls.relnamespace " + 
 				       " where nsp.nspname not in ('information_schema', 'pg_catalog') " + 
 				       " and nsp.nspname not like 'pg_toast%' " +
-				       "and cls.relkind = 'v' and nsp.nspname = '" + schema.getName() + "'";
+				       "and cls.relkind = 'v' and nsp.nspname = '" + schema + "'";
 			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
@@ -340,7 +408,7 @@ public class DBAdapterPostgres extends DBAdapter {
 	}
 
 	@Override
-	public DBView getView(DBSchema schema, String name) {
+	public DBView getView(String schema, String name) {
 		DBView view = new DBView(name);
 		try {
 			String query = "select nsp.nspname as object_schema, " + 
@@ -350,7 +418,7 @@ public class DBAdapterPostgres extends DBAdapter {
 				         " join pg_namespace nsp on nsp.oid = cls.relnamespace " + 
 				       " where nsp.nspname not in ('information_schema', 'pg_catalog') " + 
 				       " and nsp.nspname not like 'pg_toast%' " +
-				       "and cls.relkind = 'v' and nsp.nspname = '" + schema.getName() + "' and cls.relname='"+name+"'";
+				       "and cls.relkind = 'v' and nsp.nspname = '" + schema + "' and cls.relname='"+name+"'";
 			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
@@ -366,13 +434,13 @@ public class DBAdapterPostgres extends DBAdapter {
 		return view;
 	}
 	
-	public Map<String, DBTrigger> getTriggers(DBSchema schema) {
+	public Map<String, DBTrigger> getTriggers(String schema) {
 		Map<String, DBTrigger> listTrigger = new HashMap<String, DBTrigger>();
 		try {
-			String query = "SELECT pg_trigger.tgname, pg_get_triggerdef(pg_trigger.oid) AS src \r\n" + 
-					"FROM pg_trigger, pg_class, pg_namespace\r\n" + 
-					"where pg_namespace.nspname like '" + schema.getName()+"' and pg_namespace.oid=pg_class.relnamespace and pg_trigger.tgrelid=pg_class.oid " +
-					"and pg_trigger not like '%Constraint%'";
+			String query = "SELECT pg_trigger.tgname, pg_get_triggerdef(pg_trigger.oid) AS src  " + 
+					"FROM pg_trigger, pg_class, pg_namespace " + 
+					"where pg_namespace.nspname like '" + schema+"' and pg_namespace.oid=pg_class.relnamespace and pg_trigger.tgrelid=pg_class.oid " +
+					"and pg_trigger.tgname not like '%Constraint%'";
 			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
@@ -380,30 +448,30 @@ public class DBAdapterPostgres extends DBAdapter {
 				String name = rs.getString(1);
 				String sql = rs.getString(2);
 				DBTrigger trigger = new DBTrigger(name);
-				trigger.setSchema(schema.getName());
+				trigger.setSchema(schema);
 				trigger.setSql(sql);
 				listTrigger.put(name, trigger);
 			}
 		}catch(Exception e) {
-			throw new ExceptionDBGitRunTime(e.getMessage());
+			throw new ExceptionDBGitRunTime("Error load triggers!", e);
 		}
 		// TODO Auto-generated method stub
 		return listTrigger;
 	}
 	
-	public DBTrigger getTrigger(DBSchema schema, String name) {
+	public DBTrigger getTrigger(String schema, String name) {
 		DBTrigger trigger = null;
 		try {
-			String query = "SELECT pg_trigger.tgname, pg_get_triggerdef(pg_trigger.oid) AS src \r\n" + 
-					"FROM pg_trigger, pg_class, pg_namespace\r\n" + 
-					"where pg_namespace.nspname like '" + schema.getName()+"' and tgname='"+name+"' and pg_namespace.oid=pg_class.relnamespace and pg_trigger.tgrelid=pg_class.oid ";
+			String query = "SELECT pg_trigger.tgname, pg_get_triggerdef(pg_trigger.oid) AS src  " + 
+					"FROM pg_trigger, pg_class, pg_namespace " + 
+					"where pg_namespace.nspname like '" + schema+"' and tgname='"+name+"' and pg_namespace.oid=pg_class.relnamespace and pg_trigger.tgrelid=pg_class.oid ";
 			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
 			while(rs.next()){
 				String sql = rs.getString(2);
 				trigger = new DBTrigger(name);
-				trigger.setSchema(schema.getName());
+				trigger.setSchema(schema);
 				trigger.setSql(sql);				
 			}
 		}catch(Exception e) {
@@ -414,36 +482,36 @@ public class DBAdapterPostgres extends DBAdapter {
 	}
 
 	@Override
-	public Map<String, DBPackage> getPackages(DBSchema schema) {
+	public Map<String, DBPackage> getPackages(String schema) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public DBPackage getPackage(DBSchema schema, String name) {
+	public DBPackage getPackage(String schema, String name) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public Map<String, DBProcedure> getProcedures(DBSchema schema) {
+	public Map<String, DBProcedure> getProcedures(String schema) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public DBProcedure getProcedure(DBSchema schema, String name) {
+	public DBProcedure getProcedure(String schema, String name) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public Map<String, DBFunction> getFunctions(DBSchema schema) {
+	public Map<String, DBFunction> getFunctions(String schema) {
 		Map<String, DBFunction> listFunction = new HashMap<String, DBFunction>();
 		try {
-			String query = "SELECT pg_proc.proname, pg_get_functiondef(pg_proc.oid) AS src \r\n" + 
-					"FROM pg_proc, pg_namespace\r\n" + 
-					"where pg_namespace.nspname like '" + schema.getName()+"' and pg_namespace.oid=pg_proc.pronamespace";
+			String query = "SELECT pg_proc.proname, pg_get_functiondef(pg_proc.oid) AS src  " + 
+					"FROM pg_proc, pg_namespace " + 
+					"where pg_namespace.nspname like '" + schema+"' and pg_namespace.oid=pg_proc.pronamespace";
 			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
@@ -452,7 +520,7 @@ public class DBAdapterPostgres extends DBAdapter {
 				String sql = rs.getString(2);
 				DBFunction func = new DBFunction(name);
 				func.setSql(sql);
-				func.setSchema(schema.getName());
+				func.setSchema(schema);
 				listFunction.put(name, func);
 			}
 		}catch(Exception e) {
@@ -463,31 +531,33 @@ public class DBAdapterPostgres extends DBAdapter {
 	}
 
 	@Override
-	public DBFunction getFunction(DBSchema schema, String name) {
+	public DBFunction getFunction(String schema, String name) {
 		DBFunction func = new DBFunction(name);
+		System.out.println(schema+" "+name);
 		try {
-			String query = "SELECT pg_proc.proname, pg_get_functiondef(pg_proc.oid) AS src \r\n" + 
-					"FROM pg_proc, pg_namespace\r\n" + 
-					"where pg_namespace.nspname like '" + schema.getName()+"' and pg_namespace.oid=pg_proc.pronamespace" +
-					"pg_proc.name='"+name+"'";
+			String query = "SELECT pg_proc.proname, pg_get_functiondef(pg_proc.oid) as src  " + 
+					"FROM pg_proc, pg_namespace " + 
+					"where pg_namespace.nspname like '" + schema+"' and pg_namespace.oid=pg_proc.pronamespace and " +
+					"pg_proc.proname='"+name+"'";
 			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
 			while(rs.next()){
-				String sql = rs.getString(2);
+				String sql = rs.getString("src");
 				func.setSql(sql);
-				func.setSchema(schema.getName());
+				func.setSchema(schema);
+				func.setName(rs.getString("proname"));
 				return func;
 			}
 		}catch(Exception e) {
-			throw new ExceptionDBGitRunTime(e.getMessage());			
+			throw new ExceptionDBGitRunTime(e.getMessage(), e);			
 		}
 		return func;
 	}
 
 	@Override
-	public DBTableData getTableData(DBTable tbl, int paramFetch) {
-		String tableName = tbl.getSchema()+"."+tbl.getName();
+	public DBTableData getTableData(String schema, String nameTable, int paramFetch) {
+		String tableName = schema+"."+nameTable;
 		try {
 			DBTableData data = new DBTableData();
 			
@@ -516,13 +586,13 @@ public class DBAdapterPostgres extends DBAdapter {
 			throw new ExceptionDBGitRunTime(e.getMessage());
 		}
 	}
-
+/*
 	@Override
 	public DBTableRow getTableRow(DBTable tbl, Object id) {
 		// TODO Auto-generated method stub
 		return null;
 	}
-
+*/
 	@Override
 	public Map<String, DBUser> getUsers() {
 		Map<String, DBUser> listUser = new HashMap<String, DBUser>();
@@ -570,7 +640,7 @@ public class DBAdapterPostgres extends DBAdapter {
 		try {
 			DBAdapterPostgres dbAdapter = (DBAdapterPostgres) AdapterFactory.createAdapter();
 			
-			DBView view = dbAdapter.getView(new DBSchema("fusion"), "sa_types");
+			DBView view = dbAdapter.getView("fusion", "sa_types");
 			System.out.println(view.getName());
 			System.out.println(view.getSql());
 		}catch(ExceptionDBGitRunTime e) {

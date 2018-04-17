@@ -82,7 +82,7 @@ public enum DBGitMetaType implements IDBGitMetaType {
 		}
 		
 		public Integer getPriority() {
-			return 50;
+			return 80;
 		}
 	},
 	
@@ -112,7 +112,7 @@ public enum DBGitMetaType implements IDBGitMetaType {
 		}
 		
 		public Integer getPriority() {
-			return 80;
+			return 100;
 		}
 	},
 	
@@ -122,7 +122,7 @@ public enum DBGitMetaType implements IDBGitMetaType {
 		}
 		
 		public Integer getPriority() {
-			return 90;
+			return 200;
 		}
 	},
 	
@@ -132,7 +132,7 @@ public enum DBGitMetaType implements IDBGitMetaType {
 		}
 		
 		public Integer getPriority() {
-			return 100;
+			return 210;
 		}
 	}
 	;
@@ -142,7 +142,7 @@ public enum DBGitMetaType implements IDBGitMetaType {
 		listAllTypes = new HashMap<String, IDBGitMetaType>();
 		DBGitMetaType[] types = DBGitMetaType.values();
 		for(int i = 0; i < types.length; i++) {
-			listAllTypes.put(types[i].getValue(), types[i]);
+			regMetaType(types[i]);
 		}
 	}
 	

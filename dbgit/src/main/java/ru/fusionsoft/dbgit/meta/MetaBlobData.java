@@ -34,9 +34,9 @@ public class MetaBlobData extends MetaBase {
 	}
 
 	@Override
-	public void loadFromDB() {
+	public boolean loadFromDB() {
 		// TODO Auto-generated method stub
-
+		return false;
 	}
 
 	@Override

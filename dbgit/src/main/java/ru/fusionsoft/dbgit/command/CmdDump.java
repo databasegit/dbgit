@@ -17,6 +17,7 @@ public class CmdDump implements IDBGitCommand {
 	
 	public CmdDump() {
 		opts.addOption("a", false, "Added object to git");
+		opts.addOption("f", false, "dump all objects where exists in dbgit index");
 	}
 	
 	public String getCommandName() {
@@ -37,6 +38,7 @@ public class CmdDump implements IDBGitCommand {
 	@Override
 	public void execute(CommandLine cmdLine) throws Exception {		
 		Boolean isAddToGit = cmdLine.hasOption('a');
+		Boolean isAllDump = cmdLine.hasOption('f');
 		
 		GitMetaDataManager gmdm = GitMetaDataManager.getInctance();
 				
@@ -49,7 +51,7 @@ public class CmdDump implements IDBGitCommand {
 			String hash = obj.getHash();
 		
 			obj.loadFromDB();
-			if (!obj.getHash().equals(hash)) {
+			if (isAllDump || !obj.getHash().equals(hash)) {
 				//сохранили файл если хеш разный
 				obj.saveToFile();
 				index.addItem(obj);				

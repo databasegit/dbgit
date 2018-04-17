@@ -56,7 +56,7 @@ public class CmdStatus implements IDBGitCommand {
 					ConsoleWriter.printlnColor(name, FColor.RED, 1);
 				} 
 			} else {
-				ConsoleWriter.printlnColor(name, FColor.RED, 2);
+				ConsoleWriter.printlnColor(name, FColor.RED, 1);
 			}
 		}
 		ConsoleWriter.println(" ");
