@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVPrinter;
@@ -35,7 +36,8 @@ import ru.fusionsoft.dbgit.utils.ConsoleWriter;
  * Meta class for Table data
  * @author mikle
  *
- */public class MetaTableData extends MetaBase {
+ */
+public class MetaTableData extends MetaBase {
 	 protected DBTable table = null;
 	 private DBTableData dataTable = null;
 	 
@@ -78,12 +80,35 @@ import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
 	public CSVFormat getCSVFormat() {
 		return CSVFormat.DEFAULT
-				.withRecordSeparator("\n")
+				//.withRecordSeparator("\n")
 				.withDelimiter(';')
 				.withNullString("<!NULL!>")
 				.withQuote('"')
-				.withQuoteMode(QuoteMode.ALL)
+				//.withQuoteMode(QuoteMode.ALL)
 				;	
+	}
+	
+	public MetaTable getMetaTable() throws ExceptionDBGit {
+		String metaTblName = table.getSchema()+"/"+table.getName()+"."+DBGitMetaType.DBGitTable.getValue();
+		GitMetaDataManager gmdm = GitMetaDataManager.getInctance();
+		
+		IMapMetaObject dbObjs = gmdm.getCacheDBMetaData();
+		MetaTable metaTable = (MetaTable) dbObjs.get(metaTblName);
+		if (metaTable == null ) {
+			metaTable = new MetaTable();
+			metaTable.loadFromDB(table);
+		}
+		return metaTable;
+	}
+	
+	public String EncodeData(String str) {
+		if (str == null) return null;
+		return Base64.encodeBase64String(str.getBytes());
+	}
+	
+	public String DecodeData(String str) {
+		if (str == null) return null;
+		return new String(Base64.decodeBase64(str));		
 	}
 	
 	@Override
@@ -100,29 +125,18 @@ import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 		for (RowData rd : mapRows.values()) {
 			if (count == 0) {
 				fields = rd.getData().keySet();
-				csvPrinter.printRecord(fields);				
+				csvPrinter.printRecord(fields);					
 			}
 						
-			csvPrinter.printRecord(rd.getData().values());
+			for (String str : rd.getData().values())
+				csvPrinter.print(EncodeData(str));
 			
-
+			csvPrinter.println();
+			
 			count++;
 		}
 		csvPrinter.close();
 		return true;
-	}
-	
-	public MetaTable getMetaTable() throws ExceptionDBGit {
-		String metaTblName = table.getSchema()+"/"+table.getName()+"."+DBGitMetaType.DBGitTable.getValue();
-		GitMetaDataManager gmdm = GitMetaDataManager.getInctance();
-		
-		IMapMetaObject dbObjs = gmdm.getCacheDBMetaData();
-		MetaTable metaTable = (MetaTable) dbObjs.get(metaTblName);
-		if (metaTable == null ) {
-			metaTable = new MetaTable();
-			metaTable.loadFromDB(table);
-		}
-		return metaTable;
 	}
 
 	@Override
@@ -138,16 +152,17 @@ import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 			CSVRecord titleColumns = csvRecords.get(0);
 				
 			mapRows = new TreeMapRowData(); 
-			//System.out.println("read file "+getName());
+			
+			String[] dataRow = new String[titleColumns.size()];
+			
 			for (int i = 1; i < csvRecords.size(); i++) {	
 				CSVRecord record = csvRecords.get(i);
-				RowData rd = new RowData(record, idColumns, titleColumns);
+				for (int j = 0; j < record.size(); j++) {
+					dataRow[j] = DecodeData(record.get(j));
+				}
+				RowData rd = new RowData(dataRow, idColumns, titleColumns);
 				mapRows.put(rd);			
 			}
-			/*
-			System.out.println("******************************************");
-			System.out.println();
-			*/
 		}
 
 		csvParser.close();
@@ -195,6 +210,31 @@ import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 			throw new ExceptionDBGit(e);
 		}
 
+	}
+	
+	public void diff(MetaTableData ob) {
+		if (mapRows.size() != ob.mapRows.size()) {
+			System.out.println("MetaTableData diff size!!!");
+		}
+		for (String rowHash : mapRows.keySet()) {
+			RowData r1 = mapRows.get(rowHash);
+			RowData r2 = ob.mapRows.get(rowHash);
+			
+			if (r1.getData().size() != r2.getData().size()) {
+				System.out.println("MetaTableData diff size row "+rowHash+"!!!");
+			}
+			
+			for (String col : r1.getData().keySet()) {
+				String d1 = r1.getData().get(col);
+				String d2 = r2.getData().get(col);
+				
+				if (d1 != d2) {				
+					if (!d1.equals(r2.getData().get(col))) {
+						System.out.println("MetaTableData diff data row "+rowHash+" "+col+"  "+r1.getData().get(col)+"  "+r2.getData().get(col));
+					}
+				}
+			}
+		}
 	}
 
 

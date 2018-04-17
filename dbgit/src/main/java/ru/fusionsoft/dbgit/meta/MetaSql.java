@@ -4,6 +4,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.StringWriter;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 import org.apache.commons.io.IOUtils;
 
@@ -47,11 +48,7 @@ public abstract class MetaSql extends MetaBase {
 		
 		sqlObject.setName(nm.getName());
 		sqlObject.setSchema(nm.getSchema());
-				
-		//Charset.forName("UTF-8")
-		StringWriter writer = new StringWriter();
-		IOUtils.copy(stream, writer);
-		sqlObject.setSql(writer.toString());
+		sqlObject.setSql(IOUtils.toString(stream, StandardCharsets.UTF_8.name()));
 		
 		return this;
 	}

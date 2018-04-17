@@ -46,6 +46,9 @@ public class TreeMapMetaObject extends TreeMap<String, IMetaObject> implements I
 			NameMeta obj1 = MetaObjectFactory.parseMetaName(nm1);
 			NameMeta obj2 = MetaObjectFactory.parseMetaName(nm2);
 			
+			if (obj1.getType() == null ) return -1;
+			if (obj2.getType() == null ) return 1;
+			
 			int comparePriority = obj1.getType().getPriority() - obj2.getType().getPriority();
 			
 			if (comparePriority != 0) {
@@ -54,7 +57,7 @@ public class TreeMapMetaObject extends TreeMap<String, IMetaObject> implements I
 			
 			return nm1.compareTo(nm2);
 		} catch (Exception e) {
-			LoggerUtil.getGlobalLogger().error("compareMeta Error!", e);
+			LoggerUtil.getGlobalLogger().error("compareMeta Error! " + nm1 + " to "+ nm2, e);
 			return 0;
 		}
 	}

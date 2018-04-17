@@ -31,7 +31,9 @@ public class DBConnection {
 			String url = loadFileDBLink(props);
 			
 			if (url != null) {
+				props.put("characterEncoding", "UTF-8");
 				connect = DriverManager.getConnection(url, props);
+				
 				connect.setAutoCommit(false);
 			}
 		} catch(Exception e) {

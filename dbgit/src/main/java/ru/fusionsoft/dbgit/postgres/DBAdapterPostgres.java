@@ -396,9 +396,6 @@ public class DBAdapterPostgres extends DBAdapter {
 				view.setSql(rs.getString("sql"));
 				listView.put(rs.getString("object_name"), view);
 			}
-			System.out.println("Collection views:");
-			for(DBView view:listView.values())
-				System.out.println(view.getName());
 		}catch(Exception e) {
 			logger.error(e.getMessage());
 			System.out.println(e.getMessage());
@@ -516,24 +513,22 @@ public class DBAdapterPostgres extends DBAdapter {
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
 			while(rs.next()){
-				String name = rs.getString(1);
-				String sql = rs.getString(2);
+				String name = rs.getString("proname");
+				String sql = rs.getString("src");
 				DBFunction func = new DBFunction(name);
 				func.setSql(sql);
 				func.setSchema(schema);
 				listFunction.put(name, func);
 			}
 		}catch(Exception e) {
-			throw new ExceptionDBGitRunTime(e.getMessage());
+			throw new ExceptionDBGitRunTime("Error load triggers from " +schema, e);
 		}
-		// TODO Auto-generated method stub
 		return listFunction;
 	}
 
 	@Override
 	public DBFunction getFunction(String schema, String name) {
-		DBFunction func = new DBFunction(name);
-		System.out.println(schema+" "+name);
+		
 		try {
 			String query = "SELECT pg_proc.proname, pg_get_functiondef(pg_proc.oid) as src  " + 
 					"FROM pg_proc, pg_namespace " + 
@@ -542,17 +537,17 @@ public class DBAdapterPostgres extends DBAdapter {
 			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
-			while(rs.next()){
-				String sql = rs.getString("src");
-				func.setSql(sql);
-				func.setSchema(schema);
-				func.setName(rs.getString("proname"));
-				return func;
-			}
+			rs.next();
+			
+			DBFunction func = new DBFunction(rs.getString("proname"));
+			func.setSchema(schema);
+			func.setSql(rs.getString("src"));
+			
+			return func;
+			
 		}catch(Exception e) {
-			throw new ExceptionDBGitRunTime(e.getMessage(), e);			
+			throw new ExceptionDBGitRunTime("Error load trigger " +schema+"."+name, e);			
 		}
-		return func;
 	}
 
 	@Override

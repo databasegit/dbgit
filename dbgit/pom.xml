@@ -31,8 +31,15 @@
 	         <program>  
 	            <mainClass>ru.fusionsoft.dbgit.App</mainClass>
 	            <name>dbgit</name>
+	            <jvmSettings>
+	                <extraArguments>
+	                  <extraArgument>-Dfile.encoding=UTF-8</extraArgument>
+	                  <extraArgument>-Dlog4j.properties=false</extraArgument>
+	                </extraArguments>
+	            </jvmSettings>
 	         </program>
-	       </programs>   
+	       </programs>  
+           
 	      </configuration>  
 	    </plugin>  
 	    
@@ -64,6 +71,7 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
   </properties>
 
   <dependencies>

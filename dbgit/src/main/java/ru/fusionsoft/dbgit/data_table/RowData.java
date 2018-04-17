@@ -22,7 +22,7 @@ public class RowData {
 		loadDataFromRS(rs, idColumns);
 	}
 	
-	public RowData(CSVRecord record, List<String> idColumns, CSVRecord titleColumns) throws Exception {
+	public RowData(String[] record, List<String> idColumns, CSVRecord titleColumns) throws Exception {
 		loadDataFromCSVRecord(record, idColumns, titleColumns);
 	}
 	
@@ -41,15 +41,15 @@ public class RowData {
 		key = calcRowKey(idColumns);
 	}
 	
-	public void loadDataFromCSVRecord(CSVRecord record, List<String> idColumns, CSVRecord titleColumns) throws Exception {
+	public void loadDataFromCSVRecord(String[] record, List<String> idColumns, CSVRecord titleColumns) throws Exception {
 
-		if (record.size() != titleColumns.size()) {
+		if (record.length != titleColumns.size()) {
 			throw new ExceptionDBGit("Different count columns title and line");
 		}
 		
 		
-		for (int i = 0; i < record.size(); i++) {
-			data.put(titleColumns.get(i), record.get(i));
+		for (int i = 0; i < record.length; i++) {
+			data.put(titleColumns.get(i), record[i]);
 			//System.out.println(titleColumns.get(i)+"="+record.get(i));
 			
 		}
