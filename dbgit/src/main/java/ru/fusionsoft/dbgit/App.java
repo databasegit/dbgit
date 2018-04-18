@@ -84,9 +84,11 @@ public class App
     public static void main( String[] args ) throws Exception
     {    	
     	ConsoleWriter.println( "dbgit utils - Hello!");
+    	/*
+    	 * TODO delete
     	ConsoleWriter.println( "я русский");
     	System.out.println("я русский");
-        
+        */
         //configureLogback();
                
         try {
