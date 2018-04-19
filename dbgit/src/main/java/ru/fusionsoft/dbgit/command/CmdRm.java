@@ -46,7 +46,6 @@ public class CmdRm implements IDBGitCommand {
 		MaskFilter maskAdd = new MaskFilter(nameObj);
 		
 		DBGitIndex index = DBGitIndex.getInctance();
-		DBGit dbGit = DBGit.getInctance();
 		
 		GitMetaDataManager gmdm = GitMetaDataManager.getInctance();		
 		IMapMetaObject dbObjs = gmdm.loadFileMetaData();
@@ -58,10 +57,8 @@ public class CmdRm implements IDBGitCommand {
 			if (maskAdd.match(obj.getName())) {										
 				
 				deleteObjs.put(obj);
-				dbGit.removeFileFromIndexGit(DBGitPath.DB_GIT_PATH+"/"+obj.getFileName());				
-				
+				countDelete += obj.removeFromGit();						
 				index.deleteItem(obj);
-				countDelete++;
 			}
 		}
 		

@@ -3,31 +3,14 @@ package ru.fusionsoft.dbgit;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.net.URL;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 
 import org.apache.commons.cli.CommandLine;
 import org.slf4j.LoggerFactory;
 
-import com.diogonunes.jcdp.color.api.Ansi.FColor;
 
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
 import ch.qos.logback.core.joran.spi.JoranException;
-import ru.fusionsoft.dbgit.command.CmdAdd;
-import ru.fusionsoft.dbgit.command.CmdDump;
-import ru.fusionsoft.dbgit.command.CmdHelp;
-import ru.fusionsoft.dbgit.command.CmdLink;
-import ru.fusionsoft.dbgit.command.CmdRestore;
-import ru.fusionsoft.dbgit.command.CmdRm;
-import ru.fusionsoft.dbgit.command.CmdScript;
-import ru.fusionsoft.dbgit.command.CmdStatus;
-import ru.fusionsoft.dbgit.command.CmdValid;
-import ru.fusionsoft.dbgit.command.ExceptionCmdNotFound;
-import ru.fusionsoft.dbgit.command.IDBGitCommand;
 import ru.fusionsoft.dbgit.command.RequestCmd;
 import ru.fusionsoft.dbgit.core.DBGitPath;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
@@ -98,7 +81,9 @@ public class App
         } catch (Exception e) {
         	ConsoleWriter.printlnRed("Error execute dbgit: "+e.getMessage());
         	LoggerUtil.getGlobalLogger().error(e.getMessage(), e);
-        }
+        } finally {
+        	DBGitPath.clearTempDir();
+		}
         
     }
     

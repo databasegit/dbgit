@@ -1,5 +1,6 @@
 package ru.fusionsoft.dbgit.data_table;
 
+import java.io.IOException;
 import java.sql.ResultSet;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -8,61 +9,76 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.csv.CSVRecord;
 
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
+import ru.fusionsoft.dbgit.dbobjects.DBTable;
+import ru.fusionsoft.dbgit.meta.MetaTable;
 import ru.fusionsoft.dbgit.utils.CalcHash;
 
 public class RowData {
-	protected Map<String, String> data = new TreeMap<>();
+	protected Map<String, ICellData> data = new TreeMap<>();
 	protected String hashRow;
 	protected String key;
+	protected MetaTable metaTable;
 	
-	public RowData(ResultSet rs, List<String> idColumns) throws Exception {
-		loadDataFromRS(rs, idColumns);
+	public RowData(ResultSet rs, MetaTable metaTable) throws Exception {
+		this.metaTable = metaTable;
+		loadDataFromRS(rs);
 	}
 	
-	public RowData(String[] record, List<String> idColumns, CSVRecord titleColumns) throws Exception {
-		loadDataFromCSVRecord(record, idColumns, titleColumns);
+	public RowData(CSVRecord record, MetaTable metaTable, CSVRecord titleColumns) throws Exception {
+		this.metaTable = metaTable;
+		loadDataFromCSVRecord(record, titleColumns);
 	}
 	
-	public void loadDataFromRS(ResultSet rs, List<String> idColumns) throws Exception {
+	public void loadDataFromRS(ResultSet rs) throws Exception {
 				
-		for (int i = 0; i < rs.getMetaData().getColumnCount(); i++) {
-			//TODO Diff format
-			String value = rs.getString(i+1);
-			data.put(rs.getMetaData().getColumnName(i+1), value);
-			//System.out.println(rs.getMetaData().getColumnName(i+1)+"="+value);
-
+		for (int i = 0; i < rs.getMetaData().getColumnCount(); i++) {	
+			String columnName = rs.getMetaData().getColumnName(i+1).toLowerCase();
+			ICellData cd = FactoryCellData.createCellData(metaTable.getFieldsMap().get(columnName).getTypeMapping());
+			
+			cd.loadFromDB(rs, rs.getMetaData().getColumnName(i+1));
+			data.put(columnName, cd);
 		}
-		
+
 		hashRow = calcRowHash();
 		
-		key = calcRowKey(idColumns);
+		key = calcRowKey(metaTable.getIdColumns());
 	}
 	
-	public void loadDataFromCSVRecord(String[] record, List<String> idColumns, CSVRecord titleColumns) throws Exception {
+	public void loadDataFromCSVRecord(CSVRecord record, CSVRecord titleColumns) throws Exception {
 
-		if (record.length != titleColumns.size()) {
+		if (record.size() != titleColumns.size()) {
 			throw new ExceptionDBGit("Different count columns title and line");
 		}
 		
 		
-		for (int i = 0; i < record.length; i++) {
-			data.put(titleColumns.get(i), record[i]);
-			//System.out.println(titleColumns.get(i)+"="+record.get(i));
+		for (int i = 0; i < record.size(); i++) {	
+			String columnName = titleColumns.get(i);
+			ICellData cd = FactoryCellData.createCellData(metaTable.getFieldsMap().get(columnName).getTypeMapping());
+			cd.deserialize(record.get(i));
 			
+			data.put(columnName, cd);
 		}
 		hashRow = calcRowHash();
 		
-		key = calcRowKey(idColumns);
+		key = calcRowKey(metaTable.getIdColumns());
 	}
 	
-	public String calcRowKey(List<String> idColumns) {
+	public void saveDataToCsv(CSVPrinter csvPrinter, DBTable tbl) throws Exception {
+		for (ICellData cd : getData().values())
+			csvPrinter.print(cd.serialize(tbl));
+		
+		csvPrinter.println();
+	}
+	
+	public String calcRowKey(List<String> idColumns) throws Exception {
 		if (idColumns.size() > 0) {
 			StringBuilder keyBuilder = new StringBuilder();
 			for (String nmId : idColumns) {
-				keyBuilder.append(data.get(nmId)+"_");
+				keyBuilder.append(data.get(nmId).convertToString()+"_");
 			}
 			return keyBuilder.toString();
 		} else {
@@ -70,16 +86,17 @@ public class RowData {
 		}
 	}
 	
-	public String calcRowHash() {
+	public String calcRowHash() throws Exception {
 		CalcHash ch = new CalcHash();
-		for (String str : data.values()) {
-			if (str != null)
+		for (ICellData cd : data.values()) {
+			String str = cd.convertToString();
+			if ( str != null)
 				ch.addData(str);
 		}
 		return ch.calcHashStr();
 	}
 
-	public Map<String, String> getData() {
+	public Map<String, ICellData> getData() {
 		return data;
 	}
 
@@ -89,6 +106,10 @@ public class RowData {
 
 	public String getKey() {
 		return key;
+	}
+
+	public MetaTable getMetaTable() {
+		return metaTable;
 	}
 	
 	

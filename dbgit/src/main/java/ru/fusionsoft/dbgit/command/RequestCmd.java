@@ -29,7 +29,6 @@ public class RequestCmd {
 		commands.put(new CmdAdd());
 		commands.put(new CmdRm());
         commands.put(new CmdValid());
-        commands.put(new CmdScript());
         commands.put(new CmdHelp());
 	}
 	

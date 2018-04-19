@@ -116,4 +116,10 @@ public interface IMetaObject {
 	default IMetaObject loadFromFile() throws Exception {
 		return loadFromFile(null);
 	}
+	
+	public int addToGit() throws ExceptionDBGit;
+	
+	public int removeFromGit() throws ExceptionDBGit;
+	
+	
 }

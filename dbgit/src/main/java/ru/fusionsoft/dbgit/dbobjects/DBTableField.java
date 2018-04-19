@@ -5,10 +5,9 @@ import ru.fusionsoft.dbgit.utils.CalcHash;
 public class DBTableField implements IDBObject, Comparable<DBTableField> {
 	private String name;
 	private String typeSQL;
+	private String typeMapping;
 	
 	private Boolean isPrimaryKey = false;
-	
-	//private DBTable table;
 
 	public Boolean getIsPrimaryKey() {
 		return isPrimaryKey;
@@ -22,6 +21,9 @@ public class DBTableField implements IDBObject, Comparable<DBTableField> {
 		CalcHash ch = new CalcHash();
 		ch.addData(this.getName());
 		ch.addData(this.getTypeSQL());
+		if (this.getTypeMapping() != null) {
+			ch.addData(this.getTypeMapping());
+		}
 		ch.addData(isPrimaryKey.toString());
 
 		return ch.calcHashStr();
@@ -43,6 +45,14 @@ public class DBTableField implements IDBObject, Comparable<DBTableField> {
 		this.typeSQL = typeSQL;
 	}
 
+
+	public String getTypeMapping() {
+		return typeMapping;
+	}
+
+	public void setTypeMapping(String typeMapping) {
+		this.typeMapping = typeMapping;
+	}
 
 	@Override
 	public int compareTo(DBTableField o) {

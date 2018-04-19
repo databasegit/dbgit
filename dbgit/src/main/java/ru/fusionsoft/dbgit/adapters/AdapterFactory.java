@@ -25,7 +25,10 @@ public class AdapterFactory {
 			//TODO
 			//if conn params - create adapter
 			adapter = new DBAdapterPostgres();
+			
+			
 			adapter.setConnection(conn.getConnect());
+			adapter.registryMappingTypes();
 		}
 		
 		return adapter;

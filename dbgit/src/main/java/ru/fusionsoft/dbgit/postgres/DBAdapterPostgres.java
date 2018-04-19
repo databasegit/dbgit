@@ -4,6 +4,7 @@ package ru.fusionsoft.dbgit.postgres;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
@@ -12,6 +13,10 @@ import ru.fusionsoft.dbgit.adapters.AdapterFactory;
 import ru.fusionsoft.dbgit.adapters.DBAdapter;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBAdapterRestoteMetaData;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
+import ru.fusionsoft.dbgit.data_table.MapFileData;
+import ru.fusionsoft.dbgit.data_table.FactoryCellData;
+import ru.fusionsoft.dbgit.data_table.LongData;
+import ru.fusionsoft.dbgit.data_table.StringData;
 import ru.fusionsoft.dbgit.dbobjects.DBConstraint;
 import ru.fusionsoft.dbgit.dbobjects.DBFunction;
 import ru.fusionsoft.dbgit.dbobjects.DBIndex;
@@ -37,9 +42,18 @@ import com.axiomalaska.jdbc.NamedParameterPreparedStatement;
 
 
 public class DBAdapterPostgres extends DBAdapter {
+	public static final String DEFAULT_MAPPING_TYPE = "string";
 
 	private Logger logger = LoggerUtil.getLogger(this.getClass());
 	private FactoryDBAdapterRestorePostgres restoreFactory = new FactoryDBAdapterRestorePostgres();
+	
+	public void registryMappingTypes() {
+		FactoryCellData.regMappingTypes(DEFAULT_MAPPING_TYPE, StringData.class);
+		FactoryCellData.regMappingTypes("integer", LongData.class);
+		FactoryCellData.regMappingTypes("bigint", LongData.class);
+		FactoryCellData.regMappingTypes("bytea", MapFileData.class);
+		//FactoryCellData.regMappingTypes("bytea", LargeBlobPg.class);
+	}
 	
 	@Override
 	public IFactoryDBAdapterRestoteMetaData getFactoryRestore() {
@@ -255,7 +269,7 @@ public class DBAdapterPostgres extends DBAdapter {
 					"left join information_schema.table_constraints tc on col.table_schema = kc.table_schema and col.table_name = kc.table_name and kc.constraint_name = tc.constraint_name and tc.constraint_type = 'PRIMARY KEY' " + 
 					"where col.table_schema = :schema and col.table_name = :table " + 
 					"order by col.column_name ";
-			Connection connect = getConnection();
+			Connection connect = getConnection();			
 			
 			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);			
 			stmt.setString("schema", schema);
@@ -264,18 +278,29 @@ public class DBAdapterPostgres extends DBAdapter {
 			ResultSet rs = stmt.executeQuery();
 			while(rs.next()){				
 				DBTableField field = new DBTableField();
-				field.setName(rs.getString("column_name"));  
+				field.setName(rs.getString("column_name").toLowerCase());  
 				if (rs.getString("constraint_name") != null) { 
 					field.setIsPrimaryKey(true);
 				}
 				field.setTypeSQL(getFieldType(rs));
+				field.setTypeMapping(getTypeMapping(rs));
 				listField.put(field.getName(), field);
-			}			
+			}
+			stmt.close();
+			
 			return listField;
 		}catch(Exception e) {
 			logger.error("Error load tables.", e);			
 			throw new ExceptionDBGitRunTime("Error load tables.", e);
 		}		
+	}
+	
+	protected String getTypeMapping(ResultSet rs) throws SQLException {
+		String tp = rs.getString("data_type");
+		if (FactoryCellData.contains(tp) ) 
+			return tp;
+		
+		return DEFAULT_MAPPING_TYPE;
 	}
 	
 	protected String getFieldType(ResultSet rs) {

@@ -46,7 +46,6 @@ public class CmdAdd implements IDBGitCommand {
 		MaskFilter maskAdd = new MaskFilter(nameObj);
 		
 		DBGitIndex index = DBGitIndex.getInctance();
-		DBGit dbGit = DBGit.getInctance();
 		
 		GitMetaDataManager gmdm = GitMetaDataManager.getInctance();		
 		IMapMetaObject dbObjs = gmdm.loadDBMetaData();	
@@ -57,10 +56,9 @@ public class CmdAdd implements IDBGitCommand {
 			if (maskAdd.match(obj.getName())) {			
 				obj.saveToFile();
 								
-				dbGit.addFileToIndexGit(DBGitPath.DB_GIT_PATH+"/"+obj.getFileName());				
+				countSave += obj.addToGit();				
 				
 				index.addItem(obj);
-				countSave++;
 				
 				ConsoleWriter.println("Add object to git: "+obj.getName());
 			}

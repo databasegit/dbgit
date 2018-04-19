@@ -40,6 +40,12 @@ public interface IDBAdapter {
 	public Connection getConnection();
 	
 	/**
+	 * Adapter must registy typing for map data table.
+	 * See class FactoryCellData
+	 */
+	public void registryMappingTypes();
+	
+	/**
 	 * 
 	 * @return Factory Adapter for create restore adapter
 	 */

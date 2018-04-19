@@ -6,6 +6,9 @@ import java.util.Map;
 import ru.fusionsoft.dbgit.adapters.DBAdapter;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBAdapterRestoteMetaData;
+import ru.fusionsoft.dbgit.data_table.FactoryCellData;
+import ru.fusionsoft.dbgit.data_table.LongData;
+import ru.fusionsoft.dbgit.data_table.StringData;
 import ru.fusionsoft.dbgit.dbobjects.DBConstraint;
 import ru.fusionsoft.dbgit.dbobjects.DBFunction;
 import ru.fusionsoft.dbgit.dbobjects.DBIndex;
@@ -30,6 +33,12 @@ public class DBAdapterOracle extends DBAdapter {
 	public IFactoryDBAdapterRestoteMetaData getFactoryRestore() {
 		// TODO Auto-generated method stub
 		return null;
+	}
+	
+	public void registryMappingTypes() {
+		FactoryCellData.regMappingTypes("string", StringData.class);
+		FactoryCellData.regMappingTypes("integer", LongData.class);
+		//FactoryCellData.regMappingTypes("blob", BlobData.class);
 	}
 
 	@Override

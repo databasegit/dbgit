@@ -23,8 +23,11 @@ import com.diogonunes.jcdp.color.api.Ansi.FColor;
 
 import ru.fusionsoft.dbgit.adapters.AdapterFactory;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
+import ru.fusionsoft.dbgit.core.DBGit;
+import ru.fusionsoft.dbgit.core.DBGitPath;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.GitMetaDataManager;
+import ru.fusionsoft.dbgit.data_table.ICellData;
 import ru.fusionsoft.dbgit.data_table.RowData;
 import ru.fusionsoft.dbgit.data_table.TreeMapRowData;
 import ru.fusionsoft.dbgit.dbobjects.DBTable;
@@ -101,15 +104,7 @@ public class MetaTableData extends MetaBase {
 		return metaTable;
 	}
 	
-	public String EncodeData(String str) {
-		if (str == null) return null;
-		return Base64.encodeBase64String(str.getBytes());
-	}
 	
-	public String DecodeData(String str) {
-		if (str == null) return null;
-		return new String(Base64.decodeBase64(str));		
-	}
 	
 	@Override
 	public boolean serialize(OutputStream stream) throws Exception {
@@ -128,10 +123,7 @@ public class MetaTableData extends MetaBase {
 				csvPrinter.printRecord(fields);					
 			}
 						
-			for (String str : rd.getData().values())
-				csvPrinter.print(EncodeData(str));
-			
-			csvPrinter.println();
+			rd.saveDataToCsv(csvPrinter, getTable());
 			
 			count++;
 		}
@@ -143,8 +135,7 @@ public class MetaTableData extends MetaBase {
 	public IMetaObject deSerialize(InputStream stream) throws Exception {
 		
 		MetaTable metaTable = getMetaTable();		
-		List<String> idColumns = metaTable.getIdColumns();
-		
+	
 		CSVParser csvParser = new CSVParser(new InputStreamReader(stream), getCSVFormat());
 		List<CSVRecord> csvRecords = csvParser.getRecords(); 
 		
@@ -153,14 +144,8 @@ public class MetaTableData extends MetaBase {
 				
 			mapRows = new TreeMapRowData(); 
 			
-			String[] dataRow = new String[titleColumns.size()];
-			
 			for (int i = 1; i < csvRecords.size(); i++) {	
-				CSVRecord record = csvRecords.get(i);
-				for (int j = 0; j < record.size(); j++) {
-					dataRow[j] = DecodeData(record.get(j));
-				}
-				RowData rd = new RowData(dataRow, idColumns, titleColumns);
+				RowData rd = new RowData(csvRecords.get(i), metaTable, titleColumns);
 				mapRows.put(rd);			
 			}
 		}
@@ -196,7 +181,7 @@ public class MetaTableData extends MetaBase {
 			
 			//System.out.println("load from db file "+getName());
 			while(rs.next()){
-				RowData rd = new RowData(rs, idColumns);
+				RowData rd = new RowData(rs, metaTable);
 				mapRows.put(rd);
 			}
 			return true;
@@ -212,21 +197,24 @@ public class MetaTableData extends MetaBase {
 
 	}
 	
-	public void diff(MetaTableData ob) {
+	public void diff(MetaTableData ob) throws Exception {
 		if (mapRows.size() != ob.mapRows.size()) {
-			System.out.println("MetaTableData diff size!!!");
+			System.out.println("MetaTableData diff size!!! "+mapRows.size()+" "+ob.mapRows.size());
 		}
 		for (String rowHash : mapRows.keySet()) {
 			RowData r1 = mapRows.get(rowHash);
 			RowData r2 = ob.mapRows.get(rowHash);
+			
+			System.out.println(rowHash);
+			System.out.println(r1.getData()+ " "+ r2.getData());
 			
 			if (r1.getData().size() != r2.getData().size()) {
 				System.out.println("MetaTableData diff size row "+rowHash+"!!!");
 			}
 			
 			for (String col : r1.getData().keySet()) {
-				String d1 = r1.getData().get(col);
-				String d2 = r2.getData().get(col);
+				String d1 = r1.getData().get(col).convertToString();
+				String d2 = r2.getData().get(col).convertToString();
 				
 				if (d1 != d2) {				
 					if (!d1.equals(r2.getData().get(col))) {
@@ -252,6 +240,32 @@ public class MetaTableData extends MetaBase {
 		}
 				
 		return ch.calcHashStr();
+	}
+	
+	@Override
+	public int addToGit() throws ExceptionDBGit {		
+		int count = super.addToGit(); 
+				
+		for (RowData rd : mapRows.values()) {
+			for (ICellData cd : rd.getData().values()) {
+				count += cd.addToGit();
+			}			
+		}
+		
+		return count;
+	}
+	
+	@Override
+	public int removeFromGit() throws ExceptionDBGit {
+		int count = super.removeFromGit(); 
+		
+		for (RowData rd : mapRows.values()) {
+			for (ICellData cd : rd.getData().values()) {
+				count += cd.removeFromGit();
+			}			
+		}
+		
+		return count;
 	}
 
 }

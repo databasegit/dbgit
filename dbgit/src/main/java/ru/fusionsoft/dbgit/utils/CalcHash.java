@@ -1,5 +1,7 @@
 package ru.fusionsoft.dbgit.utils;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
@@ -35,15 +37,20 @@ public class CalcHash {
 		return this;
 	}
 	
-	public CalcHash addData(InputStream data) {
-		//md.update(data);
-		//TODO
+	public CalcHash addData(InputStream stream) throws Exception {
+		byte[] buffer = new byte[8 * 1024];
+	    int bytesRead;
+	    while ((bytesRead = stream.read(buffer)) != -1) {
+	    	md.update(buffer, 0, bytesRead);
+	    }
+
 		return this;
 	}
 	
-	public CalcHash addDataFile(String filename) {
-		//md.update(data);
-		//TODO
+	public CalcHash addDataFile(String filename) throws Exception {
+		InputStream stream = new FileInputStream(new File(filename));
+		addData(stream);	    
+		stream.close();
 		return this;
 	}
 	

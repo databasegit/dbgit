@@ -8,6 +8,9 @@ import java.nio.charset.Charset;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
+import ru.fusionsoft.dbgit.core.DBGit;
+import ru.fusionsoft.dbgit.core.DBGitPath;
+import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.yaml.DBGitYamlConstructor;
 import ru.fusionsoft.dbgit.yaml.DBGitYamlRepresenter;
 import ru.fusionsoft.dbgit.yaml.YamlOrder;
@@ -66,6 +69,20 @@ public abstract class MetaBase implements IMetaObject {
         options.setPrettyFlow(true);
         Yaml yaml = new Yaml(new DBGitYamlConstructor(), new DBGitYamlRepresenter(), options);
         return yaml;
+	}
+	
+	@Override
+	public int addToGit() throws ExceptionDBGit {
+		DBGit dbGit = DBGit.getInctance();
+		dbGit.addFileToIndexGit(DBGitPath.DB_GIT_PATH+"/"+getFileName());
+		return 1;
+	}
+	
+	@Override
+	public int removeFromGit() throws ExceptionDBGit {
+		DBGit dbGit = DBGit.getInctance();
+		dbGit.removeFileFromIndexGit(DBGitPath.DB_GIT_PATH+"/"+getFileName());
+		return 1;
 	}
 	
 }

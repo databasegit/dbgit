@@ -52,9 +52,11 @@ public class CmdStatus implements IDBGitCommand {
 			if (dbObjs.containsKey(name)) {
 				if (!fileObjs.get(name).getHash().equals(dbObjs.get(name).getHash())) {
 					changeObjs.put(dbObjs.get(name));
+					
 					/*
-					 * debug find diff
+					//debug find diff
 					if (fileObjs.get(name) instanceof MetaTableData && dbObjs.get(name) instanceof MetaTableData) {
+						System.out.println(name);
 						MetaTableData d1 = (MetaTableData)fileObjs.get(name);
 						MetaTableData d2 = (MetaTableData)dbObjs.get(name);
 						d1.diff(d2);
@@ -100,6 +102,6 @@ public class CmdStatus implements IDBGitCommand {
 	}
 	
 	public void printObect(IMetaObject obj, FColor color, Integer level) {
-		ConsoleWriter.printlnColor(obj.getName() + " ("+obj.getHash()+")", color, level);
+		ConsoleWriter.printlnColor(obj.getName() /*+ " ("+obj.getHash()+")"*/, color, level);
 	}
 }

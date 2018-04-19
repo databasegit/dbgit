@@ -43,7 +43,6 @@ public class CmdDump implements IDBGitCommand {
 		GitMetaDataManager gmdm = GitMetaDataManager.getInctance();
 				
 		DBGitIndex index = DBGitIndex.getInctance();
-		DBGit dbGit = DBGit.getInctance();
 
 		IMapMetaObject fileObjs = gmdm.loadFileMetaData();
 		
@@ -57,7 +56,7 @@ public class CmdDump implements IDBGitCommand {
 				index.addItem(obj);				
 			
 				if (isAddToGit) {
-					dbGit.addFileToIndexGit(DBGitPath.DB_GIT_PATH+"/"+obj.getFileName());
+					obj.addToGit();						
 				}
 			}			
 		}

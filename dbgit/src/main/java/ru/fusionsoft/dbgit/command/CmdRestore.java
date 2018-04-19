@@ -1,11 +1,15 @@
 package ru.fusionsoft.dbgit.command;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Map;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 
+import ru.fusionsoft.dbgit.adapters.AdapterFactory;
+import ru.fusionsoft.dbgit.adapters.IDBAdapter;
 import ru.fusionsoft.dbgit.core.DBGitIndex;
 import ru.fusionsoft.dbgit.core.DBGitPath;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
@@ -23,7 +27,7 @@ public class CmdRestore implements IDBGitCommand {
 	private Options opts = new Options();
 	
 	public CmdRestore() {
-		
+		opts.addOption("s", true, "Save command restore to file");
 	}
 	
 	public String getCommandName() {
@@ -48,6 +52,21 @@ public class CmdRestore implements IDBGitCommand {
 		IMapMetaObject fileObjs = gmdm.loadFileMetaData();		
 		IMapMetaObject updateObjs = new TreeMapMetaObject();
 		IMapMetaObject deleteObjs = new TreeMapMetaObject();
+		
+		FileOutputStream fop = null;
+		if (cmdLine.hasOption("s")) {
+			IDBAdapter adapter = AdapterFactory.createAdapter();
+			String scriptName = cmdLine.getOptionValue("s");
+			
+			File file = new File(scriptName);
+			fop = new FileOutputStream(file);
+
+			
+			if (!file.exists()) {
+				file.createNewFile();
+			}
+			adapter.setDumpSqlCommand(fop, false);
+		}
 		
 		//delete obj
 		DBGitIndex index = DBGitIndex.getInctance();
@@ -87,6 +106,11 @@ public class CmdRestore implements IDBGitCommand {
 		}
 		
 		gmdm.restoreDataBase(updateObjs);
+		
+		if (fop != null) {
+			fop.flush();
+			fop.close();
+		}
 	}
 
 
