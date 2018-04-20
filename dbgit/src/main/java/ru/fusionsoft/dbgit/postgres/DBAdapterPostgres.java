@@ -81,16 +81,18 @@ public class DBAdapterPostgres extends DBAdapter {
 	public Map<String, DBSchema> getSchemes() {
 		Map<String, DBSchema> listScheme = new HashMap<String, DBSchema>();
 		try {
-			String query = "select * from pg_namespace where nspname!='pg_toast' and nspname!='pg_temp_1'"+
+			String query = "select nspname,usename, nspacl from pg_namespace,pg_user where nspname!='pg_toast' and nspname!='pg_temp_1'"+
 					"and nspname!='pg_toast_temp_1' and nspname!='pg_catalog'"+
 					"and nspname!='information_schema' and nspname!='pgagent'"+
-					"and nspname!='pg_temp_3' and nspname!='pg_toast_temp_3'";
+					"and nspname!='pg_temp_3' and nspname!='pg_toast_temp_3'"+
+					"and usesysid = nspowner";
 			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
 			while(rs.next()){
 				String name = rs.getString("nspname");
 				DBSchema scheme = new DBSchema(name);
+				rowToProperties(rs, scheme.getOptions());
 				listScheme.put(name, scheme);	
 			}			
 		}catch(Exception e) {
