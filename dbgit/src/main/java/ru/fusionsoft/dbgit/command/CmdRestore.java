@@ -89,11 +89,10 @@ public class CmdRestore implements IDBGitCommand {
 		
 		for (IMetaObject obj : fileObjs.values()) {
 			Boolean isRestore = false;
-			String hash = obj.getHash();
 			try {
 				IMetaObject dbObj = MetaObjectFactory.createMetaObject(obj.getName());
 				dbObj.loadFromDB();
-				isRestore = !obj.getHash().equals(hash);
+				isRestore = !dbObj.getHash().equals(obj.getHash());
 			} catch (ExceptionDBGit e) {
 				isRestore = true;
 			} catch (ExceptionDBGitRunTime e) {
