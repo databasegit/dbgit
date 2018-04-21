@@ -81,7 +81,7 @@ public class DBAdapterPostgres extends DBAdapter {
 	public Map<String, DBSchema> getSchemes() {
 		Map<String, DBSchema> listScheme = new HashMap<String, DBSchema>();
 		try {
-			String query = "select nspname,usename, nspacl from pg_namespace,pg_user where nspname!='pg_toast' and nspname!='pg_temp_1'"+
+			String query = "select nspname,usename,nspacl from pg_namespace,pg_user where nspname!='pg_toast' and nspname!='pg_temp_1'"+
 					"and nspname!='pg_toast_temp_1' and nspname!='pg_catalog'"+
 					"and nspname!='information_schema' and nspname!='pgagent'"+
 					"and nspname!='pg_temp_3' and nspname!='pg_toast_temp_3'"+
@@ -107,13 +107,14 @@ public class DBAdapterPostgres extends DBAdapter {
 	public Map<String, DBTableSpace> getTableSpaces() {
 		Map<String, DBTableSpace> listTableSpace = new HashMap<String, DBTableSpace>();
 		try {
-			String query = "Select * from pg_tablespace where spcname!='pg_default' and spcname!='pg_global'";
+			String query = "Select spcname,usename,spcacl,spcoptions from pg_tablespace, pg_user where spcname!='pg_default' and spcname!='pg_global' and spcowner=usesysid";
 			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
 			while(rs.next()){
 				String name = rs.getString(1);
 				DBTableSpace dbTableSpace = new DBTableSpace(name);
+				rowToProperties(rs, dbTableSpace.getOptions());
 				listTableSpace.put(name, dbTableSpace);
 			}			
 		}catch(Exception e) {
@@ -646,9 +647,18 @@ public class DBAdapterPostgres extends DBAdapter {
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
 			while(rs.next()){
-				String name = rs.getString(1);
-				DBRole role = new DBRole(name);
-				listRole.put(name, role);
+				Statement stmt2 = connect.createStatement();
+				String oid = rs.getString("oid");
+				String query2 = "select array_to_string(array(SELECT rolname " + 
+						"FROM pg_roles,pg_auth_members " + 
+						"WHERE member = "+ oid +" and roleid=oid), ', ') as rolmemberof,* from pg_authid WHERE oid = "+oid;
+				ResultSet rs2 = stmt2.executeQuery(query2);
+				while(rs2.next()) {
+					String name = rs2.getString("rolname");
+					DBRole role = new DBRole(name);
+					rowToProperties(rs2, role.getOptions());
+					listRole.put(name, role);
+				}
 			}
 		}catch(Exception e) {
 			logger.error(e.getMessage());

@@ -24,21 +24,24 @@ public class DBRestoreSchemaPostgres extends DBRestoreAdapter {
 				MetaSchema changedsch = (MetaSchema)obj;								
 				Map<String, DBSchema> schs = adapter.getSchemes();
 				boolean exist = false;
-				for(DBSchema sch:schs.values()) {
-					if(changedsch.getObjectOption().getName().equals(sch.getName())){
-						exist = true;
-						st.execute("ALTER SCHEMA "+ changedsch.getObjectOption().getName() +" OWNER TO "+ 
-						changedsch.getObjectOption().getOptions().getChildren().get("usename").getData());
-							
+				if(!(schs.isEmpty() || schs == null)) {
+					for(DBSchema sch:schs.values()) {
+						if(changedsch.getObjectOption().getName().equals(sch.getName())){
+							exist = true;
+							//String test1 = changedsch.getObjectOption().getName();
+							//String test2 = changedsch.getObjectOption().getOptions().getChildren().get("usename").getData();
+							if(!changedsch.getObjectOption().getOptions().getChildren().get("usename").getData().equals(sch.getOptions().getChildren().get("usename").getData())) {
+								st.execute("ALTER SCHEMA "+ changedsch.getObjectOption().getName() +" OWNER TO "+ 
+								changedsch.getObjectOption().getOptions().getChildren().get("usename").getData());
+							}
+							//TODO Восстановление привилегий							
+						}
 					}
 				}
 				if(!exist){
-					String schemaOwner = changedsch.getObjectOption().getOptions().getChildren().get("usename").getData();
 					st.execute("CREATE SCHEMA "+changedsch.getObjectOption().getName() +" AUTHORIZATION "+ 
 					changedsch.getObjectOption().getOptions().getChildren().get("usename").getData());
-				}
-				else {
-					
+					//TODO Восстановление привилегий	
 				}
 			}
 			else
