@@ -21,32 +21,32 @@ public class DBRestoreSchemaPostgres extends DBRestoreAdapter {
 
 		try {
 			if (obj instanceof MetaSchema) {
-				MetaSchema changedsch = (MetaSchema)obj;								
+				MetaSchema restoreSchema = (MetaSchema)obj;								
 				Map<String, DBSchema> schs = adapter.getSchemes();
 				boolean exist = false;
 				if(!(schs.isEmpty() || schs == null)) {
 					for(DBSchema sch:schs.values()) {
-						if(changedsch.getObjectOption().getName().equals(sch.getName())){
+						if(restoreSchema.getObjectOption().getName().equals(sch.getName())){
 							exist = true;
 							//String test1 = changedsch.getObjectOption().getName();
 							//String test2 = changedsch.getObjectOption().getOptions().getChildren().get("usename").getData();
-							if(!changedsch.getObjectOption().getOptions().getChildren().get("usename").getData().equals(sch.getOptions().getChildren().get("usename").getData())) {
-								st.execute("ALTER SCHEMA "+ changedsch.getObjectOption().getName() +" OWNER TO "+ 
-								changedsch.getObjectOption().getOptions().getChildren().get("usename").getData());
+							if(!restoreSchema.getObjectOption().getOptions().getChildren().get("usename").getData().equals(sch.getOptions().getChildren().get("usename").getData())) {
+								st.execute("ALTER SCHEMA "+ restoreSchema.getObjectOption().getName() +" OWNER TO "+ 
+								restoreSchema.getObjectOption().getOptions().getChildren().get("usename").getData());
 							}
 							//TODO Восстановление привилегий							
 						}
 					}
 				}
 				if(!exist){
-					st.execute("CREATE SCHEMA "+changedsch.getObjectOption().getName() +" AUTHORIZATION "+ 
-					changedsch.getObjectOption().getOptions().getChildren().get("usename").getData());
+					st.execute("CREATE SCHEMA "+restoreSchema.getObjectOption().getName() +" AUTHORIZATION "+ 
+					restoreSchema.getObjectOption().getOptions().getChildren().get("usename").getData());
 					//TODO Восстановление привилегий	
 				}
 			}
 			else
 			{
-				throw new ExceptionDBGitRestore("Error restore: cast to MetaSchema failed.");
+				throw new ExceptionDBGitRestore("Error restore: Unable to restore SCHEMAS.");
 			}			
 		} catch (Exception e) {
 			throw new ExceptionDBGitRestore("Error restore "+obj.getName(), e);

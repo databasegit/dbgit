@@ -107,12 +107,14 @@ public class DBAdapterPostgres extends DBAdapter {
 	public Map<String, DBTableSpace> getTableSpaces() {
 		Map<String, DBTableSpace> listTableSpace = new HashMap<String, DBTableSpace>();
 		try {
-			String query = "Select spcname,usename,spcacl,spcoptions from pg_tablespace, pg_user where spcname!='pg_default' and spcname!='pg_global' and spcowner=usesysid";
+			String query = "SELECT tblspaces.spcname,tblspaces.spcacl,tblspaces.spcoptions,users.usename,pg_tablespace_location(tblspacesoid.oid) " + 
+					"FROM pg_tablespace as tblspaces,pg_user as users,(Select oid FROM pg_tablespace where spcname!='pg_default' and spcname!='pg_global') as tblspacesoid " + 
+					"WHERE users.usesysid=tblspaces.spcowner and spcname!='pg_default' and spcname!='pg_global' and tblspacesoid.oid=tblspaces.oid";
 			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
 			while(rs.next()){
-				String name = rs.getString(1);
+				String name = rs.getString("spcname");
 				DBTableSpace dbTableSpace = new DBTableSpace(name);
 				rowToProperties(rs, dbTableSpace.getOptions());
 				listTableSpace.put(name, dbTableSpace);
@@ -642,23 +644,17 @@ public class DBAdapterPostgres extends DBAdapter {
 	public Map<String, DBRole> getRoles() {
 		Map<String, DBRole> listRole = new HashMap<String, DBRole>();
 		try {
-			String query = "select *from pg_roles where rolname not like 'pg_%'";
+			String query = "select *,array_to_string(array(SELECT rolname " + 
+					"FROM pg_roles,pg_auth_members " + 
+					"WHERE member = auth.oid and roleid=oid), ', ') as rolmemberof from pg_authid as auth where auth.rolname not like 'pg_%'";
 			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
 			while(rs.next()){
-				Statement stmt2 = connect.createStatement();
-				String oid = rs.getString("oid");
-				String query2 = "select array_to_string(array(SELECT rolname " + 
-						"FROM pg_roles,pg_auth_members " + 
-						"WHERE member = "+ oid +" and roleid=oid), ', ') as rolmemberof,* from pg_authid WHERE oid = "+oid;
-				ResultSet rs2 = stmt2.executeQuery(query2);
-				while(rs2.next()) {
-					String name = rs2.getString("rolname");
+					String name = rs.getString("rolname");
 					DBRole role = new DBRole(name);
-					rowToProperties(rs2, role.getOptions());
-					listRole.put(name, role);
-				}
+					rowToProperties(rs, role.getOptions());
+					listRole.put(name, role);				
 			}
 		}catch(Exception e) {
 			logger.error(e.getMessage());

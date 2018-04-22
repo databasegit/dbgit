@@ -21,15 +21,15 @@ public class DBRestoreRolePostgres extends DBRestoreAdapter{
 
 		try {
 			if (obj instanceof MetaRole) {
-				MetaRole changedrole = (MetaRole)obj;
+				MetaRole restoreRole = (MetaRole)obj;
 				Map<String, DBRole> roles = adapter.getRoles();
 				boolean exist = false;
 				if(!(roles.isEmpty() || roles == null)) {
 					for(DBRole role:roles.values()) {
-						if(changedrole.getObjectOption().getName().equals(role.getName())){
+						if(restoreRole.getObjectOption().getName().equals(role.getName())){
 							exist = true;
 							//String test1 = changedsch.getObjectOption().getName();							
-							String rolbypassrls = changedrole.getObjectOption().getOptions().getChildren().get("rolbypassrls").getData();							
+							String rolbypassrls = restoreRole.getObjectOption().getOptions().getChildren().get("rolbypassrls").getData();							
 							if(!role.getOptions().getChildren().get("rolbypassrls").getData().equals(rolbypassrls)) {
 								if(rolbypassrls.equals("t")) {
 									st.execute("ALTER ROLE "+ role.getName() +" BYPASSRLS");
@@ -40,7 +40,7 @@ public class DBRestoreRolePostgres extends DBRestoreAdapter{
 								
 							}
 							
-							String rolcanlogin = changedrole.getObjectOption().getOptions().getChildren().get("rolcanlogin").getData();	
+							String rolcanlogin = restoreRole.getObjectOption().getOptions().getChildren().get("rolcanlogin").getData();	
 							if(!role.getOptions().getChildren().get("rolcanlogin").getData().equals(rolcanlogin)) {
 								if(rolcanlogin.equals("t")) {
 									st.execute("ALTER ROLE "+ role.getName() +" LOGIN");
@@ -51,13 +51,13 @@ public class DBRestoreRolePostgres extends DBRestoreAdapter{
 								
 							}
 							
-							String rolconnlimit = changedrole.getObjectOption().getOptions().getChildren().get("rolconnlimit").getData();	
+							String rolconnlimit = restoreRole.getObjectOption().getOptions().getChildren().get("rolconnlimit").getData();	
 							if(!role.getOptions().getChildren().get("rolconnlimit").getData().equals(rolconnlimit)) {
 								st.execute("ALTER ROLE "+ role.getName() +" CONNECTION LIMIT " + rolconnlimit);
 								
 							}
 							
-							String rolcreatedb = changedrole.getObjectOption().getOptions().getChildren().get("rolcreatedb").getData();	
+							String rolcreatedb = restoreRole.getObjectOption().getOptions().getChildren().get("rolcreatedb").getData();	
 							if(!role.getOptions().getChildren().get("rolcreatedb").getData().equals(rolcreatedb)) {
 								if(rolcreatedb.equals("t")) {
 									st.execute("ALTER ROLE "+ role.getName() +" CREATEDB");
@@ -68,7 +68,7 @@ public class DBRestoreRolePostgres extends DBRestoreAdapter{
 								
 							}
 							
-							String rolcreaterole = changedrole.getObjectOption().getOptions().getChildren().get("rolcreaterole").getData();	
+							String rolcreaterole = restoreRole.getObjectOption().getOptions().getChildren().get("rolcreaterole").getData();	
 							if(!role.getOptions().getChildren().get("rolcreaterole").getData().equals(rolcreaterole)) {
 								if(rolcreaterole.equals("t")) {
 									st.execute("ALTER ROLE "+ role.getName() +" CREATEROLE");
@@ -79,7 +79,7 @@ public class DBRestoreRolePostgres extends DBRestoreAdapter{
 								
 							}
 							
-							String rolinherit = changedrole.getObjectOption().getOptions().getChildren().get("rolinherit").getData();	
+							String rolinherit = restoreRole.getObjectOption().getOptions().getChildren().get("rolinherit").getData();	
 							if(!role.getOptions().getChildren().get("rolinherit").getData().equals(rolinherit)) {
 								if(rolinherit.equals("t")) {
 									st.execute("ALTER ROLE "+ role.getName() +" INHERIT");
@@ -90,7 +90,7 @@ public class DBRestoreRolePostgres extends DBRestoreAdapter{
 								
 							}
 							
-							String rolreplication = changedrole.getObjectOption().getOptions().getChildren().get("rolreplication").getData();	
+							String rolreplication = restoreRole.getObjectOption().getOptions().getChildren().get("rolreplication").getData();	
 							if(!role.getOptions().getChildren().get("rolreplication").getData().equals(rolreplication)) {
 								if(rolreplication.equals("t")) {
 									st.execute("ALTER ROLE "+ role.getName() +" REPLICATION");
@@ -101,7 +101,7 @@ public class DBRestoreRolePostgres extends DBRestoreAdapter{
 								
 							}
 							
-							String rolsuper = changedrole.getObjectOption().getOptions().getChildren().get("rolsuper").getData();	
+							String rolsuper = restoreRole.getObjectOption().getOptions().getChildren().get("rolsuper").getData();	
 							if(!role.getOptions().getChildren().get("rolsuper").getData().equals(rolsuper)) {
 								if(rolsuper.equals("t")) {
 									st.execute("ALTER ROLE "+ role.getName() +" SUPERUSER");
@@ -112,8 +112,8 @@ public class DBRestoreRolePostgres extends DBRestoreAdapter{
 								
 							}
 							
-							if(changedrole.getObjectOption().getOptions().getChildren().containsKey("rolvaliduntil")) {
-								st.execute("ALTER ROLE "+ role.getName() +" VALID UNTIL " +changedrole.getObjectOption().getOptions().getChildren().get("rolvaliduntil").getData());
+							if(restoreRole.getObjectOption().getOptions().getChildren().containsKey("rolvaliduntil")) {
+								st.execute("ALTER ROLE "+ role.getName() +" VALID UNTIL " +restoreRole.getObjectOption().getOptions().getChildren().get("rolvaliduntil").getData());
 							}
 							
 							
@@ -125,56 +125,56 @@ public class DBRestoreRolePostgres extends DBRestoreAdapter{
 			
 				if(!exist){
 					String rolsuper,rolcreatedb,rolcreaterole,rolinherit,rolcanlogin,rolreplication,rolbypassrls;
-					if(changedrole.getObjectOption().getOptions().getChildren().get("rolsuper").getData().equals("t")) {
+					if(restoreRole.getObjectOption().getOptions().getChildren().get("rolsuper").getData().equals("t")) {
 						rolsuper = "SUPERUSER";
 					}
 					else {
 						rolsuper = "NOSUPERUSER";
 					}
 					
-					if(changedrole.getObjectOption().getOptions().getChildren().get("rolcreatedb").getData().equals("t")) {
+					if(restoreRole.getObjectOption().getOptions().getChildren().get("rolcreatedb").getData().equals("t")) {
 						rolcreatedb = "CREATEDB";
 					}
 					else {
 						rolcreatedb = "NOCREATEDB";
 					}
 					
-					if(changedrole.getObjectOption().getOptions().getChildren().get("rolcreaterole").getData().equals("t")) {
+					if(restoreRole.getObjectOption().getOptions().getChildren().get("rolcreaterole").getData().equals("t")) {
 						rolcreaterole = "CREATEROLE";
 					}
 					else {
 						rolcreaterole = "NOCREATEROLE";
 					}
 					
-					if(changedrole.getObjectOption().getOptions().getChildren().get("rolinherit").getData().equals("t")) {
+					if(restoreRole.getObjectOption().getOptions().getChildren().get("rolinherit").getData().equals("t")) {
 						rolinherit = "INHERIT";
 					}
 					else {
 						rolinherit = "NOINHERIT";
 					}
 					
-					if(changedrole.getObjectOption().getOptions().getChildren().get("rolcanlogin").getData().equals("t")) {
+					if(restoreRole.getObjectOption().getOptions().getChildren().get("rolcanlogin").getData().equals("t")) {
 						rolcanlogin = "LOGIN";
 					}
 					else {
 						rolcanlogin = "NOLOGIN";
 					}
 					
-					if(changedrole.getObjectOption().getOptions().getChildren().get("rolreplication").getData().equals("t")) {
+					if(restoreRole.getObjectOption().getOptions().getChildren().get("rolreplication").getData().equals("t")) {
 						rolreplication = "REPLICATION";
 					}
 					else {
 						rolreplication = "NOREPLICATION";
 					}
 					
-					if(changedrole.getObjectOption().getOptions().getChildren().get("rolbypassrls").getData().equals("t")) {
+					if(restoreRole.getObjectOption().getOptions().getChildren().get("rolbypassrls").getData().equals("t")) {
 						rolbypassrls = "BYPASSRLS";
 					}
 					else {
 						rolbypassrls = "NOBYPASSRLS";
 					}
 					
-					st.execute("CREATE ROLE "+ changedrole.getObjectOption().getName()+ 
+					st.execute("CREATE ROLE "+ restoreRole.getObjectOption().getName()+ 
 							" " + rolsuper+ 
 							" " + rolcreatedb+ 
 							" " + rolcreaterole+ 
@@ -182,16 +182,18 @@ public class DBRestoreRolePostgres extends DBRestoreAdapter{
 							" " + rolcanlogin+
 							" " + rolreplication+
 							" " + rolbypassrls+
-							" CONNECTION LIMIT " +changedrole.getObjectOption().getOptions().getChildren().get("rolconnlimit").getData());
-					if(changedrole.getObjectOption().getOptions().getChildren().containsKey("rolvaliduntil")) {
-						st.execute("ALTER ROLE "+ changedrole.getObjectOption().getName() +" VALID UNTIL " +changedrole.getObjectOption().getOptions().getChildren().get("rolvaliduntil").getData());
+							" CONNECTION LIMIT " +restoreRole.getObjectOption().getOptions().getChildren().get("rolconnlimit").getData());
+					if(restoreRole.getObjectOption().getOptions().getChildren().containsKey("rolvaliduntil")) {
+						st.execute("ALTER ROLE "+ restoreRole.getObjectOption().getName() +" VALID UNTIL " +restoreRole.getObjectOption().getOptions().getChildren().get("rolvaliduntil").getData());
 					}
 					//TODO Восстановление привилегий	
 				}
+				
+				//TODO restore memberOfRole
 		}
 			else
 			{
-				throw new ExceptionDBGitRestore("Error restore: cast to MetaRole failed.");
+				throw new ExceptionDBGitRestore("Error restore: Unable to restore ROLES.");
 			}			
 		} catch (Exception e) {
 			throw new ExceptionDBGitRestore("Error restore "+obj.getName(), e);
