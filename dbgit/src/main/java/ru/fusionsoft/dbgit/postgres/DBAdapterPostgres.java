@@ -200,14 +200,9 @@ public class DBAdapterPostgres extends DBAdapter {
 		Map<String, DBTable> listTable = new HashMap<String, DBTable>();
 		try {
 			String query = 
-					"select nsp.nspname as object_schema, " + 
-					"       cls.relname as object_name,  rol.rolname as owner " + 
-					"from pg_class cls " + 
-					"  join pg_roles rol on rol.oid = cls.relowner " + 
-					"  join pg_namespace nsp on nsp.oid = cls.relnamespace " + 
-					"where nsp.nspname not in ('information_schema', 'pg_catalog')  " + 
-					"  and nsp.nspname not like 'pg_toast%'" + 
-					"  and cls.relkind = 'r' and nsp.nspname = :schema ";
+					"select tablename,tableowner,tablespace,hasindexes,hasrules,hastriggers "
+					+ "from pg_tables where schemaname not in ('information_schema', 'pg_catalog') "
+					+ "and schemaname not like 'pg_toast%' and schemaname = :schema ";
 			Connection connect = getConnection();
 			
 			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);			
@@ -215,10 +210,10 @@ public class DBAdapterPostgres extends DBAdapter {
 			
 			ResultSet rs = stmt.executeQuery();
 			while(rs.next()){
-				String nameTable = rs.getString("object_name");
+				String nameTable = rs.getString("tablename");
 				DBTable table = new DBTable(nameTable);
 				table.setSchema(schema);
-				table.getOptions().addChild("owner", rs.getString("owner"));
+				rowToProperties(rs, table.getOptions());
 				listTable.put(nameTable, table);
 			}			
 		}catch(Exception e) {
@@ -232,14 +227,8 @@ public class DBAdapterPostgres extends DBAdapter {
 	public DBTable getTable(String schema, String name) {
 		try {
 			String query = 
-					"select nsp.nspname as object_schema, " + 
-					"       cls.relname as object_name,  rol.rolname as owner " + 
-					"from pg_class cls " + 
-					"  join pg_roles rol on rol.oid = cls.relowner " + 
-					"  join pg_namespace nsp on nsp.oid = cls.relnamespace " + 
-					"where nsp.nspname not in ('information_schema', 'pg_catalog')  " + 
-					"  and nsp.nspname not like 'pg_toast%'" + 
-					"  and cls.relkind = 'r' and nsp.nspname = :schema and cls.relname = :name ";
+					"select * from pg_tables where schemaname not in ('information_schema', 'pg_catalog') "
+					+ "and schemaname not like 'pg_toast%' and schemaname = :schema and tablename = :name ";
 			Connection connect = getConnection();
 			
 			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);			
@@ -251,7 +240,7 @@ public class DBAdapterPostgres extends DBAdapter {
 			String nameTable = rs.getString("object_name");
 			DBTable table = new DBTable(nameTable);
 			table.setSchema(schema);
-			table.getOptions().addChild("owner", rs.getString("owner"));
+			rowToProperties(rs, table.getOptions());
 
 			return table;
 		
