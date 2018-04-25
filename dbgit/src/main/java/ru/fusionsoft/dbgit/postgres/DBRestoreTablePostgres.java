@@ -12,7 +12,9 @@ import ru.fusionsoft.dbgit.dbobjects.DBTable;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
 import ru.fusionsoft.dbgit.meta.MetaTable;
 import ru.fusionsoft.dbgit.statement.StatementLogging;
-
+import com.google.common.collect.MapDifference;
+import com.google.common.collect.MapDifference.ValueDifference;
+import com.google.common.collect.Maps;
 public class DBRestoreTablePostgres extends DBRestoreAdapter {
 
 	@Override
@@ -31,7 +33,7 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 					for(DBTable table:tables.values()) {
 						if(restoreTable.getTable().getName().equals(table.getName())){
 							exist = true;
-							Map<String, DBIndex> currentIndexes = adapter.getIndexes(restoreTable.getTable().getSchema(), restoreTable.getTable().getName());
+							//Map<String, DBIndex> currentIndexes = adapter.getIndexes(restoreTable.getTable().getSchema(), restoreTable.getTable().getName());
 							String owner = restoreTable.getTable().getOptions().get("tableowner").getData();
 							if(!owner.equals(table.getOptions().get("tableowner").getData())) {
 								st.execute("alter table "+ restoreTable.getTable().getName() + " owner to "+ owner);
@@ -44,22 +46,34 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 							else if(table.getOptions().getChildren().containsKey("tablespace")) {
 								st.execute("alter table "+ restoreTable.getTable().getName() + " set tablespace pg_default");
 							}
-							
-							//if(restoreTable.getIndexes().isEmpty()) {
-								if(!currentIndexes.isEmpty()) {
-									st.execute("drop index tb1_pkey");
-									
-							//	}
-								
+							Map<String, DBIndex> currentIndexes = adapter.getIndexes(table.getSchema(), table.getName());
+							MapDifference<String, DBIndex> diff = Maps.difference(restoreTable.getIndexes(), currentIndexes);
+							if(!diff.entriesOnlyOnLeft().isEmpty()) {
+								for(DBIndex ind:diff.entriesOnlyOnLeft().values()) {
+									if(ind.getOptions().getChildren().containsKey("tablespace")) {
+										st.execute(ind.getSql()+" tablespace "+ind.getOptions().get("tablespace").getData());
+									}
+									else {
+										st.execute(ind.getSql());
+									}
+								}								
 							}
-							//else(){
-								
-							//}
-							//String test2 = restoreTable.getTable().getOptions().get("tablespace").getData();
-							//if(!restoreSchema.getObjectOption().getOptions().getChildren().get("usename").getData().equals(sch.getOptions().getChildren().get("usename").getData())) {
-							//	st.execute("ALTER SCHEMA "+ restoreSchema.getObjectOption().getName() +" OWNER TO "+ 
-							//	restoreSchema.getObjectOption().getOptions().getChildren().get("usename").getData());
-							//}
+							if(!diff.entriesOnlyOnRight().isEmpty()) {
+								for(DBIndex ind:diff.entriesOnlyOnRight().values()) {
+									st.execute("drop index "+ind.getName());
+								}								
+							}
+							
+							if(!diff.entriesDiffering().isEmpty()) {
+								for(ValueDifference<DBIndex>  ind:diff.entriesDiffering().values()) {
+									if(ind.leftValue().getOptions().getChildren().containsKey("tablespace")) {
+										st.execute("alter index "+ind.leftValue().getName() +" set tablespace "+ind.leftValue().getOptions().get("tablepace"));										
+									}
+									else {
+										st.execute("alter index "+ind.leftValue().getName() +" set tablespace pg_default");	
+									}									
+								}								
+							}
 							//TODO Восстановление привилегий							
 						}
 					}

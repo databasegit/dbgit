@@ -336,8 +336,8 @@ public class DBAdapterPostgres extends DBAdapter {
 				DBIndex index = new DBIndex();
 				index.setName(rs.getString("indexname"));
 				index.setSchema(schema);
-				index.setSql(rs.getString("indexdef"));
-				
+				index.setSql(rs.getString("indexdef"));		
+				rowToProperties(rs, index.getOptions());
 				indexes.put(index.getName(), index);
 			}
 			

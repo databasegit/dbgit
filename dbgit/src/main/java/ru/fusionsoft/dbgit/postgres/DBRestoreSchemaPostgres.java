@@ -9,7 +9,6 @@ import ru.fusionsoft.dbgit.dbobjects.DBSchema;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
 import ru.fusionsoft.dbgit.meta.MetaSchema;
 import ru.fusionsoft.dbgit.statement.StatementLogging;
-import ru.fusionsoft.dbgit.utils.StringProperties;
 
 
 public class DBRestoreSchemaPostgres extends DBRestoreAdapter {
