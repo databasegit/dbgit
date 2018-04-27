@@ -257,7 +257,7 @@ public class DBAdapterPostgres extends DBAdapter {
 			Map<String, DBTableField> listField = new HashMap<String, DBTableField>();
 			
 			String query = 
-					"SELECT distinct col.*, tc.constraint_name  FROM " + 
+					"SELECT distinct col.column_name,col.is_nullable,col.data_type,col.character_maximum_length, tc.constraint_name  FROM " + 
 					"information_schema.columns col  " + 
 					"left join information_schema.key_column_usage kc on col.table_schema = kc.table_schema and col.table_name = kc.table_name and col.column_name=kc.column_name " + 
 					"left join information_schema.table_constraints tc on col.table_schema = kc.table_schema and col.table_name = kc.table_name and kc.constraint_name = tc.constraint_name and tc.constraint_type = 'PRIMARY KEY' " + 
@@ -306,8 +306,7 @@ public class DBAdapterPostgres extends DBAdapter {
 			if (!rs.wasNull()) {
 				type.append("("+max_length.toString()+")");
 			}
-			
-			if (rs.getString("is_nullable") == "NO") {
+			if (rs.getString("is_nullable").equals("NO")){
 				type.append(" NOT NULL");
 			}
 			

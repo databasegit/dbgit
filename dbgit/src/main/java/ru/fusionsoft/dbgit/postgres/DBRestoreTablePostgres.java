@@ -9,6 +9,7 @@ import ru.fusionsoft.dbgit.core.ExceptionDBGitRestore;
 import ru.fusionsoft.dbgit.dbobjects.DBIndex;
 import ru.fusionsoft.dbgit.dbobjects.DBSchema;
 import ru.fusionsoft.dbgit.dbobjects.DBTable;
+import ru.fusionsoft.dbgit.dbobjects.DBTableField;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
 import ru.fusionsoft.dbgit.meta.MetaTable;
 import ru.fusionsoft.dbgit.statement.StatementLogging;
@@ -46,10 +47,46 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 							else if(table.getOptions().getChildren().containsKey("tablespace")) {
 								st.execute("alter table "+ restoreTable.getTable().getName() + " set tablespace pg_default");
 							}
+							
+							//table fields
+							Map<String, DBTableField> currentFileds = adapter.getTableFields(restoreTable.getTable().getSchema(), restoreTable.getTable().getName());
+							MapDifference<String, DBTableField> diffTableFields = Maps.difference(restoreTable.getFields(),currentFileds);
+							
+							if(!diffTableFields.entriesOnlyOnLeft().isEmpty()){
+								for(DBTableField tblField:diffTableFields.entriesOnlyOnLeft().values()) {
+									if(tblField.getIsPrimaryKey()== false) {
+										st.execute("alter table "+ restoreTable.getTable().getName() +" add column " + tblField.getName()  + " " + tblField.getTypeSQL());
+									}									
+									else {
+										st.execute("alter table "+ restoreTable.getTable().getName() +" add column " + tblField.getName()  + " " + tblField.getTypeSQL() + " primary key");
+									}
+								}								
+							}
+							
+							if(!diffTableFields.entriesOnlyOnRight().isEmpty()) {
+								for(DBTableField tblField:diffTableFields.entriesOnlyOnRight().values()) {
+									st.execute("alter table "+ restoreTable.getTable().getName() +" drop column "+ tblField.getName());
+								}								
+							}
+							
+							if(!diffTableFields.entriesDiffering().isEmpty()) {						
+								for(ValueDifference<DBTableField> tblField:diffTableFields.entriesDiffering().values()) {
+									if(!tblField.leftValue().getName().equals(tblField.rightValue().getName())) {
+										st.execute("alter table "+ restoreTable.getTable().getName() +" rename column "+ tblField.rightValue().getName() +" to "+ tblField.leftValue().getName());
+									}
+																	
+									if(!tblField.leftValue().getTypeSQL().equals(tblField.rightValue().getTypeSQL())) {
+										st.execute("alter table "+ restoreTable.getTable().getName() +" alter column "+ tblField.leftValue().getName() +" type "+ tblField.leftValue().getTypeSQL());
+									}
+								}								
+							}
+							
+							//table fileds
+														
 							Map<String, DBIndex> currentIndexes = adapter.getIndexes(table.getSchema(), table.getName());
-							MapDifference<String, DBIndex> diff = Maps.difference(restoreTable.getIndexes(), currentIndexes);
-							if(!diff.entriesOnlyOnLeft().isEmpty()) {
-								for(DBIndex ind:diff.entriesOnlyOnLeft().values()) {
+							MapDifference<String, DBIndex> diffInd = Maps.difference(restoreTable.getIndexes(), currentIndexes);
+							if(!diffInd.entriesOnlyOnLeft().isEmpty()) {
+								for(DBIndex ind:diffInd.entriesOnlyOnLeft().values()) {
 									if(ind.getOptions().getChildren().containsKey("tablespace")) {
 										st.execute(ind.getSql()+" tablespace "+ind.getOptions().get("tablespace").getData());
 									}
@@ -58,41 +95,63 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 									}
 								}								
 							}
-							if(!diff.entriesOnlyOnRight().isEmpty()) {
-								for(DBIndex ind:diff.entriesOnlyOnRight().values()) {
+							if(!diffInd.entriesOnlyOnRight().isEmpty()) {
+								for(DBIndex ind:diffInd.entriesOnlyOnRight().values()) {
 									st.execute("drop index "+ind.getName());
 								}								
 							}
 							
-							if(!diff.entriesDiffering().isEmpty()) {
-								for(ValueDifference<DBIndex>  ind:diff.entriesDiffering().values()) {
+							if(!diffInd.entriesDiffering().isEmpty()) {
+								for(ValueDifference<DBIndex>  ind:diffInd.entriesDiffering().values()) {
 									if(ind.leftValue().getOptions().getChildren().containsKey("tablespace")) {
-										st.execute("alter index "+ind.leftValue().getName() +" set tablespace "+ind.leftValue().getOptions().get("tablepace"));										
+										if(ind.rightValue().getOptions().getChildren().containsKey("tablespace") && !ind.leftValue().getOptions().get("tablespace").getData().equals(ind.rightValue().getOptions().get("tablespace").getData())) {
+											st.execute("alter index "+ind.leftValue().getName() +" set tablespace "+ind.leftValue().getOptions().get("tablepace"));	
+										}
+																			
 									}
-									else {
+									else if(ind.rightValue().getOptions().getChildren().containsKey("tablespace")) {
 										st.execute("alter index "+ind.leftValue().getName() +" set tablespace pg_default");	
 									}									
 								}								
 							}
 							//TODO Восстановление привилегий							
-						}
+						}						
 					}
 				}
-				if(!exist){			
-					
+				if(!exist){								
 					if(restoreTable.getTable().getOptions().getChildren().containsKey("tablespace")) {
 						String tablespace = restoreTable.getTable().getOptions().get("tablespace").getData();
 						st.execute("create table "+ restoreTable.getTable().getName() + "() tablespace "+ tablespace);
-						st.execute("alter table "+ restoreTable.getTable().getName() + " owner to "+ restoreTable.getTable().getOptions().get("tableowner").getData());
-						
+						st.execute("alter table "+ restoreTable.getTable().getName() + " owner to "+ restoreTable.getTable().getOptions().get("tableowner").getData());						
+											
+
 					}
 					else {
 						st.execute("create table "+ restoreTable.getTable().getName() + "()");
 						st.execute("alter table "+ restoreTable.getTable().getName() + " owner to "+ restoreTable.getTable().getOptions().get("tableowner").getData());
+						
+					}
+					for(DBTableField tblField:restoreTable.getFields().values()) {
+						if(tblField.getIsPrimaryKey()== false) {
+							st.execute("alter table "+ restoreTable.getTable().getName() +" add column " + tblField.getName()  + " " + tblField.getTypeSQL());
+						}									
+						else {
+							st.execute("alter table "+ restoreTable.getTable().getName() +" add column " + tblField.getName()  + " " + tblField.getTypeSQL() + " primary key");
+						}
 					}
 					
-					//TODO restore indexes
-
+					
+					for(DBIndex ind:restoreTable.getIndexes().values()) {
+						if(!ind.getName().contains("pkey")) {							
+							if(ind.getOptions().getChildren().containsKey("tablespace")) {
+								String as = ind.getSql()+" tablespace "+ind.getOptions().get("tablespace").getData();
+								st.execute(ind.getSql()+" tablespace "+ind.getOptions().get("tablespace").getData());
+							}
+							else {						
+								st.execute(ind.getSql());
+							}
+						}
+					}
 					//TODO Восстановление привилегий	
 				}
 			}
