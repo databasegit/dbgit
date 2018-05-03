@@ -449,13 +449,13 @@ public class DBAdapterPostgres extends DBAdapter {
 		return view;
 	}
 	
-	public Map<String, DBTrigger> getTriggers(String schema) {
+	public Map<String, DBTrigger> getTriggers(DBSchema schema) {
 		Map<String, DBTrigger> listTrigger = new HashMap<String, DBTrigger>();
 		try {
-			String query = "SELECT pg_trigger.tgname, pg_get_triggerdef(pg_trigger.oid) AS src  " + 
-					"FROM pg_trigger, pg_class, pg_namespace " + 
-					"where pg_namespace.nspname like '" + schema+"' and pg_namespace.oid=pg_class.relnamespace and pg_trigger.tgrelid=pg_class.oid " +
-					"and pg_trigger.tgname not like '%Constraint%'";
+			String query = "SELECT pg_trigger.tgname, pg_get_triggerdef(pg_trigger.oid) AS src \r\n" + 
+					"FROM pg_trigger, pg_class, pg_namespace\r\n" + 
+					"where pg_namespace.nspname like '" + schema.getName()+"' and pg_namespace.oid=pg_class.relnamespace and pg_trigger.tgrelid=pg_class.oid " +
+					"and pg_trigger.tg_constraint=0";
 			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
@@ -463,39 +463,36 @@ public class DBAdapterPostgres extends DBAdapter {
 				String name = rs.getString(1);
 				String sql = rs.getString(2);
 				DBTrigger trigger = new DBTrigger(name);
-				trigger.setSchema(schema);
 				trigger.setSql(sql);
 				listTrigger.put(name, trigger);
 			}
 		}catch(Exception e) {
-			throw new ExceptionDBGitRunTime("Error load triggers!", e);
+			throw new ExceptionDBGitRunTime("Error ", e);	
 		}
 		// TODO Auto-generated method stub
 		return listTrigger;
 	}
 	
-	public DBTrigger getTrigger(String schema, String name) {
+	public DBTrigger getTrigger(DBSchema schema, String name) {
 		DBTrigger trigger = null;
 		try {
-			String query = "SELECT pg_trigger.tgname, pg_get_triggerdef(pg_trigger.oid) AS src  " + 
-					"FROM pg_trigger, pg_class, pg_namespace " + 
-					"where pg_namespace.nspname like '" + schema+"' and tgname='"+name+"' and pg_namespace.oid=pg_class.relnamespace and pg_trigger.tgrelid=pg_class.oid ";
+			String query = "SELECT pg_trigger.tgname, pg_get_triggerdef(pg_trigger.oid) AS src \r\n" + 
+					"FROM pg_trigger, pg_class, pg_namespace\r\n" + 
+					"where pg_namespace.nspname like '" + schema.getName()+"' and tgname like '"+name+"' and pg_namespace.oid=pg_class.relnamespace and pg_trigger.tgrelid=pg_class.oid ";
 			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
 			while(rs.next()){
 				String sql = rs.getString(2);
 				trigger = new DBTrigger(name);
-				trigger.setSchema(schema);
 				trigger.setSql(sql);				
 			}
 		}catch(Exception e) {
-			throw new ExceptionDBGitRunTime(e.getMessage());
+			throw new ExceptionDBGitRunTime("Error ", e);	
 		}
 		// TODO Auto-generated method stub
 		return trigger;
 	}
-
 	@Override
 	public Map<String, DBPackage> getPackages(String schema) {
 		// TODO Auto-generated method stub
@@ -651,18 +648,5 @@ public class DBAdapterPostgres extends DBAdapter {
 		return listRole;
 	}
 	
-	public static void main(String[] args) {
-		System.out.println("start");
-		try {
-			DBAdapterPostgres dbAdapter = (DBAdapterPostgres) AdapterFactory.createAdapter();
-			
-			DBView view = dbAdapter.getView("fusion", "sa_types");
-			System.out.println(view.getName());
-			System.out.println(view.getSql());
-		}catch(ExceptionDBGitRunTime e) {
-			e.printStackTrace();
-		}catch(Exception e) {
-			System.out.println(e.getMessage());
-		}
-	}
+
 }
