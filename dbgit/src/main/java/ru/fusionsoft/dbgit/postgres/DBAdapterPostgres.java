@@ -94,11 +94,12 @@ public class DBAdapterPostgres extends DBAdapter {
 				DBSchema scheme = new DBSchema(name);
 				rowToProperties(rs, scheme.getOptions());
 				listScheme.put(name, scheme);	
-			}			
+			}	
+			stmt.close();
 		}catch(Exception e) {
 			logger.error("Error load schemes!", e);
 			throw new ExceptionDBGitRunTime("Error load schemes!", e);
-		}
+		} 
 
 		return listScheme;
 	}
@@ -118,7 +119,8 @@ public class DBAdapterPostgres extends DBAdapter {
 				DBTableSpace dbTableSpace = new DBTableSpace(name);
 				rowToProperties(rs, dbTableSpace.getOptions());
 				listTableSpace.put(name, dbTableSpace);
-			}			
+			}	
+			stmt.close();
 		}catch(Exception e) {
 			logger.error(e.getMessage());
 			throw new ExceptionDBGitRunTime(e.getMessage());
@@ -154,6 +156,7 @@ public class DBAdapterPostgres extends DBAdapter {
 				rowToProperties(rs, sequence.getOptions());
 				listSequence.put(nameSeq, sequence);
 			}
+			stmt.close();
 		}catch(Exception e) {
 			logger.error(e.getMessage(), e);
 			throw new ExceptionDBGitRunTime(e.getMessage(), e);
@@ -188,6 +191,7 @@ public class DBAdapterPostgres extends DBAdapter {
 			sequence.setValue(0L);
 			rowToProperties(rs, sequence.getOptions());
 				
+			stmt.close();
 			return sequence;
 		}catch(Exception e) {
 			logger.error(e.getMessage(), e);
@@ -215,7 +219,8 @@ public class DBAdapterPostgres extends DBAdapter {
 				table.setSchema(schema);
 				rowToProperties(rs, table.getOptions());
 				listTable.put(nameTable, table);
-			}			
+			}
+			stmt.close();
 		}catch(Exception e) {
 			logger.error("Error load tables.", e);			
 			throw new ExceptionDBGitRunTime("Error load tables.", e);
@@ -242,6 +247,7 @@ public class DBAdapterPostgres extends DBAdapter {
 			table.setSchema(schema);
 			rowToProperties(rs, table.getOptions());
 
+			stmt.close();
 			return table;
 		
 		}catch(Exception e) {
@@ -339,9 +345,10 @@ public class DBAdapterPostgres extends DBAdapter {
 				rowToProperties(rs, index.getOptions());
 				indexes.put(index.getName(), index);
 			}
+			stmt.close();
 			
 			return indexes;
-
+			
 		}catch(Exception e) {
 			logger.error("Error load Indexes");
 			throw new ExceptionDBGitRunTime(e.getMessage());
@@ -385,6 +392,7 @@ public class DBAdapterPostgres extends DBAdapter {
 				con.setSchema(schema);
 				constraints.put(con.getName(), con);
 			}
+			stmt.close();
 			
 			return constraints;		
 			
@@ -414,12 +422,13 @@ public class DBAdapterPostgres extends DBAdapter {
 				view.setSql(rs.getString("sql"));
 				listView.put(rs.getString("object_name"), view);
 			}
+			stmt.close();
+			return listView;
 		}catch(Exception e) {
 			logger.error(e.getMessage());
 			System.out.println(e.getMessage());
 			throw new ExceptionDBGitRunTime(e.getMessage());
 		}
-		return listView;
 	}
 
 	@Override
@@ -440,21 +449,23 @@ public class DBAdapterPostgres extends DBAdapter {
 			while(rs.next()){
 				view.setSql(rs.getString("sql"));
 			}
+			stmt.close();
+			return view;
 			
 		}catch(Exception e) {
 			logger.error(e.getMessage());
 			System.out.println(e.getMessage());
 			throw new ExceptionDBGitRunTime(e.getMessage());
 		}
-		return view;
+		
 	}
-	
-	public Map<String, DBTrigger> getTriggers(DBSchema schema) {
+	@Override
+	public Map<String, DBTrigger> getTriggers(String schema) {
 		Map<String, DBTrigger> listTrigger = new HashMap<String, DBTrigger>();
 		try {
 			String query = "SELECT pg_trigger.tgname, pg_get_triggerdef(pg_trigger.oid) AS src \r\n" + 
 					"FROM pg_trigger, pg_class, pg_namespace\r\n" + 
-					"where pg_namespace.nspname like '" + schema.getName()+"' and pg_namespace.oid=pg_class.relnamespace and pg_trigger.tgrelid=pg_class.oid " +
+					"where pg_namespace.nspname like '" + schema+"' and pg_namespace.oid=pg_class.relnamespace and pg_trigger.tgrelid=pg_class.oid " +
 					"and pg_trigger.tg_constraint=0";
 			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
@@ -466,19 +477,20 @@ public class DBAdapterPostgres extends DBAdapter {
 				trigger.setSql(sql);
 				listTrigger.put(name, trigger);
 			}
+			stmt.close();
+			return listTrigger;
 		}catch(Exception e) {
 			throw new ExceptionDBGitRunTime("Error ", e);	
 		}
-		// TODO Auto-generated method stub
-		return listTrigger;
+
 	}
-	
-	public DBTrigger getTrigger(DBSchema schema, String name) {
+	@Override
+	public DBTrigger getTrigger(String schema, String name) {
 		DBTrigger trigger = null;
 		try {
 			String query = "SELECT pg_trigger.tgname, pg_get_triggerdef(pg_trigger.oid) AS src \r\n" + 
 					"FROM pg_trigger, pg_class, pg_namespace\r\n" + 
-					"where pg_namespace.nspname like '" + schema.getName()+"' and tgname like '"+name+"' and pg_namespace.oid=pg_class.relnamespace and pg_trigger.tgrelid=pg_class.oid ";
+					"where pg_namespace.nspname like '" + schema+"' and tgname like '"+name+"' and pg_namespace.oid=pg_class.relnamespace and pg_trigger.tgrelid=pg_class.oid ";
 			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
@@ -487,11 +499,12 @@ public class DBAdapterPostgres extends DBAdapter {
 				trigger = new DBTrigger(name);
 				trigger.setSql(sql);				
 			}
+			stmt.close();
+			return trigger;
 		}catch(Exception e) {
 			throw new ExceptionDBGitRunTime("Error ", e);	
 		}
-		// TODO Auto-generated method stub
-		return trigger;
+
 	}
 	@Override
 	public Map<String, DBPackage> getPackages(String schema) {
@@ -535,6 +548,7 @@ public class DBAdapterPostgres extends DBAdapter {
 				func.setSchema(schema);
 				listFunction.put(name, func);
 			}
+			stmt.close();
 		}catch(Exception e) {
 			throw new ExceptionDBGitRunTime("Error load triggers from " +schema, e);
 		}
@@ -557,6 +571,7 @@ public class DBAdapterPostgres extends DBAdapter {
 			DBFunction func = new DBFunction(rs.getString("proname"));
 			func.setSchema(schema);
 			func.setSql(rs.getString("src"));
+			stmt.close();
 			
 			return func;
 			
@@ -616,6 +631,7 @@ public class DBAdapterPostgres extends DBAdapter {
 				DBUser user = new DBUser(name);
 				listUser.put(name, user);
 			}
+			stmt.close();
 		}catch(Exception e) {
 			logger.error(e.getMessage());
 			throw new ExceptionDBGitRunTime(e.getMessage());
@@ -641,6 +657,7 @@ public class DBAdapterPostgres extends DBAdapter {
 					rowToProperties(rs, role.getOptions());
 					listRole.put(name, role);				
 			}
+			stmt.close();
 		}catch(Exception e) {
 			logger.error(e.getMessage());
 			throw new ExceptionDBGitRunTime(e.getMessage());

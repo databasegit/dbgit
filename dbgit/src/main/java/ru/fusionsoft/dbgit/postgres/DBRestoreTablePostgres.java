@@ -19,7 +19,7 @@ import com.google.common.collect.Maps;
 public class DBRestoreTablePostgres extends DBRestoreAdapter {
 
 	@Override
-	public void restoreMetaObject(IMetaObject obj) throws Exception {
+	public boolean restoreMetaObject(IMetaObject obj, int step) throws Exception {
 
 		IDBAdapter adapter = getAdapter();
 		Connection connect = adapter.getConnection();
@@ -165,6 +165,7 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 			st.close();
 		}
 
+		return true;
 	}
 	
 	public void removeMetaObject(IMetaObject obj) throws Exception {

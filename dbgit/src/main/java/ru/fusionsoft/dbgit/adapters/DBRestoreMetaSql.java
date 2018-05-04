@@ -14,8 +14,8 @@ import ru.fusionsoft.dbgit.meta.IMetaObject;
 public class DBRestoreMetaSql extends DBRestoreAdapter  {
 	
 	@Override
-	public void restoreMetaObject(IMetaObject obj) {
-		// restore 
+	public boolean restoreMetaObject(IMetaObject obj, int step) {
+		return true; 
 	}
 	
 	@Override

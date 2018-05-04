@@ -19,7 +19,11 @@ public interface IDBAdapterRestoreMetaData {
 	
 	public IDBAdapter getAdapter();
 	
-	public void restoreMetaObject(IMetaObject obj) throws Exception;
+	public default boolean restoreMetaObject(IMetaObject obj) throws Exception {
+		return restoreMetaObject(obj, 0);
+	}
+	
+	public boolean restoreMetaObject(IMetaObject obj, int step) throws Exception;
 	
 	public void removeMetaObject(IMetaObject obj) throws Exception;
 }

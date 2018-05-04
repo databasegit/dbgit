@@ -11,6 +11,7 @@ import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
 import ru.fusionsoft.dbgit.dbobjects.DBSequence;
 import ru.fusionsoft.dbgit.meta.IMapMetaObject;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
+import ru.fusionsoft.dbgit.meta.TreeMapMetaObject;
 import ru.fusionsoft.dbgit.utils.StringProperties;
 
 /**
@@ -54,11 +55,28 @@ public abstract class DBAdapter implements IDBAdapter {
 	@Override
 	public void restoreDataBase(IMapMetaObject updateObjs) throws Exception {
 		Connection connect = getConnection();
+		IMapMetaObject currStep = updateObjs;
+		
 		try {
+			
 			//start transaction
-			for (IMetaObject obj : updateObjs.values()) {
-				getFactoryRestore().getAdapterRestore(obj.getType(), this).restoreMetaObject(obj);
+			Integer step = 0;
+			while (currStep.size() > 0) {
+				IMapMetaObject nextStep = new TreeMapMetaObject();
+				
+				for (IMetaObject obj : updateObjs.values()) {
+					boolean res = getFactoryRestore().getAdapterRestore(obj.getType(), this).restoreMetaObject(obj, step);
+					if (!res) {
+						nextStep.put(obj);
+					}
+				}
+				currStep = nextStep;
+				step++;
+				if (step > 100) {
+					throw new Exception("Error restore objects.... restoreMetaObject must return true if object restore.");
+				}
 			}
+			
 			connect.commit();
 		} catch (Exception e) {
 			connect.rollback();

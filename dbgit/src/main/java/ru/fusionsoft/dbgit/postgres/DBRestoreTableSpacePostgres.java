@@ -14,7 +14,7 @@ import ru.fusionsoft.dbgit.statement.StatementLogging;
 public class DBRestoreTableSpacePostgres extends DBRestoreAdapter{
 
 	@Override
-	public void restoreMetaObject(IMetaObject obj) throws Exception {
+	public boolean restoreMetaObject(IMetaObject obj, int step) throws Exception {
 		IDBAdapter adapter = getAdapter();
 		Connection connect = adapter.getConnection();
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
@@ -73,7 +73,7 @@ public class DBRestoreTableSpacePostgres extends DBRestoreAdapter{
 		} finally {
 			st.close();
 		}
-		
+		return true;
 	}
 
 	@Override
