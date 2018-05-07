@@ -360,21 +360,34 @@ public class DBAdapterPostgres extends DBAdapter {
 	public Map<String, DBConstraint> getConstraints(String schema, String nameTable) {
 		Map<String, DBConstraint> constraints = new HashMap<>();
 		try {
-			String query = "select  " + 
-					"        tc.constraint_name,         " + 
-					"        tc.constraint_schema, " + 
-					"        tc.table_name,  " + 
-					"        kcu.column_name,  " + 
-					"        ccu.table_name as foreign_table_name,  " + 
-					"        ccu.column_name as foreign_column_name, " + 
-					"        tc.constraint_type " + 
-					"    from  " + 
-					"        information_schema.table_constraints as tc   " + 
-					"        join information_schema.key_column_usage as kcu on (tc.constraint_name = kcu.constraint_name and tc.table_name = kcu.table_name) " + 
-					"        join information_schema.constraint_column_usage as ccu on ccu.constraint_name = tc.constraint_name " + 
-					"    where  " + 
-					"        constraint_type in ('PRIMARY KEY','FOREIGN KEY') " + 
-					"        and tc.constraint_schema = :schema and tc.table_name = :table ";
+			String query = "SELECT tc.constraint_name,\r\n" + 
+					"tc.constraint_type,\r\n" + 
+					"tc.table_name,\r\n" + 
+					"kcu.column_name,\r\n" + 
+					"rc.match_option AS match_type,\r\n" + 
+					"\r\n" + 
+					"rc.update_rule AS on_update,\r\n" + 
+					"rc.delete_rule AS on_delete,\r\n" + 
+					"ccu.table_name AS references_table,\r\n" + 
+					"ccu.column_name AS references_field\r\n" + 
+					"FROM information_schema.table_constraints tc\r\n" + 
+					"\r\n" + 
+					"LEFT JOIN information_schema.key_column_usage kcu\r\n" + 
+					"ON tc.constraint_catalog = kcu.constraint_catalog\r\n" + 
+					"AND tc.constraint_schema = kcu.constraint_schema\r\n" + 
+					"AND tc.constraint_name = kcu.constraint_name\r\n" + 
+					"\r\n" + 
+					"LEFT JOIN information_schema.referential_constraints rc\r\n" + 
+					"ON tc.constraint_catalog = rc.constraint_catalog\r\n" + 
+					"AND tc.constraint_schema = rc.constraint_schema\r\n" + 
+					"AND tc.constraint_name = rc.constraint_name\r\n" + 
+					"\r\n" + 
+					"LEFT JOIN information_schema.constraint_column_usage ccu\r\n" + 
+					"ON rc.unique_constraint_catalog = ccu.constraint_catalog\r\n" + 
+					"AND rc.unique_constraint_schema = ccu.constraint_schema\r\n" + 
+					"AND rc.unique_constraint_name = ccu.constraint_name\r\n" + 
+					"\r\n" + 
+					"WHERE lower(tc.constraint_type) in ('foreign key','primary key') and tc.constraint_schema = :schema and tc.table_name = :table ";
 				       
 			Connection connect = getConnection();
 			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);			
