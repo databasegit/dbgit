@@ -466,7 +466,7 @@ public class DBAdapterPostgres extends DBAdapter {
 			String query = "SELECT pg_trigger.tgname, pg_get_triggerdef(pg_trigger.oid) AS src \r\n" + 
 					"FROM pg_trigger, pg_class, pg_namespace\r\n" + 
 					"where pg_namespace.nspname like '" + schema+"' and pg_namespace.oid=pg_class.relnamespace and pg_trigger.tgrelid=pg_class.oid " +
-					"and pg_trigger.tg_constraint=0";
+					"and pg_trigger.tgconstraint=0";
 			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
