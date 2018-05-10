@@ -3,27 +3,13 @@ package ru.fusionsoft.dbgit.dbobjects;
 import ru.fusionsoft.dbgit.utils.CalcHash;
 
 public class DBConstraint extends DBSQLObject {
-	private String columnName; 
-	private String foreignTableName;
-	private String foreignColumnName;
+	private String constraintDef; 
 	private String constraintType;
-	public String getColumnName() {
-		return columnName;
+	public String getConstraintDef() {
+		return constraintDef;
 	}
-	public void setColumnName(String columnName) {
-		this.columnName = columnName;
-	}
-	public String getForeignTableName() {
-		return foreignTableName;
-	}
-	public void setForeignTableName(String foreignTableName) {
-		this.foreignTableName = foreignTableName;
-	}
-	public String getForeignColumnName() {
-		return foreignColumnName;
-	}
-	public void setForeignColumnName(String foreignColumnName) {
-		this.foreignColumnName = foreignColumnName;
+	public void setConstraintDef(String constraintDef) {
+		this.constraintDef = constraintDef;
 	}
 	public String getConstraintType() {
 		return constraintType;

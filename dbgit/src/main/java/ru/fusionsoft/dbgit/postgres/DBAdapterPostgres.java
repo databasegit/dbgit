@@ -360,47 +360,21 @@ public class DBAdapterPostgres extends DBAdapter {
 	public Map<String, DBConstraint> getConstraints(String schema, String nameTable) {
 		Map<String, DBConstraint> constraints = new HashMap<>();
 		try {
-			String query = "SELECT tc.constraint_name,\r\n" + 
-					"tc.constraint_type,\r\n" + 
-					"tc.table_name,\r\n" + 
-					"kcu.column_name,\r\n" + 
-					"rc.match_option AS match_type,\r\n" + 
-					"\r\n" + 
-					"rc.update_rule AS on_update,\r\n" + 
-					"rc.delete_rule AS on_delete,\r\n" + 
-					"ccu.table_name AS references_table,\r\n" + 
-					"ccu.column_name AS references_field\r\n" + 
-					"FROM information_schema.table_constraints tc\r\n" + 
-					"\r\n" + 
-					"LEFT JOIN information_schema.key_column_usage kcu\r\n" + 
-					"ON tc.constraint_catalog = kcu.constraint_catalog\r\n" + 
-					"AND tc.constraint_schema = kcu.constraint_schema\r\n" + 
-					"AND tc.constraint_name = kcu.constraint_name\r\n" + 
-					"\r\n" + 
-					"LEFT JOIN information_schema.referential_constraints rc\r\n" + 
-					"ON tc.constraint_catalog = rc.constraint_catalog\r\n" + 
-					"AND tc.constraint_schema = rc.constraint_schema\r\n" + 
-					"AND tc.constraint_name = rc.constraint_name\r\n" + 
-					"\r\n" + 
-					"LEFT JOIN information_schema.constraint_column_usage ccu\r\n" + 
-					"ON rc.unique_constraint_catalog = ccu.constraint_catalog\r\n" + 
-					"AND rc.unique_constraint_schema = ccu.constraint_schema\r\n" + 
-					"AND rc.unique_constraint_name = ccu.constraint_name\r\n" + 
-					"\r\n" + 
-					"WHERE lower(tc.constraint_type) in ('foreign key','primary key') and tc.constraint_schema = :schema and tc.table_name = :table ";
+			String query = "SELECT conname as constraint_name,contype as constraint_type,\r\n" + 
+					"  pg_catalog.pg_get_constraintdef(r.oid, true) as constraint_def\r\n" + 
+					"FROM pg_catalog.pg_constraint r\r\n" + 
+					"WHERE r.conrelid = '"+schema+"."+nameTable+"'::regclass";
 				       
 			Connection connect = getConnection();
 			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);			
-			stmt.setString("schema", schema);
-			stmt.setString("table", nameTable);
+			//stmt.setString("schema", schema);
+			//stmt.setString("table", nameTable);
 
 			ResultSet rs = stmt.executeQuery();
 			while(rs.next()){
 				DBConstraint con = new DBConstraint();
 				con.setName(rs.getString("constraint_name"));
-				con.setColumnName(rs.getString("column_name"));
-				con.setForeignColumnName(rs.getString("foreign_column_name"));
-				con.setForeignTableName(rs.getString("foreign_table_name"));
+				con.setConstraintDef(rs.getString("constraint_def"));
 				con.setConstraintType(rs.getString("constraint_type"));
 				con.setSchema(schema);
 				constraints.put(con.getName(), con);
