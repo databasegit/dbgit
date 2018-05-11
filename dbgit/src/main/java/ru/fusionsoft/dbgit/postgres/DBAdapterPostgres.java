@@ -328,8 +328,13 @@ public class DBAdapterPostgres extends DBAdapter {
 	public Map<String, DBIndex> getIndexes(String schema, String nameTable) {
 		Map<String, DBIndex> indexes = new HashMap<>();
 		try {
-			String query = "select i.* from pg_indexes i " + 
-				    "where i.tablename not like 'pg%' and i.schemaname = :schema and i.tablename = :table ";
+			String query = "select i.*\r\n" + 
+					"from \r\n" + 
+					"pg_indexes as i JOIN pg_class as cl \r\n" + 
+					"	on i.indexname = cl.relname\r\n" + 
+					"JOIN pg_index AS idx \r\n" + 
+					"	ON cl.oid = idx.indexrelid\r\n" + 
+					"where i.tablename not like 'pg%' and i.schemaname = :schema and i.tablename = :table and idx.indisprimary = false and idx.indisunique=false ";
 			
 			Connection connect = getConnection();
 			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);			
@@ -388,7 +393,7 @@ public class DBAdapterPostgres extends DBAdapter {
 			throw new ExceptionDBGitRunTime(e.getMessage());
 		}
 	}
-
+			
 	@Override
 	public Map<String, DBView> getViews(String schema) {
 		Map<String, DBView> listView = new HashMap<String, DBView>();
