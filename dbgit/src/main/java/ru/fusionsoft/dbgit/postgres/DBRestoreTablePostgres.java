@@ -36,10 +36,6 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 			return false;
 		}
 		if(Integer.valueOf(step).equals(3)) {
-			removeTableConstraintPostgres(obj);
-			return false;
-		}
-		if(Integer.valueOf(step).equals(4)) {
 			restoreTableConstraintPostgres(obj);
 			return false;
 		}
@@ -121,13 +117,8 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 							
 							if(!diffTableFields.entriesOnlyOnLeft().isEmpty()){
 								for(DBTableField tblField:diffTableFields.entriesOnlyOnLeft().values()) {
-									if(tblField.getIsPrimaryKey()== false) {
 										String as = "alter table "+ restoreTable.getTable().getName() +" add column " + tblField.getName()  + " " + tblField.getTypeSQL();
 										st.execute("alter table "+ restoreTable.getTable().getName() +" add column " + tblField.getName()  + " " + tblField.getTypeSQL());
-									}									
-									else {
-										st.execute("alter table "+ restoreTable.getTable().getName() +" add column " + tblField.getName()  + " " + tblField.getTypeSQL() + " primary key");
-									}
 								}								
 							}
 							
@@ -153,14 +144,19 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 				}
 				if(!exist){								
 					for(DBTableField tblField:restoreTable.getFields().values()) {
-						if(tblField.getIsPrimaryKey()== false) {
 							st.execute("alter table "+ restoreTable.getTable().getName() +" add column " + tblField.getName()  + " " + tblField.getTypeSQL());
-						}									
-						else {
-							st.execute("alter table "+ restoreTable.getTable().getName() +" add column " + tblField.getName()  + " " + tblField.getTypeSQL() + " primary key");
-						}
 					}
 				}
+				
+				removeTableConstraintPostgres(obj);
+				// set primary key
+				for(DBConstraint tableconst: restoreTable.getConstraints().values()) {
+					if(tableconst.getConstraintType().equals("p")) {
+						st.execute("alter table "+ restoreTable.getTable().getName() +" add constraint "+ tableconst.getName() + " "+tableconst.getConstraintDef());
+						break;
+					}
+				}
+				
 			}
 			else
 			{
@@ -252,7 +248,9 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 			if (obj instanceof MetaTable) {
 				MetaTable restoreTable = (MetaTable)obj;		
 				for(DBConstraint constrs :restoreTable.getConstraints().values()) {
+					if(!constrs.getConstraintType().equals("p")) {				
 					st.execute("alter table "+ restoreTable.getTable().getName() +" add constraint "+ constrs.getName() + " "+constrs.getConstraintDef());
+					}
 				}
 			}
 			else
