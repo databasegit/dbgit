@@ -148,7 +148,7 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 					}
 				}
 				
-				removeTableConstraintPostgres(obj);
+				removeTableConstraintsPostgres(obj);
 				// set primary key
 				for(DBConstraint tableconst: restoreTable.getConstraints().values()) {
 					if(tableconst.getConstraintType().equals("p")) {
@@ -264,36 +264,33 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 			st.close();
 		}			
 	}
-	
-	public void removeTableConstraintPostgres(IMetaObject obj) throws Exception {
+	public void removeTableConstraintsPostgres(IMetaObject obj) throws Exception {		
 		IDBAdapter adapter = getAdapter();
 		Connection connect = adapter.getConnection();
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
-		try {
+		try {			
 			if (obj instanceof MetaTable) {
-				MetaTable restoreTable = (MetaTable)obj;
-				ResultSet rs = st.executeQuery("SELECT COUNT(*) as constraintsCount FROM pg_catalog.pg_constraint r WHERE r.conrelid = '"+restoreTable.getTable().getSchema()+"."+restoreTable.getTable().getName()+"'::regclass");
+				MetaTable table = (MetaTable)obj;			
+				ResultSet rs = st.executeQuery("SELECT COUNT(*) as constraintsCount FROM pg_catalog.pg_constraint r WHERE r.conrelid = '"+table.getTable().getSchema()+"."+table.getTable().getName()+"'::regclass");
 				rs.next();
 				Integer constraintsCount = Integer.valueOf(rs.getString("constraintsCount"));
 				if(constraintsCount.intValue()>0) {
-					Map<String, DBConstraint> constraints = adapter.getConstraints(restoreTable.getTable().getSchema(),restoreTable.getTable().getName());
+					Map<String, DBConstraint> constraints = table.getConstraints();
 					for(DBConstraint constrs :constraints.values()) {
-						st.execute("alter table "+ restoreTable.getTable().getName() +" drop constraint "+constrs.getName());
+						st.execute("alter table "+ table.getTable().getName() +" drop constraint "+constrs.getName());
 					}
-				}				
+				}	
 			}
 			else
 			{
-				throw new ExceptionDBGitRestore("Error restore: Unable to remove TableConstraints.");
-			}						
+				throw new ExceptionDBGitRestore("Error restore: Unable to restore TableConstraints.");
+			}	
 		}
-		catch (Exception e) {
+		catch(Exception e) {
 			throw new ExceptionDBGitRestore("Error restore "+obj.getName(), e);
-		} finally {
-			st.close();
-		}			
+		}		
 	}
-
+	
 	public void removeMetaObject(IMetaObject obj) throws Exception {
 		IDBAdapter adapter = getAdapter();
 		Connection connect = adapter.getConnection();

@@ -84,6 +84,10 @@ public class GitMetaDataManager {
 		 }
 	}
 	
+	public IMetaObject getCacheDBMetaObject(String name) {
+	    return dbObjs.get(name);
+	  }
+	
 	/**
 	 * Get cache meta objects
 	 * @return
