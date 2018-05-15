@@ -49,7 +49,7 @@ public class CmdDump implements IDBGitCommand {
 		for (IMetaObject obj : fileObjs.values()) {
 			String hash = obj.getHash();
 		
-			obj.loadFromDB();
+			gmdm.loadFromDB(obj);
 			if (isAllDump || !obj.getHash().equals(hash)) {
 				//сохранили файл если хеш разный
 				obj.saveToFile();

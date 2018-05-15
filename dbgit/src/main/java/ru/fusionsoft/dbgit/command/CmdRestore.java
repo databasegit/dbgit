@@ -75,7 +75,7 @@ public class CmdRestore implements IDBGitCommand {
 			if (item.getIsDelete()) {
 				try {
 					IMetaObject obj = MetaObjectFactory.createMetaObject(item.getName());
-					obj.loadFromDB();
+					gmdm.loadFromDB(obj);					
 					if (item.getHash().equals(obj.getHash())) {
 						deleteObjs.put(obj);
 					}
@@ -90,8 +90,8 @@ public class CmdRestore implements IDBGitCommand {
 		for (IMetaObject obj : fileObjs.values()) {
 			Boolean isRestore = false;
 			try {
-				IMetaObject dbObj = MetaObjectFactory.createMetaObject(obj.getName());
-				dbObj.loadFromDB();
+				IMetaObject dbObj = MetaObjectFactory.createMetaObject(obj.getName());				
+				gmdm.loadFromDB(dbObj);
 				isRestore = !dbObj.getHash().equals(obj.getHash());
 			} catch (ExceptionDBGit e) {
 				isRestore = true;

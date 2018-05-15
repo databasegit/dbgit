@@ -84,6 +84,11 @@ public class GitMetaDataManager {
 		 }
 	}
 	
+	public void loadFromDB(IMetaObject obj) throws ExceptionDBGit {		
+		obj.loadFromDB();
+		dbObjs.put(obj);
+	}
+	
 	public IMetaObject getCacheDBMetaObject(String name) {
 	    return dbObjs.get(name);
 	  }
