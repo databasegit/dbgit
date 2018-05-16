@@ -26,4 +26,5 @@ public interface ICellData {
 	
 	//TODO
 	public Object getWriterForRapair();
+	public String getSQLData();
 }

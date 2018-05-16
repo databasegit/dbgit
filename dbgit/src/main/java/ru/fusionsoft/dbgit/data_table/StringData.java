@@ -48,5 +48,11 @@ public class StringData implements ICellData {
 	public int removeFromGit() {
 		return 0;
 	}
+
+	@Override
+	public String getSQLData() {
+		String data = "\'"+value+"\'";
+		return data;
+	}
 	
 }

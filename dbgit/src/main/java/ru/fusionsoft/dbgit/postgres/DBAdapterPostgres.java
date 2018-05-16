@@ -232,17 +232,15 @@ public class DBAdapterPostgres extends DBAdapter {
 	public DBTable getTable(String schema, String name) {
 		try {
 			String query = 
-					"select * from pg_tables where schemaname not in ('information_schema', 'pg_catalog') "
-					+ "and schemaname not like 'pg_toast%' and schemaname = :schema and tablename = :name ";
+					"select tablename,tableowner,tablespace,hasindexes,hasrules,hastriggers from pg_tables where schemaname not in ('information_schema', 'pg_catalog') "
+					+ "and schemaname not like 'pg_toast%' and schemaname = \'"+schema+"\' and tablename = \'"+name+"\' ";
 			Connection connect = getConnection();
 			
-			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);			
-			stmt.setString("schema", schema);
-			stmt.setString("name", name);
+			Statement stmt = connect.createStatement();
 			
-			ResultSet rs = stmt.executeQuery();
+			ResultSet rs = stmt.executeQuery(query);
 			rs.next();
-			String nameTable = rs.getString("object_name");
+			String nameTable = rs.getString("tablename");
 			DBTable table = new DBTable(nameTable);
 			table.setSchema(schema);
 			rowToProperties(rs, table.getOptions());

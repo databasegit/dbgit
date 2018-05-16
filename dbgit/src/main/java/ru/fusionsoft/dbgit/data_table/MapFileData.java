@@ -97,6 +97,12 @@ public class MapFileData implements ICellData {
 		}
 		return 0;
 	}
+
+	@Override
+	public String getSQLData() {
+		// TODO Auto-generated method stub
+		return null;
+	}
 		
 }
 
