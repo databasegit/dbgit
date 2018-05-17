@@ -524,23 +524,33 @@ public class DBAdapterPostgres extends DBAdapter {
 	public Map<String, DBFunction> getFunctions(String schema) {
 		Map<String, DBFunction> listFunction = new HashMap<String, DBFunction>();
 		try {
-			String query = "SELECT pg_proc.proname, pg_get_functiondef(pg_proc.oid) AS src  " + 
-					"FROM pg_proc, pg_namespace " + 
-					"where pg_namespace.nspname like '" + schema+"' and pg_namespace.oid=pg_proc.pronamespace";
+			String query = "SELECT n.nspname as \"schema\",u.rolname,\r\n" + 
+					"       p.proname as \"name\",\r\n" + 
+					"       pg_catalog.pg_get_function_arguments(p.oid) as \"arguments\",\r\n" + 
+					"	   pg_get_functiondef(p.oid) AS src\r\n" + 
+					"FROM pg_catalog.pg_proc p\r\n" + 
+					"  JOIN pg_catalog.pg_roles u ON u.oid = p.proowner\r\n" + 
+					"  LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace\r\n" + 
+					"WHERE pg_catalog.pg_function_is_visible(p.oid)\r\n" + 
+					"  AND n.nspname = \'"+schema+"\'";;
 			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
 			while(rs.next()){
-				String name = rs.getString("proname");
+				String name = rs.getString("name");
 				String sql = rs.getString("src");
+				String owner = rs.getString("rolname");
+				String args = rs.getString("arguments");
 				DBFunction func = new DBFunction(name);
 				func.setSql(sql);
 				func.setSchema(schema);
+				//func.setOwner(owner);
+				//func.setArguments(args);
 				listFunction.put(name, func);
 			}
 			stmt.close();
 		}catch(Exception e) {
-			throw new ExceptionDBGitRunTime("Error load triggers from " +schema, e);
+			throw new ExceptionDBGitRunTime("Error load functions from " +schema, e);
 		}
 		return listFunction;
 	}
@@ -549,24 +559,32 @@ public class DBAdapterPostgres extends DBAdapter {
 	public DBFunction getFunction(String schema, String name) {
 		
 		try {
-			String query = "SELECT pg_proc.proname, pg_get_functiondef(pg_proc.oid) as src  " + 
-					"FROM pg_proc, pg_namespace " + 
-					"where pg_namespace.nspname like '" + schema+"' and pg_namespace.oid=pg_proc.pronamespace and " +
-					"pg_proc.proname='"+name+"'";
+			String query = "SELECT n.nspname as \"schema\",u.rolname,\r\n" + 
+					"       p.proname as \"name\",\r\n" + 
+					"       pg_catalog.pg_get_function_arguments(p.oid) as \"arguments\",\r\n" + 
+					"	   pg_get_functiondef(p.oid) AS src\r\n" + 
+					"FROM pg_catalog.pg_proc p\r\n" + 
+					"  JOIN pg_catalog.pg_roles u ON u.oid = p.proowner\r\n" + 
+					"  LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace\r\n" + 
+					"WHERE pg_catalog.pg_function_is_visible(p.oid)\r\n" + 
+					"  AND n.nspname = \'"+schema+ "\' AND p.proname=\'"+name+"\'";
 			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
 			rs.next();
-			
-			DBFunction func = new DBFunction(rs.getString("proname"));
+			DBFunction func = new DBFunction(rs.getString("name"));
+			String owner = rs.getString("rolname");
+			String args = rs.getString("arguments");
 			func.setSchema(schema);
 			func.setSql(rs.getString("src"));
+			//func.setOwner(owner);
+			//func.setArguments(args);
 			stmt.close();
 			
 			return func;
 			
 		}catch(Exception e) {
-			throw new ExceptionDBGitRunTime("Error load trigger " +schema+"."+name, e);			
+			throw new ExceptionDBGitRunTime("Error load function " +schema+"."+name, e);			
 		}
 	}
 
