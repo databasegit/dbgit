@@ -22,7 +22,7 @@ public class FactoryDBAdapterRestorePostgres implements IFactoryDBAdapterRestote
         aMap.put(DBGitMetaType.DBGitSchema.getValue(), new DBRestoreSchemaPostgres());
         aMap.put(DBGitMetaType.DBGitTableSpace.getValue(), new DBRestoreTableSpacePostgres());
         aMap.put(DBGitMetaType.DBGitRole.getValue(), new DBRestoreRolePostgres());
-        aMap.put(DBGitMetaType.DBGitSequence.getValue(), new DBRestoreMetaSql());
+        aMap.put(DBGitMetaType.DBGitSequence.getValue(), new DBRestoreSequencePostgres());
         aMap.put(DBGitMetaType.DBGitTable.getValue(), new DBRestoreTablePostgres());
         aMap.put(DBGitMetaType.DbGitTableData.getValue(), new DBRestoreTableDataPostgres());
         aMap.put(DBGitMetaType.DbGitProcedure.getValue(), new DBRestoreProcedurePostgres());

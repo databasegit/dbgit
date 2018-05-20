@@ -141,7 +141,7 @@ public class DBAdapterPostgres extends DBAdapter {
 					"  join information_schema.sequences s on cls.relname = s.sequence_name " + 
 					"where nsp.nspname not in ('information_schema', 'pg_catalog') " + 
 					"  and nsp.nspname not like 'pg_toast%' " + 
-					"  and cls.relkind = 'S' and nsp.nspname = :schema ";
+					"  and cls.relkind = 'S' and s.sequence_schema = :schema ";
 			
 			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);
 			stmt.setString("schema", schema);
@@ -176,7 +176,7 @@ public class DBAdapterPostgres extends DBAdapter {
 					"  join information_schema.sequences s on cls.relname = s.sequence_name " + 
 					"where nsp.nspname not in ('information_schema', 'pg_catalog') " + 
 					"  and nsp.nspname not like 'pg_toast%' " + 
-					"  and cls.relkind = 'S' and nsp.nspname = :schema and s.sequence_name = :name ";
+					"  and cls.relkind = 'S' and s.sequence_schema = :schema and s.sequence_name = :name ";
 			
 			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);
 			stmt.setString("schema", schema);
