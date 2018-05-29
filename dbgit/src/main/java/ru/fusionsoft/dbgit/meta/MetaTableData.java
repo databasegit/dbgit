@@ -236,6 +236,10 @@ public class MetaTableData extends MetaBase {
 		CalcHash ch = new CalcHash();
 		if (mapRows == null) 
 			return EMPTY_HASH;
+		
+		if (mapRows.size() == 0) 
+			return EMPTY_HASH;
+		
 		//System.out.println(getName());
 		int n = 0;
 		for (RowData rd : mapRows.values()) {

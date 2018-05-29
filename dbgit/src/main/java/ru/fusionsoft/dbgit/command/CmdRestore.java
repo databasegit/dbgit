@@ -59,12 +59,12 @@ public class CmdRestore implements IDBGitCommand {
 			String scriptName = cmdLine.getOptionValue("s");
 			
 			File file = new File(scriptName);
-			fop = new FileOutputStream(file);
-
-			
 			if (!file.exists()) {
 				file.createNewFile();
 			}
+			
+			fop = new FileOutputStream(file);
+
 			adapter.setDumpSqlCommand(fop, false);
 		}
 		

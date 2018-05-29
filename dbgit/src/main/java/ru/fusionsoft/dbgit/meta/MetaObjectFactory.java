@@ -14,6 +14,10 @@ public class MetaObjectFactory  {
 	public static IMetaObject createMetaObject(String name) throws ExceptionDBGit {		
 		IDBGitMetaType tp = parseMetaName(name).getType();
 		
+		if (tp == null) {
+			throw new ExceptionDBGit("Error parse type metaObject by name: "+name);
+		}
+		
 		IMetaObject obj = createMetaObject(tp);
 		obj.setName(name);
 		return obj;

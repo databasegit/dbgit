@@ -17,6 +17,7 @@ public class DBGitPath {
 	public static final String OBJECTS_PATH = ".objects";
 	public static final String INDEX_FILE = ".dbindex";
 	public static final String LOG_PATH = ".logs";
+	public static final String DATA_FILE = ".data";
 	
 	public static String idSession;
 	
@@ -42,7 +43,7 @@ public class DBGitPath {
 	}
 	
 	public static boolean isServiceFile(String file) {
-		return file.equals(DB_LINK_FILE) || file.equals(DB_IGNORE_FILE) || file.equals(INDEX_FILE);
+		return file.equals(DB_LINK_FILE) || file.equals(DB_IGNORE_FILE) || file.equals(INDEX_FILE) || file.endsWith(DATA_FILE);
 	}
 	
 	public static String getTempDirectory() {

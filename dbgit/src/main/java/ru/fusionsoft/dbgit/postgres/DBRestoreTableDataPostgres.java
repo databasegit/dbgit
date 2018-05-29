@@ -216,9 +216,9 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 		Connection connect = adapter.getConnection();
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
 		try {					
-				ResultSet rs = st.executeQuery("SELECT COUNT(*) as constraintsCount FROM pg_catalog.pg_constraint r WHERE r.conrelid = '"+table.getTable().getSchema()+"."+table.getTable().getName()+"'::regclass");
+				ResultSet rs = st.executeQuery("SELECT COUNT(*) as constraints_count FROM pg_catalog.pg_constraint r WHERE r.conrelid = '"+table.getTable().getSchema()+"."+table.getTable().getName()+"'::regclass");
 				rs.next();
-				Integer constraintsCount = Integer.valueOf(rs.getString("constraintsCount"));
+				Integer constraintsCount = Integer.valueOf(rs.getString("constraints_count"));
 				if(constraintsCount.intValue()>0) {
 					Map<String, DBConstraint> constraints = table.getConstraints();
 					for(DBConstraint constrs :constraints.values()) {
