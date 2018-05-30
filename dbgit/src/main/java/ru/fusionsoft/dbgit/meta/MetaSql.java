@@ -17,7 +17,6 @@ import ru.fusionsoft.dbgit.dbobjects.DBSQLObject;
  */
 public abstract class MetaSql extends MetaBase {
 	protected DBSQLObject sqlObject;
-	
 	public MetaSql() {}
 	
 	public MetaSql(DBSQLObject sqlObject) {
@@ -34,7 +33,7 @@ public abstract class MetaSql extends MetaBase {
 		this.sqlObject = sqlObject;
 		setName(sqlObject.getSchema()+"/"+sqlObject.getName()+"."+getType().getValue());
 	}
-
+	
 	@Override
 	public boolean serialize(OutputStream stream) throws Exception {
 		stream.write(getSqlObject().getSql().getBytes(Charset.forName("UTF-8")));
@@ -44,8 +43,7 @@ public abstract class MetaSql extends MetaBase {
 	@Override
 	public IMetaObject deSerialize(InputStream stream) throws Exception {
 		NameMeta nm = MetaObjectFactory.parseMetaName(getName());
-		sqlObject = new DBSQLObject();
-		
+		sqlObject = new DBSQLObject();		
 		sqlObject.setName(nm.getName());
 		sqlObject.setSchema(nm.getSchema());
 		sqlObject.setSql(IOUtils.toString(stream, StandardCharsets.UTF_8.name()));

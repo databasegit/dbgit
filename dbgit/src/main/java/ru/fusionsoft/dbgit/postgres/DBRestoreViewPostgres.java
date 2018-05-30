@@ -6,10 +6,8 @@ import java.util.Map;
 import ru.fusionsoft.dbgit.adapters.DBRestoreAdapter;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRestore;
-import ru.fusionsoft.dbgit.dbobjects.DBSchema;
 import ru.fusionsoft.dbgit.dbobjects.DBView;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
-import ru.fusionsoft.dbgit.meta.MetaSchema;
 import ru.fusionsoft.dbgit.meta.MetaView;
 import ru.fusionsoft.dbgit.statement.StatementLogging;
 
@@ -23,31 +21,27 @@ public class DBRestoreViewPostgres extends DBRestoreAdapter {
 		try {
 			if (obj instanceof MetaView) {
 				MetaView restoreView = (MetaView)obj;								
-				//Map<String, DBView> views = adapter.getViews(obj);
+				Map<String, DBView> views = adapter.getViews(restoreView.getSqlObject().getSchema());
 				boolean exist = false;
-				/*if(!(schs.isEmpty() || schs == null)) {
-					for(DBSchema sch:schs.values()) {
-						if(restoreSchema.getObjectOption().getName().equals(sch.getName())){
+				if(!(views.isEmpty() || views == null)) {
+					for(DBView vw:views.values()) {
+						if(restoreView.getName().equals(vw.getName())){
 							exist = true;
-							//String test1 = changedsch.getObjectOption().getName();
-							//String test2 = changedsch.getObjectOption().getOptions().getChildren().get("usename").getData();
-							if(!restoreSchema.getObjectOption().getOptions().getChildren().get("usename").getData().equals(sch.getOptions().getChildren().get("usename").getData())) {
-								st.execute("ALTER SCHEMA "+ restoreSchema.getObjectOption().getName() +" OWNER TO "+ 
-								restoreSchema.getObjectOption().getOptions().getChildren().get("usename").getData());
+							if(!restoreView.getSqlObject().getSql().equals(vw.getSql())) {
+								st.execute("CREATE OR REPLACE VIEW "+restoreView.getSqlObject().getName() +" AS\n"+restoreView.getSqlObject().getSql()); 							
 							}
 							//TODO Восстановление привилегий							
 						}
 					}
 				}
 				if(!exist){
-					//st.execute("CREATE SCHEMA "+restoreSchema.getObjectOption().getName() +" AUTHORIZATION "+ 
-					//restoreSchema.getObjectOption().getOptions().getChildren().get("usename").getData());
+					st.execute("CREATE VIEW "+restoreView.getSqlObject().getName() +" AS\n"+restoreView.getSqlObject().getSql()); 
 					//TODO Восстановление привилегий	
-				}*/
+				}
 			}
 			else
 			{
-				throw new ExceptionDBGitRestore("Error restore: Unable to restore SCHEMAS.");
+				throw new ExceptionDBGitRestore("Error restore: Unable to restore VIEWS.");
 			}			
 		} catch (Exception e) {
 			throw new ExceptionDBGitRestore("Error restore "+obj.getName(), e);

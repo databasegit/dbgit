@@ -411,7 +411,7 @@ public class DBAdapterPostgres extends DBAdapter {
 				DBView view = new DBView(rs.getString("object_name"));
 				view.setSql(rs.getString("sql"));
 				view.setSchema(rs.getString("object_schema"));
-				rowToProperties(rs, view.getOptions());
+				//view.setOwner(rs.getString("owner"));
 				listView.put(rs.getString("object_name"), view);
 			}
 			stmt.close();
@@ -426,6 +426,7 @@ public class DBAdapterPostgres extends DBAdapter {
 	@Override
 	public DBView getView(String schema, String name) {
 		DBView view = new DBView(name);
+		view.setSchema(schema);
 		try {
 			String query = "select nsp.nspname as object_schema, " + 
 				       "cls.relname as object_name,  rol.rolname as owner, pg_get_viewdef(cls.oid) as sql "+
@@ -439,6 +440,7 @@ public class DBAdapterPostgres extends DBAdapter {
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
 			while(rs.next()){
+				//view.setOwner(rs.getString("owner"));
 				view.setSql(rs.getString("sql"));
 			}
 			stmt.close();
