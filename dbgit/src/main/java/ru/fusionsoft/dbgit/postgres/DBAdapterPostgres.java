@@ -410,6 +410,8 @@ public class DBAdapterPostgres extends DBAdapter {
 			while(rs.next()){
 				DBView view = new DBView(rs.getString("object_name"));
 				view.setSql(rs.getString("sql"));
+				view.setSchema(rs.getString("object_schema"));
+				rowToProperties(rs, view.getOptions());
 				listView.put(rs.getString("object_name"), view);
 			}
 			stmt.close();
@@ -453,18 +455,21 @@ public class DBAdapterPostgres extends DBAdapter {
 	public Map<String, DBTrigger> getTriggers(String schema) {
 		Map<String, DBTrigger> listTrigger = new HashMap<String, DBTrigger>();
 		try {
-			String query = "SELECT pg_trigger.tgname, pg_get_triggerdef(pg_trigger.oid) AS src \r\n" + 
-					"FROM pg_trigger, pg_class, pg_namespace\r\n" + 
-					"where pg_namespace.nspname like '" + schema+"' and pg_namespace.oid=pg_class.relnamespace and pg_trigger.tgrelid=pg_class.oid " +
-					"and pg_trigger.tgconstraint=0";
+			String query = "SELECT trg.tgname, tbl.relname as trigger_table ,pg_get_triggerdef(trg.oid) AS src \r\n" + 
+					"FROM pg_trigger trg\r\n" + 
+					"JOIN pg_class tbl on trg.tgrelid = tbl.oid\r\n" + 
+					"JOIN pg_namespace ns ON ns.oid = tbl.relnamespace\r\n" + 
+					"and trg.tgconstraint=0 and ns.nspname like \'"+schema+"\'";
 			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
 			while(rs.next()){
-				String name = rs.getString(1);
-				String sql = rs.getString(2);
+				String name = rs.getString("tgname");
+				String sql = rs.getString("src");
 				DBTrigger trigger = new DBTrigger(name);
 				trigger.setSql(sql);
+				trigger.setSchema(schema);
+				rowToProperties(rs, trigger.getOptions());
 				listTrigger.put(name, trigger);
 			}
 			stmt.close();
@@ -478,16 +483,20 @@ public class DBAdapterPostgres extends DBAdapter {
 	public DBTrigger getTrigger(String schema, String name) {
 		DBTrigger trigger = null;
 		try {
-			String query = "SELECT pg_trigger.tgname, pg_get_triggerdef(pg_trigger.oid) AS src \r\n" + 
-					"FROM pg_trigger, pg_class, pg_namespace\r\n" + 
-					"where pg_namespace.nspname like '" + schema+"' and tgname like '"+name+"' and pg_namespace.oid=pg_class.relnamespace and pg_trigger.tgrelid=pg_class.oid ";
+			String query = "SELECT trg.tgname, tbl.relname as trigger_table ,pg_get_triggerdef(trg.oid) AS src \r\n" + 
+					"FROM pg_trigger trg\r\n" + 
+					"JOIN pg_class tbl on trg.tgrelid = tbl.oid\r\n" + 
+					"JOIN pg_namespace ns ON ns.oid = tbl.relnamespace\r\n" + 
+					"and trg.tgconstraint=0 and ns.nspname like \'"+schema+"\' and trg.tgname like \'"+name+"\'";
 			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
 			while(rs.next()){
-				String sql = rs.getString(2);
+				String sql = rs.getString("src");
 				trigger = new DBTrigger(name);
-				trigger.setSql(sql);				
+				trigger.setSql(sql);			
+				trigger.setSchema(schema);
+				rowToProperties(rs, trigger.getOptions());
 			}
 			stmt.close();
 			return trigger;

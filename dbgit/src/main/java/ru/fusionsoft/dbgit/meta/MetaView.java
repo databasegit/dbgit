@@ -17,7 +17,7 @@ public class MetaView  extends MetaSql {
 	
 	@Override
 	public DBGitMetaType getType() {
-		return DBGitMetaType.DbGitTrigger;
+		return DBGitMetaType.DbGitView;
 	}
 	
 	@Override
