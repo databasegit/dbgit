@@ -439,16 +439,16 @@ public class DBAdapterPostgres extends DBAdapter {
 			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
-			while(rs.next()){
-				//view.setOwner(rs.getString("owner"));
-				view.setSql(rs.getString("sql"));
-			}
+			
+			rs.next();
+			//view.setOwner(rs.getString("owner"));
+			view.setSql(rs.getString("sql"));
+			
 			stmt.close();
 			return view;
 			
 		}catch(Exception e) {
 			logger.error(e.getMessage());
-			System.out.println(e.getMessage());
 			throw new ExceptionDBGitRunTime(e.getMessage());
 		}
 		
