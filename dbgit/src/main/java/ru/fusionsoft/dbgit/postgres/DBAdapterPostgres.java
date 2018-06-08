@@ -411,7 +411,7 @@ public class DBAdapterPostgres extends DBAdapter {
 				DBView view = new DBView(rs.getString("object_name"));
 				view.setSql(rs.getString("sql"));
 				view.setSchema(rs.getString("object_schema"));
-				//view.setOwner(rs.getString("owner"));
+				view.setOwner(rs.getString("owner"));
 				listView.put(rs.getString("object_name"), view);
 			}
 			stmt.close();
@@ -441,7 +441,7 @@ public class DBAdapterPostgres extends DBAdapter {
 			ResultSet rs = stmt.executeQuery(query);
 			
 			rs.next();
-			//view.setOwner(rs.getString("owner"));
+			view.setOwner(rs.getString("owner"));
 			view.setSql(rs.getString("sql"));
 			
 			stmt.close();

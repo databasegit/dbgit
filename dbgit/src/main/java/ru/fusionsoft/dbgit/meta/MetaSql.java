@@ -36,19 +36,37 @@ public abstract class MetaSql extends MetaBase {
 	
 	@Override
 	public boolean serialize(OutputStream stream) throws Exception {
+		/*
+		String owner = "owner: "+getSqlObject().getOwner()+"\n";
+		stream.write(owner.getBytes(Charset.forName("UTF-8")));
+		*/
+		
+		/*
 		stream.write(getSqlObject().getSql().getBytes(Charset.forName("UTF-8")));
 		return true;
+		*/
+		return yamlSerialize(stream);
 	}
 
 	@Override
-	public IMetaObject deSerialize(InputStream stream) throws Exception {
+	public IMetaObject deSerialize(InputStream stream) throws Exception {		
 		NameMeta nm = MetaObjectFactory.parseMetaName(getName());
+		/*
 		sqlObject = new DBSQLObject();		
 		sqlObject.setName(nm.getName());
 		sqlObject.setSchema(nm.getSchema());
+		
+
 		sqlObject.setSql(IOUtils.toString(stream, StandardCharsets.UTF_8.name()));
 		
 		return this;
+		*/
+		/*
+		MetaSql obj = (MetaSql)yamlDeSerialize(stream);
+		obj.sqlObject.setName(nm.getName());
+		obj.sqlObject.setSchema(nm.getSchema());
+		*/
+		return yamlDeSerialize(stream);
 	}
 
 	@Override

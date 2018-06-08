@@ -55,7 +55,14 @@ public class CalcHash {
 	}
 	
 	
-	public CalcHash addData(String data) {
+	public CalcHash addData(String data) {	
+		try {
+			int n = data.length();
+		} catch (Exception e) {
+			LoggerUtil.getGlobalLogger().warn("Calc hash use null params ", e);
+			return this;				
+		}
+
 		try {
 			return addData(data.getBytes("UTF-8"));
 		} catch (UnsupportedEncodingException e) {

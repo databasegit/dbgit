@@ -10,14 +10,14 @@ import ru.fusionsoft.dbgit.utils.CalcHash;
 public class DBSQLObject extends DBSchemaObject {
 	
 	protected String sql;
-	//protected String owner;
+	protected String owner;
 	
 	public String getHash() {
 		CalcHash ch = new CalcHash();
 		ch.addData(getSchema());
 		ch.addData(getName());
 		ch.addData(getSql());
-		//ch.addData(getOwner());
+		ch.addData(getOwner());
 		
 		return ch.calcHashStr();
 	}
@@ -29,13 +29,13 @@ public class DBSQLObject extends DBSchemaObject {
 	public void setSql(String sql) {
 		this.sql = sql;
 	}
-	/*public String getOwner() {
+	public String getOwner() {
 		return owner;
 	}
 	
 	public void setOwner(String owner) {
 		this.owner=owner;
-	}*/
+	}
 	
 	
 }
