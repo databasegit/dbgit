@@ -25,7 +25,7 @@ public class DBRestoreViewPostgres extends DBRestoreAdapter {
 				boolean exist = false;
 				if(!(views.isEmpty() || views == null)) {
 					for(DBView vw:views.values()) {
-						if(restoreView.getName().equals(vw.getName())){
+						if(restoreView.getSqlObject().getName().equals(vw.getName())){
 							exist = true;
 							if(!restoreView.getSqlObject().getSql().equals(vw.getSql())) {
 								st.execute("CREATE OR REPLACE VIEW "+restoreView.getSqlObject().getName() +" AS\n"+restoreView.getSqlObject().getSql()); 							
