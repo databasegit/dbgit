@@ -1,6 +1,7 @@
 package ru.fusionsoft.dbgit.dbobjects;
 
 import ru.fusionsoft.dbgit.utils.CalcHash;
+import ru.fusionsoft.dbgit.utils.StringProperties;
 
 /**
  * Base class for all objects where meta info use sql
@@ -11,7 +12,7 @@ public class DBSQLObject extends DBSchemaObject {
 	
 	protected String sql;
 	protected String owner;
-	
+	private StringProperties options = new StringProperties();
 	public String getHash() {
 		CalcHash ch = new CalcHash();
 		ch.addData(getSchema());
@@ -25,7 +26,6 @@ public class DBSQLObject extends DBSchemaObject {
 	public String getSql() {
 		return sql;
 	}
-
 	public void setSql(String sql) {
 		this.sql = sql;
 	}
@@ -36,6 +36,12 @@ public class DBSQLObject extends DBSchemaObject {
 	public void setOwner(String owner) {
 		this.owner=owner;
 	}
-	
+	public StringProperties getOptions() {
+		return options;
+	}
+
+	public void setOptions(StringProperties options) {
+		this.options = options;
+	}
 	
 }

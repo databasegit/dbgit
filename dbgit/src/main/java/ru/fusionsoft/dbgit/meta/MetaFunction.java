@@ -8,8 +8,6 @@ import ru.fusionsoft.dbgit.dbobjects.DBSchema;
 import ru.fusionsoft.dbgit.dbobjects.DBView;
 
 public class MetaFunction extends MetaSql {
-	private String owner;
-	private String arguments;
 	public MetaFunction() {
 		super();
 	}
@@ -17,18 +15,7 @@ public class MetaFunction extends MetaSql {
 	public MetaFunction(DBFunction fun) {
 		super(fun);
 	}
-	public String getOwner() {
-		return owner;
-	}
-	public void setOwner(String owner) {
-		this.owner = owner;
-	}
-	public String getArguments() {
-		return arguments;
-	}
-	public void setArguments(String arguments) {
-		this.arguments = arguments;
-	}
+
 	@Override
 	public DBGitMetaType getType() {
 		return DBGitMetaType.DbGitFunction;

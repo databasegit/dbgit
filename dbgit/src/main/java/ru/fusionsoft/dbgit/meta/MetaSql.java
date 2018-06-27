@@ -5,9 +5,13 @@ import java.io.OutputStream;
 import java.io.StringWriter;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
 import org.apache.commons.io.IOUtils;
 
+import ru.fusionsoft.dbgit.core.ExceptionDBGit;
+import ru.fusionsoft.dbgit.core.ExceptionDBGitObjectNotFound;
+import ru.fusionsoft.dbgit.dbobjects.DBOptionsObject;
 import ru.fusionsoft.dbgit.dbobjects.DBSQLObject;
 
 /**
@@ -72,6 +76,13 @@ public abstract class MetaSql extends MetaBase {
 	@Override
 	public String getHash() {
 		return sqlObject.getHash();
+	}
+	public void setObjectOptionFromMap(Map<String, ? extends DBSQLObject> map) throws ExceptionDBGit {
+		NameMeta nm = MetaObjectFactory.parseMetaName(getName());
+		if (!map.containsKey(nm.getName())) {
+			throw new ExceptionDBGitObjectNotFound("Not found object "+getName());
+		}
+		setSqlObject(map.get(nm.getName()));
 	}
 
 }

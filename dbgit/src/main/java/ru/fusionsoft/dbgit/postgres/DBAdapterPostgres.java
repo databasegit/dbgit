@@ -471,7 +471,8 @@ public class DBAdapterPostgres extends DBAdapter {
 				DBTrigger trigger = new DBTrigger(name);
 				trigger.setSql(sql);
 				trigger.setSchema(schema);
-				rowToProperties(rs, trigger.getOptions());
+				trigger.setOwner("postgres");
+				//rowToProperties(rs, trigger.getOptions());
 				listTrigger.put(name, trigger);
 			}
 			stmt.close();
@@ -479,7 +480,6 @@ public class DBAdapterPostgres extends DBAdapter {
 		}catch(Exception e) {
 			throw new ExceptionDBGitRunTime("Error ", e);	
 		}
-
 	}
 	@Override
 	public DBTrigger getTrigger(String schema, String name) {
@@ -498,7 +498,8 @@ public class DBAdapterPostgres extends DBAdapter {
 				trigger = new DBTrigger(name);
 				trigger.setSql(sql);			
 				trigger.setSchema(schema);
-				rowToProperties(rs, trigger.getOptions());
+				trigger.setOwner("postgres");
+				//rowToProperties(rs, trigger.getOptions());
 			}
 			stmt.close();
 			return trigger;
@@ -543,7 +544,7 @@ public class DBAdapterPostgres extends DBAdapter {
 					"  JOIN pg_catalog.pg_roles u ON u.oid = p.proowner\r\n" + 
 					"  LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace\r\n" + 
 					"WHERE pg_catalog.pg_function_is_visible(p.oid)\r\n" + 
-					"  AND n.nspname = \'"+schema+"\'";;
+					"  AND n.nspname = \'"+schema+"\'";
 			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
@@ -555,7 +556,8 @@ public class DBAdapterPostgres extends DBAdapter {
 				DBFunction func = new DBFunction(name);
 				func.setSql(sql);
 				func.setSchema(schema);
-				//func.setOwner(owner);
+				func.setOwner(owner);
+				rowToProperties(rs,func.getOptions());
 				//func.setArguments(args);
 				listFunction.put(name, func);
 			}
@@ -588,8 +590,9 @@ public class DBAdapterPostgres extends DBAdapter {
 			String args = rs.getString("arguments");
 			func.setSchema(schema);
 			func.setSql(rs.getString("src"));
-			//func.setOwner(owner);
+			func.setOwner(owner);
 			//func.setArguments(args);
+			rowToProperties(rs,func.getOptions());
 			stmt.close();
 			
 			return func;

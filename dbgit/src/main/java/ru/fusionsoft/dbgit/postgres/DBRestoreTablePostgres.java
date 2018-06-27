@@ -148,14 +148,14 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 					}
 				}
 				
-				removeTableConstraintsPostgres(obj);
+				/*removeTableConstraintsPostgres(obj);
 				// set primary key
 				for(DBConstraint tableconst: restoreTable.getConstraints().values()) {
 					if(tableconst.getConstraintType().equals("p")) {
 						st.execute("alter table "+ restoreTable.getTable().getName() +" add constraint "+ tableconst.getName() + " "+tableconst.getConstraintDef());
 						break;
 					}
-				}
+				}*/
 				
 			}
 			else

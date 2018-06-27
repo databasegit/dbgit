@@ -6,7 +6,7 @@ import java.util.Map;
 import ru.fusionsoft.dbgit.adapters.DBRestoreAdapter;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRestore;
-import ru.fusionsoft.dbgit.dbobjects.DBSchema;
+import ru.fusionsoft.dbgit.dbobjects.DBTrigger;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
 import ru.fusionsoft.dbgit.meta.MetaTrigger;
 import ru.fusionsoft.dbgit.statement.StatementLogging;
@@ -19,33 +19,28 @@ public class DBRestoreTriggerPostgres extends DBRestoreAdapter {
 		IDBAdapter adapter = getAdapter();
 		Connection connect = adapter.getConnection();
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
-		try {
-			
-			
-			
+		try {						
 			if (obj instanceof MetaTrigger) {
 				MetaTrigger restoreTrigger = (MetaTrigger)obj;								
-				Map<String, DBSchema> schs = adapter.getSchemes();
+				Map<String, DBTrigger> trgs = adapter.getTriggers(restoreTrigger.getSqlObject().getSchema());
 				boolean exist = false;
-				/*if(!(schs.isEmpty() || schs == null)) {
-					for(DBSchema sch:schs.values()) {
-						if(restoreSchema.getObjectOption().getName().equals(sch.getName())){
-							exist = true;
-							//String test1 = changedsch.getObjectOption().getName();
-							//String test2 = changedsch.getObjectOption().getOptions().getChildren().get("usename").getData();
-							if(!restoreSchema.getObjectOption().getOptions().getChildren().get("usename").getData().equals(sch.getOptions().getChildren().get("usename").getData())) {
-								st.execute("ALTER SCHEMA "+ restoreSchema.getObjectOption().getName() +" OWNER TO "+ 
-								restoreSchema.getObjectOption().getOptions().getChildren().get("usename").getData());
+				if(!(trgs.isEmpty() || trgs == null)) {
+					for(DBTrigger trg:trgs.values()) {
+						if(restoreTrigger.getSqlObject().getName().equals(trg.getName())){
+							exist = true;					
+							if(!restoreTrigger.getSqlObject().getSql().equals(trg.getSql())) {
+								String query = "DROP TRIGGER "+restoreTrigger.getSqlObject().getName()+";\n";
+								query+=restoreTrigger.getSqlObject().getSql()+";";
+								st.execute(query);
 							}
 							//TODO Восстановление привилегий							
 						}
 					}
 				}
 				if(!exist){
-					st.execute("CREATE SCHEMA "+restoreSchema.getObjectOption().getName() +" AUTHORIZATION "+ 
-					restoreSchema.getObjectOption().getOptions().getChildren().get("usename").getData());
+					st.execute(restoreTrigger.getSqlObject().getSql());
 					//TODO Восстановление привилегий	
-				}*/
+				}
 			}
 			else
 			{

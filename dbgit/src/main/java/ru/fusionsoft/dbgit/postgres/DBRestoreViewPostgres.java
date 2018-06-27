@@ -30,12 +30,18 @@ public class DBRestoreViewPostgres extends DBRestoreAdapter {
 							if(!restoreView.getSqlObject().getSql().equals(vw.getSql())) {
 								st.execute("CREATE OR REPLACE VIEW "+restoreView.getSqlObject().getName() +" AS\n"+restoreView.getSqlObject().getSql()); 							
 							}
+							
+							if(!restoreView.getSqlObject().getOwner().equals(vw.getOwner())) {
+								st.execute("ALTER VIEW "+restoreView.getSqlObject().getName() +" OWNER TO "+restoreView.getSqlObject().getOwner()); 							
+							}
 							//TODO Восстановление привилегий							
 						}
 					}
 				}
 				if(!exist){
-					st.execute("CREATE VIEW "+restoreView.getSqlObject().getName() +" AS\n"+restoreView.getSqlObject().getSql()); 
+					String query = "CREATE VIEW "+restoreView.getSqlObject().getName() +" AS\n"+restoreView.getSqlObject().getSql()+";\n";
+					query+= "ALTER VIEW "+restoreView.getSqlObject().getName() +" OWNER TO "+restoreView.getSqlObject().getOwner()+";\n";
+					st.execute(query); 
 					//TODO Восстановление привилегий	
 				}
 			}

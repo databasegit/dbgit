@@ -29,6 +29,16 @@ public class DBRestoreFunctionPostgres extends DBRestoreAdapter {
 							exist = true;
 							if(!restoreFunction.getSqlObject().getSql().equals(fnc.getSql())) {								
 								st.execute(restoreFunction.getSqlObject().getSql());
+							}
+							if(!restoreFunction.getSqlObject().getOwner().equals(fnc.getOwner())) {									
+								if(restoreFunction.getSqlObject().getOptions().get("arguments").getData() == null || restoreFunction.getSqlObject().getOptions().get("arguments").getData().isEmpty()) {									
+									st.execute("ALTER FUNCTION "+restoreFunction.getSqlObject().getName() + "() OWNER TO " 
+								+ restoreFunction.getSqlObject().getOwner());									
+								}
+								else {								
+									st.execute("ALTER FUNCTION "+restoreFunction.getSqlObject().getName()+"("
+								+ restoreFunction.getSqlObject().getOptions().get("arguments").getData() + ") OWNER TO " + restoreFunction.getSqlObject().getOwner());
+								}								
 							}						
 							//TODO Восстановление привилегий							
 						}
