@@ -44,7 +44,7 @@ public class DBRestoreTriggerPostgres extends DBRestoreAdapter {
 			}
 			else
 			{
-				throw new ExceptionDBGitRestore("Error restore: Unable to restore SCHEMAS.");
+				throw new ExceptionDBGitRestore("Error restore: Unable to restore Triggers.");
 			}			
 			
 			

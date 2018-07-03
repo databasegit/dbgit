@@ -75,15 +75,14 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 				if(!exist){								
 					if(restoreTable.getTable().getOptions().getChildren().containsKey("tablespace")) {
 						String tablespace = restoreTable.getTable().getOptions().get("tablespace").getData();
-						st.execute("create table "+ restoreTable.getTable().getName() + "() tablespace "+ tablespace);
-						st.execute("alter table "+ restoreTable.getTable().getName() + " owner to "+ restoreTable.getTable().getOptions().get("tableowner").getData());						
-											
-
+						String querry ="create table "+ restoreTable.getTable().getName() + "() tablespace "+ tablespace +";\n";
+						querry+="alter table "+ restoreTable.getTable().getName() + " owner to "+ restoreTable.getTable().getOptions().get("tableowner").getData()+";";
+						st.execute(querry);																					
 					}
 					else {
-						st.execute("create table "+ restoreTable.getTable().getName() + "()");
-						st.execute("alter table "+ restoreTable.getTable().getName() + " owner to "+ restoreTable.getTable().getOptions().get("tableowner").getData());
-						
+						String querry = "create table "+ restoreTable.getTable().getName() + "()"+";\n";
+						querry+="alter table "+ restoreTable.getTable().getName() + " owner to "+ restoreTable.getTable().getOptions().get("tableowner").getData()+";";
+						st.execute(querry);										
 					}
 				}
 			}

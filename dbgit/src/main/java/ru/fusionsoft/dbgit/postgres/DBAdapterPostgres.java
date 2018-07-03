@@ -12,6 +12,7 @@ import java.util.Map;
 import ru.fusionsoft.dbgit.adapters.AdapterFactory;
 import ru.fusionsoft.dbgit.adapters.DBAdapter;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBAdapterRestoteMetaData;
+import ru.fusionsoft.dbgit.core.ExceptionDBGitObjectNotFound;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
 import ru.fusionsoft.dbgit.data_table.MapFileData;
 import ru.fusionsoft.dbgit.data_table.FactoryCellData;
@@ -369,11 +370,11 @@ public class DBAdapterPostgres extends DBAdapter {
 					"WHERE r.conrelid = '"+schema+"."+nameTable+"'::regclass";
 				       
 			Connection connect = getConnection();
-			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);			
+			Statement stmt = connect.createStatement();
 			//stmt.setString("schema", schema);
 			//stmt.setString("table", nameTable);
 
-			ResultSet rs = stmt.executeQuery();
+			ResultSet rs = stmt.executeQuery(query);
 			while(rs.next()){
 				DBConstraint con = new DBConstraint();
 				con.setName(rs.getString("constraint_name"));
@@ -388,7 +389,7 @@ public class DBAdapterPostgres extends DBAdapter {
 			
 		}catch(Exception e) {
 			logger.error("Error load Constraints");
-			throw new ExceptionDBGitRunTime(e.getMessage());
+			throw new ExceptionDBGitRunTime("Error", e);
 		}
 	}
 			
