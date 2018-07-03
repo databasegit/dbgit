@@ -29,7 +29,7 @@ public class DBRestoreTriggerPostgres extends DBRestoreAdapter {
 						if(restoreTrigger.getSqlObject().getName().equals(trg.getName())){
 							exist = true;					
 							if(!restoreTrigger.getSqlObject().getSql().equals(trg.getSql())) {
-								String query = "DROP TRIGGER "+restoreTrigger.getSqlObject().getName()+";\n";
+								String query = "DROP TRIGGER IF EXISTS "+restoreTrigger.getSqlObject().getName()+" ON "+restoreTrigger.getSqlObject().getOptions().get("trigger_table")+";\n";
 								query+=restoreTrigger.getSqlObject().getSql()+";";
 								st.execute(query);
 							}

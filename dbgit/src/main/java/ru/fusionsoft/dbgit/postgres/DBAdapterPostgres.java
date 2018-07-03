@@ -473,7 +473,7 @@ public class DBAdapterPostgres extends DBAdapter {
 				trigger.setSql(sql);
 				trigger.setSchema(schema);
 				trigger.setOwner("postgres");
-				//rowToProperties(rs, trigger.getOptions());
+				rowToProperties(rs, trigger.getOptions());
 				listTrigger.put(name, trigger);
 			}
 			stmt.close();
@@ -500,7 +500,7 @@ public class DBAdapterPostgres extends DBAdapter {
 				trigger.setSql(sql);			
 				trigger.setSchema(schema);
 				trigger.setOwner("postgres");
-				//rowToProperties(rs, trigger.getOptions());
+				rowToProperties(rs, trigger.getOptions());
 			}
 			stmt.close();
 			return trigger;

@@ -27,15 +27,15 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 			restoreTablePostgres(obj);
 			return false;
 		}
-		if(Integer.valueOf(step).equals(1)) {
+		/*if(Integer.valueOf(step).equals(1)) {
 			restoreTableFieldsPostgres(obj);
 			return false;
-		}
-		if(Integer.valueOf(step).equals(2)) {
+		}*/
+		if(Integer.valueOf(step).equals(1)) {
 			restoreTableIndexesPostgres(obj);
 			return false;
 		}
-		if(Integer.valueOf(step).equals(3)) {
+		if(Integer.valueOf(step).equals(2)) {
 			restoreTableConstraintPostgres(obj);
 			return false;
 		}
@@ -77,14 +77,56 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 						String tablespace = restoreTable.getTable().getOptions().get("tablespace").getData();
 						String querry ="create table "+ restoreTable.getTable().getName() + "() tablespace "+ tablespace +";\n";
 						querry+="alter table "+ restoreTable.getTable().getName() + " owner to "+ restoreTable.getTable().getOptions().get("tableowner").getData()+";";
-						st.execute(querry);																					
+						st.execute(querry);							
 					}
 					else {
 						String querry = "create table "+ restoreTable.getTable().getName() + "()"+";\n";
 						querry+="alter table "+ restoreTable.getTable().getName() + " owner to "+ restoreTable.getTable().getOptions().get("tableowner").getData()+";";
-						st.execute(querry);										
-					}
+						st.execute(querry);	
+					}				
 				}
+				//restore tabl fields
+							Map<String, DBTableField> currentFileds = adapter.getTableFields(restoreTable.getTable().getSchema(), restoreTable.getTable().getName());
+							MapDifference<String, DBTableField> diffTableFields = Maps.difference(restoreTable.getFields(),currentFileds);
+							
+							if(!diffTableFields.entriesOnlyOnLeft().isEmpty()){
+								for(DBTableField tblField:diffTableFields.entriesOnlyOnLeft().values()) {
+										String as = "alter table "+ restoreTable.getTable().getName() +" add column " + tblField.getName()  + " " + tblField.getTypeSQL();
+										st.execute("alter table "+ restoreTable.getTable().getName() +" add column " + tblField.getName()  + " " + tblField.getTypeSQL());
+								}								
+							}
+							
+							if(!diffTableFields.entriesOnlyOnRight().isEmpty()) {
+								for(DBTableField tblField:diffTableFields.entriesOnlyOnRight().values()) {
+									st.execute("alter table "+ restoreTable.getTable().getName() +" drop column "+ tblField.getName());
+								}								
+							}
+							
+							if(!diffTableFields.entriesDiffering().isEmpty()) {						
+								for(ValueDifference<DBTableField> tblField:diffTableFields.entriesDiffering().values()) {
+									if(!tblField.leftValue().getName().equals(tblField.rightValue().getName())) {
+										st.execute("alter table "+ restoreTable.getTable().getName() +" rename column "+ tblField.rightValue().getName() +" to "+ tblField.leftValue().getName());
+									}
+																	
+									if(!tblField.leftValue().getTypeSQL().equals(tblField.rightValue().getTypeSQL())) {
+										st.execute("alter table "+ restoreTable.getTable().getName() +" alter column "+ tblField.leftValue().getName() +" type "+ tblField.leftValue().getTypeSQL());
+									}
+								}								
+							}						
+						
+				ResultSet rs = st.executeQuery("SELECT COUNT(*) as constraintscount FROM pg_catalog.pg_constraint r WHERE r.conrelid = '"+restoreTable.getTable().getSchema()+"."+restoreTable.getTable().getName()+"'::regclass");
+				rs.next();
+				Integer constraintsCount = Integer.valueOf(rs.getString("constraintscount"));
+				if(constraintsCount.intValue()>0) {
+					removeTableConstraintsPostgres(obj);
+				}
+				// set primary key
+				for(DBConstraint tableconst: restoreTable.getConstraints().values()) {
+					if(tableconst.getConstraintType().equals("p")) {
+						st.execute("alter table "+ restoreTable.getTable().getName() +" add constraint "+ tableconst.getName() + " "+tableconst.getConstraintDef());
+						break;
+					}
+				}									
 			}
 			else
 			{
@@ -137,7 +179,7 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 										st.execute("alter table "+ restoreTable.getTable().getName() +" alter column "+ tblField.leftValue().getName() +" type "+ tblField.leftValue().getTypeSQL());
 									}
 								}								
-							}										
+							}						
 						}						
 					}
 				}
@@ -147,15 +189,19 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 					}
 				}
 				
-				/*removeTableConstraintsPostgres(obj);
+				ResultSet rs = st.executeQuery("SELECT COUNT(*) as constraintscount FROM pg_catalog.pg_constraint r WHERE r.conrelid = '"+restoreTable.getTable().getSchema()+"."+restoreTable.getTable().getName()+"'::regclass");
+				rs.next();
+				Integer constraintsCount = Integer.valueOf(rs.getString("constraintscount"));
+				if(constraintsCount.intValue()>0) {
+					removeTableConstraintsPostgres(obj);
+				}
 				// set primary key
 				for(DBConstraint tableconst: restoreTable.getConstraints().values()) {
 					if(tableconst.getConstraintType().equals("p")) {
 						st.execute("alter table "+ restoreTable.getTable().getName() +" add constraint "+ tableconst.getName() + " "+tableconst.getConstraintDef());
 						break;
 					}
-				}*/
-				
+				}
 			}
 			else
 			{
@@ -269,26 +315,49 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
 		try {			
 			if (obj instanceof MetaTable) {
-				MetaTable table = (MetaTable)obj;			
-				ResultSet rs = st.executeQuery("SELECT COUNT(*) as constraintsCount FROM pg_catalog.pg_constraint r WHERE r.conrelid = '"+table.getTable().getSchema()+"."+table.getTable().getName()+"'::regclass");
-				rs.next();
-				Integer constraintsCount = Integer.valueOf(rs.getString("constraintsCount"));
-				if(constraintsCount.intValue()>0) {
-					Map<String, DBConstraint> constraints = table.getConstraints();
-					for(DBConstraint constrs :constraints.values()) {
-						st.execute("alter table "+ table.getTable().getName() +" drop constraint "+constrs.getName());
-					}
-				}	
+				MetaTable table = (MetaTable)obj;
+				//String s = "SELECT COUNT(*) as constraintscount FROM pg_catalog.pg_constraint r WHERE r.conrelid = '"+table.getTable().getSchema()+"."+table.getTable().getName()+"'::regclass";
+				//ResultSet rs = st.executeQuery("SELECT COUNT(*) as constraintscount FROM pg_catalog.pg_constraint r WHERE r.conrelid = '"+table.getTable().getSchema()+"."+table.getTable().getName()+"'::regclass");
+				//rs.next();
+				//Integer constraintsCount = Integer.valueOf(rs.getString("constraintscount"));
+				//if(constraintsCount.intValue()>0) {
+				Map<String, DBConstraint> constraints = table.getConstraints();
+				for(DBConstraint constrs :constraints.values()) {
+				st.execute("alter table "+ table.getTable().getName() +" drop constraint "+constrs.getName());
+				}
+				//}	
 			}
 			else
 			{
-				throw new ExceptionDBGitRestore("Error restore: Unable to restore TableConstraints.");
+				throw new ExceptionDBGitRestore("Error restore: Unable to remove TableConstraints.");
 			}	
 		}
 		catch(Exception e) {
 			throw new ExceptionDBGitRestore("Error restore "+obj.getName(), e);
 		}		
 	}
+	
+	/*public void removeIndexesPostgres(IMetaObject obj) throws Exception {		
+		IDBAdapter adapter = getAdapter();
+		Connection connect = adapter.getConnection();
+		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
+		try {			
+			if (obj instanceof MetaTable) {
+				MetaTable table = (MetaTable)obj;				
+				Map<String, DBIndex> indexes = table.getIndexes();
+				for(DBIndex index :indexes.values()) {
+					st.execute("DROP INDEX IF EXISTS "+index.getName());
+				}			
+			}
+			else
+			{
+				throw new ExceptionDBGitRestore("Error restore: Unable to remove TableIndexes.");
+			}	
+		}
+		catch(Exception e) {
+			throw new ExceptionDBGitRestore("Error restore "+obj.getName(), e);
+		}		
+	}*/
 	
 	public void removeMetaObject(IMetaObject obj) throws Exception {
 		IDBAdapter adapter = getAdapter();

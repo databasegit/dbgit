@@ -14,7 +14,7 @@ import ru.fusionsoft.dbgit.statement.StatementLogging;
 public class DBRestoreViewPostgres extends DBRestoreAdapter {
 
 	@Override
-	public boolean restoreMetaObject(IMetaObject obj, int step) throws Exception {
+	public boolean restoreMetaObject(IMetaObject obj, int step) throws Exception {	
 		IDBAdapter adapter = getAdapter();
 		Connection connect = adapter.getConnection();
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
@@ -28,6 +28,7 @@ public class DBRestoreViewPostgres extends DBRestoreAdapter {
 						if(restoreView.getSqlObject().getName().equals(vw.getName())){
 							exist = true;
 							if(!restoreView.getSqlObject().getSql().equals(vw.getSql())) {
+								//String ss = "CREATE OR REPLACE VIEW "+restoreView.getSqlObject().getName() +" AS\n"+restoreView.getSqlObject().getSql();
 								st.execute("CREATE OR REPLACE VIEW "+restoreView.getSqlObject().getName() +" AS\n"+restoreView.getSqlObject().getSql()); 							
 							}
 							
@@ -54,10 +55,9 @@ public class DBRestoreViewPostgres extends DBRestoreAdapter {
 		} finally {
 			st.close();
 		}
-		
 		return true;
 	}
-
+	
 	@Override
 	public void removeMetaObject(IMetaObject obj) throws Exception {
 		// TODO Auto-generated method stub
