@@ -9,8 +9,11 @@ public class LongData implements ICellData {
 	private Long value;
 	
 	@Override
-	public boolean loadFromDB(ResultSet rs, String fieldname) throws Exception {
+	public boolean loadFromDB(ResultSet rs, String fieldname) throws Exception {		
 		value = rs.getLong(fieldname);
+		if (rs.wasNull()) {
+			value = null;
+	    }
 		return true;
 	}
 	

@@ -33,10 +33,12 @@ import ru.fusionsoft.dbgit.meta.TreeMapMetaObject;
 public class GitMetaDataManager {
 	private static GitMetaDataManager manager = null;
 	
-	protected IMapMetaObject dbObjs; 
+	protected IMapMetaObject dbObjs; 	
+	protected IMapMetaObject fileObjs; 
 	
 	protected GitMetaDataManager() {
 		dbObjs = new TreeMapMetaObject();
+		fileObjs = new TreeMapMetaObject();
 	}
 	
 	public static GitMetaDataManager getInctance() {
@@ -94,11 +96,19 @@ public class GitMetaDataManager {
 	  }
 	
 	/**
-	 * Get cache meta objects
+	 * Get cache meta objects load from bd
 	 * @return
 	 */
 	public IMapMetaObject getCacheDBMetaData() {
 		return dbObjs;
+	}
+	
+	/**
+	 * Get cache meta objects load from files
+	 * @return
+	 */
+	public IMapMetaObject getCacheFileMetaData() {
+		return fileObjs;
 	}
 	
 	/**
@@ -207,13 +217,28 @@ public class GitMetaDataManager {
 
 	    		if (DBGitPath.isServiceFile(filename)) continue;
 	    		
-	    		IMetaObject obj = MetaObjectFactory.createMetaObject(filename);
-	    		obj = obj.loadFromFile();
-	    		if (obj != null)
+	    		IMetaObject obj = loadMetaFile(filename);
+	    		if (obj != null) {
 	    			objs.put(obj);
+	    		}
 	    	}
 			
 			return objs;
+		} catch(Exception e) {
+			throw new ExceptionDBGit(e);
+		}
+	}
+	
+	public IMetaObject loadMetaFile(String metaName) throws ExceptionDBGit {
+		if (fileObjs.containsKey(metaName))
+			return fileObjs.get(metaName);		
+		try {
+			IMetaObject obj = MetaObjectFactory.createMetaObject(metaName);
+			obj = obj.loadFromFile();
+			if (obj != null) {			
+				fileObjs.put(obj);
+			}
+			return obj;
 		} catch(Exception e) {
 			throw new ExceptionDBGit(e);
 		}

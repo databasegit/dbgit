@@ -30,6 +30,7 @@ public class RequestCmd {
 		commands.put(new CmdRm());
         commands.put(new CmdValid());
         commands.put(new CmdHelp());
+        commands.put(new CmdSynonimSchema());
 	}
 	
 	public static RequestCmd getInctance()  throws ExceptionDBGit {
@@ -91,7 +92,7 @@ public class RequestCmd {
 		
 		HelpFormatter helpFormatter = new HelpFormatter();
         helpFormatter.printHelp(
-        		"dbgit "+command+cmdObj.getParams(), 
+        		"dbgit "+command+" "+cmdObj.getParams(), 
         		cmdObj.getHelperInfo(), 
         		addHelpOptions(cmdObj.getOptions()), 
         		FOOTER_HELPER, 

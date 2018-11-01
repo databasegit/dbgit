@@ -51,7 +51,8 @@ public class StatementLogging implements Statement {
 		if (stream == null) return ;
 
 		try {
-			stream.write(sql.getBytes("UTF-8"));
+			String buf = sql+";\n\r";
+			stream.write(buf.getBytes("UTF-8"));
 		} catch (Exception e) {
 			getLogger().error("Error write dunp file ", e);
 		}

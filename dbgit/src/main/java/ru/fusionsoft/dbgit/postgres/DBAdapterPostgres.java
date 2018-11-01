@@ -364,17 +364,21 @@ public class DBAdapterPostgres extends DBAdapter {
 	public Map<String, DBConstraint> getConstraints(String schema, String nameTable) {
 		Map<String, DBConstraint> constraints = new HashMap<>();
 		try {
-			String query = "SELECT conname as constraint_name,contype as constraint_type,\r\n" + 
-					"  pg_catalog.pg_get_constraintdef(r.oid, true) as constraint_def\r\n" + 
-					"FROM pg_catalog.pg_constraint r\r\n" + 
-					"WHERE r.conrelid = '"+schema+"."+nameTable+"'::regclass";
-				       
-			Connection connect = getConnection();
-			Statement stmt = connect.createStatement();
-			//stmt.setString("schema", schema);
-			//stmt.setString("table", nameTable);
+			String query = "select conname as constraint_name,contype as constraint_type, " + 
+					"  pg_catalog.pg_get_constraintdef(r.oid, true) as constraint_def " + 
+					"from " + 
+					"    pg_class c " + 
+					"    join pg_namespace n on n.oid = c.relnamespace " + 
+					"    join pg_catalog.pg_constraint r on r.conrelid = c.relfilenode " + 
+					"WHERE    " + 
+					"    relname = :table and nspname = :schema and c.relkind = 'r' ";
 
-			ResultSet rs = stmt.executeQuery(query);
+			Connection connect = getConnection();
+			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);
+			stmt.setString("table", nameTable);
+			stmt.setString("schema", schema);
+			
+			ResultSet rs = stmt.executeQuery();
 			while(rs.next()){
 				DBConstraint con = new DBConstraint();
 				con.setName(rs.getString("constraint_name"));
@@ -631,6 +635,11 @@ public class DBAdapterPostgres extends DBAdapter {
 			return data;
 		} catch(Exception e) {
 			logger.error("Error load data from "+tableName, e);
+			try {
+				getConnection().rollback(); 
+			} catch (Exception e2) {
+				logger.error("Error rollback  ", e2);
+			}
 			throw new ExceptionDBGitRunTime(e.getMessage());
 		}
 	}

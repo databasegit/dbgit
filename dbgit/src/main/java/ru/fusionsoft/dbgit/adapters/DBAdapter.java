@@ -81,7 +81,10 @@ public abstract class DBAdapter implements IDBAdapter {
 		} catch (Exception e) {
 			connect.rollback();
 			throw new ExceptionDBGitRestore("Restore objects error", e);
-		}
+		} finally {
+			//connect.setAutoCommit(false);
+		} 
+		
 	}
 	
 	@Override
@@ -96,7 +99,9 @@ public abstract class DBAdapter implements IDBAdapter {
 		} catch (Exception e) {
 			connect.rollback();
 			throw new ExceptionDBGitRestore("Remove objects error", e);
-		}
+		} finally {
+			//connect.setAutoCommit(false);
+		} 
 
 	}
 	

@@ -38,4 +38,11 @@ public class DBRestoreMetaNotSupport implements IDBAdapterRestoreMetaData {
 		// TODO Auto-generated method stub
 		//throw exception not support
 	}
+	
+	@Override
+	public String getPhisicalSchema(String schema) {
+		// TODO Auto-generated method stub
+		//throw exception not support
+		return null;
+	}
 }

@@ -1,5 +1,7 @@
 package ru.fusionsoft.dbgit.command;
 
+import java.util.Map.Entry;
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 
@@ -8,6 +10,7 @@ import com.diogonunes.jcdp.color.api.Ansi.FColor;
 import ru.fusionsoft.dbgit.core.DBGit;
 import ru.fusionsoft.dbgit.core.DBGitPath;
 import ru.fusionsoft.dbgit.core.GitMetaDataManager;
+import ru.fusionsoft.dbgit.core.SchemaSynonim;
 import ru.fusionsoft.dbgit.meta.IMapMetaObject;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
 import ru.fusionsoft.dbgit.meta.MetaTableData;
@@ -47,6 +50,16 @@ public class CmdStatus implements IDBGitCommand {
 		IMapMetaObject changeObjs = new TreeMapMetaObject();
 		IMapMetaObject addedObjs = new TreeMapMetaObject();
 		DBGit dbGit = DBGit.getInctance();
+		
+		SchemaSynonim ss = SchemaSynonim.getInctance();
+				
+		if (ss.getCountSynonim() > 0) {
+			ConsoleWriter.printlnGreen("Used synonims for real schemes:");
+			ConsoleWriter.printlnGreen("Synonim - schema");
+			for (Entry<String, String> el : ss.getMapSchema().entrySet()) {
+				ConsoleWriter.println(el.getKey() + " - " + el.getValue());
+			}			
+		}
 		
 		for (String name : fileObjs.keySet()) {
 			if (dbObjs.containsKey(name)) {

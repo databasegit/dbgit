@@ -23,7 +23,7 @@ public class FactoryCellData {
 			return cl.newInstance();
 			
 		} catch (Exception e) {
-			throw new ExceptionDBGit("Error create CellData", e);
+			throw new ExceptionDBGit("Error create CellData for type "+typeMapping, e);
 		}
 	}
 }

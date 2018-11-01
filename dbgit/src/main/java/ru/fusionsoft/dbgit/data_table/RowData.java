@@ -13,6 +13,7 @@ import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.csv.CSVRecord;
 
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
+import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
 import ru.fusionsoft.dbgit.dbobjects.DBTable;
 import ru.fusionsoft.dbgit.meta.MetaTable;
 import ru.fusionsoft.dbgit.utils.CalcHash;
@@ -57,6 +58,9 @@ public class RowData {
 		
 		for (int i = 0; i < record.size(); i++) {	
 			String columnName = titleColumns.get(i);
+			if (metaTable.getFieldsMap().get(columnName) == null) {
+				throw new ExceptionDBGitRunTime("Field "+columnName+" not found"); 
+			}
 			ICellData cd = FactoryCellData.createCellData(metaTable.getFieldsMap().get(columnName).getTypeMapping());
 			cd.deserialize(record.get(i));
 			

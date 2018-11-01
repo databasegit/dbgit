@@ -108,7 +108,17 @@ public class MetaTableData extends MetaBase {
 		}
 		return metaTable;
 	}
-	
+		
+	public MetaTable getMetaTableFromFile() throws ExceptionDBGit {
+		String metaTblName = table.getSchema()+"/"+table.getName()+"."+DBGitMetaType.DBGitTable.getValue();
+		GitMetaDataManager gmdm = GitMetaDataManager.getInctance();
+		
+		MetaTable metaTable = (MetaTable)gmdm.loadMetaFile(metaTblName);		
+		if (metaTable != null) 
+			return metaTable;
+		
+		return getMetaTable();
+	}
 	
 	
 	@Override
@@ -139,7 +149,7 @@ public class MetaTableData extends MetaBase {
 	@Override
 	public IMetaObject deSerialize(InputStream stream) throws Exception {
 		
-		MetaTable metaTable = getMetaTable();		
+		MetaTable metaTable = getMetaTableFromFile();		
 	
 		CSVParser csvParser = new CSVParser(new InputStreamReader(stream), getCSVFormat());
 		List<CSVRecord> csvRecords = csvParser.getRecords(); 

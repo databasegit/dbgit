@@ -48,6 +48,7 @@ public class CmdRestore implements IDBGitCommand {
 	
 	@Override
 	public void execute(CommandLine cmdLine) throws Exception {
+		AdapterFactory.createAdapter();
 		GitMetaDataManager gmdm = GitMetaDataManager.getInctance();
 		IMapMetaObject fileObjs = gmdm.loadFileMetaData();		
 		IMapMetaObject updateObjs = new TreeMapMetaObject();
@@ -67,49 +68,52 @@ public class CmdRestore implements IDBGitCommand {
 
 			adapter.setDumpSqlCommand(fop, false);
 		}
-		
-		//delete obj
-		DBGitIndex index = DBGitIndex.getInctance();
-		for (ItemIndex item : index.getTreeItems().values()) {
-			//TODO db ignore
-			if (item.getIsDelete()) {
-				try {
-					IMetaObject obj = MetaObjectFactory.createMetaObject(item.getName());
-					gmdm.loadFromDB(obj);					
-					if (item.getHash().equals(obj.getHash())) {
-						deleteObjs.put(obj);
+		try {
+			//delete obj
+			DBGitIndex index = DBGitIndex.getInctance();
+			for (ItemIndex item : index.getTreeItems().values()) {
+				//TODO db ignore
+				if (item.getIsDelete()) {
+					try {
+						IMetaObject obj = MetaObjectFactory.createMetaObject(item.getName());
+						gmdm.loadFromDB(obj);					
+						if (item.getHash().equals(obj.getHash())) {
+							deleteObjs.put(obj);
+						}
+					} catch(ExceptionDBGit e) {
+						LoggerUtil.getGlobalLogger().error("Error load and delete object: "+item.getName(), e);
 					}
-				} catch(ExceptionDBGit e) {
-					LoggerUtil.getGlobalLogger().error("Error load and delete object: "+item.getName(), e);
 				}
 			}
-		}
-		gmdm.deleteDataBase(deleteObjs);
-		
-		
-		for (IMetaObject obj : fileObjs.values()) {
-			Boolean isRestore = false;
-			try {
-				IMetaObject dbObj = MetaObjectFactory.createMetaObject(obj.getName());				
-				gmdm.loadFromDB(dbObj);
-				isRestore = !dbObj.getHash().equals(obj.getHash());
-			} catch (ExceptionDBGit e) {
-				isRestore = true;
-			} catch (ExceptionDBGitRunTime e) {
-				isRestore = true;
+			gmdm.deleteDataBase(deleteObjs);
+			
+			
+			for (IMetaObject obj : fileObjs.values()) {
+				Boolean isRestore = false;
+				try {
+					IMetaObject dbObj = MetaObjectFactory.createMetaObject(obj.getName());				
+					gmdm.loadFromDB(dbObj);
+					isRestore = !dbObj.getHash().equals(obj.getHash());
+				} catch (ExceptionDBGit e) {
+					isRestore = true;
+					e.printStackTrace();
+				} catch (ExceptionDBGitRunTime e) {
+					isRestore = true;
+					e.printStackTrace();
+				}
+				if (isRestore) {
+					//запомнили файл если хеш разный или объекта нет				
+					updateObjs.put(obj);
+				}
 			}
-			if (isRestore) {
-				//запомнили файл если хеш разный или объекта нет				
-				updateObjs.put(obj);
-			}
-		}
-		
-		gmdm.restoreDataBase(updateObjs);
-		
-		if (fop != null) {
-			fop.flush();
-			fop.close();
-		}
+			
+			gmdm.restoreDataBase(updateObjs);
+		} finally {
+			if (fop != null) {
+				fop.flush();
+				fop.close();
+			}	
+		}		
 	}
 
 

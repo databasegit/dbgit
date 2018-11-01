@@ -26,4 +26,7 @@ public interface IDBAdapterRestoreMetaData {
 	public boolean restoreMetaObject(IMetaObject obj, int step) throws Exception;
 	
 	public void removeMetaObject(IMetaObject obj) throws Exception;
+	
+	public String getPhisicalSchema(String schema);
+	
 }

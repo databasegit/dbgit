@@ -2,6 +2,7 @@ package ru.fusionsoft.dbgit.adapters;
 
 import ru.fusionsoft.dbgit.core.DBConnection;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
+import ru.fusionsoft.dbgit.core.SchemaSynonim;
 import ru.fusionsoft.dbgit.postgres.DBAdapterPostgres;
 
 /**
@@ -21,6 +22,7 @@ public class AdapterFactory {
 	
 	public static IDBAdapter createAdapter() throws ExceptionDBGit {
 		if (adapter == null) {
+			SchemaSynonim ss = SchemaSynonim.getInctance();
 			DBConnection conn = DBConnection.getInctance();
 			//TODO
 			//if conn params - create adapter
@@ -29,6 +31,10 @@ public class AdapterFactory {
 			
 			adapter.setConnection(conn.getConnect());
 			adapter.registryMappingTypes();
+			
+			if (ss.getCountSynonim() > 0) {
+				adapter = new DBAdapterProxy(adapter);
+			}
 		}
 		
 		return adapter;

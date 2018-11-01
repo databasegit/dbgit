@@ -12,6 +12,7 @@ import ru.fusionsoft.dbgit.utils.Convertor;
  */
 public class DBGitPath {
 	public static final String DB_GIT_PATH = ".dbgit";
+	public static final String DB_SYNONIMS = ".synonims";
 	public static final String DB_LINK_FILE = ".dblink";
 	public static final String DB_IGNORE_FILE = ".dbignore";
 	public static final String OBJECTS_PATH = ".objects";

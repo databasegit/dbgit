@@ -31,6 +31,7 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 			MetaTableData currentTableData;
 			MetaTableData restoreTableData = (MetaTableData)obj;
 			GitMetaDataManager gitMetaMng = GitMetaDataManager.getInctance();
+			//TODO не факт что в кеше есть мета описание нашей таблицы, точнее ее не будет если при старте ресторе таблицы в бд не было совсем
 			IMetaObject currentMetaObj = gitMetaMng.getCacheDBMetaObject(obj.getName());
 			if (currentMetaObj instanceof MetaTableData) {
 				currentTableData = (MetaTableData)currentMetaObj;		
@@ -50,7 +51,9 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 			}
 			else
 			{
-				throw new ExceptionDBGitRestore("Error restore: Unable to restore Table Data.");
+				//TODO WTF????
+				throw new ExceptionDBGitRestore("Error restore: Unable to restore Table Data. "+obj.getClass().getName());
+				//return true;
 			}					
 		}
 		else
@@ -149,10 +152,13 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 							updValues+=updvaluejoiner.toString()+")";
 							updateQuery+="update \""+restoreTableData.getTable().getSchema() +"\".\"" +restoreTableData.getTable().getName()+"\"" + 
 									" set "+updFields + " = " + updValues + " where " + keyFields+ "=" +keyValues+";\n";
+							
+							
 						}
 						
 					}
 				}
+				System.out.println(updateQuery);
 				st.execute(updateQuery);
 			}
 			
@@ -197,10 +203,11 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 		IDBAdapter adapter = getAdapter();
 		Connection connect = adapter.getConnection();
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
+		String schema = getPhisicalSchema(table.getTable().getSchema());
 		try {	
 				for(DBConstraint constrs :table.getConstraints().values()) {
 					if(!constrs.getConstraintType().equals("p")) {				
-					st.execute("alter table "+ table.getTable().getName() +" add constraint "+ constrs.getName() + " "+constrs.getConstraintDef());
+					st.execute("alter table "+schema+"."+ table.getTable().getName() +" add constraint "+ constrs.getName() + " "+constrs.getConstraintDef());
 					}
 				}						
 		}
@@ -215,15 +222,16 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 		IDBAdapter adapter = getAdapter();
 		Connection connect = adapter.getConnection();
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
+		String schema = getPhisicalSchema(table.getTable().getSchema());
 		try {					
-				ResultSet rs = st.executeQuery("SELECT COUNT(*) as constraints_count FROM pg_catalog.pg_constraint r WHERE r.conrelid = '"+table.getTable().getSchema()+"."+table.getTable().getName()+"'::regclass");
+				ResultSet rs = st.executeQuery("SELECT COUNT(*) as constraints_count FROM pg_catalog.pg_constraint r WHERE r.conrelid = '"+schema+"."+table.getTable().getName()+"'::regclass");
 				rs.next();
 				Integer constraintsCount = Integer.valueOf(rs.getString("constraints_count"));
 				if(constraintsCount.intValue()>0) {
 					Map<String, DBConstraint> constraints = table.getConstraints();
 					for(DBConstraint constrs :constraints.values()) {
 						if(!constrs.getConstraintType().equals("p")) {
-							st.execute("alter table "+ table.getTable().getName() +" drop constraint "+constrs.getName());
+							st.execute("alter table "+schema+"."+ table.getTable().getName() +" drop constraint "+constrs.getName());
 						}
 					}
 				}		
