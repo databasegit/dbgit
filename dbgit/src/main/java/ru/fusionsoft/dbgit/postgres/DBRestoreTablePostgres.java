@@ -116,7 +116,8 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 								}								
 							}						
 						
-				ResultSet rs = st.executeQuery("SELECT COUNT(*) as constraintscount FROM pg_catalog.pg_constraint r WHERE r.conrelid = '"+tblName+"'::regclass");
+				ResultSet rs = st.executeQuery("SELECT COUNT(*) as constraintscount\n" +
+						"FROM pg_catalog.pg_constraint const JOIN pg_catalog.pg_class cl ON (const.conrelid=cl.oid) WHERE cl.relname = " + tblName);
 				rs.next();
 				Integer constraintsCount = Integer.valueOf(rs.getString("constraintscount"));
 				if(constraintsCount.intValue()>0) {

@@ -67,15 +67,23 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 		Connection connect = adapter.getConnection();
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
 		try {
-			String insertQuery="";
+			String insertQuery= "";
 			String fields = keysToString(restoreTableData.getmapRows().firstEntry().getValue().getData().keySet()) + " values ";
 			MapDifference<String, RowData> diffTableData = Maps.difference(restoreTableData.getmapRows(),currentTableData.getmapRows());
+			String schema = getPhisicalSchema(restoreTableData.getTable().getSchema());
+			String tblName = schema + "." + restoreTableData.getTable().getName();
 			if(!diffTableData.entriesOnlyOnLeft().isEmpty()){
 				for(RowData rowData:diffTableData.entriesOnlyOnLeft().values()) {
-					insertQuery += "insert into \""+restoreTableData.getTable().getSchema()+"\".\""+restoreTableData.getTable().getName()+"\" "+
-							fields+valuesToString(rowData.getData().values()) + ";\n";			
+					insertQuery += "insert into "+tblName +
+							fields+valuesToString(rowData.getData().values()) + ";\n";
+					if(insertQuery.length() > 50000 ){
+						st.execute(insertQuery);
+						insertQuery = "";
+					}
 				}
-				st.execute(insertQuery);
+				if(insertQuery.length()>1){
+					st.execute(insertQuery);
+				}
 			}
 			
 			if(!diffTableData.entriesOnlyOnRight().isEmpty()){
@@ -104,10 +112,16 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 					delFields+=fieldJoiner.toString()+")";
 					delValues+=valuejoiner.toString()+")";
 					primarykeys.clear();
-					deleteQuery+="delete from \""+ restoreTableData.getTable().getSchema() +"\".\"" +restoreTableData.getTable().getName()+"\"" + 
+					deleteQuery+="delete from " + tblName+
 							" where " + delFields + " = " + delValues + ";\n";
+					if(deleteQuery.length() > 50000 ){
+						st.execute(deleteQuery);
+						deleteQuery = "";
+					}
 				}
-				st.execute(deleteQuery);
+				if(deleteQuery.length()>1) {
+					st.execute(deleteQuery);
+				}
 			}
 			
 			if(!diffTableData.entriesDiffering().isEmpty()) {
@@ -150,23 +164,28 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 							}
 							updFields+=updfieldJoiner.toString()+")";
 							updValues+=updvaluejoiner.toString()+")";
-							updateQuery+="update \""+restoreTableData.getTable().getSchema() +"\".\"" +restoreTableData.getTable().getName()+"\"" + 
+							updateQuery+="update "+tblName+
 									" set "+updFields + " = " + updValues + " where " + keyFields+ "=" +keyValues+";\n";
-							
+							if(updateQuery.length() > 50000 ){
+								st.execute(updateQuery);
+								updateQuery = "";
+							}
 							
 						}
 						
 					}
 				}
 				System.out.println(updateQuery);
-				st.execute(updateQuery);
+				if(updateQuery.length()>1) {
+					st.execute(updateQuery);
+				}
 			}
 			
 			
 			
 		}
 		catch (Exception e) {
-			throw new ExceptionDBGitRestore("Error restore "+restoreTableData.getTable().getName(), e);
+			throw new ExceptionDBGitRestore("Error restore " + restoreTableData.getTable().getSchema() + "." + restoreTableData.getTable().getName() , e);
 		} finally {
 			st.close();
 		}
@@ -223,8 +242,10 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 		Connection connect = adapter.getConnection();
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
 		String schema = getPhisicalSchema(table.getTable().getSchema());
+		String tblName = schema + "." +table.getTable().getName();
 		try {					
-				ResultSet rs = st.executeQuery("SELECT COUNT(*) as constraints_count FROM pg_catalog.pg_constraint r WHERE r.conrelid = '"+schema+"."+table.getTable().getName()+"'::regclass");
+				ResultSet rs = st.executeQuery("SELECT COUNT(*) as constraintscount\n" +
+						"FROM pg_catalog.pg_constraint const JOIN pg_catalog.pg_class cl ON (const.conrelid=cl.oid) WHERE cl.relname = " + tblName);
 				rs.next();
 				Integer constraintsCount = Integer.valueOf(rs.getString("constraints_count"));
 				if(constraintsCount.intValue()>0) {
@@ -237,7 +258,7 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 				}		
 		}
 		catch(Exception e) {
-			throw new ExceptionDBGitRestore("Error restore "+table.getTable().getName(), e);
+			throw new ExceptionDBGitRestore("Error restore "+tblName, e);
 		}		
 	}
 	
