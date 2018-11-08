@@ -3,6 +3,7 @@ package ru.fusionsoft.dbgit.adapters;
 import ru.fusionsoft.dbgit.core.DBConnection;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.SchemaSynonim;
+import ru.fusionsoft.dbgit.oracle.DBAdapterOracle;
 import ru.fusionsoft.dbgit.postgres.DBAdapterPostgres;
 
 /**
@@ -26,7 +27,11 @@ public class AdapterFactory {
 			DBConnection conn = DBConnection.getInctance();
 			//TODO
 			//if conn params - create adapter
-			adapter = new DBAdapterPostgres();
+			if (conn.getConnect().getClass().getName() == "oracle.jdbc.driver.T4CConnection") {
+				adapter = new DBAdapterOracle();
+			} else {
+				adapter = new DBAdapterPostgres();
+			}
 			
 			
 			adapter.setConnection(conn.getConnect());
