@@ -290,34 +290,18 @@ public class DBAdapterOracle extends DBAdapter {
 	public Map<String, DBRole> getRoles() {
 		Map<String, DBRole> listRole = new HashMap<String, DBRole>();
 		try {
-			String query = "SELECT * FROM DBA_ROLE_PRIVS R WHERE GRANTEE = (SELECT USERNAME FROM DBA_USERS WHERE USERNAME = R.GRANTEE AND\n" + 
+			String query = "SELECT ROWNUM AS NUM, GRANTEE, GRANTED_ROLE, ADMIN_OPTION, DEFAULT_ROLE FROM DBA_ROLE_PRIVS R WHERE GRANTEE = (SELECT USERNAME FROM DBA_USERS WHERE USERNAME = R.GRANTEE AND\n" + 
 					"USERNAME != 'PUBLIC' AND USERNAME != 'SYSTEM'\n" + 
 					"AND USERNAME != 'SYS' AND USERNAME != 'APPQOSSYS' AND USERNAME != 'OUTLN' \n" + 
-					"AND USERNAME != 'DIP' AND USERNAME != 'DBSNMP' AND USERNAME != 'ORACLE_OCM') ORDER BY GRANTEE";
+					"AND USERNAME != 'DIP' AND USERNAME != 'DBSNMP' AND USERNAME != 'ORACLE_OCM')";
 			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
-			String prevName = "";
-			DBRole r = new DBRole();
 			while(rs.next()){
-					String name = rs.getString("GRANTEE");
-					if(prevName.isEmpty()) {
-						DBRole role = new DBRole(name);
-						//DBRole role = new DBRole(name);
-						rowToProperties(rs, role.getOptions());
-						r = role;
-						//listRole.put(name, role);
-					}
-					else if (name.equals(prevName)) {
-						rowToProperties(rs, r.getOptions());
-					} else if(rs.last() || !name.equals(prevName)) {
-						listRole.put(prevName, r);
-						r = null;
-						DBRole role = new DBRole(name);
-						rowToProperties(rs, role.getOptions());
-						r = role;
-					}
-					prevName = name;
+				String name = rs.getString("NUM");
+				DBRole role = new DBRole(name);
+				rowToProperties(rs, role.getOptions());
+				listRole.put(name, role);
 			}
 			stmt.close();
 		}catch(Exception e) {
