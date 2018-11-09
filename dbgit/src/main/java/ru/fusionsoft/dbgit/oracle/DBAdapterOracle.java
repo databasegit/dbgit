@@ -133,14 +133,68 @@ public class DBAdapterOracle extends DBAdapter {
 
 	@Override
 	public Map<String, DBSequence> getSequences(String schema) {
-		// TODO Auto-generated method stub
-		return null;
+		Map<String, DBSequence> listSequence = new HashMap<String, DBSequence>();
+		try {
+			Connection connect = getConnection();
+			//variant 1 from DBA_OBJECTS
+			/*String query = 
+					"SELECT ROWNUM AS NUM, OWNER, OBJECT_NAME, SUBOBJECT_NAME, OBJECT_TYPE, STATUS,\n" + 
+					"(select dbms_metadata.get_ddl('SEQUENCE', O.OBJECT_NAME) AS DDL from dual) AS DDL\n" + 
+					"FROM DBA_OBJECTS O WHERE OBJECT_TYPE = 'SEQUENCE' AND OWNER = :schema";*/
+			
+			//variant 2 from DBA_SEQUENCES
+			String query = 
+					"SELECT S.*, (SELECT dbms_metadata.get_ddl('SEQUENCE', S.SEQUENCE_NAME) from dual) AS DDL\n" + 
+					"FROM DBA_SEQUENCES S WHERE S.SEQUENCE_OWNER = :schema";
+			
+			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);
+			stmt.setString("schema", schema);
+						
+			ResultSet rs = stmt.executeQuery();
+			while(rs.next()){
+				String nameSeq = rs.getString("SEQUENCE_NAME");
+				DBSequence sequence = new DBSequence();
+				sequence.setName(nameSeq);
+				sequence.setSchema(schema);
+				sequence.setValue(0L);
+				rowToProperties(rs, sequence.getOptions());
+				listSequence.put(nameSeq, sequence);
+			}
+			stmt.close();
+		}catch(Exception e) {
+			logger.error(e.getMessage(), e);
+			throw new ExceptionDBGitRunTime(e.getMessage(), e);
+		}
+		return listSequence;
 	}
 
 	@Override
 	public DBSequence getSequence(String schema, String name) {
-		// TODO Auto-generated method stub
-		return null;
+		try {
+			Connection connect = getConnection();
+			String query = 
+					"SELECT S.*, (SELECT dbms_metadata.get_ddl('SEQUENCE', :name) from dual) AS DDL\n" + 
+					"FROM DBA_SEQUENCES S WHERE S.SEQUENCE_OWNER = :schema AND S.SEQUENCE_NAME = :name";
+			
+			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);
+			stmt.setString("schema", schema);
+			stmt.setString("name", name);
+						
+			ResultSet rs = stmt.executeQuery();
+			rs.next();
+			String nameSeq = rs.getString("SEQUENCE_NAME");
+			DBSequence sequence = new DBSequence();
+			sequence.setName(nameSeq);
+			sequence.setSchema(schema);
+			sequence.setValue(0L);
+			rowToProperties(rs, sequence.getOptions());
+				
+			stmt.close();
+			return sequence;
+		}catch(Exception e) {
+			logger.error(e.getMessage(), e);
+			throw new ExceptionDBGitRunTime(e.getMessage(), e);
+		}
 	}
 
 	@Override
