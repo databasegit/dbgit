@@ -2,6 +2,7 @@ package ru.fusionsoft.dbgit.oracle;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
@@ -37,6 +38,7 @@ import org.slf4j.Logger;
 import com.axiomalaska.jdbc.NamedParameterPreparedStatement;
 
 public class DBAdapterOracle extends DBAdapter {
+	public static final String DEFAULT_MAPPING_TYPE = "VARCHAR2";
 	
 	private Logger logger = LoggerUtil.getLogger(this.getClass());
 
@@ -47,9 +49,10 @@ public class DBAdapterOracle extends DBAdapter {
 	}
 	
 	public void registryMappingTypes() {
-		FactoryCellData.regMappingTypes("string", StringData.class);
-		FactoryCellData.regMappingTypes("integer", LongData.class);
-		//FactoryCellData.regMappingTypes("blob", BlobData.class);
+		FactoryCellData.regMappingTypes(DEFAULT_MAPPING_TYPE, StringData.class);
+		FactoryCellData.regMappingTypes("VARCHAR2", StringData.class);
+		FactoryCellData.regMappingTypes("NUMBER", LongData.class);
+		//FactoryCellData.regMappingTypes("BLOB", BlobData.class);
 	}
 
 	@Override
@@ -201,7 +204,8 @@ public class DBAdapterOracle extends DBAdapter {
 	public Map<String, DBTable> getTables(String schema) {
 		Map<String, DBTable> listTable = new HashMap<String, DBTable>();
 		try {
-			String query = "SELECT * FROM DBA_TABLES WHERE OWNER=:schema";
+			String query = "SELECT T.*, (SELECT dbms_metadata.get_ddl('TABLE', T.TABLE_NAME) from dual) AS DDL\n" + 
+					"FROM DBA_TABLES T WHERE OWNER = :schema";
 			Connection connect = getConnection();
 			
 			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);			
@@ -225,16 +229,94 @@ public class DBAdapterOracle extends DBAdapter {
 
 	@Override
 	public DBTable getTable(String schema, String name) {
-		// TODO Auto-generated method stub
-		return null;
+		try {
+			String query = "SELECT T.*, (SELECT dbms_metadata.get_ddl('TABLE', T.TABLE_NAME) from dual) AS DDL\n" + 
+							"FROM DBA_TABLES T WHERE T.OWNER = :schema AND T.TABLE_NAME = :name";
+			Connection connect = getConnection();
+			
+			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);			
+			stmt.setString("schema", schema);
+			stmt.setString("name", name);
+			
+			ResultSet rs = stmt.executeQuery(query);
+			rs.next();
+			String nameTable = rs.getString("TABLE_NAME");
+			DBTable table = new DBTable(nameTable);
+			table.setSchema(schema);
+			rowToProperties(rs, table.getOptions());
+
+			stmt.close();
+			return table;
+		
+		}catch(Exception e) {
+			logger.error("Error load tables.", e);			
+			throw new ExceptionDBGitRunTime("Error load tables.", e);
+		}
 	}
 
 	@Override
 	public Map<String, DBTableField> getTableFields(String schema, String nameTable) {
-		// TODO Auto-generated method stub
-		return null;
+		try {
+			Map<String, DBTableField> listField = new HashMap<String, DBTableField>();
+			
+			String query = 
+					"SELECT ROWNUM AS NUM, TC.* FROM DBA_TAB_COLS TC \n" + 
+					"WHERE table_name = :tableName AND OWNER = :schema";
+			Connection connect = getConnection();			
+			
+			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);			
+			stmt.setString("schema", schema);
+			stmt.setString("tableName", nameTable);
+
+			ResultSet rs = stmt.executeQuery();
+			while(rs.next()){				
+				DBTableField field = new DBTableField();
+				field.setName(rs.getString("COLUMN_NAME").toLowerCase());  
+				/*if (rs.getString("constraint_name") != null) { 
+					field.setIsPrimaryKey(true);
+				}*/
+				field.setTypeSQL(getFieldType(rs));
+				field.setTypeMapping(getTypeMapping(rs));
+				listField.put(field.getName(), field);
+			}
+			stmt.close();
+			
+			return listField;
+		}catch(Exception e) {
+			logger.error("Error load tables.", e);			
+			throw new ExceptionDBGitRunTime("Error load tables.", e);
+		}		
 	}
 
+	protected String getTypeMapping(ResultSet rs) throws SQLException {
+		String tp = rs.getString("DATA_TYPE");
+		if (FactoryCellData.contains(tp) ) 
+			return tp;
+		
+		return DEFAULT_MAPPING_TYPE;
+	}
+	
+	protected String getFieldType(ResultSet rs) {
+		try {
+			StringBuilder type = new StringBuilder(); 
+			type.append(rs.getString("DATA_TYPE"));
+			
+			Integer max_length = rs.getInt("CHAR_LENGTH");
+			if (!rs.wasNull()) {
+				type.append("("+max_length.toString()+")");
+			}
+			if (rs.getString("NULLABLE").equals("N")){
+				type.append(" NOT NULL");
+			}
+			
+			
+			return type.toString();
+		}catch(Exception e) {
+			logger.error("Error load tables.", e);			
+			throw new ExceptionDBGitRunTime("Error load tables.", e);
+		}	
+	}
+	
 	@Override
 	public Map<String, DBIndex> getIndexes(String schema, String nameTable) {
 		// TODO Auto-generated method stub
