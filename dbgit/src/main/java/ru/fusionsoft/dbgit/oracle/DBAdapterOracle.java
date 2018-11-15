@@ -11,6 +11,7 @@ import ru.fusionsoft.dbgit.adapters.DBAdapter;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBAdapterRestoteMetaData;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
+import ru.fusionsoft.dbgit.data_table.BlobData;
 import ru.fusionsoft.dbgit.data_table.FactoryCellData;
 import ru.fusionsoft.dbgit.data_table.LongData;
 import ru.fusionsoft.dbgit.data_table.StringData;
@@ -31,7 +32,6 @@ import ru.fusionsoft.dbgit.dbobjects.DBTrigger;
 import ru.fusionsoft.dbgit.dbobjects.DBUser;
 import ru.fusionsoft.dbgit.dbobjects.DBView;
 import ru.fusionsoft.dbgit.meta.IMapMetaObject;
-import ru.fusionsoft.dbgit.postgres.FactoryDBAdapterRestorePostgres;
 import ru.fusionsoft.dbgit.utils.LoggerUtil;
 import org.slf4j.Logger;
 
@@ -52,7 +52,7 @@ public class DBAdapterOracle extends DBAdapter {
 		FactoryCellData.regMappingTypes(DEFAULT_MAPPING_TYPE, StringData.class);
 		FactoryCellData.regMappingTypes("VARCHAR2", StringData.class);
 		FactoryCellData.regMappingTypes("NUMBER", LongData.class);
-		//FactoryCellData.regMappingTypes("BLOB", BlobData.class);
+		FactoryCellData.regMappingTypes("BLOB", BlobData.class);
 	}
 
 	@Override
@@ -319,14 +319,67 @@ public class DBAdapterOracle extends DBAdapter {
 	
 	@Override
 	public Map<String, DBIndex> getIndexes(String schema, String nameTable) {
-		// TODO Auto-generated method stub
-		return null;
+		Map<String, DBIndex> indexes = new HashMap<>();
+		try {
+			String query = "SELECT  ind.*, (select dbms_metadata.get_ddl('INDEX', ind.INDEX_NAME) AS DDL from dual) AS DDL\n" + 
+					"FROM all_indexes ind\n" + 
+					"WHERE table_name = :tableName AND owner = :schema";
+			
+			Connection connect = getConnection();
+			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);			
+			stmt.setString("schema", schema);
+			stmt.setString("tableName", nameTable);
+
+			ResultSet rs = stmt.executeQuery();
+			while(rs.next()){
+				DBIndex index = new DBIndex();
+				index.setName(rs.getString("INDEX_NAME"));
+				index.setSchema(schema);
+				index.setSql(rs.getString("DDL"));		
+				rowToProperties(rs, index.getOptions());
+				indexes.put(index.getName(), index);
+			}
+			stmt.close();
+			
+			return indexes;
+			
+		}catch(Exception e) {
+			logger.error("Error load Indexes");
+			throw new ExceptionDBGitRunTime(e.getMessage());
+		}
 	}
 
 	@Override
 	public Map<String, DBConstraint> getConstraints(String schema, String nameTable) {
-		// TODO Auto-generated method stub
-		return null;
+		Map<String, DBConstraint> constraints = new HashMap<>();
+		try {
+			String query = "SELECT cons.*, (select dbms_metadata.get_ddl('CONSTRAINT', cons.constraint_name) AS DDL from dual) AS DDL\n" + 
+					"FROM all_constraints cons\n" + 
+					"WHERE owner = :schema and table_name = :table and constraint_name not like 'SYS%'";
+
+			Connection connect = getConnection();
+			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);
+			stmt.setString("table", nameTable);
+			stmt.setString("schema", schema);
+			
+			ResultSet rs = stmt.executeQuery();
+			while(rs.next()){
+				DBConstraint con = new DBConstraint();
+				con.setName(rs.getString("CONSTRAINT_NAME"));
+				//This is DDL?
+				con.setConstraintDef(rs.getString("DDL"));
+				con.setConstraintType(rs.getString("CONSTRAINT_TYPE"));
+				con.setSchema(schema);
+				constraints.put(con.getName(), con);
+			}
+			stmt.close();
+			
+			return constraints;		
+			
+		}catch(Exception e) {
+			logger.error("Error load Constraints");
+			throw new ExceptionDBGitRunTime("Error", e);
+		}
 	}
 
 	@Override
@@ -342,13 +395,62 @@ public class DBAdapterOracle extends DBAdapter {
 	}
 	
 	public Map<String, DBTrigger> getTriggers(String schema) {
-		// TODO Auto-generated method stub
-				return null;
+		Map<String, DBTrigger> listTrigger = new HashMap<String, DBTrigger>();
+		try {
+			String query = "SELECT  tr.*, (select dbms_metadata.get_ddl('TRIGGER', tr.trigger_name) AS DDL from dual) AS DDL\n" + 
+					"FROM all_triggers tr\n" + 
+					"WHERE owner = :schema";
+			
+			Connection connect = getConnection();
+			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);			
+			stmt.setString("schema", schema);
+			
+			ResultSet rs = stmt.executeQuery(query);
+			while(rs.next()){
+				String name = rs.getString("TRIGGER_NAME");
+				String sql = rs.getString("DDL");
+				DBTrigger trigger = new DBTrigger(name);
+				trigger.setSql(sql);
+				trigger.setSchema(schema);
+				//what means owner? oracle/postgres or owner like database user/schema
+				trigger.setOwner("oracle");
+				rowToProperties(rs, trigger.getOptions());
+				listTrigger.put(name, trigger);
+			}
+			stmt.close();
+			return listTrigger;
+		}catch(Exception e) {
+			throw new ExceptionDBGitRunTime("Error ", e);	
+		}
 	}
 	
 	public DBTrigger getTrigger(String schema, String name) {
-		// TODO Auto-generated method stub
-				return null;
+		DBTrigger trigger = null;
+		try {
+			String query = "SELECT  tr.*, (select dbms_metadata.get_ddl('TRIGGER', tr.trigger_name) AS DDL from dual) AS DDL\n" + 
+					"FROM    all_triggers tr\n" + 
+					"WHERE   owner = :schema and trigger_name = :name";
+			
+			Connection connect = getConnection();
+			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);			
+			stmt.setString("schema", schema);
+			stmt.setString("name", name);
+			
+			ResultSet rs = stmt.executeQuery(query);
+			while(rs.next()){
+				String sql = rs.getString("DDL");
+				trigger = new DBTrigger(name);
+				trigger.setSql(sql);			
+				trigger.setSchema(schema);
+				//what means owner? oracle/postgres or owner like database user/schema
+				trigger.setOwner("oracle");
+				rowToProperties(rs, trigger.getOptions());
+			}
+			stmt.close();
+			return trigger;
+		}catch(Exception e) {
+			throw new ExceptionDBGitRunTime("Error ", e);	
+		}
 	}
 
 	@Override
