@@ -355,7 +355,7 @@ public class DBAdapterOracle extends DBAdapter {
 		try {
 			String query = "SELECT cons.*, (select dbms_metadata.get_ddl('CONSTRAINT', cons.constraint_name) AS DDL from dual) AS DDL\n" + 
 					"FROM all_constraints cons\n" + 
-					"WHERE owner = :schema and table_name = :table and constraint_name not like 'SYS%'";
+					"WHERE owner = :schema and table_name = :table and constraint_name not like 'SYS%' and cons.constraint_type = 'P'";
 
 			Connection connect = getConnection();
 			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);
@@ -397,13 +397,13 @@ public class DBAdapterOracle extends DBAdapter {
 	public Map<String, DBTrigger> getTriggers(String schema) {
 		Map<String, DBTrigger> listTrigger = new HashMap<String, DBTrigger>();
 		try {
-			String query = "SELECT  tr.*, (select dbms_metadata.get_ddl('TRIGGER', tr.trigger_name) AS DDL from dual) AS DDL\n" + 
+			String query = "SELECT  tr.owner, tr.trigger_name, tr.trigger_type, tr.table_name," + 
+					" (select dbms_metadata.get_ddl('TRIGGER', tr.trigger_name) AS DDL from dual) AS DDL\n" + 
 					"FROM all_triggers tr\n" + 
-					"WHERE owner = :schema";
+					"WHERE owner = '"+ schema +"'";
 			
 			Connection connect = getConnection();
-			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);			
-			stmt.setString("schema", schema);
+			Statement stmt = connect.createStatement();
 			
 			ResultSet rs = stmt.executeQuery(query);
 			while(rs.next()){
@@ -479,14 +479,58 @@ public class DBAdapterOracle extends DBAdapter {
 
 	@Override
 	public Map<String, DBFunction> getFunctions(String schema) {
-		// TODO Auto-generated method stub
-		return null;
+		Map<String, DBFunction> listFunction = new HashMap<String, DBFunction>();
+		try {
+			String query = "SELECT f.owner, f.object_name, (select dbms_metadata.get_ddl('FUNCTION', f.object_name) AS DDL from dual) AS DDL \n" + 
+					"FROM all_objects f WHERE f.owner = '" + schema + "' and f.object_type = 'FUNCTION'";
+			Connection connect = getConnection();
+			Statement stmt = connect.createStatement();
+			ResultSet rs = stmt.executeQuery(query);
+			while(rs.next()){
+				String name = rs.getString("OBJECT_NAME");
+				String sql = rs.getString("DDL");
+				String owner = rs.getString("OWNER");
+				//String args = rs.getString("arguments");
+				DBFunction func = new DBFunction(name);
+				func.setSql(sql);
+				func.setSchema(schema);
+				func.setOwner(owner);
+				rowToProperties(rs,func.getOptions());
+				//func.setArguments(args);
+				listFunction.put(name, func);
+			}
+			stmt.close();
+		}catch(Exception e) {
+			throw new ExceptionDBGitRunTime("Error load functions from " +schema, e);
+		}
+		return listFunction;
 	}
 
 	@Override
 	public DBFunction getFunction(String schema, String name) {
-		// TODO Auto-generated method stub
-		return null;
+		try {
+			String query = "SELECT f.owner, f.object_name, (select dbms_metadata.get_ddl('FUNCTION', f.object_name) AS DDL from dual) AS DDL \n" + 
+					"FROM all_objects f WHERE f.owner = '" + schema +"' and " + 
+					"f.object_type = 'FUNCTION' and f.object_name = '" + name +"'";
+			Connection connect = getConnection();
+			Statement stmt = connect.createStatement();
+			ResultSet rs = stmt.executeQuery(query);
+			rs.next();
+			DBFunction func = new DBFunction(rs.getString("OBJECT_NAME"));
+			String owner = rs.getString("OWNER");
+			//String args = rs.getString("arguments");
+			func.setSchema(schema);
+			func.setSql(rs.getString("DDL"));
+			func.setOwner(owner);
+			//func.setArguments(args);
+			rowToProperties(rs,func.getOptions());
+			stmt.close();
+			
+			return func;
+			
+		}catch(Exception e) {
+			throw new ExceptionDBGitRunTime("Error load function " +schema+"."+name, e);			
+		}
 	}
 
 	@Override
