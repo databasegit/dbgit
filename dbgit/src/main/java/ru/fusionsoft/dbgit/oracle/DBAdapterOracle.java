@@ -148,12 +148,11 @@ public class DBAdapterOracle extends DBAdapter {
 			//variant 2 from DBA_SEQUENCES
 			String query = 
 					"SELECT S.*, (SELECT dbms_metadata.get_ddl('SEQUENCE', S.SEQUENCE_NAME) from dual) AS DDL\n" + 
-					"FROM DBA_SEQUENCES S WHERE S.SEQUENCE_OWNER = :schema";
+					"FROM DBA_SEQUENCES S WHERE S.SEQUENCE_OWNER = '" + schema + "'";
 			
-			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);
-			stmt.setString("schema", schema);
+			Statement stmt = connect.createStatement();
+			ResultSet rs = stmt.executeQuery(query);
 						
-			ResultSet rs = stmt.executeQuery();
 			while(rs.next()){
 				String nameSeq = rs.getString("SEQUENCE_NAME");
 				DBSequence sequence = new DBSequence();
@@ -177,13 +176,11 @@ public class DBAdapterOracle extends DBAdapter {
 			Connection connect = getConnection();
 			String query = 
 					"SELECT S.*, (SELECT dbms_metadata.get_ddl('SEQUENCE', :name) from dual) AS DDL\n" + 
-					"FROM DBA_SEQUENCES S WHERE S.SEQUENCE_OWNER = :schema AND S.SEQUENCE_NAME = :name";
+					"FROM DBA_SEQUENCES S WHERE S.SEQUENCE_OWNER = '" + schema + "' AND S.SEQUENCE_NAME = '" + name + "'";
 			
-			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);
-			stmt.setString("schema", schema);
-			stmt.setString("name", name);
+			Statement stmt = connect.createStatement();
+			ResultSet rs = stmt.executeQuery(query);
 						
-			ResultSet rs = stmt.executeQuery();
 			rs.next();
 			String nameSeq = rs.getString("SEQUENCE_NAME");
 			DBSequence sequence = new DBSequence();
@@ -205,13 +202,12 @@ public class DBAdapterOracle extends DBAdapter {
 		Map<String, DBTable> listTable = new HashMap<String, DBTable>();
 		try {
 			String query = "SELECT T.*, (SELECT dbms_metadata.get_ddl('TABLE', T.TABLE_NAME) from dual) AS DDL\n" + 
-					"FROM DBA_TABLES T WHERE OWNER = :schema";
+					"FROM DBA_TABLES T WHERE OWNER = '" + schema + "'";
 			Connection connect = getConnection();
 			
-			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);			
-			stmt.setString("schema", schema);
+			Statement stmt = connect.createStatement();
+			ResultSet rs = stmt.executeQuery(query);
 			
-			ResultSet rs = stmt.executeQuery();
 			while(rs.next()){
 				String nameTable = rs.getString("TABLE_NAME");
 				DBTable table = new DBTable(nameTable);
@@ -231,14 +227,12 @@ public class DBAdapterOracle extends DBAdapter {
 	public DBTable getTable(String schema, String name) {
 		try {
 			String query = "SELECT T.*, (SELECT dbms_metadata.get_ddl('TABLE', T.TABLE_NAME) from dual) AS DDL\n" + 
-							"FROM DBA_TABLES T WHERE T.OWNER = :schema AND T.TABLE_NAME = :name";
+							"FROM DBA_TABLES T WHERE T.OWNER = '" + schema + "' AND T.TABLE_NAME = '" + name + "'";
 			Connection connect = getConnection();
 			
-			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);			
-			stmt.setString("schema", schema);
-			stmt.setString("name", name);
-			
+			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
+
 			rs.next();
 			String nameTable = rs.getString("TABLE_NAME");
 			DBTable table = new DBTable(nameTable);
@@ -261,14 +255,12 @@ public class DBAdapterOracle extends DBAdapter {
 			
 			String query = 
 					"SELECT ROWNUM AS NUM, TC.* FROM DBA_TAB_COLS TC \n" + 
-					"WHERE table_name = :tableName AND OWNER = :schema";
+					"WHERE table_name = '" + nameTable + "' AND OWNER = '" + schema + "'";
 			Connection connect = getConnection();			
 			
-			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);			
-			stmt.setString("schema", schema);
-			stmt.setString("tableName", nameTable);
+			Statement stmt = connect.createStatement();
+			ResultSet rs = stmt.executeQuery(query);
 
-			ResultSet rs = stmt.executeQuery();
 			while(rs.next()){				
 				DBTableField field = new DBTableField();
 				field.setName(rs.getString("COLUMN_NAME").toLowerCase());  
@@ -323,14 +315,11 @@ public class DBAdapterOracle extends DBAdapter {
 		try {
 			String query = "SELECT  ind.*, (select dbms_metadata.get_ddl('INDEX', ind.INDEX_NAME) AS DDL from dual) AS DDL\n" + 
 					"FROM all_indexes ind\n" + 
-					"WHERE table_name = :tableName AND owner = :schema";
+					"WHERE table_name = '" + nameTable + "' AND owner = '" + schema + "'";
 			
-			Connection connect = getConnection();
-			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);			
-			stmt.setString("schema", schema);
-			stmt.setString("tableName", nameTable);
+			Statement stmt = connect.createStatement();
+			ResultSet rs = stmt.executeQuery(query);
 
-			ResultSet rs = stmt.executeQuery();
 			while(rs.next()){
 				DBIndex index = new DBIndex();
 				index.setName(rs.getString("INDEX_NAME"));
@@ -355,14 +344,11 @@ public class DBAdapterOracle extends DBAdapter {
 		try {
 			String query = "SELECT cons.*, (select dbms_metadata.get_ddl('CONSTRAINT', cons.constraint_name) AS DDL from dual) AS DDL\n" + 
 					"FROM all_constraints cons\n" + 
-					"WHERE owner = :schema and table_name = :table and constraint_name not like 'SYS%' and cons.constraint_type = 'P'";
+					"WHERE owner = '" + schema + "' and table_name = '" + nameTable + "' and constraint_name not like 'SYS%' and cons.constraint_type = 'P'";
 
-			Connection connect = getConnection();
-			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);
-			stmt.setString("table", nameTable);
-			stmt.setString("schema", schema);
+			Statement stmt = connect.createStatement();
+			ResultSet rs = stmt.executeQuery(query);
 			
-			ResultSet rs = stmt.executeQuery();
 			while(rs.next()){
 				DBConstraint con = new DBConstraint();
 				con.setName(rs.getString("CONSTRAINT_NAME"));
@@ -384,14 +370,51 @@ public class DBAdapterOracle extends DBAdapter {
 
 	@Override
 	public Map<String, DBView> getViews(String schema) {
-		// TODO Auto-generated method stub
-		return null;
+		Map<String, DBView> listView = new HashMap<String, DBView>();
+		try {
+			String query = "SELECT f.owner, f.object_name, (select dbms_metadata.get_ddl('VIEW', f.object_name) AS DDL from dual) AS DDL \n" + 
+					"FROM all_objects f WHERE f.owner = '" + schema + "' and f.object_type = 'VIEW'";
+			Connection connect = getConnection();
+			Statement stmt = connect.createStatement();
+			ResultSet rs = stmt.executeQuery(query);
+			while(rs.next()){
+				DBView view = new DBView(rs.getString("OBJECT_NAME"));
+				view.setSql(rs.getString("DDL"));
+				view.setSchema(rs.getString("OWNER"));
+				view.setOwner(rs.getString("OWNER"));
+				listView.put(rs.getString("OBJECT_NAME"), view);
+			}
+			stmt.close();
+			return listView;
+		}catch(Exception e) {
+			logger.error(e.getMessage());
+			System.out.println(e.getMessage());
+			throw new ExceptionDBGitRunTime(e.getMessage());
+		}
 	}
 
 	@Override
 	public DBView getView(String schema, String name) {
-		// TODO Auto-generated method stub
-		return null;
+		DBView view = new DBView(name);
+		view.setSchema(schema);
+		try {
+			String query = "SELECT f.owner, f.object_name, (select dbms_metadata.get_ddl('VIEW', f.object_name) AS DDL from dual) AS DDL \n" + 
+					"FROM all_objects f WHERE f.owner = '" + schema + "' and f.object_type = 'VIEW' and f.object_name = '" + name + "'";
+			Connection connect = getConnection();
+			Statement stmt = connect.createStatement();
+			ResultSet rs = stmt.executeQuery(query);
+			
+			rs.next();
+			view.setOwner(rs.getString("OWNER"));
+			view.setSql(rs.getString("DDL"));
+			
+			stmt.close();
+			return view;
+			
+		}catch(Exception e) {
+			logger.error(e.getMessage());
+			throw new ExceptionDBGitRunTime(e.getMessage());
+		}
 	}
 	
 	public Map<String, DBTrigger> getTriggers(String schema) {
@@ -429,14 +452,11 @@ public class DBAdapterOracle extends DBAdapter {
 		try {
 			String query = "SELECT  tr.*, (select dbms_metadata.get_ddl('TRIGGER', tr.trigger_name) AS DDL from dual) AS DDL\n" + 
 					"FROM    all_triggers tr\n" + 
-					"WHERE   owner = :schema and trigger_name = :name";
+					"WHERE   owner = '" + schema + "' and trigger_name = '" + name + "'";
 			
-			Connection connect = getConnection();
-			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);			
-			stmt.setString("schema", schema);
-			stmt.setString("name", name);
-			
+			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
+
 			while(rs.next()){
 				String sql = rs.getString("DDL");
 				trigger = new DBTrigger(name);
@@ -455,26 +475,112 @@ public class DBAdapterOracle extends DBAdapter {
 
 	@Override
 	public Map<String, DBPackage> getPackages(String schema) {
-		// TODO Auto-generated method stub
-		return null;
+		Map<String, DBPackage> listPackage = new HashMap<String, DBPackage>();
+		try {
+			String query = "SELECT f.owner, f.object_name, (select dbms_metadata.get_ddl('PACKAGE', f.object_name) AS DDL from dual) AS DDL \n" + 
+					"FROM all_objects f WHERE f.owner = '" + schema + "' and f.object_type = 'PACKAGE'";
+			Connection connect = getConnection();
+			Statement stmt = connect.createStatement();
+			ResultSet rs = stmt.executeQuery(query);
+			while(rs.next()){
+				String name = rs.getString("OBJECT_NAME");
+				String sql = rs.getString("DDL");
+				String owner = rs.getString("OWNER");
+				//String args = rs.getString("arguments");
+				DBPackage pack = new DBPackage(name);
+				pack.setSql(sql);
+				pack.setSchema(schema);
+				pack.setOwner(owner);
+				rowToProperties(rs,pack.getOptions());
+				//pack.setArguments(args);
+				listPackage.put(name, pack);
+			}
+			stmt.close();
+		}catch(Exception e) {
+			throw new ExceptionDBGitRunTime("Error load functions from " +schema, e);
+		}
+		return listPackage;
 	}
 
 	@Override
 	public DBPackage getPackage(String schema, String name) {
-		// TODO Auto-generated method stub
-		return null;
+		try {
+			String query = "SELECT f.owner, f.object_name, (select dbms_metadata.get_ddl('PACKAGE', f.object_name) AS DDL from dual) AS DDL \n" + 
+					"FROM all_objects f WHERE f.owner = '" + schema + "' and f.object_type = 'PACKAGE' and f.object_name = '" + name + "'";
+			Connection connect = getConnection();
+			Statement stmt = connect.createStatement();
+			ResultSet rs = stmt.executeQuery(query);
+			rs.next();
+			DBPackage pack = new DBPackage(name);
+			String owner = rs.getString("OWNER");
+			//String args = rs.getString("arguments");
+			pack.setSchema(schema);
+			pack.setSql(rs.getString("DDL"));
+			pack.setOwner(owner);
+			//pack.setArguments(args);
+			rowToProperties(rs,pack.getOptions());
+			stmt.close();
+			
+			return pack;
+			
+		}catch(Exception e) {
+			throw new ExceptionDBGitRunTime("Error load function " +schema+"."+name, e);			
+		}
 	}
 
 	@Override
 	public Map<String, DBProcedure> getProcedures(String schema) {
-		// TODO Auto-generated method stub
-		return null;
+		Map<String, DBProcedure> listProcedure = new HashMap<String, DBProcedure>();
+		try {
+			String query = "SELECT f.owner, f.object_name, (select dbms_metadata.get_ddl('PROCEDURE', f.object_name) AS DDL from dual) AS DDL \n" + 
+					"FROM all_objects f WHERE f.owner = '" + schema + "' and f.object_type = 'PROCEDURE'";
+			Connection connect = getConnection();
+			Statement stmt = connect.createStatement();
+			ResultSet rs = stmt.executeQuery(query);
+			while(rs.next()){
+				String name = rs.getString("OBJECT_NAME");
+				String sql = rs.getString("DDL");
+				String owner = rs.getString("OWNER");
+				//String args = rs.getString("arguments");
+				DBProcedure proc = new DBProcedure();
+				proc.setSql(sql);
+				proc.setSchema(schema);
+				proc.setOwner(owner);
+				rowToProperties(rs,proc.getOptions());
+				//proc.setArguments(args);
+				listProcedure.put(name, proc);
+			}
+			stmt.close();
+		}catch(Exception e) {
+			throw new ExceptionDBGitRunTime("Error load functions from " +schema, e);
+		}
+		return listProcedure;
 	}
 
 	@Override
 	public DBProcedure getProcedure(String schema, String name) {
-		// TODO Auto-generated method stub
-		return null;
+		try {
+			String query = "SELECT f.owner, f.object_name, (select dbms_metadata.get_ddl('PROCEDURE', f.object_name) AS DDL from dual) AS DDL \n" + 
+					"FROM all_objects f WHERE f.owner = '" + schema + "' and f.object_type = 'PROCEDURE' and f.object_name = '" + name + "'";
+			Connection connect = getConnection();
+			Statement stmt = connect.createStatement();
+			ResultSet rs = stmt.executeQuery(query);
+			rs.next();
+			DBProcedure proc = new DBProcedure();
+			String owner = rs.getString("OWNER");
+			//String args = rs.getString("arguments");
+			proc.setSchema(schema);
+			proc.setSql(rs.getString("DDL"));
+			proc.setOwner(owner);
+			//proc.setArguments(args);
+			rowToProperties(rs,proc.getOptions());
+			stmt.close();
+			
+			return proc;
+			
+		}catch(Exception e) {
+			throw new ExceptionDBGitRunTime("Error load function " +schema+"."+name, e);			
+		}
 	}
 
 	@Override
