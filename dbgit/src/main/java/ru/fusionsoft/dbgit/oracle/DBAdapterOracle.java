@@ -116,7 +116,7 @@ public class DBAdapterOracle extends DBAdapter {
 					"  FROM dba_segments \n" + 
 					" WHERE OWNER != 'PUBLIC' AND OWNER != 'SYSTEM'\n" + 
 					"AND OWNER != 'SYS' AND OWNER != 'APPQOSSYS' AND OWNER != 'OUTLN' \n" + 
-					"AND OWNER != 'DIP' AND OWNER != 'DBSNMP' AND OWNER != 'ORACLE_OCM'";
+					"AND OWNER != 'DIP' AND OWNER != 'DBSNMP' AND OWNER != 'ORACLE_OCM' and segment_name not like 'SYS%'";
 			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
@@ -641,8 +641,39 @@ public class DBAdapterOracle extends DBAdapter {
 
 	@Override
 	public DBTableData getTableData(String schema, String nameTable, int paramFetch) {
-		// TODO Auto-generated method stub
-		return null;
+		String tableName = schema + "." + nameTable;
+		try {
+			DBTableData data = new DBTableData();
+			
+			
+			if (paramFetch == LIMIT_FETCH) {
+				Statement st = getConnection().createStatement();
+				String query = "select COALESCE(count(*), 0) row_count from ( select 1 from "+
+						tableName+" where ROWNUM <= " + (MAX_ROW_COUNT_FETCH+1) + " ) tbl";
+				ResultSet rs = st.executeQuery(query);
+				rs.next();
+				if (rs.getInt("row_count") > MAX_ROW_COUNT_FETCH) {
+					data.setErrorFlag(DBTableData.ERROR_LIMIT_ROWS);
+					return data;
+				}
+				
+				rs = st.executeQuery("select * from " + tableName);
+				data.setResultSet(rs);
+				return data;
+			}
+			
+			//TODO other state
+			
+			return data;
+		} catch(Exception e) {
+			logger.error("Error load data from " + tableName, e);
+			try {
+				getConnection().rollback(); 
+			} catch (Exception e2) {
+				logger.error("Error rollback  ", e2);
+			}
+			throw new ExceptionDBGitRunTime(e.getMessage());
+		}
 	}
 /*
 	@Override
@@ -678,7 +709,9 @@ public class DBAdapterOracle extends DBAdapter {
 	public Map<String, DBRole> getRoles() {
 		Map<String, DBRole> listRole = new HashMap<String, DBRole>();
 		try {
-			String query = "SELECT ROWNUM AS NUM, GRANTEE, GRANTED_ROLE, ADMIN_OPTION, DEFAULT_ROLE FROM DBA_ROLE_PRIVS R WHERE GRANTEE = (SELECT USERNAME FROM DBA_USERS WHERE USERNAME = R.GRANTEE AND\n" + 
+			String query = "SELECT R.GRANTEE, \n" + 
+					"R.GRANTED_ROLE, R.ADMIN_OPTION, R.DEFAULT_ROLE FROM DBA_ROLE_PRIVS R \n" + 
+					"WHERE R.GRANTEE = (SELECT USERNAME FROM DBA_USERS WHERE USERNAME = R.GRANTEE AND\n" + 
 					"USERNAME != 'PUBLIC' AND USERNAME != 'SYSTEM'\n" + 
 					"AND USERNAME != 'SYS' AND USERNAME != 'APPQOSSYS' AND USERNAME != 'OUTLN' \n" + 
 					"AND USERNAME != 'DIP' AND USERNAME != 'DBSNMP' AND USERNAME != 'ORACLE_OCM')";
@@ -686,7 +719,7 @@ public class DBAdapterOracle extends DBAdapter {
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
 			while(rs.next()){
-				String name = rs.getString("NUM");
+				String name = rs.getString("GRANTEE") + "_" + rs.getString("GRANTED_ROLE");
 				DBRole role = new DBRole(name);
 				rowToProperties(rs, role.getOptions());
 				listRole.put(name, role);
