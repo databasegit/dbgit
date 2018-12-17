@@ -32,27 +32,27 @@ import ru.fusionsoft.dbgit.dbobjects.DBTrigger;
 import ru.fusionsoft.dbgit.dbobjects.DBUser;
 import ru.fusionsoft.dbgit.dbobjects.DBView;
 import ru.fusionsoft.dbgit.meta.IMapMetaObject;
+import ru.fusionsoft.dbgit.oracle.FactoryDBAdapterRestoreOracle;
 import ru.fusionsoft.dbgit.utils.LoggerUtil;
 import org.slf4j.Logger;
 
-import com.axiomalaska.jdbc.NamedParameterPreparedStatement;
 
 public class DBAdapterOracle extends DBAdapter {
 	public static final String DEFAULT_MAPPING_TYPE = "VARCHAR2";
 	
 	private Logger logger = LoggerUtil.getLogger(this.getClass());
+	private FactoryDBAdapterRestoreOracle restoreFactory = new FactoryDBAdapterRestoreOracle();
 
-	@Override
-	public IFactoryDBAdapterRestoteMetaData getFactoryRestore() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
 	public void registryMappingTypes() {
 		FactoryCellData.regMappingTypes(DEFAULT_MAPPING_TYPE, StringData.class);
 		FactoryCellData.regMappingTypes("VARCHAR2", StringData.class);
 		FactoryCellData.regMappingTypes("NUMBER", LongData.class);
 		FactoryCellData.regMappingTypes("BLOB", BlobData.class);
+	}
+	
+	@Override
+	public IFactoryDBAdapterRestoteMetaData getFactoryRestore() {
+		return restoreFactory;
 	}
 
 	@Override
@@ -175,7 +175,7 @@ public class DBAdapterOracle extends DBAdapter {
 		try {
 			Connection connect = getConnection();
 			String query = 
-					"SELECT S.*, (SELECT dbms_metadata.get_ddl('SEQUENCE', :name) from dual) AS DDL\n" + 
+					"SELECT S.*, (SELECT dbms_metadata.get_ddl('SEQUENCE', S.SEQUENCE_NAME) from dual) AS DDL\n" + 
 					"FROM DBA_SEQUENCES S WHERE S.SEQUENCE_OWNER = '" + schema + "' AND S.SEQUENCE_NAME = '" + name + "'";
 			
 			Statement stmt = connect.createStatement();
