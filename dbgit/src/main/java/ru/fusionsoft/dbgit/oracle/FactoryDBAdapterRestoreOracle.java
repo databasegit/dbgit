@@ -18,8 +18,17 @@ public class FactoryDBAdapterRestoreOracle implements IFactoryDBAdapterRestoteMe
 	private static final Map<String, IDBAdapterRestoreMetaData> restoreAdapters;
 	static {
         Map<String, IDBAdapterRestoreMetaData> aMap = new HashMap<String, IDBAdapterRestoreMetaData>();
-
-
+        aMap.put(DBGitMetaType.DBGitSchema.getValue(), new DBRestoreSchemaOracle());
+        //aMap.put(DBGitMetaType.DBGitTableSpace.getValue(), new DBRestoreTableSpaceOracle());
+        //aMap.put(DBGitMetaType.DBGitRole.getValue(), new DBRestoreRoleOracle());
+        aMap.put(DBGitMetaType.DBGitSequence.getValue(), new DBRestoreSequenceOracle());
+        aMap.put(DBGitMetaType.DBGitTable.getValue(), new DBRestoreTableOracle());
+        //aMap.put(DBGitMetaType.DbGitTableData.getValue(), new DBRestoreTableDataOracle());
+        //aMap.put(DBGitMetaType.DbGitProcedure.getValue(), new DBRestoreProcedureOracle());
+        aMap.put(DBGitMetaType.DbGitFunction.getValue(), new DBRestoreFunctionOracle());
+        //aMap.put(DBGitMetaType.DbGitTrigger.getValue(), new DBRestoreTriggerOracle());
+        //aMap.put(DBGitMetaType.DbGitView.getValue(), new DBRestoreViewOracle());
+        //aMap.put(DBGitMetaType.DBGitUser.getValue(), new DBRestoreUserOracle());
         
         //TODO other restore adapter
 
