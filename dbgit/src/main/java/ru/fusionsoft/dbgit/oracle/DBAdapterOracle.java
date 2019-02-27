@@ -14,6 +14,7 @@ import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
 import ru.fusionsoft.dbgit.data_table.BlobData;
 import ru.fusionsoft.dbgit.data_table.FactoryCellData;
 import ru.fusionsoft.dbgit.data_table.LongData;
+import ru.fusionsoft.dbgit.data_table.MapFileData;
 import ru.fusionsoft.dbgit.data_table.StringData;
 import ru.fusionsoft.dbgit.dbobjects.DBConstraint;
 import ru.fusionsoft.dbgit.dbobjects.DBFunction;
@@ -43,11 +44,13 @@ public class DBAdapterOracle extends DBAdapter {
 	private Logger logger = LoggerUtil.getLogger(this.getClass());
 	private FactoryDBAdapterRestoreOracle restoreFactory = new FactoryDBAdapterRestoreOracle();
 
+	private String s;
+
 	public void registryMappingTypes() {
 		FactoryCellData.regMappingTypes(DEFAULT_MAPPING_TYPE, StringData.class);
 		FactoryCellData.regMappingTypes("VARCHAR2", StringData.class);
 		FactoryCellData.regMappingTypes("NUMBER", LongData.class);
-		FactoryCellData.regMappingTypes("BLOB", BlobData.class);
+		FactoryCellData.regMappingTypes("BLOB", MapFileData.class);
 	}
 	
 	@Override
@@ -253,24 +256,36 @@ public class DBAdapterOracle extends DBAdapter {
 		try {
 			Map<String, DBTableField> listField = new HashMap<String, DBTableField>();
 			
-			String query = 
-					"SELECT ROWNUM AS NUM, TC.* FROM DBA_TAB_COLS TC \n" + 
-					"WHERE table_name = '" + nameTable + "' AND OWNER = '" + schema + "'";
+			String query1 = 
+					"SELECT column_name FROM all_constraints cons, all_cons_columns cols\n"+
+					"WHERE cols.table_name = '" + nameTable + "'\n"+
+					"AND cons.constraint_type = 'P'\n" + 
+					"AND cons.constraint_name = cols.constraint_name\n" +
+					"AND cons.owner = cols.owner";			
 			Connection connect = getConnection();			
 			
 			Statement stmt = connect.createStatement();
+			ResultSet rs1 = stmt.executeQuery(query1);
+			
+			rs1.next();
+			String s = rs1.getString("COLUMN_NAME").toLowerCase();
+			
+			String query = 
+					"SELECT ROWNUM AS NUM, TC.* FROM DBA_TAB_COLS TC \n" + 
+					"WHERE table_name = '" + nameTable + "' AND OWNER = '" + schema + "'";
+			
 			ResultSet rs = stmt.executeQuery(query);
-
 			while(rs.next()){				
 				DBTableField field = new DBTableField();
 				field.setName(rs.getString("COLUMN_NAME").toLowerCase());  
-				/*if (rs.getString("constraint_name") != null) { 
+				if (rs.getString("COLUMN_NAME").toLowerCase().equals(s)) { 
 					field.setIsPrimaryKey(true);
-				}*/
+				}
 				field.setTypeSQL(getFieldType(rs));
 				field.setTypeMapping(getTypeMapping(rs));
 				listField.put(field.getName(), field);
 			}
+			
 			stmt.close();
 			
 			return listField;
