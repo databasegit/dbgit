@@ -11,7 +11,6 @@ import ru.fusionsoft.dbgit.adapters.DBAdapter;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBAdapterRestoteMetaData;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
-import ru.fusionsoft.dbgit.data_table.BlobData;
 import ru.fusionsoft.dbgit.data_table.FactoryCellData;
 import ru.fusionsoft.dbgit.data_table.LongData;
 import ru.fusionsoft.dbgit.data_table.MapFileData;
