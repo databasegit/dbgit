@@ -560,6 +560,7 @@ public class DBAdapterOracle extends DBAdapter {
 				proc.setSql(sql);
 				proc.setSchema(schema);
 				proc.setOwner(owner);
+				proc.setName(name);
 				rowToProperties(rs,proc.getOptions());
 				//proc.setArguments(args);
 				listProcedure.put(name, proc);
