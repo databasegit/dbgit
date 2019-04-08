@@ -11,6 +11,8 @@ import org.eclipse.jgit.internal.storage.file.FileRepository;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 
+import ru.fusionsoft.dbgit.utils.ConsoleWriter;
+
 public class DBGit {
 	private static DBGit dbGit = null;
 	private Repository repository;
@@ -30,8 +32,15 @@ public class DBGit {
 		}
 	}
 	
-	public static DBGit getInctance() throws ExceptionDBGit {
+	public static DBGit getInstance() throws ExceptionDBGit {
 		if (dbGit == null) {
+			FileRepositoryBuilder builder = new FileRepositoryBuilder();
+			
+			if (builder.readEnvironment().findGitDir().getGitDir() == null) {
+				ConsoleWriter.printlnRed( "Git repository not found");				
+				System.exit(0);
+			}
+			
 			dbGit = new DBGit();
 		}
 		return dbGit;

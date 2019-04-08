@@ -49,7 +49,7 @@ public class CmdStatus implements IDBGitCommand {
 		IMapMetaObject fileObjs = gmdm.loadFileMetaData();
 		IMapMetaObject changeObjs = new TreeMapMetaObject();
 		IMapMetaObject addedObjs = new TreeMapMetaObject();
-		DBGit dbGit = DBGit.getInctance();
+		DBGit dbGit = DBGit.getInstance();
 		
 		SchemaSynonim ss = SchemaSynonim.getInctance();
 				

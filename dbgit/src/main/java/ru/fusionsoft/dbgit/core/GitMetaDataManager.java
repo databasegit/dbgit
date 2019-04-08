@@ -209,7 +209,7 @@ public class GitMetaDataManager {
 	public IMapMetaObject loadFileMetaData() throws ExceptionDBGit {
 		try {
 			IMapMetaObject objs = new TreeMapMetaObject();
-			DBGit dbGit = DBGit.getInctance();  
+			DBGit dbGit = DBGit.getInstance();  
 			
 			List<String> files = dbGit.getGitIndexFiles(DBGitPath.DB_GIT_PATH);
 			for (int i = 0; i < files.size(); i++) {

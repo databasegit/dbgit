@@ -90,7 +90,7 @@ public class DBGitIndex {
 	}
 	
 	public void addToGit() throws ExceptionDBGit {
-		DBGit dbGit = DBGit.getInctance();
+		DBGit dbGit = DBGit.getInstance();
 		dbGit.addFileToIndexGit(DBGitPath.DB_GIT_PATH+"/"+DBGitPath.INDEX_FILE);
 	}
 }

@@ -40,7 +40,7 @@ public class Experiment {
 	
 	
     public void test() throws Exception {
-    	DBGit dbGit = DBGit.getInctance();    	
+    	DBGit dbGit = DBGit.getInstance();    	
     	System.out.println(dbGit.getRepository().getDirectory().getAbsolutePath());    	
     	System.out.println(dbGit.getRepository().getBranch());    	
     	System.out.println(dbGit.getRootDirectory());

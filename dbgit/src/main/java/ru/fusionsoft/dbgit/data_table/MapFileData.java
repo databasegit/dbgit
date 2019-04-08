@@ -81,7 +81,7 @@ public class MapFileData implements ICellData {
 	}
 	
 	public int addToGit() throws ExceptionDBGit {
-		DBGit dbGit = DBGit.getInctance();
+		DBGit dbGit = DBGit.getInstance();
 		if (srcFile != null) {
 			dbGit.addFileToIndexGit(DBGitPath.DB_GIT_PATH+"/"+srcFile);
 			return 1;
@@ -90,7 +90,7 @@ public class MapFileData implements ICellData {
 	}
 	
 	public int removeFromGit() throws ExceptionDBGit {
-		DBGit dbGit = DBGit.getInctance();
+		DBGit dbGit = DBGit.getInstance();
 		if (srcFile != null) {
 			dbGit.removeFileFromIndexGit(DBGitPath.DB_GIT_PATH+"/"+srcFile);
 			return 1;

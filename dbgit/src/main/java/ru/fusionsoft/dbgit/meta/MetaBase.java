@@ -73,14 +73,14 @@ public abstract class MetaBase implements IMetaObject {
 	
 	@Override
 	public int addToGit() throws ExceptionDBGit {
-		DBGit dbGit = DBGit.getInctance();
+		DBGit dbGit = DBGit.getInstance();
 		dbGit.addFileToIndexGit(DBGitPath.DB_GIT_PATH+"/"+getFileName());
 		return 1;
 	}
 	
 	@Override
 	public int removeFromGit() throws ExceptionDBGit {
-		DBGit dbGit = DBGit.getInctance();
+		DBGit dbGit = DBGit.getInstance();
 		dbGit.removeFileFromIndexGit(DBGitPath.DB_GIT_PATH+"/"+getFileName());
 		return 1;
 	}

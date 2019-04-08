@@ -34,7 +34,7 @@ public class DBGitPath {
 	}
 	
 	public static String getFullPath() throws ExceptionDBGit {
-		DBGit dbGit = DBGit.getInctance();
+		DBGit dbGit = DBGit.getInstance();
 		return dbGit.getRootDirectory()+"/"+DB_GIT_PATH + "/";
 	}
 	
