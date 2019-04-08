@@ -11,6 +11,7 @@ import ru.fusionsoft.dbgit.core.GitMetaDataManager;
 import ru.fusionsoft.dbgit.meta.IMapMetaObject;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
 import ru.fusionsoft.dbgit.meta.TreeMapMetaObject;
+import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 import ru.fusionsoft.dbgit.utils.MaskFilter;
 
 public class CmdRm implements IDBGitCommand {
@@ -67,6 +68,8 @@ public class CmdRm implements IDBGitCommand {
 		if (countDelete > 0) {
 			index.saveDBIndex();
 			index.addToGit();
+		} else {
+			ConsoleWriter.printlnRed("File \"" + nameObj + "\" doesn't exist");
 		}
 		
 	}

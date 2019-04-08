@@ -28,9 +28,12 @@ public class MapFileData implements ICellData {
 		InputStream stream = getBlobData(rs, fieldname);		
 		tmpFile = new File(DBGitPath.getTempDirectory()+"/"+Convertor.getGUID());
 		
-		Files.copy(stream, tmpFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-	    
-		return true;
+		if (stream != null) {
+			Files.copy(stream, tmpFile.toPath(), StandardCopyOption.REPLACE_EXISTING);	    
+			return true;
+		} else {
+			return false;
+		}
 	}
 	
 	@Override

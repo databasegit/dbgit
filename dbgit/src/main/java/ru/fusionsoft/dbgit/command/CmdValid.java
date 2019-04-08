@@ -33,7 +33,6 @@ public class CmdValid implements IDBGitCommand {
 	
 	@Override
 	public void execute(CommandLine cmdLine) throws Exception {
-		// TODO Auto-generated method stub
 		GitMetaDataManager gmdm = GitMetaDataManager.getInctance();
 		
 		//возможно за списком файлов нужно будет сходить в гит индекс

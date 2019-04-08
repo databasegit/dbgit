@@ -40,8 +40,8 @@ public class RowData {
 			String columnName = rs.getMetaData().getColumnName(i+1).toLowerCase();
 			ICellData cd = FactoryCellData.createCellData(metaTable.getFieldsMap().get(columnName).getTypeMapping());
 			
-			cd.loadFromDB(rs, rs.getMetaData().getColumnName(i+1));
-			data.put(columnName, cd);
+			if (cd.loadFromDB(rs, rs.getMetaData().getColumnName(i+1)))
+				data.put(columnName, cd);
 		}
 
 		hashRow = calcRowHash();
