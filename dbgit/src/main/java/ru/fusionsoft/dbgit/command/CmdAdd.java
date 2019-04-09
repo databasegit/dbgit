@@ -39,7 +39,7 @@ public class CmdAdd implements IDBGitCommand {
 	
 	public void execute(CommandLine cmdLine)  throws Exception {		
 		if (cmdLine.getArgs().length == 0) {
-			throw new ExceptionDBGit("Bad command. Not founnd object to add!");
+			throw new ExceptionDBGit("Bad command. Not found object to add!");
 		}
 						
 		String nameObj = cmdLine.getArgs()[0];
@@ -67,6 +67,8 @@ public class CmdAdd implements IDBGitCommand {
 		if (countSave > 0) {
 			index.saveDBIndex();
 			index.addToGit();
+		} else {
+			ConsoleWriter.printlnRed("Can't find object \"" + nameObj + "\" in database");
 		}
 	}
 }
