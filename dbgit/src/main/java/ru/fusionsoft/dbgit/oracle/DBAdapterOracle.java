@@ -6,10 +6,13 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import ru.fusionsoft.dbgit.adapters.DBAdapter;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
+import ru.fusionsoft.dbgit.adapters.IDBAdapterRestoreMetaData;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBAdapterRestoteMetaData;
+import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
 import ru.fusionsoft.dbgit.data_table.FactoryCellData;
 import ru.fusionsoft.dbgit.data_table.LongData;
@@ -32,7 +35,9 @@ import ru.fusionsoft.dbgit.dbobjects.DBTrigger;
 import ru.fusionsoft.dbgit.dbobjects.DBUser;
 import ru.fusionsoft.dbgit.dbobjects.DBView;
 import ru.fusionsoft.dbgit.meta.IMapMetaObject;
+import ru.fusionsoft.dbgit.meta.IMetaObject;
 import ru.fusionsoft.dbgit.oracle.FactoryDBAdapterRestoreOracle;
+import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 import ru.fusionsoft.dbgit.utils.LoggerUtil;
 import org.slf4j.Logger;
 
@@ -64,8 +69,16 @@ public class DBAdapterOracle extends DBAdapter {
 	}
 	
 	@Override
-	public void restoreDataBase(IMapMetaObject updateObjs) {
-		
+	public void restoreDataBase(IMapMetaObject updateObjs) throws ExceptionDBGit {
+		for (Entry<String, IMetaObject> entry : updateObjs.entrySet()) {			
+			IDBAdapterRestoreMetaData restoreAdapter = restoreFactory.getAdapterRestore(entry.getValue().getType(), this);
+			try {
+				restoreAdapter.restoreMetaObject(entry.getValue());
+				ConsoleWriter.printlnGreen(entry.getValue().getName() + " restored successfully");
+			} catch (Exception e) {
+				throw new ExceptionDBGit("Cannot restore " + entry.getValue().getName(), e);
+			}
+		}
 	}
 
 	@Override
