@@ -34,10 +34,10 @@ public class CmdValid implements IDBGitCommand {
 	@Override
 	public void execute(CommandLine cmdLine) throws Exception {
 		GitMetaDataManager gmdm = GitMetaDataManager.getInctance();
+		boolean toShowLog = ((cmdLine.getArgs().length > 0) && (cmdLine.getArgs()[0].equalsIgnoreCase("log")));
 		
 		//возможно за списком файлов нужно будет сходить в гит индекс
-		Map<String, IMetaObject> fileObjs = gmdm.loadFileMetaData();
-		
+		Map<String, IMetaObject> fileObjs = gmdm.loadFileMetaData(toShowLog);
 		
 	}
 

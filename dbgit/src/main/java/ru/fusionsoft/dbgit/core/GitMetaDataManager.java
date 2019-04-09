@@ -22,6 +22,7 @@ import ru.fusionsoft.dbgit.meta.MetaSql;
 import ru.fusionsoft.dbgit.meta.MetaTable;
 import ru.fusionsoft.dbgit.meta.MetaTableData;
 import ru.fusionsoft.dbgit.meta.TreeMapMetaObject;
+import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
 /**
  * <div class="en">Manager of meta description objects.</div>
@@ -202,26 +203,45 @@ public class GitMetaDataManager {
 		return dbObjs;
 	}
 	
+	public IMapMetaObject loadFileMetaData() throws ExceptionDBGit {
+		return loadFileMetaData(false);
+	}
+	
 	/**
 	 * Load meta data from git files
 	 * @return
 	 */
-	public IMapMetaObject loadFileMetaData() throws ExceptionDBGit {
+	public IMapMetaObject loadFileMetaData(boolean toShowLog) throws ExceptionDBGit {
 		try {
 			IMapMetaObject objs = new TreeMapMetaObject();
 			DBGit dbGit = DBGit.getInstance();  
 			
 			List<String> files = dbGit.getGitIndexFiles(DBGitPath.DB_GIT_PATH);
+			boolean isSuccessful = true;
 			for (int i = 0; i < files.size(); i++) {
 	    		String filename = files.get(i);
 
 	    		if (DBGitPath.isServiceFile(filename)) continue;
-	    		
-	    		IMetaObject obj = loadMetaFile(filename);
-	    		if (obj != null) {
-	    			objs.put(obj);
-	    		}
+	    		if (toShowLog) ConsoleWriter.print(filename + "...", 1);
+	    		try {
+	    			IMetaObject obj = loadMetaFile(filename);
+	    			if (toShowLog) ConsoleWriter.printlnGreen("OK");
+	    			
+		    		if (obj != null) {
+		    			objs.put(obj);
+		    		}
+	    		} catch (Exception e) {
+	    			isSuccessful = false;
+	    			if (toShowLog) ConsoleWriter.printlnRed("FAIL");
+	    			if (toShowLog) ConsoleWriter.println(e.getMessage());
+	    		}	    		
 	    	}
+			
+			if (isSuccessful) {
+				ConsoleWriter.printlnGreen("All files OK");
+			} else {
+				ConsoleWriter.printlnRed("There are invalid files");
+			}
 			
 			return objs;
 		} catch(Exception e) {
