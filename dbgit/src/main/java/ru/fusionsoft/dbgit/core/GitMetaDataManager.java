@@ -261,6 +261,7 @@ public class GitMetaDataManager {
 	}
 	
 	public IMetaObject loadMetaFile(String metaName) throws ExceptionDBGit {
+		AdapterFactory.createAdapter();
 		if (fileObjs.containsKey(metaName))
 			return fileObjs.get(metaName);		
 		try {
