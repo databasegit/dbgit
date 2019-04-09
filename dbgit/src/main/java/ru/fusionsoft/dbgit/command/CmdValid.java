@@ -7,6 +7,7 @@ import org.apache.commons.cli.Options;
 
 import ru.fusionsoft.dbgit.core.GitMetaDataManager;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
+import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
 public class CmdValid implements IDBGitCommand {
 	private Options opts = new Options();
@@ -37,7 +38,12 @@ public class CmdValid implements IDBGitCommand {
 		boolean toShowLog = ((cmdLine.getArgs().length > 0) && (cmdLine.getArgs()[0].equalsIgnoreCase("log")));
 		
 		//возможно за списком файлов нужно будет сходить в гит индекс
-		Map<String, IMetaObject> fileObjs = gmdm.loadFileMetaData(toShowLog);
+		try {
+			Map<String, IMetaObject> fileObjs = gmdm.loadFileMetaData(toShowLog);
+			ConsoleWriter.printlnGreen("All files are OK");
+		} catch (Exception e) {
+			ConsoleWriter.printlnRed(e.getMessage());
+		}
 		
 	}
 

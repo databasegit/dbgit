@@ -237,10 +237,8 @@ public class GitMetaDataManager {
 	    		}	    		
 	    	}
 			
-			if (isSuccessful) {
-				ConsoleWriter.printlnGreen("All files OK");
-			} else {
-				ConsoleWriter.printlnRed("There are invalid files");
+			if (!isSuccessful) {
+				throw new ExceptionDBGit("There are invalid files");
 			}
 			
 			return objs;
