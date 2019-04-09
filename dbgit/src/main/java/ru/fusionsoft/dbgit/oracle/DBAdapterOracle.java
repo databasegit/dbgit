@@ -1,6 +1,7 @@
 package ru.fusionsoft.dbgit.oracle;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -759,6 +760,31 @@ public class DBAdapterOracle extends DBAdapter {
 			throw new ExceptionDBGitRunTime(e.getMessage());
 		}
 		return listRole;
+	}
+
+	@Override
+	public boolean userHasRightsToGetDdlOfOtherUsers() {
+		try {
+			String userName = getConnection().getSchema();
+			
+			if (userName.equalsIgnoreCase("SYS")) 
+				return true;
+			
+			PreparedStatement stmt = getConnection().prepareStatement
+					("SELECT count(1) cnt FROM DBA_ROLE_PRIVS WHERE GRANTEE = ? and GRANTED_ROLE = 'SELECT_CATALOG_ROLE'");
+			stmt.setString(1, userName);
+			ResultSet resultSet = stmt.executeQuery();			
+			resultSet.next();
+			
+			if (resultSet.getInt(1) == 0) {
+				return false;
+			} else {
+				return true;
+			}
+		} catch (SQLException e) {
+			logger.error(e.getMessage());
+			return false;
+		}		
 	}
 
 }

@@ -696,6 +696,11 @@ public class DBAdapterPostgres extends DBAdapter {
 		}
 		return listRole;
 	}
+
+	@Override
+	public boolean userHasRightsToGetDdlOfOtherUsers() {
+		return true;
+	}
 	
 
 }

@@ -196,4 +196,9 @@ public class DBAdapterProxy implements IDBAdapter {
 	protected String getSchemaMap(String schema) {
 		return ss.getSchemaNvl(schema);
 	}
+
+	@Override
+	public boolean userHasRightsToGetDdlOfOtherUsers() {
+		return true;
+	}
 }

@@ -133,5 +133,7 @@ public interface IDBAdapter {
 	public Map<String, DBUser> getUsers();
 	public Map<String, DBRole> getRoles();
 	
+	public boolean userHasRightsToGetDdlOfOtherUsers();
+	
 	/*Если будет нужно - сюда можно добавить подписчиков на события*/
 }

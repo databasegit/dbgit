@@ -1,6 +1,7 @@
 package ru.fusionsoft.dbgit.core;
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -127,7 +128,19 @@ public class GitMetaDataManager {
 		addToMapDBOptionsObject(dbObjs, adapter.getUsers(), DBGitMetaType.DBGitUser);
 		addToMapDBOptionsObject(dbObjs, adapter.getRoles(), DBGitMetaType.DBGitRole);
 		addToMapDBOptionsObject(dbObjs, adapter.getTableSpaces(), DBGitMetaType.DBGitTableSpace);
-		Map<String, DBSchema> schemes = adapter.getSchemes();
+		
+		Map<String, DBSchema> schemes;
+		if (adapter.userHasRightsToGetDdlOfOtherUsers()) {
+			schemes = adapter.getSchemes();
+		} else {
+			schemes = new HashMap<String, DBSchema>();			
+			try {
+				schemes.put(adapter.getConnection().getSchema(), new DBSchema(adapter.getConnection().getSchema()));
+				ConsoleWriter.println("Can't show db objects of other users! Shown objects for current db user only!");
+			} catch (SQLException e) {
+				throw new ExceptionDBGit("Can't get current schema name");
+			}
+		}
 		addToMapDBOptionsObject(dbObjs, schemes, DBGitMetaType.DBGitSchema);
 		
 		//load sequence

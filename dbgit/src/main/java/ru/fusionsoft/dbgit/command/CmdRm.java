@@ -69,7 +69,7 @@ public class CmdRm implements IDBGitCommand {
 			index.saveDBIndex();
 			index.addToGit();
 		} else {
-			ConsoleWriter.printlnRed("File \"" + nameObj + "\" doesn't exist");
+			ConsoleWriter.printlnRed("Can't find file \"" + nameObj + "\" in index");
 		}
 		
 	}
