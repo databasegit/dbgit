@@ -13,7 +13,7 @@ public class CmdValid implements IDBGitCommand {
 	private Options opts = new Options();
 	
 	public CmdValid() {
-		
+		opts.addOption("log", false, "Shows operation details");
 	}
 	
 	public String getCommandName() {
@@ -35,7 +35,7 @@ public class CmdValid implements IDBGitCommand {
 	@Override
 	public void execute(CommandLine cmdLine) throws Exception {
 		GitMetaDataManager gmdm = GitMetaDataManager.getInctance();
-		boolean toShowLog = ((cmdLine.getArgs().length > 0) && (cmdLine.getArgs()[0].equalsIgnoreCase("log")));
+		boolean toShowLog = cmdLine.hasOption("log");
 		
 		//возможно за списком файлов нужно будет сходить в гит индекс
 		try {
