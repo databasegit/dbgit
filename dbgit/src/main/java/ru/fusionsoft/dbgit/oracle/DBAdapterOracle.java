@@ -68,19 +68,6 @@ public class DBAdapterOracle extends DBAdapter {
 		// TODO Auto-generated method stub
 
 	}
-	
-	@Override
-	public void restoreDataBase(IMapMetaObject updateObjs) throws ExceptionDBGit {
-		for (Entry<String, IMetaObject> entry : updateObjs.entrySet()) {			
-			IDBAdapterRestoreMetaData restoreAdapter = restoreFactory.getAdapterRestore(entry.getValue().getType(), this);
-			try {
-				restoreAdapter.restoreMetaObject(entry.getValue());
-				ConsoleWriter.printlnGreen(entry.getValue().getName() + " restored successfully");
-			} catch (Exception e) {
-				throw new ExceptionDBGit("Cannot restore " + entry.getValue().getName(), e);
-			}
-		}
-	}
 
 	@Override
 	public void endUpdateDB() {
