@@ -10,7 +10,7 @@ import com.diogonunes.jcdp.color.api.Ansi.FColor;
 import ru.fusionsoft.dbgit.core.DBGit;
 import ru.fusionsoft.dbgit.core.DBGitPath;
 import ru.fusionsoft.dbgit.core.GitMetaDataManager;
-import ru.fusionsoft.dbgit.core.SchemaSynonim;
+import ru.fusionsoft.dbgit.core.SchemaSynonym;
 import ru.fusionsoft.dbgit.meta.IMapMetaObject;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
 import ru.fusionsoft.dbgit.meta.MetaTableData;
@@ -52,11 +52,11 @@ public class CmdStatus implements IDBGitCommand {
 		IMapMetaObject addedObjs = new TreeMapMetaObject();
 		DBGit dbGit = DBGit.getInstance();
 		
-		SchemaSynonim ss = SchemaSynonim.getInctance();
+		SchemaSynonym ss = SchemaSynonym.getInctance();
 				
-		if (ss.getCountSynonim() > 0) {
-			ConsoleWriter.printlnGreen("Used synonims for real schemes:");
-			ConsoleWriter.printlnGreen("Synonim - schema");
+		if (ss.getCountSynonym() > 0) {
+			ConsoleWriter.printlnGreen("Used synonyms for real schemes:");
+			ConsoleWriter.printlnGreen("Synonym - schema");
 			for (Entry<String, String> el : ss.getMapSchema().entrySet()) {
 				ConsoleWriter.println(el.getKey() + " - " + el.getValue());
 			}			
@@ -99,14 +99,14 @@ public class CmdStatus implements IDBGitCommand {
 		}
 		ConsoleWriter.println(" ");
 		
-		ConsoleWriter.println("Changes databse objects not staged for commit:");
+		ConsoleWriter.println("Changes db objects not staged for commit:");
 		for(IMetaObject obj : changeObjs.values()) {
 			printObect(obj, FColor.RED, 1);
 		}
 		ConsoleWriter.println(" ");
 		
 				
-		ConsoleWriter.println("Untracked databse objects:");
+		ConsoleWriter.println("Untracked db objects:");
 		for (String name : dbObjs.keySet()) {
 			if (!fileObjs.containsKey(name)) {
 				ConsoleWriter.println(name, 1);

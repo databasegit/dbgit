@@ -5,32 +5,32 @@ import java.util.Map.Entry;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
-import ru.fusionsoft.dbgit.core.SchemaSynonim;
+import ru.fusionsoft.dbgit.core.SchemaSynonym;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
 
-public class CmdSynonimSchema implements IDBGitCommand {
+public class CmdSynonymSchema implements IDBGitCommand {
 	private Options opts = new Options();
 	
-	public CmdSynonimSchema() {
-		opts.addOption("d", false, "Delete synonim");
-		opts.addOption("s", false, "Show synonims");
+	public CmdSynonymSchema() {
+		opts.addOption("d", false, "Delete synonym");
+		opts.addOption("s", false, "Show synonyms");
 	}
 	
 	public String getCommandName() {
-		return "synonim";
+		return "synonym";
 	}
 	
 	public String getParams() {
-		return "[synonim] [schema]";
+		return "[synonym] [schema]";
 	}
 	
 	public String getHelperInfo() {
-		return "Command for create synonim for database schema \n"
+		return "Command for create synonym for database schema \n"
 				+ "    ways to use: \n"
-				+ "        dbgit synonim <scheme1> <scheme2>   - this command creates synonym named <scheme2> for scheme named <scheme1> \n"
-				+ "        dbgit synonim <scheme> -d           - this command deletes synonyms of <scheme> \n"
-				+ "        dbgit synonim -s                    - shows existing synonyms"
+				+ "        dbgit synonym <syn> <scheme>   - this command creates synonym named <syn> for scheme named <scheme> \n"
+				+ "        dbgit synonym <synonym> -d           - this command deletes synonym named <synonym> \n"
+				+ "        dbgit synonym -s                     - shows existing synonyms"
 				;
 	}
 	
@@ -39,12 +39,12 @@ public class CmdSynonimSchema implements IDBGitCommand {
 	}
 	
 	public void execute(CommandLine cmdLine)  throws Exception {
-		SchemaSynonim ss = SchemaSynonim.getInctance();
+		SchemaSynonym ss = SchemaSynonym.getInctance();
 		
 		Boolean isShow = cmdLine.hasOption('s');
 		
 		if (isShow) {
-			ConsoleWriter.printlnGreen("Synonim - schema");
+			ConsoleWriter.printlnGreen("Synonym - schema");
 			for (Entry<String, String> el : ss.getMapSchema().entrySet()) {
 				ConsoleWriter.println(el.getKey() + " - " + el.getValue());
 			}
@@ -52,25 +52,25 @@ public class CmdSynonimSchema implements IDBGitCommand {
 		}
 		
 		if (cmdLine.getArgs().length == 0) {
-			throw new ExceptionDBGit("Bad command. Please specify synonim and scheme. ");
+			throw new ExceptionDBGit("Bad command. Please specify synonym and scheme. ");
 		}
 		
 		Boolean isDelete = cmdLine.hasOption('d');
 		
-		String synonim = cmdLine.getArgs()[0];
+		String synonym = cmdLine.getArgs()[0];
 		
 		if (isDelete) {
-			ss.deleteBySynonim(synonim);
+			ss.deleteBySynonym(synonym);
 		} else {
 			if (cmdLine.getArgs().length < 2) {
 				throw new ExceptionDBGit("Bad command. Please specify scheme. ");
 			}
 			
 			String schema = cmdLine.getArgs()[1];
-			ss.addSchemaSynonim(schema, synonim);			
+			ss.addSchemaSynonym(schema, synonym);			
 		}
 		
 		ss.saveFile();
-		ConsoleWriter.println("Synonims save.");
+		ConsoleWriter.println("Synonyms save.");
 	}
 }

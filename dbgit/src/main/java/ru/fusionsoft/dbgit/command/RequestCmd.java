@@ -30,7 +30,7 @@ public class RequestCmd {
 		commands.put(new CmdRm());
         commands.put(new CmdValid());
         commands.put(new CmdHelp());
-        commands.put(new CmdSynonimSchema());
+        commands.put(new CmdSynonymSchema());
 	}
 	
 	public static RequestCmd getInctance()  throws ExceptionDBGit {

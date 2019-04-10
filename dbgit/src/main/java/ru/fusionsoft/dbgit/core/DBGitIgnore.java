@@ -20,6 +20,8 @@ public class DBGitIgnore {
 	
 	private Map<String, MaskFilter> filters = new HashMap<>();
 	
+	private Map<String, MaskFilter> exclusions = new HashMap<>();
+	
 	private DBGitIgnore() throws ExceptionDBGit {
 		// load file DBIgnore
 		loadFileDBIgnore();		
@@ -27,14 +29,21 @@ public class DBGitIgnore {
 	
 	protected void loadFileDBIgnore() throws ExceptionDBGit {
 		try{				
-			File file = new File(DBGitPath.getFullPath(DBGitPath.DB_IGNORE_FILE));
+			File file = new File(DBGitPath.getRootPath(DBGitPath.DB_IGNORE_FILE));
 			
 			if (!file.exists()) return ;
 			
 			BufferedReader br = new BufferedReader(new FileReader(file));			
-			for(String line; (line = br.readLine()) != null; ) {
-				MaskFilter mask = new MaskFilter(line);
-				filters.put(line, mask);
+			for(String line; (line = br.readLine()) != null; ) {				
+				
+				if (line.startsWith("!")) {
+					MaskFilter mask = new MaskFilter(line.substring(1));
+					exclusions.put(line.substring(1), mask);
+				}
+				else {
+					MaskFilter mask = new MaskFilter(line);
+					filters.put(line, mask);
+				}
 			}
 			    
 			br.close();		    
@@ -51,6 +60,11 @@ public class DBGitIgnore {
 	}
 	
 	public boolean matchOne(String exp) {
+		
+		for (MaskFilter mask : exclusions.values()) {
+			if (mask.match(exp)) return false;
+		}
+
 		for (MaskFilter mask : filters.values()) {
 			if (mask.match(exp)) return true;
 		}

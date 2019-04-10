@@ -2,7 +2,7 @@ package ru.fusionsoft.dbgit.adapters;
 
 import java.sql.Connection;
 
-import ru.fusionsoft.dbgit.core.SchemaSynonim;
+import ru.fusionsoft.dbgit.core.SchemaSynonym;
 
 /**
  * <div class="en">Base class of adapters of restoration of a DB. Contains general solutions independent of a particular database</div>
@@ -23,7 +23,7 @@ public abstract class DBRestoreAdapter implements IDBAdapterRestoreMetaData {
 	}
 	
 	public String getPhisicalSchema(String schema) {
-		SchemaSynonim ss = SchemaSynonim.getInctance();
+		SchemaSynonym ss = SchemaSynonym.getInctance();
 		
 		return ss.getSchemaNvl(schema);
 	}

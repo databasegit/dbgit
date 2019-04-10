@@ -12,7 +12,7 @@ import ru.fusionsoft.dbgit.utils.Convertor;
  */
 public class DBGitPath {
 	public static final String DB_GIT_PATH = ".dbgit";
-	public static final String DB_SYNONIMS = ".synonims";
+	public static final String DB_SYNONYMS = ".synonyms";
 	public static final String DB_LINK_FILE = ".dblink";
 	public static final String DB_IGNORE_FILE = ".dbignore";
 	public static final String OBJECTS_PATH = ".objects";
@@ -36,6 +36,16 @@ public class DBGitPath {
 	public static String getFullPath() throws ExceptionDBGit {
 		DBGit dbGit = DBGit.getInstance();
 		return dbGit.getRootDirectory()+"/"+DB_GIT_PATH + "/";
+	}
+	
+	public static String getRootPath(String path) throws ExceptionDBGit {
+		if (path == null) return getRootPath();
+		return getRootPath() + path + "/";
+	}
+	
+	public static String getRootPath() throws ExceptionDBGit {
+		DBGit dbGit = DBGit.getInstance();
+		return dbGit.getRootDirectory() + "/";
 	}
 	
 	public static boolean createDir(String path) {

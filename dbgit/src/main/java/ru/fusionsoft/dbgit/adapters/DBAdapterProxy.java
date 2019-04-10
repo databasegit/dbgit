@@ -4,7 +4,7 @@ import java.io.OutputStream;
 import java.sql.Connection;
 import java.util.Map;
 
-import ru.fusionsoft.dbgit.core.SchemaSynonim;
+import ru.fusionsoft.dbgit.core.SchemaSynonym;
 import ru.fusionsoft.dbgit.dbobjects.DBConstraint;
 import ru.fusionsoft.dbgit.dbobjects.DBFunction;
 import ru.fusionsoft.dbgit.dbobjects.DBIndex;
@@ -25,14 +25,14 @@ import ru.fusionsoft.dbgit.meta.IMapMetaObject;
 
 public class DBAdapterProxy implements IDBAdapter {
 	private IDBAdapter adapter;
-	private SchemaSynonim ss;	
+	private SchemaSynonym ss;	
 	
 
 	public DBAdapterProxy(IDBAdapter adapter) {
 		super();
 		this.adapter = adapter;
 		
-		ss = SchemaSynonim.getInctance();
+		ss = SchemaSynonym.getInctance();
 	}
 
 	public void setConnection(Connection conn) {
@@ -77,7 +77,7 @@ public class DBAdapterProxy implements IDBAdapter {
 		adapter.deleteDataBase(delObjs);
 	}
 	/*
-	protected IMapMetaObject mapSynonimSchema(IMapMetaObject objs) {
+	protected IMapMetaObject mapSynonymSchema(IMapMetaObject objs) {
 		
 	}
 	 */
@@ -98,19 +98,19 @@ public class DBAdapterProxy implements IDBAdapter {
 	}
 
 	public Map<String, DBSequence> getSequences(String schema) {
-		return schemaSynonimMap(adapter.getSequences(getSchemaMap(schema)));
+		return schemaSynonymMap(adapter.getSequences(getSchemaMap(schema)));
 	}
 
 	public DBSequence getSequence(String schema, String name) {
-		return schemaSynonimMap(adapter.getSequence(getSchemaMap(schema), name));
+		return schemaSynonymMap(adapter.getSequence(getSchemaMap(schema), name));
 	}
 
 	public Map<String, DBTable> getTables(String schema) {
-		return schemaSynonimMap(adapter.getTables(getSchemaMap(schema)));
+		return schemaSynonymMap(adapter.getTables(getSchemaMap(schema)));
 	}
 
 	public DBTable getTable(String schema, String name) {
-		return schemaSynonimMap(adapter.getTable(getSchemaMap(schema), name));
+		return schemaSynonymMap(adapter.getTable(getSchemaMap(schema), name));
 	}
 
 	public Map<String, DBTableField> getTableFields(String schema, String nameTable) {
@@ -118,51 +118,51 @@ public class DBAdapterProxy implements IDBAdapter {
 	}
 
 	public Map<String, DBIndex> getIndexes(String schema, String nameTable) {
-		return schemaSynonimMap(adapter.getIndexes(getSchemaMap(schema), nameTable));
+		return schemaSynonymMap(adapter.getIndexes(getSchemaMap(schema), nameTable));
 	}
 
 	public Map<String, DBConstraint> getConstraints(String schema, String nameTable) {
-		return schemaSynonimMap(adapter.getConstraints(getSchemaMap(schema), nameTable));
+		return schemaSynonymMap(adapter.getConstraints(getSchemaMap(schema), nameTable));
 	}
 
 	public Map<String, DBView> getViews(String schema) {
-		return schemaSynonimMap(adapter.getViews(getSchemaMap(schema)));
+		return schemaSynonymMap(adapter.getViews(getSchemaMap(schema)));
 	}
 
 	public DBView getView(String schema, String name) {
-		return schemaSynonimMap(adapter.getView(getSchemaMap(schema), name));
+		return schemaSynonymMap(adapter.getView(getSchemaMap(schema), name));
 	}
 
 	public Map<String, DBPackage> getPackages(String schema) {
-		return schemaSynonimMap(adapter.getPackages(getSchemaMap(schema)));
+		return schemaSynonymMap(adapter.getPackages(getSchemaMap(schema)));
 	}
 
 	public DBPackage getPackage(String schema, String name) {
-		return schemaSynonimMap(adapter.getPackage(getSchemaMap(schema), name));
+		return schemaSynonymMap(adapter.getPackage(getSchemaMap(schema), name));
 	}
 
 	public Map<String, DBProcedure> getProcedures(String schema) {
-		return schemaSynonimMap(adapter.getProcedures(getSchemaMap(schema)));
+		return schemaSynonymMap(adapter.getProcedures(getSchemaMap(schema)));
 	}
 
 	public DBProcedure getProcedure(String schema, String name) {
-		return schemaSynonimMap(adapter.getProcedure(getSchemaMap(schema), name));
+		return schemaSynonymMap(adapter.getProcedure(getSchemaMap(schema), name));
 	}
 
 	public Map<String, DBFunction> getFunctions(String schema) {
-		return schemaSynonimMap(adapter.getFunctions(getSchemaMap(schema)));
+		return schemaSynonymMap(adapter.getFunctions(getSchemaMap(schema)));
 	}
 
 	public DBFunction getFunction(String schema, String name) {
-		return schemaSynonimMap(adapter.getFunction(getSchemaMap(schema), name));
+		return schemaSynonymMap(adapter.getFunction(getSchemaMap(schema), name));
 	}
 
 	public Map<String, DBTrigger> getTriggers(String schema) {
-		return schemaSynonimMap(adapter.getTriggers(getSchemaMap(schema)));
+		return schemaSynonymMap(adapter.getTriggers(getSchemaMap(schema)));
 	}
 
 	public DBTrigger getTrigger(String schema, String name) {
-		return schemaSynonimMap(adapter.getTrigger(getSchemaMap(schema), name));
+		return schemaSynonymMap(adapter.getTrigger(getSchemaMap(schema), name));
 	}
 
 	public DBTableData getTableData(String schema, String nameTable, int paramFetch) {
@@ -177,18 +177,18 @@ public class DBAdapterProxy implements IDBAdapter {
 		return adapter.getRoles();
 	}
 	
-	public <T extends DBSchemaObject> T schemaSynonimMap(T object) {
+	public <T extends DBSchemaObject> T schemaSynonymMap(T object) {
 		if (object == null) 
 			return null;
-		object.setSchema(ss.getSynonimNvl(object.getSchema()));
+		object.setSchema(ss.getSynonymNvl(object.getSchema()));
 		return object;
 	} 
 	
-	public <T extends DBSchemaObject> Map<String, T> schemaSynonimMap(Map<String, T> objects) {
+	public <T extends DBSchemaObject> Map<String, T> schemaSynonymMap(Map<String, T> objects) {
 		if (objects == null) 
 			return null;
 		for (DBSchemaObject obj : objects.values()) {
-			schemaSynonimMap(obj);
+			schemaSynonymMap(obj);
 		} 		
 		return objects;
 	} 
