@@ -432,10 +432,13 @@ public class DBAdapterOracle extends DBAdapter {
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
 			
-			rs.next();
-			view.setOwner(rs.getString("OWNER"));
-			view.setSql(rs.getString("DDL"));
+			view.setOwner(schema);
+			view.setSql("");
 			
+			while (rs.next()) {
+				view.setOwner(rs.getString("OWNER"));
+				view.setSql(rs.getString("DDL"));
+			}
 			stmt.close();
 			return view;
 			
