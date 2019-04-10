@@ -6,10 +6,13 @@ import java.util.Map;
 import ru.fusionsoft.dbgit.adapters.DBRestoreAdapter;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRestore;
+import ru.fusionsoft.dbgit.dbobjects.DBTable;
 import ru.fusionsoft.dbgit.dbobjects.DBView;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
+import ru.fusionsoft.dbgit.meta.MetaTable;
 import ru.fusionsoft.dbgit.meta.MetaView;
 import ru.fusionsoft.dbgit.statement.StatementLogging;
+import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
 public class DBRestoreViewOracle extends DBRestoreAdapter {
 
@@ -55,8 +58,19 @@ public class DBRestoreViewOracle extends DBRestoreAdapter {
 	
 	@Override
 	public void removeMetaObject(IMetaObject obj) throws Exception {
-		// TODO Auto-generated method stub
+		IDBAdapter adapter = getAdapter();
+		Connection connect = adapter.getConnection();
+		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
+		
+		try {			
+			MetaView vwMeta = (MetaView) obj;			
+			st.execute("DROP VIEW " + vwMeta.getSqlObject().getName());
 
+		} catch (Exception e) {
+			throw new ExceptionDBGitRestore("Error remove " + obj.getName(), e);
+		} finally {
+			st.close();
+		}
 	}
 
 }

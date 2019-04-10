@@ -18,7 +18,7 @@ public class CmdRm implements IDBGitCommand {
 	private Options opts = new Options();
 	
 	public CmdRm() {
-		
+		opts.addOption("db", false, "Removes objects from index and from database");
 	}
 	
 	public String getCommandName() {
@@ -64,8 +64,8 @@ public class CmdRm implements IDBGitCommand {
 				index.deleteItem(obj);
 			}
 		}
-		
-		gmdm.deleteDataBase(deleteObjs);
+		if (cmdLine.hasOption("db"))
+			gmdm.deleteDataBase(deleteObjs);
 
 		if (countDelete > 0) {
 			index.saveDBIndex();
