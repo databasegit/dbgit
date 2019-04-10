@@ -28,7 +28,7 @@ public class CmdLink implements IDBGitCommand {
 	}
 	
 	public String getHelperInfo() {
-		return "Command create link to database";
+		return "Command creates link to database, you need to specify connection string as parameter in JDBC driver connection URL format";
 	}
 	
 	public Options getOptions() {

@@ -30,7 +30,9 @@ public class CmdRm implements IDBGitCommand {
 	}
 	
 	public String getHelperInfo() {
-		return "Command remove object from dbgit";
+		return "Command removes object from dbgit. Object you want to remove must be specified as parameter like here:\n"
+				+ "    dbgit rm <object_name>\n"
+				+ "Object you want to remove must exist in index";
 	}
 	
 	public Options getOptions() {
@@ -40,7 +42,7 @@ public class CmdRm implements IDBGitCommand {
 	@Override
 	public void execute(CommandLine cmdLine) throws Exception {
 		if (cmdLine.getArgs().length == 0) {
-			throw new ExceptionDBGit("Bad command. Not founnd object remove!");
+			throw new ExceptionDBGit("Bad command. Not found object remove!");
 		}
 						
 		String nameObj = cmdLine.getArgs()[0];

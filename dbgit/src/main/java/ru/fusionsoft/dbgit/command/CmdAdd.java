@@ -30,7 +30,7 @@ public class CmdAdd implements IDBGitCommand {
 	}
 	
 	public String getHelperInfo() {
-		return "Command for add database objects to dbgit";
+		return "Command for add database objects to dbgit. You need to specify db object name as parameter in format just like it shows in status command output";
 	}
 	
 	public Options getOptions() {

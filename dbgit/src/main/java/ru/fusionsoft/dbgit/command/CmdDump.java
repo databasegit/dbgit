@@ -16,8 +16,8 @@ public class CmdDump implements IDBGitCommand {
 	private Options opts = new Options();
 	
 	public CmdDump() {
-		opts.addOption("a", false, "Added object to git");
-		opts.addOption("f", false, "dump all objects where exists in dbgit index");
+		opts.addOption("a", false, "adds files to git");
+		opts.addOption("f", false, "dumps all objects that exists in index even there didn't changes in database");
 	}
 	
 	public String getCommandName() {
@@ -29,8 +29,8 @@ public class CmdDump implements IDBGitCommand {
 	}
 	
 	public String getHelperInfo() {
-		return "Command for dump database objects to dbgit";
-	}
+		return "Command for dump database objects to dbgit. Runs without parameters. You can use switches, run the command with -h for details";
+		}
 	
 	public Options getOptions() {
 		return opts;

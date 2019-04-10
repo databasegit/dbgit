@@ -23,7 +23,7 @@ public class CmdHelp implements IDBGitCommand {
 	}
 	
 	public String getHelperInfo() {
-		return "Command help";
+		return "Command shows this help";
 	}
 	
 	public Options getOptions() {

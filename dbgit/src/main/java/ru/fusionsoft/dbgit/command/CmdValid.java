@@ -25,7 +25,8 @@ public class CmdValid implements IDBGitCommand {
 	}
 	
 	public String getHelperInfo() {
-		return "Command correct dbgit data";
+		return "Command checks if dbgit data files are valid. You can get details with -log switch like this example:\n"
+				+ "    dbgit valid -log";
 	}
 	
 	public Options getOptions() {

@@ -199,6 +199,6 @@ public class DBAdapterProxy implements IDBAdapter {
 
 	@Override
 	public boolean userHasRightsToGetDdlOfOtherUsers() {
-		return true;
+		return false;
 	}
 }
