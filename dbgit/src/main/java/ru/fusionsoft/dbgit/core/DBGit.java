@@ -9,6 +9,7 @@ import org.eclipse.jgit.api.Status;
 import org.eclipse.jgit.dircache.DirCache;
 import org.eclipse.jgit.internal.storage.file.FileRepository;
 import org.eclipse.jgit.lib.Repository;
+import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 
 import ru.fusionsoft.dbgit.meta.IMapMetaObject;
@@ -156,19 +157,22 @@ public class DBGit {
 				index.addToGit();
 			}
 			
+			RevCommit res;
 			if (path == null || path.length() == 0) {
 				if (msg.length() > 0 ) {
-					git.commit().setAll(existsSwitchA).setMessage(msg).call();
+					res = git.commit().setAll(existsSwitchA).setMessage(msg).call();					
 				} else {
-					git.commit().setAll(existsSwitchA).call();
+					res = git.commit().setAll(existsSwitchA).call();
 				}				
 			} else {
 				if (msg.length() > 0 ) {
-					git.commit().setAll(existsSwitchA).setOnly(DBGitPath.DB_GIT_PATH + "/" + path).setMessage(msg).call();
+					res = git.commit().setAll(existsSwitchA).setOnly(DBGitPath.DB_GIT_PATH + "/" + path).setMessage(msg).call();
 				} else {
-					git.commit().setAll(existsSwitchA).setOnly(DBGitPath.DB_GIT_PATH + "/" + path).call();
+					res = git.commit().setAll(existsSwitchA).setOnly(DBGitPath.DB_GIT_PATH + "/" + path).call();
 				}								
 			}
+			ConsoleWriter.printlnGreen("commit: " + res.getName());
+			ConsoleWriter.printlnGreen(res.getAuthorIdent().getName() + "<" + res.getAuthorIdent().getEmailAddress() + ">, " + res.getAuthorIdent().getWhen());
 			
         } catch (Exception e) {
         	throw new ExceptionDBGit(e);
