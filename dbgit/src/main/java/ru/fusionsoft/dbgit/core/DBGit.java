@@ -11,6 +11,8 @@ import org.eclipse.jgit.internal.storage.file.FileRepository;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 
+import ru.fusionsoft.dbgit.meta.IMapMetaObject;
+import ru.fusionsoft.dbgit.meta.IMetaObject;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
 public class DBGit {
@@ -127,6 +129,47 @@ public class DBGit {
 	public void removeFileFromIndexGit(String filename) throws ExceptionDBGit {
 		try {        	      
             git.rm().addFilepattern(filename).call();           
+        } catch (Exception e) {
+        	throw new ExceptionDBGit(e);
+        } 
+	}
+	
+	public void gitCommit(boolean existsSwitchA, String msg, String path) throws ExceptionDBGit {
+		try {
+			if (existsSwitchA) {
+				GitMetaDataManager gmdm = GitMetaDataManager.getInctance();
+				IMapMetaObject fileObjs = gmdm.loadFileMetaData();
+				DBGitIndex index = DBGitIndex.getInctance();
+
+				for (IMetaObject obj : fileObjs.values()) {
+					String hash = obj.getHash();
+					gmdm.loadFromDB(obj);
+					
+					if (!obj.getHash().equals(hash)) {
+						obj.saveToFile();
+						index.addItem(obj);
+						obj.addToGit();
+					}			
+				}
+				
+				index.saveDBIndex();
+				index.addToGit();
+			}
+			
+			if (path == null || path.length() == 0) {
+				if (msg.length() > 0 ) {
+					git.commit().setAll(existsSwitchA).setMessage(msg).call();
+				} else {
+					git.commit().setAll(existsSwitchA).call();
+				}				
+			} else {
+				if (msg.length() > 0 ) {
+					git.commit().setAll(existsSwitchA).setOnly(DBGitPath.DB_GIT_PATH + "/" + path).setMessage(msg).call();
+				} else {
+					git.commit().setAll(existsSwitchA).setOnly(DBGitPath.DB_GIT_PATH + "/" + path).call();
+				}								
+			}
+			
         } catch (Exception e) {
         	throw new ExceptionDBGit(e);
         } 
