@@ -31,16 +31,26 @@ public class CmdHelp implements IDBGitCommand {
 	}
 	@Override
 	public void execute(CommandLine cmdLine) throws Exception {	
-		ConsoleWriter.println("This help!!!");
-		ConsoleWriter.println("For see help about command execute: dbgit command -h");
-		ConsoleWriter.println("List commands:");
-		
-		RequestCmd cmdReq = RequestCmd.getInctance();
-		
-		for (IDBGitCommand cmd : cmdReq.getCommands().values()) {
-			ConsoleWriter.printlnColor(cmd.getCommandName(), FColor.GREEN, 0);
-			ConsoleWriter.println(cmd.getHelperInfo(), 1);
-		}
+		ConsoleWriter.println("usage: dbgit <command> [<args>]\n" + 
+				"\n" + 
+				"These are common Dbgit commands used in various situations:\n" + 
+				"\n" + 
+				"start a working area\n" + 
+				"    link       establishes connection with database\n" + 
+				"    synonym    specifies synonym for db scheme\n" + 
+				"\n" + 
+				"work on the current change\n" + 
+				"    status     shows current status of db objects\n" + 
+				"    add        adds db objects into the dbgit index\n" + 
+				"    rm         removes objects from the dbgit index\n" + 
+				"    restore    restores db from the dbgit repository\n" + 
+				"    dump       dumps db objects into the dbgit repository\n" + 
+				"\n" + 
+				"grow, mark and tweak your common history\n" + 
+				"    valid      checks if dbgit data files are valid\n" + 
+				"    commit     makes git commit\n" + 
+				"\n" + 
+				"See 'dbgit <command> -h' to read about a specific command");
 	}
 
 }

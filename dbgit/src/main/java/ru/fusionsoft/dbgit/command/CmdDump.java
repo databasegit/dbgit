@@ -11,6 +11,7 @@ import ru.fusionsoft.dbgit.core.DBGitPath;
 import ru.fusionsoft.dbgit.core.GitMetaDataManager;
 import ru.fusionsoft.dbgit.meta.IMapMetaObject;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
+import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
 public class CmdDump implements IDBGitCommand {
 	private Options opts = new Options();
@@ -48,8 +49,12 @@ public class CmdDump implements IDBGitCommand {
 		
 		for (IMetaObject obj : fileObjs.values()) {
 			String hash = obj.getHash();
-		
-			gmdm.loadFromDB(obj);
+			
+			if (!gmdm.loadFromDB(obj)) {
+				ConsoleWriter.println("Can't find " + obj.getName() + " in DB");
+				continue;
+			}
+			
 			if (isAllDump || !obj.getHash().equals(hash)) {
 				//сохранили файл если хеш разный
 				obj.saveToFile();

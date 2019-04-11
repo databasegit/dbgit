@@ -76,7 +76,10 @@ public class MetaTable extends MetaBase {
 		NameMeta nm = MetaObjectFactory.parseMetaName(getName());
 		
 		DBTable tbl = adapter.getTable(nm.getSchema(), nm.getName());
-		return loadFromDB(tbl);
+		if (tbl != null)
+			return loadFromDB(tbl);
+		else
+			return false;
 	}
 	
 	public boolean loadFromDB(DBTable tbl) throws ExceptionDBGit {

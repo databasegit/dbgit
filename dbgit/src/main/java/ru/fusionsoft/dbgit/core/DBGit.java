@@ -144,7 +144,15 @@ public class DBGit {
 
 				for (IMetaObject obj : fileObjs.values()) {
 					String hash = obj.getHash();
-					gmdm.loadFromDB(obj);
+					if (!gmdm.loadFromDB(obj)) {
+						ConsoleWriter.println("Can't find " + obj.getName() + ", it will be removed from index");
+						obj.removeFromGit();
+						index.deleteItem(obj);
+						index.saveDBIndex();
+						index.addToGit();
+						
+						continue;
+					}
 					
 					if (!obj.getHash().equals(hash)) {
 						obj.saveToFile();

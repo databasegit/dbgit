@@ -236,12 +236,15 @@ public class DBAdapterOracle extends DBAdapter {
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
 
-			rs.next();
-			String nameTable = rs.getString("TABLE_NAME");
-			DBTable table = new DBTable(nameTable);
-			table.setSchema(schema);
-			rowToProperties(rs, table.getOptions());
-
+			DBTable table = null;
+			
+			while(rs.next()) {
+				String nameTable = rs.getString("TABLE_NAME");
+				table = new DBTable(nameTable);
+				table.setSchema(schema);
+				rowToProperties(rs, table.getOptions());
+			}
+			
 			stmt.close();
 			return table;
 		
@@ -267,8 +270,10 @@ public class DBAdapterOracle extends DBAdapter {
 			Statement stmt = connect.createStatement();
 			ResultSet rs1 = stmt.executeQuery(query1);
 			
-			rs1.next();
-			String s = rs1.getString("COLUMN_NAME").toLowerCase();
+			String s = "";
+			
+			while (rs1.next())
+				s = rs1.getString("COLUMN_NAME").toLowerCase();
 			
 			String query = 
 					"SELECT ROWNUM AS NUM, TC.* FROM DBA_TAB_COLS TC \n" + 

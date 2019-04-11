@@ -180,13 +180,17 @@ public class MetaTableData extends MetaBase {
 			IDBAdapter adapter = AdapterFactory.createAdapter();
 						
 			MetaTable metaTable = getMetaTable();		
+			
+			if (metaTable.getFields().size() == 0)
+				return false;
+			
 			List<String> idColumns = metaTable.getIdColumns();
 			
 			dataTable = adapter.getTableData(table.getSchema(), table.getName(), IDBAdapter.LIMIT_FETCH);
 			
 			if (dataTable.getErrorFlag() > 0) {
-				ConsoleWriter.printlnColor("Table "+getName()+" have more "+IDBAdapter.LIMIT_FETCH+
-						" records. dbgit can't save data this table.", FColor.RED, 0);
+				ConsoleWriter.printlnColor("Table "+getName()+" has more than "+IDBAdapter.LIMIT_FETCH+
+						" records. dbgit can't save this table data.", FColor.RED, 0);
 				return false;
 			}
 			
