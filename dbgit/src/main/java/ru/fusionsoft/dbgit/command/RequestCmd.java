@@ -13,7 +13,7 @@ import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 import ru.fusionsoft.dbgit.utils.LoggerUtil;
 
 public class RequestCmd {
-	public static final String FOOTER_HELPER = "Info about dbgit commands";
+	public static final String FOOTER_HELPER = "";
 
 	private static RequestCmd cmdReq = null;
 	
@@ -78,7 +78,7 @@ public class RequestCmd {
 	
 	protected static Options addHelpOptions(Options opts) {
 		if (opts.getOption("h") == null) {
-			opts.addOption("h", false, "Help for command execute");
+			opts.addOption("h", false, "Shows this help");
 		}
 		return opts;
 	}
@@ -92,6 +92,7 @@ public class RequestCmd {
 		IDBGitCommand cmdObj = commands.get(command);
 		
 		HelpFormatter helpFormatter = new HelpFormatter();
+		
         helpFormatter.printHelp(
         		"dbgit "+command+" "+cmdObj.getParams(), 
         		cmdObj.getHelperInfo(), 

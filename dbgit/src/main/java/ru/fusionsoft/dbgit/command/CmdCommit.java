@@ -23,17 +23,20 @@ public class CmdCommit implements IDBGitCommand {
 
 	@Override
 	public String getParams() {
-		return "";
+		return "<pathspec>";
 	}
 
 	@Override
 	public String getHelperInfo() {
+		/*
 		return "Makes git commit. You can specify file to commit with parameter. \n"
 				+ "You can use switches, run the command with -h for details\n"
 				+ "Examples:\n"
 				+ "    dbgit commit -m <Message>             - creates commit with message <Message>\n"
 				+ "    dbgit commit -a -m <Message>          - dumps db changes to dbgit repository and makes commit with message <Message>\n"
 				+ "    dbgit commit <file_name> -m <Message> - commits <file_name> only with message <Message>";
+				*/
+		return "_";
 	}
 
 	@Override

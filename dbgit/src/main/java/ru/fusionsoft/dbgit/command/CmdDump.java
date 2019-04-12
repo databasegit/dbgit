@@ -30,8 +30,9 @@ public class CmdDump implements IDBGitCommand {
 	}
 	
 	public String getHelperInfo() {
-		return "Command for dump database objects to dbgit. Runs without parameters. You can use switches, run the command with -h for details";
-		}
+		//return "Command for dump database objects to dbgit. Runs without parameters. You can use switches, run the command with -h for details";
+		return "_";
+	}
 	
 	public Options getOptions() {
 		return opts;

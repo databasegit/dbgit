@@ -34,8 +34,9 @@ public class CmdStatus implements IDBGitCommand {
 	}
 	
 	public String getHelperInfo() {
-		return "Command status databse object\n"
-				+ "    Runs without parameters, shows database objects possible to process and status of them";
+		//return "Command status databse object\n"
+		//		+ "    Runs without parameters, shows database objects possible to process and status of them";
+		return "_";
 	}
 	
 	public Options getOptions() {

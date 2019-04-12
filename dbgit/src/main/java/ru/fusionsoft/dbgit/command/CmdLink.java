@@ -24,11 +24,12 @@ public class CmdLink implements IDBGitCommand {
 	}
 	
 	public String getParams() {
-		return "";
+		return "<connection_string>";
 	}
 	
 	public String getHelperInfo() {
-		return "Command creates link to database, you need to specify connection string as parameter in JDBC driver connection URL format";
+		//return "Command creates link to database, you need to specify connection string as parameter in JDBC driver connection URL format";
+		return "_";
 	}
 	
 	public Options getOptions() {

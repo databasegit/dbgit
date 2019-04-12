@@ -26,12 +26,14 @@ public class CmdSynonymSchema implements IDBGitCommand {
 	}
 	
 	public String getHelperInfo() {
+		/*
 		return "Command for create synonym for database schema \n"
 				+ "    ways to use: \n"
 				+ "        dbgit synonym <syn> <scheme>   - this command creates synonym named <syn> for scheme named <scheme> \n"
 				+ "        dbgit synonym <synonym> -d           - this command deletes synonym named <synonym> \n"
 				+ "        dbgit synonym -s                     - shows existing synonyms"
-				;
+				;*/
+		return "_";
 	}
 	
 	public Options getOptions() {

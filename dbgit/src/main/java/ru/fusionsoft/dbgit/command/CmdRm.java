@@ -26,13 +26,14 @@ public class CmdRm implements IDBGitCommand {
 	}
 	
 	public String getParams() {
-		return "object";
+		return "<object>";
 	}
 	
 	public String getHelperInfo() {
-		return "Command removes object from dbgit. Object you want to remove must be specified as parameter like here:\n"
-				+ "    dbgit rm <object_name>\n"
-				+ "    Object you want to remove must exist in index";
+		//return "Command removes object from dbgit. Object you want to remove must be specified as parameter like here:\n"
+		//		+ "    dbgit rm <object_name>\n"
+		//		+ "    Object you want to remove must exist in index";
+		return "_";
 	}
 	
 	public Options getOptions() {

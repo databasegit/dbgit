@@ -26,13 +26,15 @@ public class CmdAdd implements IDBGitCommand {
 	}
 	
 	public String getParams() {
-		return "mask_files";
+		return "<file_mask>";
 	}
 	
 	public String getHelperInfo() {
-		return "Command for add database objects to dbgit. \n"
-				+ "You need to specify db object name as parameter in format just like it shows in status command output.\n"
-				+ "You can also use masks to add many files by one command";
+		//return "Command for add database objects to dbgit. \n"
+		//		+ "You need to specify db object name as parameter in format just like it shows in status command output.\n"
+		//		+ "You can also use masks to add many files by one command";
+		
+		return "_";
 	}
 	
 	public Options getOptions() {
