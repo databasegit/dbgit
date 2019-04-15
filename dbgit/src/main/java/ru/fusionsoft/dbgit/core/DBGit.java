@@ -3,11 +3,15 @@ package ru.fusionsoft.dbgit.core;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.MergeCommand;
+import org.eclipse.jgit.api.MergeResult;
 import org.eclipse.jgit.api.Status;
 import org.eclipse.jgit.dircache.DirCache;
 import org.eclipse.jgit.internal.storage.file.FileRepository;
+import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
@@ -15,6 +19,7 @@ import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import ru.fusionsoft.dbgit.meta.IMapMetaObject;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
+import ru.fusionsoft.dbgit.utils.MaskFilter;
 
 public class DBGit {
 	private static DBGit dbGit = null;
@@ -185,6 +190,51 @@ public class DBGit {
         } catch (Exception e) {
         	throw new ExceptionDBGit(e);
         } 
+	}
+	
+	public void gitCheckout(String branch, boolean isNewBranch) throws ExceptionDBGit {
+		try {
+			Ref result;
+			if (git.getRepository().findRef(branch) != null || isNewBranch) {
+				result = git.checkout().setCreateBranch(isNewBranch).setName(branch).call();								
+				
+				ConsoleWriter.printlnGreen(result.getName());
+			} else {				
+				MaskFilter maskAdd = new MaskFilter(branch);
+				
+				int counter = 0;
+				for (String path: getGitIndexFiles(DBGitPath.DB_GIT_PATH)) {
+					if (maskAdd.match(path)) {
+						result = git.checkout().setName(git.getRepository().getBranch()).addPath(DBGitPath.DB_GIT_PATH + "/" + path).call();
+						counter++;
+					}					
+				}
+				String s = "";
+				if (counter > 1) s = "s";
+				ConsoleWriter.println("Updated " + counter + " path" + s + " from the index");
+			}			
+			
+			
+		} catch (Exception e) {
+			throw new ExceptionDBGit(e);
+		} 
+	}
+	
+	public void gitMerge(Set<String> branches) throws ExceptionDBGit {
+		try {
+			MergeCommand merge = git.merge();
+			
+			for (String branch : branches) {
+				merge.include(git.getRepository().findRef(branch));
+			}
+			
+			MergeResult result = merge.call();
+			
+			ConsoleWriter.println(result.getMergeStatus().toString());
+			
+		} catch (Exception e) {
+			throw new ExceptionDBGit(e);
+		} 
 	}
 
 }

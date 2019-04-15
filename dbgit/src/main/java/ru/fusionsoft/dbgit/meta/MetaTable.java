@@ -97,7 +97,9 @@ public class MetaTable extends MetaBase {
 	public String getHash() {
 		CalcHash ch = new CalcHash();
 		ch.addData(this.getName());
-		ch.addData(this.getTable().getHash());
+		
+		if (getTable() != null)
+			ch.addData(this.getTable().getHash());
 		
 		for (String item : fields.keySet()) {
 			ch.addData(item);

@@ -18,6 +18,7 @@ import ru.fusionsoft.dbgit.dbobjects.DBTableField;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
 import ru.fusionsoft.dbgit.meta.MetaTable;
 import ru.fusionsoft.dbgit.statement.StatementLogging;
+import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
 public class DBRestoreTableOracle extends DBRestoreAdapter {
 
@@ -93,7 +94,7 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 								}								
 							}						
 						
-				ResultSet rs = st.executeQuery("SELECT COUNT(cons.constraint_name)\n" + 
+				ResultSet rs = st.executeQuery("SELECT COUNT(cons.constraint_name) constraintscount \n" + 
 						"FROM all_constraints cons \n" + 
 						"WHERE owner = '" + schema + "' and table_name = '" + tblName+ "' and constraint_name not like 'SYS%' and cons.constraint_type = 'P'");
 				rs.next();
@@ -260,9 +261,10 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 				MetaTable restoreTable = (MetaTable)obj;
 				String schema = getPhisicalSchema(restoreTable.getTable().getSchema());
 				for(DBConstraint constrs :restoreTable.getConstraints().values()) {
-					if(!constrs.getConstraintType().equals("p")) {				
+					if(!constrs.getConstraintType().equals("P")) {				
 						//String tblName = schema+"."+restoreTable.getTable().getName();
-						st.execute(restoreTable.getConstraints().get("constraintDef").getConstraintDef().toString());
+						
+						st.execute(constrs.getConstraintDef().toString());
 					}
 				}
 			}

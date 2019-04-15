@@ -47,8 +47,10 @@ public class CmdHelp implements IDBGitCommand {
 				"    dump       dumps db objects into the dbgit repository\n" + 
 				"\n" + 
 				"grow, mark and tweak your common history\n" + 
-				"    valid      checks if dbgit data files are valid\n" + 
-				"    commit     makes git commit\n" + 
+				"    valid      checks if dbgit data files are valid\n" +
+				"    checkout   switch branches or restore working tree files" + 
+				"    commit     makes git commit\n" +
+				"    merge      join two or more development histories together" +
 				"\n" + 
 				"See 'dbgit <command> -h' to read about a specific command");
 	}
