@@ -94,12 +94,12 @@ public class CmdStatus implements IDBGitCommand {
 				addedObjs.put(fileObjs.get(name));					
 		}
 		
-		ConsoleWriter.println("Changes to be committed::");
+		ConsoleWriter.println("Changes to be committed:");
 		for(IMetaObject obj : addedObjs.values()) {
 			printObect(obj, FColor.GREEN, 1);
 		}
 		ConsoleWriter.println(" ");
-		
+
 		ConsoleWriter.println("Changes db objects not staged for commit:");
 		for(IMetaObject obj : changeObjs.values()) {
 			printObect(obj, FColor.RED, 1);
@@ -113,6 +113,20 @@ public class CmdStatus implements IDBGitCommand {
 				ConsoleWriter.println(name, 1);
 			}
 		}
+		ConsoleWriter.println(" ");
+
+		ConsoleWriter.println("Local files not staged for commit:");
+		for (String modified : DBGit.getInstance().getModifiedFiles()) {
+			ConsoleWriter.printlnColor(modified, FColor.RED, 1);
+		}
+		
+		ConsoleWriter.println(" ");
+
+		ConsoleWriter.println("Local files to be committed:");
+		for (String modified : DBGit.getInstance().getChanged()) {
+			ConsoleWriter.printlnColor(modified, FColor.GREEN, 1);
+		}
+
 		ConsoleWriter.println(" ");
 	}
 	

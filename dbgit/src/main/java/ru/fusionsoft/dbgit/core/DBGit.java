@@ -148,6 +148,22 @@ public class DBGit {
         } 
 	}
 	
+	public Set<String> getModifiedFiles() throws ExceptionDBGit {
+		try {
+			return git.status().call().getModified();
+		} catch (Exception e) {
+        	throw new ExceptionDBGit(e);
+        } 		
+	}
+	
+	public Set<String> getChanged() throws ExceptionDBGit {
+		try {
+			return git.status().call().getChanged();
+		} catch (Exception e) {
+        	throw new ExceptionDBGit(e);
+        } 		
+	}
+	
 	public void gitCommit(boolean existsSwitchA, String msg, String path) throws ExceptionDBGit {
 		try {
 			if (existsSwitchA) {
@@ -205,7 +221,7 @@ public class DBGit {
 			Ref result;
 			if (git.getRepository().findRef(branch) != null || isNewBranch) {
 				result = git.checkout().setCreateBranch(isNewBranch).setName(branch).call();								
-				
+
 				ConsoleWriter.printlnGreen(result.getName());
 			} else {				
 				MaskFilter maskAdd = new MaskFilter(branch);
@@ -261,7 +277,6 @@ public class DBGit {
 		} 
 	}
 
-
 	public void gitPush() throws ExceptionDBGit {
 		try {
 			Iterable<PushResult> result = git.push().setCredentialsProvider(getCredetialsProvider()).call();
@@ -273,9 +288,7 @@ public class DBGit {
 						ConsoleWriter.println("Everything up-to-date");
 					else {
 						ConsoleWriter.println(res.toString());
-					}
-					
-					
+					}					
 				}
 			});
 			
