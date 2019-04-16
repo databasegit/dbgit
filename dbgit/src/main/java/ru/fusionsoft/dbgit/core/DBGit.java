@@ -4,17 +4,25 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.MergeCommand;
 import org.eclipse.jgit.api.MergeResult;
+import org.eclipse.jgit.api.PullCommand;
 import org.eclipse.jgit.api.Status;
 import org.eclipse.jgit.dircache.DirCache;
 import org.eclipse.jgit.internal.storage.file.FileRepository;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
+import org.eclipse.jgit.lib.StoredConfig;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
+import org.eclipse.jgit.transport.CredentialsProvider;
+import org.eclipse.jgit.transport.PushResult;
+import org.eclipse.jgit.transport.RemoteRefUpdate;
+import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 
 import ru.fusionsoft.dbgit.meta.IMapMetaObject;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
@@ -33,7 +41,7 @@ public class DBGit {
 			  .readEnvironment() // scan environment GIT_* variables
 			  .findGitDir() // scan up the file system tree
 			  .build();	
-			
+
 			git = new Git(repository);
 		} catch (Exception e) {
 			throw new ExceptionDBGit(e);
@@ -223,15 +231,85 @@ public class DBGit {
 	public void gitMerge(Set<String> branches) throws ExceptionDBGit {
 		try {
 			MergeCommand merge = git.merge();
-			
+
 			for (String branch : branches) {
-				merge.include(git.getRepository().findRef(branch));
+				merge = merge.include(git.getRepository().findRef(branch));
 			}
 			
 			MergeResult result = merge.call();
 			
 			ConsoleWriter.println(result.getMergeStatus().toString());
 			
+		} catch (Exception e) {
+			throw new ExceptionDBGit(e);
+		} 
+	}
+
+	public void gitPull(String remote, String remoteBranch) throws ExceptionDBGit {
+		try {			
+			PullCommand pull = git.pull();
+			
+			if (remote.length() > 0)
+				pull = pull.setRemote(remote);
+
+			if (remoteBranch.length() > 0)
+				pull = pull.setRemoteBranchName(remoteBranch);
+			
+			ConsoleWriter.printlnGreen(pull.setCredentialsProvider(getCredetialsProvider()).call().toString());
+		} catch (Exception e) {
+			throw new ExceptionDBGit(e);
+		} 
+	}
+
+
+	public void gitPush() throws ExceptionDBGit {
+		try {
+			Iterable<PushResult> result = git.push().setCredentialsProvider(getCredetialsProvider()).call();
+			
+			result.forEach(pushResult -> {
+				pushResult.toString();
+				for (RemoteRefUpdate res : pushResult.getRemoteUpdates()) {
+					if (res.getStatus() == RemoteRefUpdate.Status.UP_TO_DATE)
+						ConsoleWriter.println("Everything up-to-date");
+					else {
+						ConsoleWriter.println(res.toString());
+					}
+					
+					
+				}
+			});
+			
+		} catch (Exception e) {
+			throw new ExceptionDBGit(e);
+		} 
+	}
+	
+	private CredentialsProvider getCredetialsProvider() throws ExceptionDBGit {
+		try {	
+			Pattern patternPass = Pattern.compile("(?<=:(?!\\/))(.*?)(?=@)");
+			Pattern patternLogin = Pattern.compile("(?<=\\/\\/)(.*?)(?=:(?!\\/))");
+			
+			String url = git.getRepository().getConfig().getString("remote", "origin", "url");
+			String login = "";
+			String pass = "";
+			
+			Matcher matcher = patternPass.matcher(url);
+			if (matcher.find())
+			{
+				pass = matcher.group();				
+			} else {
+				throw new ExceptionDBGit("Can't find git password");
+			}
+			
+			matcher = patternLogin.matcher(url);
+			if (matcher.find())
+			{
+				login = matcher.group();				
+			} else {
+				throw new ExceptionDBGit("Can't find git login");
+			}
+	
+			return new UsernamePasswordCredentialsProvider(login, pass);
 		} catch (Exception e) {
 			throw new ExceptionDBGit(e);
 		} 

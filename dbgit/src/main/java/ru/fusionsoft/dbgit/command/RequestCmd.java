@@ -34,6 +34,8 @@ public class RequestCmd {
         commands.put(new CmdCommit());
         commands.put(new CmdCheckout());
         commands.put(new CmdMerge());
+        commands.put(new CmdPull());
+        commands.put(new CmdPush());
 	}
 	
 	public static RequestCmd getInctance()  throws ExceptionDBGit {

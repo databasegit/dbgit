@@ -48,10 +48,14 @@ public class CmdHelp implements IDBGitCommand {
 				"\n" + 
 				"grow, mark and tweak your common history\n" + 
 				"    valid      checks if dbgit data files are valid\n" +
-				"    checkout   switch branches or restore working tree files" + 
+				"    checkout   switch branches or restore working tree files\n" + 
 				"    commit     makes git commit\n" +
-				"    merge      join two or more development histories together" +
+				"    merge      join two or more development histories together\n" +
 				"\n" + 
+				"collaborate\n" +
+				"    pull       fetch from and integrate with another repository or a local branch\n" +
+				"    push       update remote refs along with associated objects\n" +
+				"\n" +
 				"See 'dbgit <command> -h' to read about a specific command");
 	}
 
