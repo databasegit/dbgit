@@ -63,7 +63,7 @@ if defined ValueValue (
 ) else (
     echo Git not found
     echo Downloading git...
-    Powershell.exe -executionpolicy remotesigned -File  %~dp0bin\git-download.ps1 %~dp0git-install.exe
+    Powershell.exe -executionpolicy Bypass -File  %~dp0bin\git-download.ps1 %~dp0git-install.exe
     echo Installing git...
     START /WAIT %~dp0git-install.exe /SILENT /COMPONENTS="icons,ext\reg\shellhere,assoc,assoc_sh"
 )
@@ -74,10 +74,10 @@ if NOT %INSTALL_PATH% == %~dp0 (
     xcopy %~dp0repo %INSTALL_PATH%\dbgit\repo /i /Y /s
 
     echo Adding to PATH variable...
-    Powershell.exe -executionpolicy remotesigned -File  %~dp0bin\path-update.ps1 %INSTALL_PATH%\dbgit
+    Powershell.exe -executionpolicy Bypass -File  %~dp0bin\path-update.ps1 %INSTALL_PATH%\dbgit
 ) else (
     echo Adding to PATH variable...
-    Powershell.exe -executionpolicy remotesigned -File  %~dp0bin\path-update.ps1 %INSTALL_PATH%bin
+    Powershell.exe -executionpolicy Bypass -File  %~dp0bin\path-update.ps1 %INSTALL_PATH%bin
 )
 
 
