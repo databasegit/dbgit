@@ -81,7 +81,8 @@
       <targetPath>${project.build.directory}/dbgit/bin</targetPath><!-- to -->
       <includes><!-- what -->
         <include>path-update.ps1</include>
-        <include>git-download.ps1</include>
+        <include>git-download-x64.ps1</include>
+        <include>git-download-x86.ps1</include>
       </includes>
     </resource>
   </resources>
