@@ -40,6 +40,7 @@ if defined INSTALL_PATH (
 
  echo Checking of requirements...
 
+
 FOR /F "usebackq skip=2 tokens=3" %%A IN (`REG QUERY %JAVA_KEY_NAME% /v %VALUE_NAME% 2^>nul`) DO (
     set ValueValue=%%A
 )
@@ -49,7 +50,13 @@ if defined ValueValue (
 ) else (
     echo JRE not found
     echo Downloading java...
-    powershell -Command "(New-Object Net.WebClient).DownloadFile('https://javadl.oracle.com/webapps/download/AutoDL?BundleId=236888_42970487e3af4f5aa5bca3f542482c60', '%~dp0\java-install.exe')"
+
+    if defined PROGRAMFILES(X86) (
+        powershell -Command "(New-Object Net.WebClient).DownloadFile('https://javadl.oracle.com/webapps/download/AutoDL?BundleId=236888_42970487e3af4f5aa5bca3f542482c60', '%~dp0\java-install.exe')"
+    ) else (
+        powershell -Command "(New-Object Net.WebClient).DownloadFile('https://javadl.oracle.com/webapps/download/AutoDL?BundleId=238727_478a62b7d4e34b78b671c754eaaf38ab', '%~dp0\java-install.exe')"
+    )
+
     echo Installing java...
     START /WAIT %~dp0\java-install.exe /s
 )
@@ -63,7 +70,13 @@ if defined ValueValue (
 ) else (
     echo Git not found
     echo Downloading git...
-    Powershell.exe -executionpolicy Bypass -File  %~dp0bin\git-download.ps1 %~dp0git-install.exe
+
+    if defined PROGRAMFILES(X86) (
+        Powershell.exe -executionpolicy Bypass -File  %~dp0bin\git-download-x64.ps1 %~dp0git-install.exe
+    ) else (
+        Powershell.exe -executionpolicy Bypass -File  %~dp0bin\git-download-x86.ps1 %~dp0git-install.exe
+    )
+
     echo Installing git...
     START /WAIT %~dp0git-install.exe /SILENT /COMPONENTS="icons,ext\reg\shellhere,assoc,assoc_sh"
 )
