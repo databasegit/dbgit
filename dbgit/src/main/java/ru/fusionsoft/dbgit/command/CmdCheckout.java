@@ -26,7 +26,8 @@ public class CmdCheckout implements IDBGitCommand {
 
 	@Override
 	public String getHelperInfo() {
-		return "_";
+		return "Example:\n"
+				+ "    dbgit checkout master";
 	}
 
 	@Override

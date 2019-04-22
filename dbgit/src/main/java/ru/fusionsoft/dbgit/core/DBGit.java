@@ -7,7 +7,9 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.eclipse.jgit.api.CloneCommand;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.InitCommand;
 import org.eclipse.jgit.api.MergeCommand;
 import org.eclipse.jgit.api.MergeResult;
 import org.eclipse.jgit.api.PullCommand;
@@ -271,7 +273,7 @@ public class DBGit {
 			if (remoteBranch.length() > 0)
 				pull = pull.setRemoteBranchName(remoteBranch);
 			
-			ConsoleWriter.printlnGreen(pull.setCredentialsProvider(getCredetialsProvider()).call().toString());
+			ConsoleWriter.printlnGreen(pull.setCredentialsProvider(getCredentialsProvider()).call().toString());
 		} catch (Exception e) {
 			throw new ExceptionDBGit(e);
 		} 
@@ -279,7 +281,7 @@ public class DBGit {
 
 	public void gitPush() throws ExceptionDBGit {
 		try {
-			Iterable<PushResult> result = git.push().setCredentialsProvider(getCredetialsProvider()).call();
+			Iterable<PushResult> result = git.push().setCredentialsProvider(getCredentialsProvider()).call();
 			
 			result.forEach(pushResult -> {
 				pushResult.toString();
@@ -297,16 +299,53 @@ public class DBGit {
 		} 
 	}
 	
-	private CredentialsProvider getCredetialsProvider() throws ExceptionDBGit {
+	public static void gitInit(String dirPath) throws ExceptionDBGit {
+		try {
+			InitCommand init = Git.init();
+			
+			if (!dirPath.equals("")) {
+				File dir = new File(dirPath);
+				if (!dir.exists()) {
+					throw new ExceptionDBGit("Dir not found!");
+				}
+				init.setDirectory(dir);
+			}
+			
+			init.call();
+			
+			ConsoleWriter.println("Repository created");
+			
+		} catch (Exception e) {
+			throw new ExceptionDBGit(e);
+		} 		
+	}
+	
+	public static void gitClone(String link) throws ExceptionDBGit {
+		try {
+			Git.cloneRepository().setURI(link).setCredentialsProvider(getCredentialsProvider(link)).call();
+			
+			ConsoleWriter.println("Repository cloned");
+			
+		} catch (Exception e) {
+			throw new ExceptionDBGit(e);
+		} 
+		
+	}
+	
+	private CredentialsProvider getCredentialsProvider() throws ExceptionDBGit{
+		
+		return getCredentialsProvider(git.getRepository().getConfig().getString("remote", "origin", "url"));
+	}
+	
+	private static CredentialsProvider getCredentialsProvider(String link) throws ExceptionDBGit {
 		try {	
 			Pattern patternPass = Pattern.compile("(?<=:(?!\\/))(.*?)(?=@)");
 			Pattern patternLogin = Pattern.compile("(?<=\\/\\/)(.*?)(?=:(?!\\/))");
 			
-			String url = git.getRepository().getConfig().getString("remote", "origin", "url");
 			String login = "";
 			String pass = "";
 			
-			Matcher matcher = patternPass.matcher(url);
+			Matcher matcher = patternPass.matcher(link);
 			if (matcher.find())
 			{
 				pass = matcher.group();				
@@ -314,7 +353,7 @@ public class DBGit {
 				throw new ExceptionDBGit("Can't find git password");
 			}
 			
-			matcher = patternLogin.matcher(url);
+			matcher = patternLogin.matcher(link);
 			if (matcher.find())
 			{
 				login = matcher.group();				

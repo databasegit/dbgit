@@ -34,7 +34,9 @@ public class CmdAdd implements IDBGitCommand {
 		//		+ "You need to specify db object name as parameter in format just like it shows in status command output.\n"
 		//		+ "You can also use masks to add many files by one command";
 		
-		return "_";
+		return "Examples: \n"
+				+ "    dbgit add <SCHEME>/TEST_TABLE*\n"
+				+ "    dbgit add <SCHEME>/TEST_VIEW.vw";
 	}
 	
 	public Options getOptions() {

@@ -6,16 +6,13 @@ import org.apache.commons.cli.Options;
 import ru.fusionsoft.dbgit.core.DBGit;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 
-public class CmdPush implements IDBGitCommand {
+public class CmdInit implements IDBGitCommand {
+
 	private Options opts = new Options();
-	
-	public CmdPush() {
-		
-	}
 	
 	@Override
 	public String getCommandName() {
-		return "push";
+		return "init";
 	}
 
 	@Override
@@ -26,7 +23,7 @@ public class CmdPush implements IDBGitCommand {
 	@Override
 	public String getHelperInfo() {
 		return "Example:\n"
-				+ "    dbgit push";
+				+ "    dbgit init";
 	}
 
 	@Override
@@ -38,11 +35,15 @@ public class CmdPush implements IDBGitCommand {
 	public void execute(CommandLine cmdLine) throws Exception {
 		String[] args = cmdLine.getArgs();
 		
-		if (args.length > 0) {
+		String dir = "";
+		if (args.length > 1) {
 			throw new ExceptionDBGit("Bad command. Number of parameters is not correct!");
+		} else if (args.length == 1) {
+			dir = args[0];
 		}
 		
-		DBGit.getInstance().gitPush();
+		DBGit.gitInit(dir);
+
 	}
 
 }

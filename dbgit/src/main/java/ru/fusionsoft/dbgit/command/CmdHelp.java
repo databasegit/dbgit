@@ -36,6 +36,8 @@ public class CmdHelp implements IDBGitCommand {
 				"These are common Dbgit commands used in various situations:\n" + 
 				"\n" + 
 				"start a working area\n" + 
+				"    clone      clone a repository into a new directory\n" +
+				"    init       create an empty Git repository or reinitialize an existing one\n" + 
 				"    link       establishes connection with database\n" + 
 				"    synonym    specifies synonym for db scheme\n" + 
 				"\n" + 

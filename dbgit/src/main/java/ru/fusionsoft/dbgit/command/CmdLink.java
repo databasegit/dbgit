@@ -29,7 +29,8 @@ public class CmdLink implements IDBGitCommand {
 	
 	public String getHelperInfo() {
 		//return "Command creates link to database, you need to specify connection string as parameter in JDBC driver connection URL format";
-		return "_";
+		return "Example:\n"
+				+ "    dbgit link jdbc:oracle:thin:@192.168.1.2:1521:<BASE> user=<USERNAME> password=<PASSWORD>";
 	}
 	
 	public Options getOptions() {

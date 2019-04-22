@@ -66,7 +66,6 @@ public class App
 	
     public static void main( String[] args ) throws Exception
     {    	
-    	ConsoleWriter.println( "dbgit utils - Hello!");
     	/*
     	 * TODO delete
     	ConsoleWriter.println( "я русский");
@@ -77,7 +76,6 @@ public class App
         try {
         	executeDbGitCommand(args);
         	
-        	ConsoleWriter.println( "execute command success!");
         } catch (Exception e) {
         	ConsoleWriter.printlnRed("Error execute dbgit: "+e.getMessage());
         	LoggerUtil.getGlobalLogger().error(e.getMessage(), e);

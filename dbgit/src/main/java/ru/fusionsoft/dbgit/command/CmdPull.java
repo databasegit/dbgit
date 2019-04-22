@@ -26,7 +26,8 @@ public class CmdPull implements IDBGitCommand {
 
 	@Override
 	public String getHelperInfo() {
-		return "_";
+		return "Example:\n"
+				+ "    dbgit pull origin master";
 	}
 
 	@Override

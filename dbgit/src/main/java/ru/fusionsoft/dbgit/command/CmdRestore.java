@@ -41,7 +41,9 @@ public class CmdRestore implements IDBGitCommand {
 	public String getHelperInfo() {
 		//return "Command restores database. Runs without parameters. You can use switch -s to output restore script into file like this:\n"
 		//		+ "    dbgit restore -s <file_name>";
-		return "_";
+		return "Examples:\n"
+				+ "    dbgit restore -s <file_name>\n"
+				+ "    dbgit restore";
 	}
 	
 	public Options getOptions() {

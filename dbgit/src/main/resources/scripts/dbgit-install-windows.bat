@@ -1,5 +1,4 @@
 @echo off
-
  call :isAdmin
 
  if %errorlevel% == 0 (
@@ -16,7 +15,7 @@
  exit /b
 
  :run
-
+setlocal enabledelayedexpansion
 set INSTALL_PATH=%1
 
 set JAVA_KEY_NAME="HKLM\SOFTWARE\JavaSoft\Java Runtime Environment"
@@ -31,11 +30,26 @@ if defined INSTALL_PATH (
         echo If you run the installer with -d swith installer will download and install JRE and Git if they doesn't installed
 
         pause
+        exit
     )
 
     echo destination folder is %INSTALL_PATH%
 ) else (
     set INSTALL_PATH=%~dp0
+
+    set EXISTING_DBGI_PATH="null"
+    for /f "usebackq delims=" %%a in (`powershell -executionpolicy Bypass -File "%~dp0bin\path-parser.ps1"`) do (
+        set EXISTING_DBGI_PATH="%%a"
+    )
+
+    if not !EXISTING_DBGI_PATH! == "null" (
+        echo Old dbgit found, it will be updated
+        set INSTALL_PATH=!EXISTING_DBGI_PATH!
+    ) else (
+        echo Old dbgit not found, it will be installed to the current dir
+    )
+
+    echo install path is !INSTALL_PATH!
 )
 
 FOR /F "usebackq skip=2 tokens=3" %%A IN (`REG QUERY %JAVA_KEY_NAME% /v %VALUE_NAME% 2^>nul`) DO (
