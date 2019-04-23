@@ -23,7 +23,7 @@ public class FactoryDBAdapterRestoreOracle implements IFactoryDBAdapterRestoteMe
         aMap.put(DBGitMetaType.DBGitRole.getValue(), new DBRestoreRoleOracle());
         aMap.put(DBGitMetaType.DBGitSequence.getValue(), new DBRestoreSequenceOracle());
         aMap.put(DBGitMetaType.DBGitTable.getValue(), new DBRestoreTableOracle());
-        //aMap.put(DBGitMetaType.DbGitTableData.getValue(), new DBRestoreTableDataOracle());
+        aMap.put(DBGitMetaType.DbGitTableData.getValue(), new DBRestoreTableDataOracle());
         aMap.put(DBGitMetaType.DbGitProcedure.getValue(), new DBRestoreProcedureOracle());
         aMap.put(DBGitMetaType.DbGitFunction.getValue(), new DBRestoreFunctionOracle());
         aMap.put(DBGitMetaType.DbGitTrigger.getValue(), new DBRestoreTriggerOracle());
