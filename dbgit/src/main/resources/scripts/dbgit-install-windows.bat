@@ -32,8 +32,22 @@ if defined INSTALL_PATH (
         pause
         exit
     )
+    
+    set SLASH=\
+    if not "!INSTALL_PATH:~-1!"=="\" set INSTALL_PATH=!INSTALL_PATH!!SLASH!
 
-    echo destination folder is %INSTALL_PATH%
+    set EXISTING_DBGI_PATH="null"
+    for /f "usebackq delims=" %%a in (`powershell -executionpolicy Bypass -File "%~dp0bin\path-parser.ps1"`) do (
+        set EXISTING_DBGI_PATH="%%a"
+    )
+
+    if not !EXISTING_DBGI_PATH! == "!INSTALL_PATH!bin" (
+        echo Adding to PATH variable...
+        Powershell.exe -executionpolicy Bypass -File  %~dp0bin\path-update.ps1 !INSTALL_PATH!bin    
+    )
+
+    echo destination folder is !INSTALL_PATH!
+
 ) else (
     set INSTALL_PATH=%~dp0
 
@@ -45,8 +59,12 @@ if defined INSTALL_PATH (
     if not !EXISTING_DBGI_PATH! == "null" (
         echo Old dbgit found, it will be updated
         set INSTALL_PATH=!EXISTING_DBGI_PATH!
+
     ) else (
         echo Old dbgit not found, it will be installed to the current dir
+        echo Adding to PATH variable...
+        Powershell.exe -executionpolicy Bypass -File  %~dp0bin\path-update.ps1 !INSTALL_PATH!bin
+
     )
 
     echo install path is !INSTALL_PATH!
@@ -94,14 +112,8 @@ if defined ValueValue (
 
 if NOT %INSTALL_PATH% == %~dp0 (
     echo Copying files...
-    xcopy %~dp0bin %INSTALL_PATH%\dbgit\bin /i /Y
-    xcopy %~dp0repo %INSTALL_PATH%\dbgit\repo /i /Y /s
-
-    echo Adding to PATH variable...
-    Powershell.exe -executionpolicy Bypass -File  %~dp0bin\path-update.ps1 %INSTALL_PATH%\dbgit
-) else (
-    echo Adding to PATH variable...
-    Powershell.exe -executionpolicy Bypass -File  %~dp0bin\path-update.ps1 %INSTALL_PATH%bin
+    xcopy %~dp0bin !INSTALL_PATH!bin /i /Y
+    xcopy %~dp0repo !INSTALL_PATH!repo /i /Y /s
 )
 
 
