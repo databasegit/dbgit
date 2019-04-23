@@ -109,6 +109,11 @@ public class DBRestoreTableDataOracle extends DBRestoreAdapter {
 					if (!diffRowData.leftValue().getHashRow().equals(diffRowData.rightValue().getHashRow())) {
 						Map<String,String> primarykeys = getKeys(diffRowData.leftValue());
 						
+						if (primarykeys.size() == 0) {
+							ConsoleWriter.printlnRed("PK not found for table " + tblName + ", cannot update row!");
+							continue;
+						}
+						
 						String updParams = primarykeys.entrySet().stream()
 								.map(entry -> entry.getKey() + " = '" + entry.getValue() + "'")
 								.collect(Collectors.joining(" and "));
