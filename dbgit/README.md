@@ -71,9 +71,11 @@ It binds `dbgit` with a database. Example:
 
 - __remote__
 
-  - with `add` parameter will add remote repository to your git config
-  - with `remove` parameter will remove remote repository from the git config
-  - with no parameters will show list of remote repositories
+   with `add` parameter will add remote repository to your git config
+   
+   with `remove` parameter will remove remote repository from the git config
+   
+   with no parameters will show list of remote repositories
 
 - __synonym__
 
