@@ -21,7 +21,7 @@ public class StringData implements ICellData {
 	
 	@Override
 	public void deserialize(String data) throws Exception {
-		this.value = Convertor.DecodeBase64(data);
+		this.value = (data == null) ? null : Convertor.DecodeBase64(data);
 	}
 	
 	@Override
@@ -51,8 +51,7 @@ public class StringData implements ICellData {
 
 	@Override
 	public String getSQLData() {
-		String data = "\'"+value+"\'";
-		return data;
+		return (value == null) ? "''" : "\'"+value+"\'";
 	}
 	
 }

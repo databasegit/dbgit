@@ -24,7 +24,8 @@ public class LongData implements ICellData {
 	
 	@Override
 	public void deserialize(String data) throws Exception {
-		this.value = Long.decode(data);
+		this.value = (data == null) ? null : Long.decode(data);
+		//this.value = Long.decode(data);
 		/*
 		try {
 			this.value = Long.decode(data);
@@ -60,9 +61,8 @@ public class LongData implements ICellData {
 	}
 
 	@Override
-	public String getSQLData() {
-		String data = "\'"+value.toString()+"\'";
-		return data;
+	public String getSQLData() {		
+		return (value == null) ? "''" : "\'"+value.toString()+"\'";
 	}
 	
 }

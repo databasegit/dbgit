@@ -75,7 +75,9 @@ public class DBRestoreTableDataOracle extends DBRestoreAdapter {
 			if(!diffTableData.entriesOnlyOnLeft().isEmpty()) {
 				for(RowData rowData:diffTableData.entriesOnlyOnLeft().values()) {
 					String values = 
-							rowData.getData().values().stream().map(d -> d.getSQLData()).collect(Collectors.joining(","));				
+							rowData.getData().values().stream()
+							.map(d -> d.getSQLData())
+							.collect(Collectors.joining(","));				
 					insertQuery = "insert into "+tblName +
 							fields + " values (" + values + ")";
 					
