@@ -10,6 +10,7 @@ import ru.fusionsoft.dbgit.dbobjects.DBFunction;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
 import ru.fusionsoft.dbgit.meta.MetaFunction;
 import ru.fusionsoft.dbgit.statement.StatementLogging;
+import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
 public class DBRestoreFunctionPostgres extends DBRestoreAdapter {
 	
@@ -18,6 +19,7 @@ public class DBRestoreFunctionPostgres extends DBRestoreAdapter {
 		IDBAdapter adapter = getAdapter();
 		Connection connect = adapter.getConnection();
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
+		ConsoleWriter.detailsPrint("Restoring function " + obj.getName() + "...", 1);
 		try {
 			if (obj instanceof MetaFunction) {
 				MetaFunction restoreFunction = (MetaFunction)obj;								
@@ -51,11 +53,14 @@ public class DBRestoreFunctionPostgres extends DBRestoreAdapter {
 			}
 			else
 			{
+				ConsoleWriter.detailsPrintlnRed("FAIL");
 				throw new ExceptionDBGitRestore("Error restore: Unable to restore Function.");
 			}			
 		} catch (Exception e) {
+			ConsoleWriter.detailsPrintlnRed("FAIL");
 			throw new ExceptionDBGitRestore("Error restore "+obj.getName(), e);
 		} finally {
+			ConsoleWriter.detailsPrintlnGreen("OK");
 			st.close();
 		}
 		return true;

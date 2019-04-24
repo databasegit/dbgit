@@ -50,9 +50,13 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
 		try {
 			if (obj instanceof MetaTable) {
+				
 				MetaTable restoreTable = (MetaTable)obj;	
 				String schema = getPhisicalSchema(restoreTable.getTable().getSchema());
 				String tblName = schema+"."+restoreTable.getTable().getName();
+				
+				ConsoleWriter.detailsPrint("Restoring table " + tblName + "\n", 1);
+
 				Map<String, DBTable> tables = adapter.getTables(schema);
 				boolean exist = false;
 				if(!(tables.isEmpty() || tables == null)) {
@@ -63,26 +67,34 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 						}						
 					}
 				}
-				if(!exist){								
-					st.execute(restoreTable.getTable().getOptions().get("ddl").getData());			
+				if(!exist){			
+					ConsoleWriter.detailsPrint("Creating table...", 2);
+					st.execute(restoreTable.getTable().getOptions().get("ddl").getData());	
+					ConsoleWriter.detailsPrintlnGreen("OK");
 				}
 				//restore tabl fields
 							Map<String, DBTableField> currentFileds = adapter.getTableFields(restoreTable.getTable().getSchema(), restoreTable.getTable().getName());
 							MapDifference<String, DBTableField> diffTableFields = Maps.difference(restoreTable.getFields(),currentFileds);
 							
 							if(!diffTableFields.entriesOnlyOnLeft().isEmpty()){
+								ConsoleWriter.detailsPrint("Adding columns...", 2);
 								for(DBTableField tblField:diffTableFields.entriesOnlyOnLeft().values()) {
 										st.execute("alter table "+ tblName +" add " + tblField.getName()  + " " + tblField.getTypeSQL());
 								}								
+								ConsoleWriter.detailsPrintlnGreen("OK");
 							}
 							
 							if(!diffTableFields.entriesOnlyOnRight().isEmpty()) {
+								ConsoleWriter.detailsPrint("Dropping columns...", 2);
 								for(DBTableField tblField:diffTableFields.entriesOnlyOnRight().values()) {
 									st.execute("alter table "+ tblName +" drop column "+ tblField.getName());
 								}								
+								ConsoleWriter.detailsPrintlnGreen("OK");
 							}
 							
-							if(!diffTableFields.entriesDiffering().isEmpty()) {						
+							if(!diffTableFields.entriesDiffering().isEmpty()) {
+								ConsoleWriter.detailsPrint("Modifying columns...", 2);
+
 								for(ValueDifference<DBTableField> tblField:diffTableFields.entriesDiffering().values()) {
 									if(!tblField.leftValue().getName().equals(tblField.rightValue().getName())) {
 										st.execute("alter table "+ tblName +" rename column "+ tblField.rightValue().getName() +" to "+ tblField.leftValue().getName());
@@ -91,7 +103,8 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 									if(!tblField.leftValue().getTypeSQL().equals(tblField.rightValue().getTypeSQL())) {
 										st.execute("alter table "+ tblName +" modify "+ tblField.leftValue().getName() +" "+ tblField.leftValue().getTypeSQL());
 									}
-								}								
+								}		
+								ConsoleWriter.detailsPrintlnGreen("OK");
 							}						
 						
 				ResultSet rs = st.executeQuery("SELECT COUNT(cons.constraint_name) constraintscount \n" + 
@@ -105,7 +118,9 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 				// set primary key
 				for(DBConstraint tableconst: restoreTable.getConstraints().values()) {
 					if(tableconst.getConstraintType().equals("p")) {
+						ConsoleWriter.detailsPrint("Adding PK...", 2);
 						st.execute("alter table "+ tblName +" add constraint PK_"+ tableconst.getName() + " primary key ("+tableconst.getName() + ")");
+						ConsoleWriter.detailsPrintlnGreen("OK");
 						break;
 					}
 				}									
@@ -207,6 +222,8 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 		IDBAdapter adapter = getAdapter();
 		Connection connect = adapter.getConnection();
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
+		
+		ConsoleWriter.detailsPrint("Restore indexes for table " + obj.getName() + "...", 1);
 		try {
 			if (obj instanceof MetaTable) {
 				MetaTable restoreTable = (MetaTable)obj;	
@@ -239,13 +256,16 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 						st.execute(ind.getSql());						
 					}
 				}
+				ConsoleWriter.detailsPrintlnGreen("OK");
 			}
 			else
 			{
+				ConsoleWriter.detailsPrintlnRed("FAIL");
 				throw new ExceptionDBGitRestore("Error restore: Unable to restore TableIndexes.");
 			}						
 		}
 		catch (Exception e) {
+			ConsoleWriter.detailsPrintlnRed("FAIL");
 			throw new ExceptionDBGitRestore("Error restore "+obj.getName(), e);
 		} finally {
 			st.close();
@@ -256,6 +276,7 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 		IDBAdapter adapter = getAdapter();
 		Connection connect = adapter.getConnection();
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
+		ConsoleWriter.detailsPrint("Restore constraints for table " + obj.getName() + "...", 1);
 		try {
 			if (obj instanceof MetaTable) {
 				MetaTable restoreTable = (MetaTable)obj;
@@ -267,13 +288,16 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 						st.execute(constrs.getConstraintDef().toString());
 					}
 				}
+				ConsoleWriter.detailsPrintlnGreen("OK");
 			}
 			else
 			{
+				ConsoleWriter.detailsPrintlnRed("FAIL");
 				throw new ExceptionDBGitRestore("Error restore: Unable to restore TableConstraints.");
-			}						
+			}			
 		}
 		catch (Exception e) {
+			ConsoleWriter.detailsPrintlnRed("FAIL");
 			throw new ExceptionDBGitRestore("Error restore "+obj.getName(), e);
 		} finally {
 			st.close();

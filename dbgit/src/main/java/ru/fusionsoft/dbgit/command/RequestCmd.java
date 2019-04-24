@@ -38,6 +38,7 @@ public class RequestCmd {
         commands.put(new CmdPush());
         commands.put(new CmdInit());
         commands.put(new CmdClone());
+        commands.put(new CmdRemote());
 	}
 	
 	public static RequestCmd getInctance()  throws ExceptionDBGit {
@@ -86,9 +87,13 @@ public class RequestCmd {
 		if (opts.getOption("h") == null) {
 			opts.addOption("h", false, "Shows this help");
 		}
+
+		if (opts.getOption("v") == null) {
+			opts.addOption("v", false, "Outputs full log of command execution");
+		}
+
 		return opts;
-	}
-	
+	}	
 	
 	public void printHelpAboutCommand(String command) throws Exception {
 		if (!commands.containsKey(command)) {

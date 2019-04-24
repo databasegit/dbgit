@@ -19,6 +19,8 @@ import ru.fusionsoft.dbgit.meta.IMetaObject;
 import ru.fusionsoft.dbgit.meta.MetaTable;
 import ru.fusionsoft.dbgit.meta.MetaTableData;
 import ru.fusionsoft.dbgit.statement.StatementLogging;
+import ru.fusionsoft.dbgit.utils.ConsoleWriter;
+
 import com.google.common.collect.MapDifference;
 import com.google.common.collect.MapDifference.ValueDifference;
 import com.google.common.collect.Maps;
@@ -72,7 +74,11 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 			MapDifference<String, RowData> diffTableData = Maps.difference(restoreTableData.getmapRows(),currentTableData.getmapRows());
 			String schema = getPhisicalSchema(restoreTableData.getTable().getSchema());
 			String tblName = schema + "." + restoreTableData.getTable().getName();
+			
+			ConsoleWriter.detailsPrint("Restoring table data for " + tblName + "\n", 1);
+			
 			if(!diffTableData.entriesOnlyOnLeft().isEmpty()){
+				ConsoleWriter.detailsPrint("Inserting...", 2);
 				for(RowData rowData:diffTableData.entriesOnlyOnLeft().values()) {
 					insertQuery += "insert into "+tblName +
 							fields+valuesToString(rowData.getData().values()) + ";\n";
@@ -84,9 +90,11 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 				if(insertQuery.length()>1){
 					st.execute(insertQuery);
 				}
+				ConsoleWriter.detailsPrintlnGreen("OK");
 			}
 			
 			if(!diffTableData.entriesOnlyOnRight().isEmpty()){
+				ConsoleWriter.detailsPrint("Deleteng...", 2);
 				String deleteQuery="";
 				Map<String,String> primarykeys = new HashMap();
 				for(RowData rowData:diffTableData.entriesOnlyOnRight().values()) {
@@ -122,9 +130,11 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 				if(deleteQuery.length()>1) {
 					st.execute(deleteQuery);
 				}
+				ConsoleWriter.detailsPrintlnGreen("OK");
 			}
 			
 			if(!diffTableData.entriesDiffering().isEmpty()) {
+				ConsoleWriter.detailsPrint("Updating...", 2);
 				String updateQuery="";
 				Map<String,String> primarykeys = new HashMap();
 				for(ValueDifference<RowData> diffRowData:diffTableData.entriesDiffering().values()) {
@@ -175,7 +185,7 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 						
 					}
 				}
-				System.out.println(updateQuery);
+				ConsoleWriter.detailsPrintlnGreen("OK");
 				if(updateQuery.length()>1) {
 					st.execute(updateQuery);
 				}
@@ -219,6 +229,7 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 	}
 
 	public void restoreTableConstraintPostgres(MetaTable table) throws Exception {
+		ConsoleWriter.detailsPrint("Restoring constraints for " + table.getName() + "...", 1);
 		IDBAdapter adapter = getAdapter();
 		Connection connect = adapter.getConnection();
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
@@ -231,8 +242,10 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 				}						
 		}
 		catch (Exception e) {
+			ConsoleWriter.detailsPrintlnRed("FAIL");
 			throw new ExceptionDBGitRestore("Error restore "+table.getTable().getName(), e);
 		} finally {
+			ConsoleWriter.detailsPrintlnGreen("OK");
 			st.close();
 		}			
 	}
@@ -243,21 +256,24 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
 		String schema = getPhisicalSchema(table.getTable().getSchema());
 		String tblName = schema + "." +table.getTable().getName();
+		ConsoleWriter.detailsPrint("Deleting constraints for " + table.getName() + "...", 1);
 		try {					
-				ResultSet rs = st.executeQuery("SELECT COUNT(*) as constraintscount\n" +
-						"FROM pg_catalog.pg_constraint const JOIN pg_catalog.pg_class cl ON (const.conrelid=cl.oid) WHERE cl.relname = " + tblName);
-				rs.next();
-				Integer constraintsCount = Integer.valueOf(rs.getString("constraints_count"));
-				if(constraintsCount.intValue()>0) {
-					Map<String, DBConstraint> constraints = table.getConstraints();
-					for(DBConstraint constrs :constraints.values()) {
-						if(!constrs.getConstraintType().equals("p")) {
-							st.execute("alter table "+schema+"."+ table.getTable().getName() +" drop constraint "+constrs.getName());
-						}
+			ResultSet rs = st.executeQuery("SELECT COUNT(*) as constraintscount\n" +
+					"FROM pg_catalog.pg_constraint const JOIN pg_catalog.pg_class cl ON (const.conrelid=cl.oid) WHERE cl.relname = " + tblName);
+			rs.next();
+			Integer constraintsCount = Integer.valueOf(rs.getString("constraints_count"));
+			if(constraintsCount.intValue()>0) {
+				Map<String, DBConstraint> constraints = table.getConstraints();
+				for(DBConstraint constrs :constraints.values()) {
+					if(!constrs.getConstraintType().equals("p")) {
+						st.execute("alter table "+schema+"."+ table.getTable().getName() +" drop constraint "+constrs.getName());
 					}
-				}		
+				}
+			}	
+			ConsoleWriter.detailsPrintlnGreen("OK");
 		}
 		catch(Exception e) {
+			ConsoleWriter.detailsPrintlnRed("FAIL");
 			throw new ExceptionDBGitRestore("Error restore "+tblName, e);
 		}		
 	}

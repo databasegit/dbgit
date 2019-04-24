@@ -3,27 +3,29 @@ package ru.fusionsoft.dbgit.core;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.eclipse.jgit.api.CloneCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.InitCommand;
 import org.eclipse.jgit.api.MergeCommand;
 import org.eclipse.jgit.api.MergeResult;
 import org.eclipse.jgit.api.PullCommand;
+import org.eclipse.jgit.api.RemoteAddCommand;
+import org.eclipse.jgit.api.RemoteRemoveCommand;
 import org.eclipse.jgit.api.Status;
 import org.eclipse.jgit.dircache.DirCache;
-import org.eclipse.jgit.internal.storage.file.FileRepository;
+import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
-import org.eclipse.jgit.lib.StoredConfig;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.eclipse.jgit.transport.PushResult;
 import org.eclipse.jgit.transport.RemoteRefUpdate;
+import org.eclipse.jgit.transport.URIish;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 
 import ru.fusionsoft.dbgit.meta.IMapMetaObject;
@@ -332,9 +334,47 @@ public class DBGit {
 		
 	}
 	
-	private CredentialsProvider getCredentialsProvider() throws ExceptionDBGit{
+	public void gitRemote(String command, String name, String uri) throws ExceptionDBGit {
+		try {
+			switch (command) {
+				case "" : {
+					git.remoteList().call().forEach(remote -> ConsoleWriter.println(remote.getName()));
+					break;
+				}
+				
+				case "add" : {
+					RemoteAddCommand remote = git.remoteAdd();
+					remote.setName(name);
+					remote.setUri(new URIish(uri));
+					remote.call();
+					
+					ConsoleWriter.printlnGreen("Remote added");
+					
+					break;
+				}
+								
+				case "remove" : {
+					RemoteRemoveCommand remote = git.remoteRemove();
+					remote.setName(name);
+					remote.call();
+					
+					ConsoleWriter.printlnGreen("Remote removed");
+					
+					break;
+				}
+				
+				default : ConsoleWriter.println("Unknown command");
+			}
+			
+			
+		} catch (Exception e) {
+			throw new ExceptionDBGit(e);
+		}
+	}
+	
+	private CredentialsProvider getCredentialsProvider() throws ExceptionDBGit {
 		
-		return getCredentialsProvider(git.getRepository().getConfig().getString("remote", "origin", "url"));
+		return getCredentialsProvider(git.getRepository().getConfig().getString("remote", Constants.DEFAULT_REMOTE_NAME, "url"));
 	}
 	
 	private static CredentialsProvider getCredentialsProvider(String link) throws ExceptionDBGit {

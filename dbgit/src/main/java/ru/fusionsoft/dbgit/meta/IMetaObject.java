@@ -85,7 +85,6 @@ public interface IMetaObject {
 		boolean res = this.serialize(out);
 		out.close();
 		
-		ConsoleWriter.println("Write file object: "+getName());
 		return res;
 	}
 	

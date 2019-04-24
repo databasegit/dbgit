@@ -21,6 +21,7 @@ public class DBRestoreViewOracle extends DBRestoreAdapter {
 		IDBAdapter adapter = getAdapter();
 		Connection connect = adapter.getConnection();
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
+		ConsoleWriter.detailsPrint("Restoring view " + obj.getName() + "...", 1);
 		try {
 			if (obj instanceof MetaView) {
 				MetaView restoreView = (MetaView)obj;								
@@ -43,12 +44,15 @@ public class DBRestoreViewOracle extends DBRestoreAdapter {
 					st.execute(restoreView.getSqlObject().getSql());	
 					//TODO Восстановление привилегий	
 				}
+				ConsoleWriter.detailsPrintlnGreen("OK");
 			}
 			else
 			{
+				ConsoleWriter.detailsPrintlnRed("FAIL");
 				throw new ExceptionDBGitRestore("Error restore: Unable to restore VIEWS.");
 			}			
 		} catch (Exception e) {
+			ConsoleWriter.detailsPrintlnRed("FAIL");
 			throw new ExceptionDBGitRestore("Error restore "+obj.getName(), e);
 		} finally {
 			st.close();

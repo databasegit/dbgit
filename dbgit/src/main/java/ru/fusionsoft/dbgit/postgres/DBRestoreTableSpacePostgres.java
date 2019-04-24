@@ -10,6 +10,7 @@ import ru.fusionsoft.dbgit.dbobjects.DBTableSpace;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
 import ru.fusionsoft.dbgit.meta.MetaTableSpace;
 import ru.fusionsoft.dbgit.statement.StatementLogging;
+import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
 public class DBRestoreTableSpacePostgres extends DBRestoreAdapter{
 
@@ -18,7 +19,7 @@ public class DBRestoreTableSpacePostgres extends DBRestoreAdapter{
 		IDBAdapter adapter = getAdapter();
 		Connection connect = adapter.getConnection();
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
-
+		ConsoleWriter.detailsPrint("Restoring tablespace " + obj.getName() + "...", 1);
 		try {
 			if (obj instanceof MetaTableSpace) {
 				MetaTableSpace restoreTableSpace = (MetaTableSpace)obj;								
@@ -66,11 +67,14 @@ public class DBRestoreTableSpacePostgres extends DBRestoreAdapter{
 			}
 			else
 			{
+				ConsoleWriter.detailsPrintlnRed("FAIL");
 				throw new ExceptionDBGitRestore("Error restore: Unable to restore TABLE SPACES.");
 			}			
 		} catch (Exception e) {
+			ConsoleWriter.detailsPrintlnRed("FAIL");
 			throw new ExceptionDBGitRestore("Error restore "+obj.getName(), e);
 		} finally {
+			ConsoleWriter.detailsPrintlnGreen("OK");
 			st.close();
 		}
 		return true;

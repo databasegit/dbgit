@@ -43,34 +43,57 @@ public class CmdDump implements IDBGitCommand {
 		Boolean isAddToGit = cmdLine.hasOption('a');
 		Boolean isAllDump = cmdLine.hasOption('f');
 		
+		ConsoleWriter.setDetailedLog(cmdLine.hasOption("v"));
+		
 		GitMetaDataManager gmdm = GitMetaDataManager.getInctance();
 				
 		DBGitIndex index = DBGitIndex.getInctance();
+		
+		ConsoleWriter.detailsPrintLn("Checking files...");
 
 		IMapMetaObject fileObjs = gmdm.loadFileMetaData();
 		
+		ConsoleWriter.detailsPrintLn("Dumping...");
+		
 		for (IMetaObject obj : fileObjs.values()) {
+			ConsoleWriter.detailsPrintLn("Processing " + obj.getName());
 			String hash = obj.getHash();
+			ConsoleWriter.detailsPrint("hash: " + hash + "\n", 2);
 			
+			ConsoleWriter.detailsPrint("Loading object from db...\n", 2);
 			if (!gmdm.loadFromDB(obj)) {
 				ConsoleWriter.println("Can't find " + obj.getName() + " in DB");
 				continue;
 			}
+			ConsoleWriter.detailsPrint("db hash: " + obj.getHash() + "\n", 2);
 			
 			if (isAllDump || !obj.getHash().equals(hash)) {
+				if (!obj.getHash().equals(hash))
+					ConsoleWriter.detailsPrint("Hashes are different, saving to file...", 2);
+				else
+					ConsoleWriter.detailsPrint("-f switch found, saving to file...", 2);
 				//сохранили файл если хеш разный
 				obj.saveToFile();
+				ConsoleWriter.detailsPrintlnGreen("OK");
+				ConsoleWriter.detailsPrint("Adding to index...", 2);
 				index.addItem(obj);				
-			
+				ConsoleWriter.detailsPrintlnGreen("OK");
+				
 				if (isAddToGit) {
+					ConsoleWriter.detailsPrint("Adding to git...", 2);
 					obj.addToGit();						
+					ConsoleWriter.detailsPrintlnGreen("OK");
 				}
-			}			
+			} else {
+				ConsoleWriter.detailsPrint("Hashes match, no need to dump object...\n", 2);
+			}
 		}
 		
 		index.saveDBIndex();
 		if (isAddToGit) {
+			ConsoleWriter.detailsPrintLn("Adding to git");
 			index.addToGit();
 		}			
+		ConsoleWriter.println("Done!");
 	}
 }

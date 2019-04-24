@@ -35,8 +35,6 @@ public class DBRestoreTableDataOracle extends DBRestoreAdapter {
 	public boolean restoreMetaObject(IMetaObject obj, int step) throws Exception {
 
 		if (obj instanceof MetaTableData) {
-			ConsoleWriter.println("It's tabledata. step " + step);			
-
 			MetaTableData restoreTableData = (MetaTableData) obj;
 			
 			IMetaObject currentMetaObj = GitMetaDataManager.getInctance().getCacheDBMetaObject(obj.getName());
@@ -66,13 +64,17 @@ public class DBRestoreTableDataOracle extends DBRestoreAdapter {
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
 
 		try {
+			String tblName = getPhisicalSchema(restoreTableData.getTable().getSchema()) + "." + restoreTableData.getTable().getName();
+
+			ConsoleWriter.detailsPrint("Restoring table data for " + tblName + "\n", 1);
+
 			String insertQuery= "";
 			
 			String fields = "(" + restoreTableData.getmapRows().firstEntry().getValue().getData().keySet().stream().map(d -> d.toString()).collect(Collectors.joining(",")) + ")";
 			MapDifference<String, RowData> diffTableData = Maps.difference(restoreTableData.getmapRows(), currentTableData == null ? new TreeMap<String, RowData>() : currentTableData.getmapRows());
-			String tblName = getPhisicalSchema(restoreTableData.getTable().getSchema()) + "." + restoreTableData.getTable().getName();
 
 			if(!diffTableData.entriesOnlyOnLeft().isEmpty()) {
+				ConsoleWriter.detailsPrint("Inserting...", 2);
 				for(RowData rowData:diffTableData.entriesOnlyOnLeft().values()) {
 					String values = 
 							rowData.getData().values().stream()
@@ -84,16 +86,21 @@ public class DBRestoreTableDataOracle extends DBRestoreAdapter {
 					st.execute(insertQuery);
 
 				}
+				ConsoleWriter.detailsPrintlnGreen("OK");
+
 			}
-			
 			if(!diffTableData.entriesOnlyOnRight().isEmpty()) {
+				boolean isSuccessful = true;
+				ConsoleWriter.detailsPrint("Deleteng...", 2);
 
 				for(RowData rowData : diffTableData.entriesOnlyOnRight().values()) {
 					Map<String,String> primarykeys = getKeys(rowData);
 					
 					if (primarykeys.size() == 0) {
+						ConsoleWriter.detailsPrintlnRed("FAIL");
 						ConsoleWriter.printlnRed("PK not found for table " + tblName + ", cannot delete row!");
-						continue;
+						isSuccessful = false;
+						break;
 					}
 					
 					String delParams = primarykeys.entrySet().stream()
@@ -103,17 +110,23 @@ public class DBRestoreTableDataOracle extends DBRestoreAdapter {
 					String deleteQuery = "delete from " + tblName + " where " + delParams;
 
 					st.execute(deleteQuery);					
-				}				
+				}		
+				if (isSuccessful) ConsoleWriter.detailsPrintlnGreen("OK");
+
 			}
 			
 			if(!diffTableData.entriesDiffering().isEmpty()) {
+				boolean isSuccessful = true;
+				ConsoleWriter.detailsPrint("Updating...", 2);
 				for (ValueDifference<RowData> diffRowData:diffTableData.entriesDiffering().values()) {
 					if (!diffRowData.leftValue().getHashRow().equals(diffRowData.rightValue().getHashRow())) {
 						Map<String,String> primarykeys = getKeys(diffRowData.leftValue());
 						
 						if (primarykeys.size() == 0) {
+							ConsoleWriter.detailsPrintlnRed("FAIL");
 							ConsoleWriter.printlnRed("PK not found for table " + tblName + ", cannot update row!");
-							continue;
+							isSuccessful = false;
+							break;
 						}
 						
 						String updParams = primarykeys.entrySet().stream()
@@ -125,13 +138,15 @@ public class DBRestoreTableDataOracle extends DBRestoreAdapter {
 								.map(entry -> entry.getKey() + " = " + entry.getValue().getSQLData())
 								.collect(Collectors.joining(", "));						
 						
+						
 						if (updValues.length() > 0) {
 							String updateQuery = "update " + tblName + " set " + updValues + " where " + updParams;
 							st.executeQuery(updateQuery);
 						}
 												
 					}
-				}				
+				}		
+				if (isSuccessful) ConsoleWriter.detailsPrintlnGreen("OK");
 			}			
 
 		}
@@ -165,6 +180,7 @@ public class DBRestoreTableDataOracle extends DBRestoreAdapter {
 
 	
 	private void restoreTableConstraintOracle(MetaTable table) throws Exception {
+		ConsoleWriter.detailsPrint("Restoring constraints for " + table.getName() + "...", 1);
 		IDBAdapter adapter = getAdapter();
 		Connection connect = adapter.getConnection();
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
@@ -177,9 +193,10 @@ public class DBRestoreTableDataOracle extends DBRestoreAdapter {
 					ConsoleWriter.println(query);
 					st.execute(query);
 				}
-			}						
-		}
-		catch (Exception e) {
+			}					
+			ConsoleWriter.detailsPrintlnGreen("OK");
+		} catch (Exception e) {
+			ConsoleWriter.detailsPrintlnRed("FAIL");
 			throw new ExceptionDBGitRestore("Error restore " + table.getTable().getName(), e);
 		} finally {
 			st.close();
@@ -187,6 +204,7 @@ public class DBRestoreTableDataOracle extends DBRestoreAdapter {
 	}
 
 	private void removeTableConstraintsOracle(MetaTable table) throws Exception {
+		ConsoleWriter.detailsPrint("Deleting constraints for " + table.getName() + "...", 1);
 		IDBAdapter adapter = getAdapter();
 		StatementLogging st = new StatementLogging(adapter.getConnection(), adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
 		String schema = getPhisicalSchema(table.getTable().getSchema());
@@ -199,8 +217,9 @@ public class DBRestoreTableDataOracle extends DBRestoreAdapter {
 					st.execute(query);
 				}					
 			}
-		}
-		catch(Exception e) {
+			ConsoleWriter.detailsPrintlnGreen("OK");
+		} catch(Exception e) {
+			ConsoleWriter.detailsPrintlnRed("FAIL");
 			throw new ExceptionDBGitRestore("Cannot restore " + schema + "." +table.getTable().getName(), e);
 		} finally {
 			st.close();

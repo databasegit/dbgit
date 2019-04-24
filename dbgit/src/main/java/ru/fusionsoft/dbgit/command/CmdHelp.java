@@ -39,7 +39,8 @@ public class CmdHelp implements IDBGitCommand {
 				"    clone      clone a repository into a new directory\n" +
 				"    init       create an empty Git repository or reinitialize an existing one\n" + 
 				"    link       establishes connection with database\n" + 
-				"    synonym    specifies synonym for db scheme\n" + 
+				"    synonym    specifies synonym for db scheme\n" +
+				"    remote     let you bind your local repository with remote repository\n" +
 				"\n" + 
 				"work on the current change\n" + 
 				"    status     shows current status of db objects\n" + 

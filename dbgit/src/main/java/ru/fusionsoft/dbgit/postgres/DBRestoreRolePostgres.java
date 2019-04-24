@@ -10,6 +10,7 @@ import ru.fusionsoft.dbgit.dbobjects.DBRole;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
 import ru.fusionsoft.dbgit.meta.MetaRole;
 import ru.fusionsoft.dbgit.statement.StatementLogging;
+import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
 public class DBRestoreRolePostgres extends DBRestoreAdapter{
 
@@ -18,7 +19,7 @@ public class DBRestoreRolePostgres extends DBRestoreAdapter{
 		IDBAdapter adapter = getAdapter();
 		Connection connect = adapter.getConnection();
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
-
+		ConsoleWriter.detailsPrint("Restoring role " + obj.getName() + "...", 1);
 		try {
 			if (obj instanceof MetaRole) {
 				MetaRole restoreRole = (MetaRole)obj;
@@ -193,11 +194,14 @@ public class DBRestoreRolePostgres extends DBRestoreAdapter{
 		}
 			else
 			{
+				ConsoleWriter.detailsPrintlnRed("FAIL");
 				throw new ExceptionDBGitRestore("Error restore: Unable to restore ROLES.");
 			}			
 		} catch (Exception e) {
+			ConsoleWriter.detailsPrintlnRed("FAIL");
 			throw new ExceptionDBGitRestore("Error restore "+obj.getName(), e);
 		} finally {
+			ConsoleWriter.detailsPrintlnGreen("OK");
 			st.close();
 		}
 		return true;

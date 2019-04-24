@@ -10,6 +10,7 @@ import ru.fusionsoft.dbgit.dbobjects.DBSequence;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
 import ru.fusionsoft.dbgit.meta.MetaSequence;
 import ru.fusionsoft.dbgit.statement.StatementLogging;
+import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
 public class DBRestoreSequenceOracle extends DBRestoreAdapter {
 
@@ -18,6 +19,7 @@ public class DBRestoreSequenceOracle extends DBRestoreAdapter {
 		IDBAdapter adapter = getAdapter();
 		Connection connect = adapter.getConnection();
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
+		ConsoleWriter.detailsPrint("Restoring sequence " + obj.getName() + "...", 1);
 		try {
 			if (obj instanceof MetaSequence) {
 				MetaSequence restoreSeq = (MetaSequence)obj;								
@@ -80,12 +82,15 @@ public class DBRestoreSequenceOracle extends DBRestoreAdapter {
 				st.execute(query);		
 					//TODO Восстановление привилегий	
 				}
+				ConsoleWriter.detailsPrintlnGreen("OK");
 			}
 			else
 			{
+				ConsoleWriter.detailsPrintlnRed("FAIL");
 				throw new ExceptionDBGitRestore("Error restore: Unable to restore Sequences.");
 			}			
 		} catch (Exception e) {
+			ConsoleWriter.detailsPrintlnRed("FAIL");
 			throw new ExceptionDBGitRestore("Error restore "+obj.getName(), e);
 		} finally {
 			st.close();

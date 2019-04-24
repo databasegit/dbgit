@@ -10,6 +10,7 @@ import ru.fusionsoft.dbgit.dbobjects.DBTrigger;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
 import ru.fusionsoft.dbgit.meta.MetaTrigger;
 import ru.fusionsoft.dbgit.statement.StatementLogging;
+import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
 public class DBRestoreTriggerPostgres extends DBRestoreAdapter {
 
@@ -19,6 +20,7 @@ public class DBRestoreTriggerPostgres extends DBRestoreAdapter {
 		IDBAdapter adapter = getAdapter();
 		Connection connect = adapter.getConnection();
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
+		ConsoleWriter.detailsPrint("Restoring trigger " + obj.getName() + "...", 1);
 		try {						
 			if (obj instanceof MetaTrigger) {
 				MetaTrigger restoreTrigger = (MetaTrigger)obj;								
@@ -44,6 +46,7 @@ public class DBRestoreTriggerPostgres extends DBRestoreAdapter {
 			}
 			else
 			{
+				ConsoleWriter.detailsPrintlnRed("FAIL");
 				throw new ExceptionDBGitRestore("Error restore: Unable to restore Triggers.");
 			}			
 			
@@ -52,8 +55,10 @@ public class DBRestoreTriggerPostgres extends DBRestoreAdapter {
 			
 		}
 		catch (Exception e) {
+			ConsoleWriter.detailsPrintlnRed("FAIL");
 			throw new ExceptionDBGitRestore("Error restore "+obj.getName(), e);
 		} finally {
+			ConsoleWriter.detailsPrintlnGreen("OK");
 			st.close();
 		}
 		

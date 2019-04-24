@@ -10,6 +10,7 @@ import ru.fusionsoft.dbgit.dbobjects.DBView;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
 import ru.fusionsoft.dbgit.meta.MetaView;
 import ru.fusionsoft.dbgit.statement.StatementLogging;
+import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
 public class DBRestoreViewPostgres extends DBRestoreAdapter {
 
@@ -18,6 +19,7 @@ public class DBRestoreViewPostgres extends DBRestoreAdapter {
 		IDBAdapter adapter = getAdapter();
 		Connection connect = adapter.getConnection();
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
+		ConsoleWriter.detailsPrint("Restoring view " + obj.getName() + "...", 1);
 		try {
 			if (obj instanceof MetaView) {
 				MetaView restoreView = (MetaView)obj;								
@@ -48,11 +50,14 @@ public class DBRestoreViewPostgres extends DBRestoreAdapter {
 			}
 			else
 			{
+				ConsoleWriter.detailsPrintlnRed("FAIL");
 				throw new ExceptionDBGitRestore("Error restore: Unable to restore VIEWS.");
 			}			
 		} catch (Exception e) {
+			ConsoleWriter.detailsPrintlnRed("FAIL");
 			throw new ExceptionDBGitRestore("Error restore "+obj.getName(), e);
 		} finally {
+			ConsoleWriter.detailsPrintlnGreen("OK");
 			st.close();
 		}
 		return true;

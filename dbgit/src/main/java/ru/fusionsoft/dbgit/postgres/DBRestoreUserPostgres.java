@@ -8,6 +8,7 @@ import ru.fusionsoft.dbgit.core.ExceptionDBGitRestore;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
 import ru.fusionsoft.dbgit.meta.MetaUser;
 import ru.fusionsoft.dbgit.statement.StatementLogging;
+import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
 public class DBRestoreUserPostgres extends DBRestoreAdapter{
 
@@ -16,7 +17,7 @@ public class DBRestoreUserPostgres extends DBRestoreAdapter{
 		IDBAdapter adapter = getAdapter();
 		Connection connect = adapter.getConnection();
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
-
+		ConsoleWriter.detailsPrint("Restoring user " + obj.getName() + "...", 1);
 		try {
 			if (obj instanceof MetaUser) {
 				MetaUser usr = (MetaUser)obj;
@@ -24,11 +25,14 @@ public class DBRestoreUserPostgres extends DBRestoreAdapter{
 				}
 			else
 			{
+				ConsoleWriter.detailsPrintlnRed("FAIL");
 				throw new ExceptionDBGitRestore("Error restore: cast to MetaUser failed.");
 			}			
 		} catch (Exception e) {
+			ConsoleWriter.detailsPrintlnRed("FAIL");
 			throw new ExceptionDBGitRestore("Error restore "+obj.getName(), e);
 		} finally {
+			ConsoleWriter.detailsPrintlnGreen("OK");
 			st.close();
 		}
 		return true;

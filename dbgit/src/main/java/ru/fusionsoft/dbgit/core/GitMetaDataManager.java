@@ -218,15 +218,11 @@ public class GitMetaDataManager {
 		return dbObjs;
 	}
 	
-	public IMapMetaObject loadFileMetaData() throws ExceptionDBGit {
-		return loadFileMetaData(false);
-	}
-	
 	/**
 	 * Load meta data from git files
 	 * @return
 	 */
-	public IMapMetaObject loadFileMetaData(boolean toShowLog) throws ExceptionDBGit {
+	public IMapMetaObject loadFileMetaData() throws ExceptionDBGit {
 		try {
 			IMapMetaObject objs = new TreeMapMetaObject();
 			DBGit dbGit = DBGit.getInstance();  
@@ -237,18 +233,18 @@ public class GitMetaDataManager {
 	    		String filename = files.get(i);
 
 	    		if (DBGitPath.isServiceFile(filename)) continue;
-	    		if (toShowLog) ConsoleWriter.print(filename + "...", 1);
+	    		ConsoleWriter.detailsPrint(filename + "...", 1);
 	    		try {
 	    			IMetaObject obj = loadMetaFile(filename);
-	    			if (toShowLog) ConsoleWriter.printlnGreen("OK");
+	    			ConsoleWriter.detailsPrintlnGreen("OK");
 	    			
 		    		if (obj != null) {
 		    			objs.put(obj);
 		    		}
 	    		} catch (Exception e) {
 	    			isSuccessful = false;
-	    			if (toShowLog) ConsoleWriter.printlnRed("FAIL");
-	    			if (toShowLog) ConsoleWriter.println(e.getMessage());
+	    			ConsoleWriter.detailsPrintlnRed("FAIL");
+	    			ConsoleWriter.detailsPrintLn(e.getMessage());
 	    		}	    		
 	    	}
 			

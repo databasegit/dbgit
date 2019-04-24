@@ -47,6 +47,8 @@ public class CmdAdd implements IDBGitCommand {
 		if (cmdLine.getArgs().length == 0) {
 			throw new ExceptionDBGit("Bad command. Not found object to add!");
 		}
+		
+		ConsoleWriter.setDetailedLog(cmdLine.hasOption("v"));
 						
 		String nameObj = cmdLine.getArgs()[0];
 		MaskFilter maskAdd = new MaskFilter(nameObj);
@@ -60,13 +62,18 @@ public class CmdAdd implements IDBGitCommand {
 		
 		for (IMetaObject obj : dbObjs.values()) {
 			if (maskAdd.match(obj.getName())) {			
+				ConsoleWriter.detailsPrintLn("Processing object " + obj.getName());
+				ConsoleWriter.detailsPrint("Saving to file...", 2);
 				obj.saveToFile();
+				ConsoleWriter.detailsPrintlnGreen("OK");
 								
+				ConsoleWriter.detailsPrint("Adding to git...", 2);
 				countSave += obj.addToGit();				
+				ConsoleWriter.detailsPrintlnGreen("OK");
 				
 				index.addItem(obj);
 				
-				ConsoleWriter.println("Add object to git: "+obj.getName());
+				
 			}
 		}
 
@@ -76,5 +83,6 @@ public class CmdAdd implements IDBGitCommand {
 		} else {
 			ConsoleWriter.printlnRed("Can't find object \"" + nameObj + "\" in database");
 		}
+		ConsoleWriter.println("Done!");
 	}
 }

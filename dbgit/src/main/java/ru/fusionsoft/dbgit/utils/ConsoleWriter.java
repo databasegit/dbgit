@@ -11,7 +11,28 @@ import com.diogonunes.jcdp.color.api.Ansi.FColor;
 public class ConsoleWriter {
 	private static Logger logger = LoggerUtil.getLogger(ConsoleWriter.class);
 	private static ColoredPrinter cp = new ColoredPrinter.Builder(1, false).build();
+	private static boolean showDetailedLog = false;
 	
+	public static void detailsPrintLn(String msg) {
+		if (showDetailedLog)
+			println(msg);
+	}
+
+	public static void detailsPrint(String msg, int level) {
+		if (showDetailedLog)
+			print(msg, level);
+	}
+
+	public static void detailsPrintlnGreen(String msg) {
+		if (showDetailedLog)
+			printlnColor(msg, FColor.GREEN, 0);
+	}
+	
+	public static void detailsPrintlnRed(String msg) {
+		if (showDetailedLog)
+			printlnColor(msg, FColor.RED, 0);
+	}
+
 	public static void printlnGreen(String msg) {
 		printlnColor(msg, FColor.GREEN, 0);
 	}
@@ -65,5 +86,13 @@ public class ConsoleWriter {
 		cp.print(tab+msg);
 		cp.clear();
 		logger.info(msg);
+	}
+	
+	public static void setDetailedLog(boolean toShowLog) {
+		showDetailedLog = toShowLog;
+	}
+
+	public static boolean getDetailedLog() {
+		return showDetailedLog;
 	}
 }

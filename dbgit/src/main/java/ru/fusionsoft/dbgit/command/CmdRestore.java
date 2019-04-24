@@ -21,6 +21,7 @@ import ru.fusionsoft.dbgit.meta.IMapMetaObject;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
 import ru.fusionsoft.dbgit.meta.MetaObjectFactory;
 import ru.fusionsoft.dbgit.meta.TreeMapMetaObject;
+import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 import ru.fusionsoft.dbgit.utils.LoggerUtil;
 
 public class CmdRestore implements IDBGitCommand {
@@ -58,14 +59,18 @@ public class CmdRestore implements IDBGitCommand {
 		IMapMetaObject updateObjs = new TreeMapMetaObject();
 		IMapMetaObject deleteObjs = new TreeMapMetaObject();
 		
+		ConsoleWriter.setDetailedLog(cmdLine.hasOption("v"));
+		
 		FileOutputStream fop = null;
 		if (cmdLine.hasOption("s")) {
 			IDBAdapter adapter = AdapterFactory.createAdapter();
 			String scriptName = cmdLine.getOptionValue("s");
+			ConsoleWriter.detailsPrintLn("Script will be saved to " + scriptName);
 			
 			File file = new File(scriptName);
 			if (!file.exists()) {
 				file.createNewFile();
+				ConsoleWriter.detailsPrintLn("Created file " + scriptName);
 			}
 			
 			fop = new FileOutputStream(file);
@@ -117,7 +122,8 @@ public class CmdRestore implements IDBGitCommand {
 				fop.flush();
 				fop.close();
 			}	
-		}		
+		}	
+		ConsoleWriter.println("Done!");
 	}
 
 

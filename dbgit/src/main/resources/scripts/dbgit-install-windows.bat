@@ -112,8 +112,8 @@ if defined ValueValue (
 
 if NOT %INSTALL_PATH% == %~dp0 (
     echo Copying files...
-    xcopy %~dp0bin !INSTALL_PATH!bin /i /Y
-    xcopy %~dp0repo !INSTALL_PATH!repo /i /Y /s
+    xcopy %~dp0bin !INSTALL_PATH!bin /i /Y /q
+    xcopy %~dp0repo !INSTALL_PATH!repo /i /Y /s /q
 )
 
 

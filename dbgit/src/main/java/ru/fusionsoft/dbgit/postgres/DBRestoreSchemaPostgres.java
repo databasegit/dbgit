@@ -9,6 +9,7 @@ import ru.fusionsoft.dbgit.dbobjects.DBSchema;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
 import ru.fusionsoft.dbgit.meta.MetaSchema;
 import ru.fusionsoft.dbgit.statement.StatementLogging;
+import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
 
 public class DBRestoreSchemaPostgres extends DBRestoreAdapter {
@@ -17,7 +18,7 @@ public class DBRestoreSchemaPostgres extends DBRestoreAdapter {
 		IDBAdapter adapter = getAdapter();
 		Connection connect = adapter.getConnection();
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
-
+		ConsoleWriter.detailsPrint("Restoring schema " + obj.getName() + "...", 1);
 		try {
 			if (obj instanceof MetaSchema) {
 				MetaSchema restoreSchema = (MetaSchema)obj;								
@@ -45,11 +46,14 @@ public class DBRestoreSchemaPostgres extends DBRestoreAdapter {
 			}
 			else
 			{
+				ConsoleWriter.detailsPrintlnRed("FAIL");
 				throw new ExceptionDBGitRestore("Error restore: Unable to restore SCHEMAS.");
 			}			
 		} catch (Exception e) {
+			ConsoleWriter.detailsPrintlnRed("FAIL");
 			throw new ExceptionDBGitRestore("Error restore "+obj.getName(), e);
 		} finally {
+			ConsoleWriter.detailsPrintlnGreen("OK");
 			st.close();
 		}
 		return true;

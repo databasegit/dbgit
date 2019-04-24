@@ -13,7 +13,6 @@ public class CmdValid implements IDBGitCommand {
 	private Options opts = new Options();
 	
 	public CmdValid() {
-		opts.addOption("log", false, "Shows operation details");
 	}
 	
 	public String getCommandName() {
@@ -28,7 +27,7 @@ public class CmdValid implements IDBGitCommand {
 		//return "Command checks if dbgit data files are valid. You can get details with -log switch like this example:\n"
 		//		+ "    dbgit valid -log";
 		return "Example:\n"
-				+ "    dbgit valid -log";
+				+ "    dbgit valid -v";
 	}
 	
 	public Options getOptions() {
@@ -38,11 +37,11 @@ public class CmdValid implements IDBGitCommand {
 	@Override
 	public void execute(CommandLine cmdLine) throws Exception {
 		GitMetaDataManager gmdm = GitMetaDataManager.getInctance();
-		boolean toShowLog = cmdLine.hasOption("log");
+		ConsoleWriter.setDetailedLog(cmdLine.hasOption("v"));
 		
 		//возможно за списком файлов нужно будет сходить в гит индекс
 		try {
-			Map<String, IMetaObject> fileObjs = gmdm.loadFileMetaData(toShowLog);
+			Map<String, IMetaObject> fileObjs = gmdm.loadFileMetaData();
 			ConsoleWriter.printlnGreen("All files are OK");
 		} catch (Exception e) {
 			ConsoleWriter.printlnRed(e.getMessage());
