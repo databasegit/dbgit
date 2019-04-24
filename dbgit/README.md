@@ -7,7 +7,7 @@ A tool to let bind your database and git version control system
 - You need Maven to build dbgit
 
 ## How to build
-- To create distribution files run from project root directory:
+To create distribution files run from project root directory:
 
 `$ mvn package appassembler:assemble`
 
