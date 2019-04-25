@@ -271,19 +271,22 @@ public class DBGit {
 			
 			if (remote.length() > 0)
 				pull = pull.setRemote(remote);
+			else
+				pull = pull.setRemote(Constants.DEFAULT_REMOTE_NAME);
 
 			if (remoteBranch.length() > 0)
 				pull = pull.setRemoteBranchName(remoteBranch);
-			
-			ConsoleWriter.printlnGreen(pull.setCredentialsProvider(getCredentialsProvider()).call().toString());
+			ConsoleWriter.printlnGreen(pull.setCredentialsProvider(getCredentialsProviderByName(pull.getRemote())).call().toString());
 		} catch (Exception e) {
 			throw new ExceptionDBGit(e);
 		} 
 	}
 
-	public void gitPush() throws ExceptionDBGit {
+	public void gitPush(String remoteName) throws ExceptionDBGit {
 		try {
-			Iterable<PushResult> result = git.push().setCredentialsProvider(getCredentialsProvider()).call();
+			Iterable<PushResult> result = git.push()
+					.setCredentialsProvider(getCredentialsProviderByName(remoteName.equals("") ? Constants.DEFAULT_REMOTE_NAME : remoteName))
+					.setRemote(remoteName.equals("") ? Constants.DEFAULT_REMOTE_NAME : remoteName).call();
 			
 			result.forEach(pushResult -> {
 				pushResult.toString();
@@ -322,9 +325,10 @@ public class DBGit {
 		} 		
 	}
 	
-	public static void gitClone(String link) throws ExceptionDBGit {
+	public static void gitClone(String link, String remoteName) throws ExceptionDBGit {
 		try {
-			Git.cloneRepository().setURI(link).setCredentialsProvider(getCredentialsProvider(link)).call();
+			Git.cloneRepository().setURI(link).setCredentialsProvider(getCredentialsProvider(link))
+				.setRemote(remoteName.equals("") ? Constants.DEFAULT_REMOTE_NAME : remoteName).call();
 			
 			ConsoleWriter.println("Repository cloned");
 			
@@ -372,13 +376,23 @@ public class DBGit {
 		}
 	}
 	
+	private CredentialsProvider getCredentialsProviderByName(String remoteName) throws ExceptionDBGit {
+		
+		String link = git.getRepository().getConfig().getString("remote", remoteName, "url");
+		
+		if (link != null)
+			return getCredentialsProvider(link);
+		else
+			throw new ExceptionDBGit("Cannot find " + remoteName);
+	}
+	
 	private CredentialsProvider getCredentialsProvider() throws ExceptionDBGit {
 		
 		return getCredentialsProvider(git.getRepository().getConfig().getString("remote", Constants.DEFAULT_REMOTE_NAME, "url"));
 	}
 	
 	private static CredentialsProvider getCredentialsProvider(String link) throws ExceptionDBGit {
-		try {	
+		try {			
 			Pattern patternPass = Pattern.compile("(?<=:(?!\\/))(.*?)(?=@)");
 			Pattern patternLogin = Pattern.compile("(?<=\\/\\/)(.*?)(?=:(?!\\/))");
 			

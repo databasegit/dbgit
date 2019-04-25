@@ -20,7 +20,7 @@ public class CmdPush implements IDBGitCommand {
 
 	@Override
 	public String getParams() {
-		return "";
+		return "<remote_name>";
 	}
 
 	@Override
@@ -38,11 +38,17 @@ public class CmdPush implements IDBGitCommand {
 	public void execute(CommandLine cmdLine) throws Exception {
 		String[] args = cmdLine.getArgs();
 		
+		String remote = "";
+	
 		if (args.length > 0) {
-			throw new ExceptionDBGit("Bad command. Number of parameters is not correct!");
+			remote = args[0];
 		}
 		
-		DBGit.getInstance().gitPush();
+		if (args.length > 1) {
+			throw new ExceptionDBGit("Bad command. Number of parameters is not correct!");
+		}
+
+		DBGit.getInstance().gitPush(remote);
 	}
 
 }

@@ -17,7 +17,7 @@ public class CmdClone implements IDBGitCommand {
 
 	@Override
 	public String getParams() {
-		return "";
+		return "[link] <remote_name>";
 	}
 
 	@Override
@@ -36,13 +36,17 @@ public class CmdClone implements IDBGitCommand {
 		String[] args = cmdLine.getArgs();
 		
 		String link = "";
-		if (args.length > 1) {
+		String remote = "";
+		if (args.length > 2) {
 			throw new ExceptionDBGit("Bad command. Number of parameters is not correct!");
 		} else if (args.length == 1) {
 			link = args[0];
+		} else if (args.length == 2) {
+			link = args[0];
+			remote = args[1];
 		}
 		
-		DBGit.gitClone(link);
+		DBGit.gitClone(link, remote);
 
 	}
 
