@@ -1,6 +1,6 @@
 # DBGIT
 
-A tool to let bind your database and git version control system
+A tool to bind your database and git version control system
 
 ## Warnings/Caveats
 - dbgit requires at least a Java 8 JDK
@@ -14,20 +14,23 @@ To create distribution files run from project root directory:
 After that you will get `target/dbgit` folder that contains the tool ready to install
 
 ## Installation
-- You can install `dbgit` in Windows with `dbgit-install-windows.bat` file. It has following options:
+- You can install `dbgit` in Windows with `dbgit-install-windows.bat` file as follows:
 
 `dbgit-install-windows.bat`
 
-This command will check if you have `JRE` and `Git` on your computer. If you don't it will download and install them. After that the installer will check your `PATH` system variable. If the installer will find `dbgit` in `PATH` it will copy files to the path it found. Otherwise, the installer will set current directory to the `PATH` system variable, so current directory will be used as work folder for `dbgit`
+This command will check if you have `JRE` and `Git` on your computer. If you don't, it will download and install them. 
+After that the installer will check your `PATH` system variable. 
+If the installer will find `dbgit` in `PATH` it will copy files to the path it found. 
+Otherwise, the installer will set current directory to the `PATH` system variable, so current directory will be used as work folder for `dbgit`
 
 `dbgit-install-windows.bat <path>`
 
-After checking and installing (if needed) `JRE` and `Git` the installer will copu `dbgit` files to the folder you set.
+After checking and installing (if needed) `JRE` and `Git` the installer will copy `dbgit` files to the folder you set.
 
 - Linux installer in progress...
 
 ## Quick start
-First things you need to do to start work with `dbgit` are creating git repository and binding `dbgit` with database. To create repository you can use one of next options:
+First thing you need to do is to create git repository and bind `dbgit` with database. To create repository you can use one of next options:
 
 `dbgit clone https://login:password@example.com/repo.git`
 
@@ -39,14 +42,16 @@ It does the same as `git clone`, it clones remote repository to your computer. O
 
 These commands will create empty local repository and after that will bind it with remote repository. 
 
-To bind your database with `dbgit` you need to run `dbgit link` command like this example
+To bind your database with `dbgit` you need to run `dbgit link` with command like this:
 
 `dbgit link jdbc:oracle:thin:@192.168.1.1:1521:SCHEME user=username password=pass`
 
 `dbgit` is ready to use!
 
 ## Commands
-Many of commands do the same as git commands with same names. Also, some of commands can run with switches. You can run any of commands with `-h` swith to get details
+Many of `dbgit` commands do the same work as the git commands with same names, but options are sometime specific to dbgit.
+More support of git options will be implemented in the future versions.
+You can run any of commands with `-h` swith to get details.
 
 - __clone__
 
