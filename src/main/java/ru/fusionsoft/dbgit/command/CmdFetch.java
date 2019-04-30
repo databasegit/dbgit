@@ -3,36 +3,50 @@ package ru.fusionsoft.dbgit.command;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 
+import ru.fusionsoft.dbgit.core.DBGit;
+import ru.fusionsoft.dbgit.core.ExceptionDBGit;
+import ru.fusionsoft.dbgit.utils.ConsoleWriter;
+
 public class CmdFetch implements IDBGitCommand {
 
-	@Override
-	public void execute(CommandLine cmdLine) throws Exception {
-		// TODO Auto-generated method stub
-
-	}
-
+	private Options opts = new Options();
+	
 	@Override
 	public String getCommandName() {
-		// TODO Auto-generated method stub
-		return null;
+		return "fetch";
 	}
 
 	@Override
 	public String getParams() {
-		// TODO Auto-generated method stub
-		return null;
+		return "";
 	}
 
 	@Override
 	public String getHelperInfo() {
-		// TODO Auto-generated method stub
-		return null;
+		return "";
 	}
 
 	@Override
 	public Options getOptions() {
-		// TODO Auto-generated method stub
-		return null;
+		return opts;
+	}
+
+	@Override
+	public void execute(CommandLine cmdLine) throws Exception {
+		
+		String[] args = cmdLine.getArgs();
+		String remote = "";
+		
+		ConsoleWriter.println("Fetching...");
+		
+		if (args.length == 1) {
+			remote = args[0];
+		} else if (args.length > 1) {
+			throw new ExceptionDBGit("Bad command. Number of parameters is not correct!");
+		}
+		
+		DBGit.getInstance().gitFetch(remote);
+
 	}
 
 }

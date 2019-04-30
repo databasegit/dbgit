@@ -8,6 +8,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.eclipse.jgit.api.FetchCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.InitCommand;
 import org.eclipse.jgit.api.MergeCommand;
@@ -21,9 +22,11 @@ import org.eclipse.jgit.dircache.DirCache;
 import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
+import org.eclipse.jgit.lib.TextProgressMonitor;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.eclipse.jgit.transport.CredentialsProvider;
+import org.eclipse.jgit.transport.FetchResult;
 import org.eclipse.jgit.transport.PushResult;
 import org.eclipse.jgit.transport.RemoteRefUpdate;
 import org.eclipse.jgit.transport.URIish;
@@ -392,6 +395,25 @@ public class DBGit {
 			throw new ExceptionDBGit(e);
 		}
 	}
+	
+	public void gitFetch(String remote) throws ExceptionDBGit {
+		try {
+			FetchCommand fetch = git.fetch();
+			
+			if (remote.length() > 0)
+				fetch = fetch.setRemote(remote);
+			else
+				fetch = fetch.setRemote(Constants.DEFAULT_REMOTE_NAME);
+			TextProgressMonitor pm = new TextProgressMonitor();
+			fetch.setProgressMonitor(pm);
+			
+			FetchResult fetchResult = fetch.call();
+			
+			ConsoleWriter.println(fetchResult.getMessages());
+		} catch (Exception e) {
+			throw new ExceptionDBGit(e);
+		}
+	}	
 	
 	private CredentialsProvider getCredentialsProviderByName(String remoteName) throws ExceptionDBGit {
 		

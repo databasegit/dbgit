@@ -46,7 +46,7 @@ public class CmdPull implements IDBGitCommand {
 		} else if (args.length == 2) {
 			remote = args[0];
 			remoteBranch = args[1];
-		} else if (args.length > 1) {
+		} else if (args.length > 2) {
 			throw new ExceptionDBGit("Bad command. Number of parameters is not correct!");
 		}
 		

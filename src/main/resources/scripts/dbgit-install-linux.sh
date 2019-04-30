@@ -13,12 +13,13 @@ else
 fi
 
 echo "Copying files"
-mkdir /var/dbgit
-cp dbgit.jar /var/dbgit
-cp -r lib/ /var/dbgit
+mkdir /var/dbgit -p
+cp -r bin/ /var/dbgit
+cp -r repo/ /var/dbgit
 
-cp dbgit /usr/bin
-cd /usr/bin
 chmod +x dbgit
+
+cd /usr/bin
+ln -s /var/dbgit/bin/dbgit
 
 echo "Done!"
