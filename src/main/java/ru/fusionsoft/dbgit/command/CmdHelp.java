@@ -45,7 +45,7 @@ public class CmdHelp implements IDBGitCommand {
 				"work on the current change\n" + 
 				"    status     shows current status of db objects\n" + 
 				"    add        adds db objects into the dbgit index\n" + 
-				"    reset      reset current HEAD to the specified state" +
+				"    reset      reset current HEAD to the specified state\n" +
 				"    rm         removes objects from the dbgit index\n" + 
 				"    restore    restores db from the dbgit repository\n" + 
 				"    dump       dumps db objects into the dbgit repository\n" + 
