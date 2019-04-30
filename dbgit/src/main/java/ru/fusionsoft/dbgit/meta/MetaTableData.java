@@ -186,10 +186,10 @@ public class MetaTableData extends MetaBase {
 			
 			List<String> idColumns = metaTable.getIdColumns();
 			
-			dataTable = adapter.getTableData(table.getSchema(), table.getName(), IDBAdapter.LIMIT_FETCH);
+			dataTable = adapter.getTableData(table.getSchema(), table.getName());
 			
 			if (dataTable.getErrorFlag() > 0) {
-				ConsoleWriter.printlnColor("Table "+getName()+" has more than "+IDBAdapter.LIMIT_FETCH+
+				ConsoleWriter.printlnColor("Table "+getName()+" has more than "+IDBAdapter.MAX_ROW_COUNT_FETCH+
 						" records. dbgit can't save this table data.", FColor.RED, 0);
 				return false;
 			}

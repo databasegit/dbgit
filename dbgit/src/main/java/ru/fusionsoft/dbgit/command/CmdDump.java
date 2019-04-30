@@ -18,7 +18,7 @@ public class CmdDump implements IDBGitCommand {
 	
 	public CmdDump() {
 		opts.addOption("a", false, "adds files to git");
-		opts.addOption("f", false, "dumps all objects that exists in index even there didn't changes in database");
+		opts.addOption("f", false, "dumps all objects that exist in index even there didn't changes in database");
 	}
 	
 	public String getCommandName() {

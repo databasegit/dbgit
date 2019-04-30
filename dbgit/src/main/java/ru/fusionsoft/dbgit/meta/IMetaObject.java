@@ -77,18 +77,22 @@ public interface IMetaObject {
 	 * @param basePath
 	 * @throws IOException
 	 */
-	default boolean saveToFile(String basePath) throws Exception {
+	default boolean saveToFile(String basePath) throws ExceptionDBGit {
 		File file = new File(DBGitPath.getFullPath(basePath)+"/"+getFileName());
 		DBGitPath.createDir(file.getParent());
 				
-		FileOutputStream out = new FileOutputStream(file.getAbsolutePath());
-		boolean res = this.serialize(out);
-		out.close();
-		
-		return res;
+		try {
+			FileOutputStream out = new FileOutputStream(file.getAbsolutePath());
+			boolean res = this.serialize(out);
+			out.close();
+			
+			return res;
+		} catch (Exception e) {
+			throw new ExceptionDBGit(e);
+		}
 	}
 	
-	default boolean saveToFile() throws Exception {
+	default boolean saveToFile() throws ExceptionDBGit {
 		return saveToFile(null);
 	}
 	

@@ -74,6 +74,9 @@ public class DBConnection {
 		try{	
 			File file = new File(DBGitPath.getFullPath(DBGitPath.DB_LINK_FILE));				
 			DBGitPath.createDir(file.getParent());
+			DBGitPath.createDefaultDbignore(DBGitPath.getRootPath(), props.getProperty("user").toUpperCase());
+			DBGitPath.createDefaultDbgitConfig(DBGitPath.getFullPath());
+						
 			FileWriter writer = new FileWriter(file.getAbsolutePath());		
 		    writer.write("url="+url+"\n");
 		    Enumeration e = props.propertyNames();

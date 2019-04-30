@@ -15,6 +15,7 @@ import org.eclipse.jgit.api.MergeResult;
 import org.eclipse.jgit.api.PullCommand;
 import org.eclipse.jgit.api.RemoteAddCommand;
 import org.eclipse.jgit.api.RemoteRemoveCommand;
+import org.eclipse.jgit.api.ResetCommand.ResetType;
 import org.eclipse.jgit.api.Status;
 import org.eclipse.jgit.dircache.DirCache;
 import org.eclipse.jgit.lib.Constants;
@@ -220,11 +221,16 @@ public class DBGit {
         } 
 	}
 	
-	public void gitCheckout(String branch, boolean isNewBranch) throws ExceptionDBGit {
+	public void gitCheckout(String branch, String commit, boolean isNewBranch) throws ExceptionDBGit {
 		try {
+			ConsoleWriter.detailsPrintLn("To create new branch: " + isNewBranch);
+			ConsoleWriter.detailsPrintLn("Branch name: " + branch);
+			ConsoleWriter.detailsPrintLn("Commit name: " + commit);
+
 			Ref result;
 			if (git.getRepository().findRef(branch) != null || isNewBranch) {
-				result = git.checkout().setCreateBranch(isNewBranch).setName(branch).call();								
+				
+				result = git.checkout().setCreateBranch(isNewBranch).setName(branch).setStartPoint(commit).call();
 
 				ConsoleWriter.printlnGreen(result.getName());
 			} else {				
@@ -238,7 +244,7 @@ public class DBGit {
 					}					
 				}
 				String s = "";
-				if (counter > 1) s = "s";
+				if (counter != 1) s = "s";
 				ConsoleWriter.println("Updated " + counter + " path" + s + " from the index");
 			}			
 			
@@ -368,9 +374,20 @@ public class DBGit {
 				}
 				
 				default : ConsoleWriter.println("Unknown command");
-			}
+			}			
 			
-			
+		} catch (Exception e) {
+			throw new ExceptionDBGit(e);
+		}
+	}
+	
+	public void gitReset(String mode) throws ExceptionDBGit {
+		try {
+			if (mode == null) 
+				git.reset().call();
+			else 
+				git.reset().setMode(ResetType.valueOf(mode)).call();
+			ConsoleWriter.println("Done");
 		} catch (Exception e) {
 			throw new ExceptionDBGit(e);
 		}

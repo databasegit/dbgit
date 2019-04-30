@@ -1,7 +1,10 @@
 package ru.fusionsoft.dbgit.core;
 
 import java.io.File;
+import java.io.FileWriter;
+import java.util.stream.Stream;
 
+import ru.fusionsoft.dbgit.meta.DBGitMetaType;
 import ru.fusionsoft.dbgit.utils.Convertor;
 
 /**
@@ -19,6 +22,7 @@ public class DBGitPath {
 	public static final String INDEX_FILE = ".dbindex";
 	public static final String LOG_PATH = ".logs";
 	public static final String DATA_FILE = ".data";
+	public static final String DBGIT_CONFIG = "dbgitconfig";
 	
 	public static String idSession;
 	
@@ -51,6 +55,45 @@ public class DBGitPath {
 	public static boolean createDir(String path) {
 		File dir = new File(path);
 		return dir.mkdirs();
+	}
+	
+	public static boolean createDefaultDbgitConfig(String path) throws ExceptionDBGit {
+		try {
+			File dbIgnoreFile = new File(path + "/" + DBGIT_CONFIG);
+			DBGitPath.createDir(dbIgnoreFile.getParent());
+			FileWriter writer = new FileWriter(dbIgnoreFile.getAbsolutePath());
+			
+			writer.write("[core]\n");
+			writer.write("MAX_ROW_COUNT_FETCH = 10000");
+			writer.write("LIMIT_FETCH = true");
+			
+			writer.close();
+			
+			return true;
+	    } catch(Exception e) {
+	    	throw new ExceptionDBGit(e);
+	    }
+	}
+	
+	public static boolean createDefaultDbignore(String path, String userName) throws ExceptionDBGit {
+		try {
+			File dbIgnoreFile = new File(path + "/" + DB_IGNORE_FILE);
+			DBGitPath.createDir(dbIgnoreFile.getParent());
+			FileWriter writer = new FileWriter(dbIgnoreFile.getAbsolutePath());
+			
+			writer.write("*\n");
+			
+			for (DBGitMetaType value : DBGitMetaType.values()) { 
+				if (!value.getValue().equals("csv"))
+					writer.write("!" + userName + "/*." + value.getValue() + "\n");
+			}
+
+			writer.close();
+			
+			return false;
+	    } catch(Exception e) {
+	    	throw new ExceptionDBGit(e);
+	    }
 	}
 	
 	public static boolean isServiceFile(String file) {

@@ -53,6 +53,10 @@ Many of `dbgit` commands do the same work as the git commands with same names, b
 More support of git options will be implemented in the future versions.
 You can run any of commands with `-h` swith to get details.
 
+#### dbgit-specific
+
+#### similar to git
+
 - __clone__
 
 This command will clone remote repository to your computer. Example:
@@ -73,6 +77,8 @@ It will create empty local repository, examples:
 It binds `dbgit` with a database. Example:
 
 `dbgit link jdbc:oracle:thin:@192.168.1.1:1521:SCHEME user=username password=pass`
+
+This command creates `.dbignore` file that makes `dbgit` ignore all db objects except of user's scheme by default. You can reconfig `.dbignore` at any time, see Features for details
 
 - __remote__
 
@@ -152,6 +158,8 @@ Update remote refs along with associated objects. Runs without parameters
 - You can run any command with `-v` switch, it will show you full log of command execution then.
 
 - You can create and config file `.dbignore` to ignore some of database objects
+
+Lets you exclude any of db objects from the work process. If name of db object will be mathed of regular expression you will write in this file it will be missed by the `dbgit`. Also, if you will write `!` as a first character of row, db object will be processed even if the one was excluded by previous expressions.
 
 ## About Git
 

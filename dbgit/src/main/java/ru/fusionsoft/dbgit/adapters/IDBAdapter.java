@@ -127,7 +127,7 @@ public interface IDBAdapter {
 	public Map<String, DBTrigger> getTriggers(String schema);
 	public DBTrigger getTrigger(String schema, String name);
 	
-	public DBTableData getTableData(String schema, String nameTable, int paramFetch);
+	public DBTableData getTableData(String schema, String nameTable);
 	//public DBTableRow getTableRow(DBTable tbl, Object id); //TODO multi id
 	
 	public Map<String, DBUser> getUsers();

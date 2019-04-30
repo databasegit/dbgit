@@ -13,6 +13,7 @@ import ru.fusionsoft.dbgit.adapters.DBAdapter;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
 import ru.fusionsoft.dbgit.adapters.IDBAdapterRestoreMetaData;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBAdapterRestoteMetaData;
+import ru.fusionsoft.dbgit.core.DBGitConfig;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
 import ru.fusionsoft.dbgit.data_table.FactoryCellData;
@@ -473,7 +474,7 @@ public class DBAdapterOracle extends DBAdapter {
 	public DBTrigger getTrigger(String schema, String name) {
 		DBTrigger trigger = null;
 		try {
-			String query = "SELECT  tr.*, (select dbms_metadata.get_ddl('TRIGGER', tr.trigger_name) AS DDL from dual) AS DDL\n" + 
+			String query = "SELECT  tr.owner, tr.trigger_name, tr.trigger_type, tr.table_name, (select dbms_metadata.get_ddl('TRIGGER', tr.trigger_name) AS DDL from dual) AS DDL\n" + 
 					"FROM    all_triggers tr\n" + 
 					"WHERE   owner = '" + schema + "' and trigger_name = '" + name + "'";
 			
@@ -664,19 +665,20 @@ public class DBAdapterOracle extends DBAdapter {
 	}
 
 	@Override
-	public DBTableData getTableData(String schema, String nameTable, int paramFetch) {
+	public DBTableData getTableData(String schema, String nameTable) {
 		String tableName = schema + "." + nameTable;
 		try {
 			DBTableData data = new DBTableData();
 			
+			int maxRowsCount = DBGitConfig.getInstance().getInteger("core", "MAX_ROW_COUNT_FETCH", MAX_ROW_COUNT_FETCH);
 			
-			if (paramFetch == LIMIT_FETCH) {
+			if (DBGitConfig.getInstance().getBoolean("core", "LIMIT_FETCH", true)) {
 				Statement st = getConnection().createStatement();
 				String query = "select COALESCE(count(*), 0) row_count from ( select 1 from "+
-						tableName+" where ROWNUM <= " + (MAX_ROW_COUNT_FETCH+1) + " ) tbl";
+						tableName+" where ROWNUM <= " + (maxRowsCount + 1) + " ) tbl";
 				ResultSet rs = st.executeQuery(query);
 				rs.next();
-				if (rs.getInt("row_count") > MAX_ROW_COUNT_FETCH) {
+				if (rs.getInt("row_count") > maxRowsCount) {
 					data.setErrorFlag(DBTableData.ERROR_LIMIT_ROWS);
 					return data;
 				}

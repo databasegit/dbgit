@@ -12,6 +12,7 @@ import java.util.Map;
 import ru.fusionsoft.dbgit.adapters.AdapterFactory;
 import ru.fusionsoft.dbgit.adapters.DBAdapter;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBAdapterRestoteMetaData;
+import ru.fusionsoft.dbgit.core.DBGitConfig;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitObjectNotFound;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
 import ru.fusionsoft.dbgit.data_table.MapFileData;
@@ -608,19 +609,20 @@ public class DBAdapterPostgres extends DBAdapter {
 	}
 
 	@Override
-	public DBTableData getTableData(String schema, String nameTable, int paramFetch) {
+	public DBTableData getTableData(String schema, String nameTable) {
 		String tableName = schema+"."+nameTable;
 		try {
 			DBTableData data = new DBTableData();
 			
+			int maxRowsCount = DBGitConfig.getInstance().getInteger("core", "MAX_ROW_COUNT_FETCH", MAX_ROW_COUNT_FETCH);
 			
-			if (paramFetch == LIMIT_FETCH) {
+			if (DBGitConfig.getInstance().getBoolean("core", "LIMIT_FETCH", true)) {
 				Statement st = getConnection().createStatement();
 				String query = "select COALESCE(count(*), 0) kolvo from ( select 1 from "+
-						tableName+" limit "+(MAX_ROW_COUNT_FETCH+1)+" ) tbl";
+						tableName + " limit " + (maxRowsCount + 1) + " ) tbl";
 				ResultSet rs = st.executeQuery(query);
 				rs.next();
-				if (rs.getInt("kolvo") > MAX_ROW_COUNT_FETCH) {
+				if (rs.getInt("kolvo") > maxRowsCount) {
 					data.setErrorFlag(DBTableData.ERROR_LIMIT_ROWS);
 					return data;
 				}

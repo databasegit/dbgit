@@ -15,7 +15,9 @@ import java.util.stream.Collectors;
 
 import ru.fusionsoft.dbgit.adapters.AdapterFactory;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
+import ru.fusionsoft.dbgit.core.DBGitIndex;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
+import ru.fusionsoft.dbgit.core.ItemIndex;
 import ru.fusionsoft.dbgit.dbobjects.DBConstraint;
 import ru.fusionsoft.dbgit.dbobjects.DBIndex;
 import ru.fusionsoft.dbgit.dbobjects.DBSchema;
@@ -87,7 +89,27 @@ public class MetaTable extends MetaBase {
 		
 		IDBAdapter adapter = AdapterFactory.createAdapter();
 		
-		fields.putAll(adapter.getTableFields(tbl.getSchema(), tbl.getName()));
+		Map<String, DBTableField> actualFields = adapter.getTableFields(tbl.getSchema(), tbl.getName());
+		
+		if (fields.size() == 0) {
+			fields.putAll(actualFields);
+		}
+
+		if (!fields.keySet().equals(actualFields.keySet())) {		
+			fields.clear();
+			fields.putAll(actualFields);
+			
+			if (DBGitIndex.getInctance().getItemIndex(tbl.getSchema() + "/" + tbl.getName() + ".csv") != null) {
+				MetaTableData tableData = new MetaTableData(tbl);
+				
+				tableData.loadFromDB();
+				tableData.saveToFile();
+			}
+			
+		} else {		
+			fields.putAll(actualFields);
+		}
+
 		indexes.putAll(adapter.getIndexes(tbl.getSchema(), tbl.getName()));
 		constraints.putAll(adapter.getConstraints(tbl.getSchema(), tbl.getName()));
 		return true;

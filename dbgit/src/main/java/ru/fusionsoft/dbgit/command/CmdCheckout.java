@@ -5,13 +5,14 @@ import org.apache.commons.cli.Options;
 
 import ru.fusionsoft.dbgit.core.DBGit;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
+import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
 public class CmdCheckout implements IDBGitCommand {
 	
 	private Options opts = new Options();
 
 	public CmdCheckout() {
-		opts.addOption("b", true, "create and checkout a new branch");
+		opts.addOption("b", false, "create and checkout a new branch");
 	}
 	
 	@Override
@@ -21,7 +22,7 @@ public class CmdCheckout implements IDBGitCommand {
 
 	@Override
 	public String getParams() {
-		return "<branch>";
+		return "<branch> <commit>";
 	}
 
 	@Override
@@ -38,15 +39,15 @@ public class CmdCheckout implements IDBGitCommand {
 	@Override
 	public void execute(CommandLine cmdLine) throws Exception {
 		String[] args = cmdLine.getArgs();
+		ConsoleWriter.setDetailedLog(cmdLine.hasOption("v"));
 		
-		if (cmdLine.hasOption("b")) {
-			DBGit.getInstance().gitCheckout(cmdLine.getOptionValue("b"), true);
-		} else if (args == null || args.length == 0) {
+		if (args == null || args.length == 0) {
 			throw new ExceptionDBGit("Bad command. Please specify branch. ");		
 		} else if (args.length == 1) {
-			DBGit.getInstance().gitCheckout(args[0], false);
-		}
-		
+			DBGit.getInstance().gitCheckout(args[0], null, cmdLine.hasOption("b"));
+		} else if (args.length == 2) {
+			DBGit.getInstance().gitCheckout(args[0], args[1], cmdLine.hasOption("b"));
+		}		
 		
 		CmdRestore restoreCommand = new CmdRestore();
 		restoreCommand.execute(new CommandLine.Builder().build());

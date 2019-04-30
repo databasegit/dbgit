@@ -165,8 +165,8 @@ public class DBAdapterProxy implements IDBAdapter {
 		return schemaSynonymMap(adapter.getTrigger(getSchemaMap(schema), name));
 	}
 
-	public DBTableData getTableData(String schema, String nameTable, int paramFetch) {
-		return adapter.getTableData(getSchemaMap(schema), nameTable, paramFetch);
+	public DBTableData getTableData(String schema, String nameTable) {
+		return adapter.getTableData(getSchemaMap(schema), nameTable);
 	}
 
 	public Map<String, DBUser> getUsers() {
