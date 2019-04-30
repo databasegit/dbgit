@@ -13,6 +13,16 @@ To create distribution files run from project root directory:
 
 After that you will get `target/dbgit` folder that contains the tool ready to install
 
+You need to have `Oracle JDBC driver` in your local Maven repository to build `dbgit`. For this:
+
+1) download `ojdbc8-18.3.0.0.jar` by the next link (Oracle account required):
+
+`https://www.oracle.com/content/secure/maven/content/com/oracle/jdbc/ojdbc8/18.3.0.0/ojdbc8-18.3.0.0.jar`
+
+2) run the next command:
+
+`mvn install:install-file -DgroupId=com.oracle.jdbc -DartifactId=ojdbc8 -Dversion=18.3.0.0 -Dpackaging=jar -Dfile=<Path to jar_file>/ojdbc8-18.3.0.0.jar -DgeneratePom=true`
+
 ## Installation
 - You can install `dbgit` in Windows with `dbgit-install-windows.bat` file as follows:
 
@@ -53,9 +63,41 @@ Many of `dbgit` commands do the same work as the git commands with same names, b
 More support of git options will be implemented in the future versions.
 You can run any of commands with `-h` swith to get details.
 
-#### dbgit-specific
+##### dbgit-specific
 
-#### similar to git
+- __link__
+
+It binds `dbgit` with a database. Example:
+
+`dbgit link jdbc:oracle:thin:@192.168.1.1:1521:SCHEME user=username password=pass`
+
+This command creates `.dbignore` file that makes `dbgit` ignore all db objects except of user's scheme by default. You can reconfig `.dbignore` at any time, see Features for details
+
+- __synonym__
+
+will create synonym for database schemes, so you can use simple names if your db scheme has long or hard to writing name. Example:
+
+  `dbgit synonym SYNONYM_NAME ACTUAL_SCHEME_NAME`
+
+- __restore__
+
+Restores db from the dbgit repository. Switch `-s` lets you save sql script to a file of restore without of execution. Examples:
+
+`dbgit restore`
+
+`dbgit restore -s c:\temp\script.sql`
+
+- __dump__
+
+Dumps db objects into the dbgit repository. Runs without parameters
+
+- __valid__
+
+Checks if dbgit data files are valid. Runs without parameters
+
+
+
+##### similar to git
 
 - __clone__
 
@@ -70,15 +112,6 @@ It will create empty local repository, examples:
 `dbgit init`
 
 `dbgit init <c:\temp\repository>`
- 
-
-- __link__
-
-It binds `dbgit` with a database. Example:
-
-`dbgit link jdbc:oracle:thin:@192.168.1.1:1521:SCHEME user=username password=pass`
-
-This command creates `.dbignore` file that makes `dbgit` ignore all db objects except of user's scheme by default. You can reconfig `.dbignore` at any time, see Features for details
 
 - __remote__
 
@@ -87,12 +120,6 @@ This command creates `.dbignore` file that makes `dbgit` ignore all db objects e
    with `remove` parameter will remove remote repository from the git config
    
    with no parameters will show list of remote repositories
-
-- __synonym__
-
-will create synonym for database schemes, so you can use simple names if your db scheme has long or hard to writing name. Example:
-
-  `dbgit synonym SYNONYM_NAME ACTUAL_SCHEME_NAME`
 
 - __status__
 
@@ -111,22 +138,6 @@ Adds db objects into the dbgit index. You can use mask to add many of db objects
  
  `dbgit rm SCHEME/TABLE*`
  
-- __restore__
-
-Restores db from the dbgit repository. Switch `-s` lets you save sql script to a file of restore without of execution. Examples:
-
-`dbgit restore`
-
-`dbgit restore -s c:\temp\script.sql`
-
-- __dump__
-
-Dumps db objects into the dbgit repository. Runs without parameters
-
-- __valid__
-
-Checks if dbgit data files are valid. Runs without parameters
-
 - __checkout__
 
 Switch branches or restore working tree files. Example:
@@ -153,13 +164,32 @@ Fetch from and integrate with another repository or a local branch
 
 Update remote refs along with associated objects. Runs without parameters
 
+- __reset__
+
+Reset current HEAD to the specified state
+
+- __config__
+
+Lets you configure `dbgit`. Example:
+
+`dbgit config MAX_ROW_COUNT_FETCH=10000`
+
+You can configure follow options:
+
+`LIMIT_FETCH` - if true `dbgit` will save table data if table has less then specific number of rows
+
+`MAX_ROW_COUNT_FETCH` - specifies max number of rows for table to save table data, if `LIMIT_FETCH` is true
+
+
 ## Features
 
 - You can run any command with `-v` switch, it will show you full log of command execution then.
 
 - You can create and config file `.dbignore` to ignore some of database objects
 
-Lets you exclude any of db objects from the work process. If name of db object will be mathed of regular expression you will write in this file it will be missed by the `dbgit`. Also, if you will write `!` as a first character of row, db object will be processed even if the one was excluded by previous expressions.
+`.dbignore` must be placed in repository root directory
+
+Lets you exclude any of db objects from the work process. If name of db object will be mathed of regular expression you will write in this file it will be missed by the `dbgit`. Also, if you will write `!` as a first character of row, db object will be processed even if the one was excluded by previous expressions. `.dbgitignore` creates automatically when you run `dbgit link` command. By default `.dbignore` lets you work with your db user scheme only, and it ignores all table data. You can reconfigure it at any time.
 
 ## About Git
 

@@ -12,11 +12,11 @@ public class CmdReset implements IDBGitCommand {
 	private Options opts = new Options();
 	
 	public CmdReset() {
-		opts.addOption("soft", false, "");
-		opts.addOption("mixed", false, "");
-		opts.addOption("hard", false, "");
-		opts.addOption("merge", false, "");
-		opts.addOption("keep", false, "");
+		opts.addOption("soft", false, "reset HEAD and index");
+		opts.addOption("mixed", false, "reset only HEAD");
+		opts.addOption("hard", false, "reset HEAD, index and working tree");
+		opts.addOption("merge", false, "reset HEAD, index and working tree");
+		opts.addOption("keep", false, "reset HEAD but keep local changes");
 	}
 	
 	@Override
