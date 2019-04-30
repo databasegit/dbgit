@@ -1,3 +1,0 @@
-url=jdbc:postgresql://host:port/database
-user=postgres
-password=postgres
