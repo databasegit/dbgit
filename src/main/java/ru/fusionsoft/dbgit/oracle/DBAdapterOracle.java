@@ -566,7 +566,7 @@ public class DBAdapterOracle extends DBAdapter {
 				String sql = rs.getString("DDL");
 				String owner = rs.getString("OWNER");
 				//String args = rs.getString("arguments");
-				DBProcedure proc = new DBProcedure();
+				DBProcedure proc = new DBProcedure(name);
 				proc.setSql(sql);
 				proc.setSchema(schema);
 				proc.setOwner(owner);
