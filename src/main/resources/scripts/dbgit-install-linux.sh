@@ -23,4 +23,4 @@ chmod +x dbgit
 cd /usr/bin
 ln -sf ~/dbgit/bin/dbgit
 
-echo "Done!
+echo "Done!"

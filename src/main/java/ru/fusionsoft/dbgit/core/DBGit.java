@@ -398,18 +398,17 @@ public class DBGit {
 	
 	public void gitFetch(String remote) throws ExceptionDBGit {
 		try {
-			FetchCommand fetch = git.fetch();
+			FetchCommand fetch = git.fetch()
+					.setCredentialsProvider(getCredentialsProviderByName(remote.equals("") ? Constants.DEFAULT_REMOTE_NAME : remote));
 			
 			if (remote.length() > 0)
 				fetch = fetch.setRemote(remote);
 			else
 				fetch = fetch.setRemote(Constants.DEFAULT_REMOTE_NAME);
-			TextProgressMonitor pm = new TextProgressMonitor();
-			fetch.setProgressMonitor(pm);
+
+			fetch.call();
 			
-			FetchResult fetchResult = fetch.call();
-			
-			ConsoleWriter.println(fetchResult.getMessages());
+			ConsoleWriter.println("Done!");
 		} catch (Exception e) {
 			throw new ExceptionDBGit(e);
 		}
