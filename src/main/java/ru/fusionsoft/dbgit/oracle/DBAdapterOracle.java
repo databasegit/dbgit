@@ -591,7 +591,7 @@ public class DBAdapterOracle extends DBAdapter {
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
 			rs.next();
-			DBProcedure proc = new DBProcedure();
+			DBProcedure proc = new DBProcedure(rs.getString("OBJECT_NAME"));
 			String owner = rs.getString("OWNER");
 			//String args = rs.getString("arguments");
 			proc.setSchema(schema);
