@@ -344,8 +344,7 @@ public class DBAdapterOracle extends DBAdapter {
 			while(rs.next()){
 				DBIndex index = new DBIndex();
 				index.setName(rs.getString("INDEX_NAME"));
-				index.setSchema(schema);
-				index.setSql(rs.getString("DDL"));		
+				index.setSchema(schema);	
 				rowToProperties(rs, index.getOptions());
 				indexes.put(index.getName(), index);
 			}
@@ -377,6 +376,7 @@ public class DBAdapterOracle extends DBAdapter {
 				con.setConstraintDef(rs.getString("DDL"));
 				con.setConstraintType(rs.getString("CONSTRAINT_TYPE"));
 				con.setSchema(schema);
+				rowToProperties(rs, con.getOptions());
 				constraints.put(con.getName(), con);
 			}
 			stmt.close();
@@ -400,9 +400,9 @@ public class DBAdapterOracle extends DBAdapter {
 			ResultSet rs = stmt.executeQuery(query);
 			while(rs.next()){
 				DBView view = new DBView(rs.getString("OBJECT_NAME"));
-				view.setSql(rs.getString("DDL"));
 				view.setSchema(rs.getString("OWNER"));
 				view.setOwner(rs.getString("OWNER"));
+				rowToProperties(rs, view.getOptions());
 				listView.put(rs.getString("OBJECT_NAME"), view);
 			}
 			stmt.close();
@@ -426,11 +426,10 @@ public class DBAdapterOracle extends DBAdapter {
 			ResultSet rs = stmt.executeQuery(query);
 			
 			view.setOwner(schema);
-			view.setSql("");
 			
 			while (rs.next()) {
 				view.setOwner(rs.getString("OWNER"));
-				view.setSql(rs.getString("DDL"));
+				rowToProperties(rs, view.getOptions());
 			}
 			stmt.close();
 			return view;
@@ -457,7 +456,6 @@ public class DBAdapterOracle extends DBAdapter {
 				String name = rs.getString("TRIGGER_NAME");
 				String sql = rs.getString("DDL");
 				DBTrigger trigger = new DBTrigger(name);
-				trigger.setSql(sql);
 				trigger.setSchema(schema);
 				//what means owner? oracle/postgres or owner like database user/schema
 				trigger.setOwner("oracle");
@@ -482,9 +480,7 @@ public class DBAdapterOracle extends DBAdapter {
 			ResultSet rs = stmt.executeQuery(query);
 
 			while(rs.next()){
-				String sql = rs.getString("DDL");
-				trigger = new DBTrigger(name);
-				trigger.setSql(sql);			
+				trigger = new DBTrigger(name);	
 				trigger.setSchema(schema);
 				//what means owner? oracle/postgres or owner like database user/schema
 				trigger.setOwner("oracle");
@@ -508,11 +504,9 @@ public class DBAdapterOracle extends DBAdapter {
 			ResultSet rs = stmt.executeQuery(query);
 			while(rs.next()){
 				String name = rs.getString("OBJECT_NAME");
-				String sql = rs.getString("DDL");
 				String owner = rs.getString("OWNER");
 				//String args = rs.getString("arguments");
 				DBPackage pack = new DBPackage(name);
-				pack.setSql(sql);
 				pack.setSchema(schema);
 				pack.setOwner(owner);
 				rowToProperties(rs,pack.getOptions());
@@ -539,7 +533,6 @@ public class DBAdapterOracle extends DBAdapter {
 			String owner = rs.getString("OWNER");
 			//String args = rs.getString("arguments");
 			pack.setSchema(schema);
-			pack.setSql(rs.getString("DDL"));
 			pack.setOwner(owner);
 			//pack.setArguments(args);
 			rowToProperties(rs,pack.getOptions());
@@ -563,11 +556,9 @@ public class DBAdapterOracle extends DBAdapter {
 			ResultSet rs = stmt.executeQuery(query);
 			while(rs.next()){
 				String name = rs.getString("OBJECT_NAME");
-				String sql = rs.getString("DDL");
 				String owner = rs.getString("OWNER");
 				//String args = rs.getString("arguments");
 				DBProcedure proc = new DBProcedure(name);
-				proc.setSql(sql);
 				proc.setSchema(schema);
 				proc.setOwner(owner);
 				proc.setName(name);
@@ -590,15 +581,17 @@ public class DBAdapterOracle extends DBAdapter {
 			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
-			rs.next();
-			DBProcedure proc = new DBProcedure(rs.getString("OBJECT_NAME"));
-			String owner = rs.getString("OWNER");
-			//String args = rs.getString("arguments");
-			proc.setSchema(schema);
-			proc.setSql(rs.getString("DDL"));
-			proc.setOwner(owner);
-			//proc.setArguments(args);
-			rowToProperties(rs,proc.getOptions());
+			DBProcedure proc = null;
+			
+			while (rs.next()) {
+				proc = new DBProcedure(rs.getString("OBJECT_NAME"));
+				String owner = rs.getString("OWNER");
+				//String args = rs.getString("arguments");
+				proc.setSchema(schema);
+				proc.setOwner(owner);
+				//proc.setArguments(args);
+				rowToProperties(rs,proc.getOptions());
+			}
 			stmt.close();
 			
 			return proc;
@@ -623,7 +616,6 @@ public class DBAdapterOracle extends DBAdapter {
 				String owner = rs.getString("OWNER");
 				//String args = rs.getString("arguments");
 				DBFunction func = new DBFunction(name);
-				func.setSql(sql);
 				func.setSchema(schema);
 				func.setOwner(owner);
 				rowToProperties(rs,func.getOptions());
@@ -651,7 +643,6 @@ public class DBAdapterOracle extends DBAdapter {
 			String owner = rs.getString("OWNER");
 			//String args = rs.getString("arguments");
 			func.setSchema(schema);
-			func.setSql(rs.getString("DDL"));
 			func.setOwner(owner);
 			//func.setArguments(args);
 			rowToProperties(rs,func.getOptions());

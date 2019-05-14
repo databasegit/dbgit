@@ -64,8 +64,8 @@ public class DBGitPath {
 			FileWriter writer = new FileWriter(dbIgnoreFile.getAbsolutePath());
 			
 			writer.write("[core]\n");
-			writer.write("MAX_ROW_COUNT_FETCH = 10000");
-			writer.write("LIMIT_FETCH = true");
+			writer.write("MAX_ROW_COUNT_FETCH = 10000\n");
+			writer.write("LIMIT_FETCH = true\n");
 			
 			writer.close();
 			

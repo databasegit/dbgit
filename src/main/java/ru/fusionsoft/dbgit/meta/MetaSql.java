@@ -75,7 +75,7 @@ public abstract class MetaSql extends MetaBase {
 
 	@Override
 	public String getHash() {
-		return sqlObject.getHash();
+		return sqlObject != null ? sqlObject.getHash() : "";
 	}
 	public void setObjectOptionFromMap(Map<String, ? extends DBSQLObject> map) throws ExceptionDBGit {
 		NameMeta nm = MetaObjectFactory.parseMetaName(getName());

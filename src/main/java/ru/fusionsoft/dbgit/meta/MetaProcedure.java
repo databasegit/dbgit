@@ -27,9 +27,13 @@ public class MetaProcedure extends MetaSql {
 		NameMeta nm = MetaObjectFactory.parseMetaName(getName());
 		
 		DBProcedure pr = adapter.getProcedure(nm.getSchema(), nm.getName());
-		setSqlObject(pr);
 		
-		return true;
+		if (pr == null) 
+			return false;
+		else {
+			setSqlObject(pr);
+			return true;
+		}
 	}
 
 

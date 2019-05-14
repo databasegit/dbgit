@@ -328,7 +328,11 @@ public class DBAdapterPostgres extends DBAdapter {
 	public Map<String, DBIndex> getIndexes(String schema, String nameTable) {
 		Map<String, DBIndex> indexes = new HashMap<>();
 		try {
-			String query = "select i.*\r\n" + 
+			String query = "select i.schemaname,\r\n" +
+					"i.tablename, \r\n" +
+					"i.indexname, \r\n" +
+					"i.tablespace, \r\n" +
+					"i.indexdef as ddl \r\n" +
 					"from \r\n" + 
 					"pg_indexes as i JOIN pg_class as cl \r\n" + 
 					"	on i.indexname = cl.relname\r\n" + 
@@ -345,8 +349,7 @@ public class DBAdapterPostgres extends DBAdapter {
 			while(rs.next()){
 				DBIndex index = new DBIndex();
 				index.setName(rs.getString("indexname"));
-				index.setSchema(schema);
-				index.setSql(rs.getString("indexdef"));		
+				index.setSchema(schema);	
 				rowToProperties(rs, index.getOptions());
 				indexes.put(index.getName(), index);
 			}
@@ -386,6 +389,7 @@ public class DBAdapterPostgres extends DBAdapter {
 				con.setConstraintDef(rs.getString("constraint_def"));
 				con.setConstraintType(rs.getString("constraint_type"));
 				con.setSchema(schema);
+				rowToProperties(rs, con.getOptions());
 				constraints.put(con.getName(), con);
 			}
 			stmt.close();
@@ -403,7 +407,7 @@ public class DBAdapterPostgres extends DBAdapter {
 		Map<String, DBView> listView = new HashMap<String, DBView>();
 		try {
 			String query = "select nsp.nspname as object_schema, " + 
-				       "cls.relname as object_name,  rol.rolname as owner, pg_get_viewdef(cls.oid) as sql "+
+				       "cls.relname as object_name,  rol.rolname as owner, pg_get_viewdef(cls.oid) as ddl "+
 				       "from pg_class cls " + 
 				         " join pg_roles rol on rol.oid = cls.relowner" +
 				         " join pg_namespace nsp on nsp.oid = cls.relnamespace " + 
@@ -415,9 +419,9 @@ public class DBAdapterPostgres extends DBAdapter {
 			ResultSet rs = stmt.executeQuery(query);
 			while(rs.next()){
 				DBView view = new DBView(rs.getString("object_name"));
-				view.setSql(rs.getString("sql"));
 				view.setSchema(rs.getString("object_schema"));
 				view.setOwner(rs.getString("owner"));
+				rowToProperties(rs, view.getOptions());
 				listView.put(rs.getString("object_name"), view);
 			}
 			stmt.close();
@@ -435,7 +439,7 @@ public class DBAdapterPostgres extends DBAdapter {
 		view.setSchema(schema);
 		try {
 			String query = "select nsp.nspname as object_schema, " + 
-				       "cls.relname as object_name,  rol.rolname as owner, pg_get_viewdef(cls.oid) as sql "+
+				       "cls.relname as object_name,  rol.rolname as owner, pg_get_viewdef(cls.oid) as ddl "+
 				       "from pg_class cls " + 
 				         " join pg_roles rol on rol.oid = cls.relowner" +
 				         " join pg_namespace nsp on nsp.oid = cls.relnamespace " + 
@@ -448,7 +452,7 @@ public class DBAdapterPostgres extends DBAdapter {
 			
 			rs.next();
 			view.setOwner(rs.getString("owner"));
-			view.setSql(rs.getString("sql"));
+			rowToProperties(rs, view.getOptions());
 			
 			stmt.close();
 			return view;
@@ -463,7 +467,7 @@ public class DBAdapterPostgres extends DBAdapter {
 	public Map<String, DBTrigger> getTriggers(String schema) {
 		Map<String, DBTrigger> listTrigger = new HashMap<String, DBTrigger>();
 		try {
-			String query = "SELECT trg.tgname, tbl.relname as trigger_table ,pg_get_triggerdef(trg.oid) AS src \r\n" + 
+			String query = "SELECT trg.tgname, tbl.relname as trigger_table ,pg_get_triggerdef(trg.oid) AS ddl \r\n" + 
 					"FROM pg_trigger trg\r\n" + 
 					"JOIN pg_class tbl on trg.tgrelid = tbl.oid\r\n" + 
 					"JOIN pg_namespace ns ON ns.oid = tbl.relnamespace\r\n" + 
@@ -473,9 +477,8 @@ public class DBAdapterPostgres extends DBAdapter {
 			ResultSet rs = stmt.executeQuery(query);
 			while(rs.next()){
 				String name = rs.getString("tgname");
-				String sql = rs.getString("src");
+				String sql = rs.getString("ddl");
 				DBTrigger trigger = new DBTrigger(name);
-				trigger.setSql(sql);
 				trigger.setSchema(schema);
 				trigger.setOwner("postgres");
 				rowToProperties(rs, trigger.getOptions());
@@ -491,7 +494,7 @@ public class DBAdapterPostgres extends DBAdapter {
 	public DBTrigger getTrigger(String schema, String name) {
 		DBTrigger trigger = null;
 		try {
-			String query = "SELECT trg.tgname, tbl.relname as trigger_table ,pg_get_triggerdef(trg.oid) AS src \r\n" + 
+			String query = "SELECT trg.tgname, tbl.relname as trigger_table ,pg_get_triggerdef(trg.oid) AS ddl \r\n" + 
 					"FROM pg_trigger trg\r\n" + 
 					"JOIN pg_class tbl on trg.tgrelid = tbl.oid\r\n" + 
 					"JOIN pg_namespace ns ON ns.oid = tbl.relnamespace\r\n" + 
@@ -500,9 +503,8 @@ public class DBAdapterPostgres extends DBAdapter {
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
 			while(rs.next()){
-				String sql = rs.getString("src");
-				trigger = new DBTrigger(name);
-				trigger.setSql(sql);			
+				String sql = rs.getString("ddl");
+				trigger = new DBTrigger(name);		
 				trigger.setSchema(schema);
 				trigger.setOwner("postgres");
 				rowToProperties(rs, trigger.getOptions());
@@ -545,7 +547,7 @@ public class DBAdapterPostgres extends DBAdapter {
 			String query = "SELECT n.nspname as \"schema\",u.rolname,\r\n" + 
 					"       p.proname as \"name\",\r\n" + 
 					"       pg_catalog.pg_get_function_arguments(p.oid) as \"arguments\",\r\n" + 
-					"	   pg_get_functiondef(p.oid) AS src\r\n" + 
+					"	   pg_get_functiondef(p.oid) AS ddl\r\n" + 
 					"FROM pg_catalog.pg_proc p\r\n" + 
 					"  JOIN pg_catalog.pg_roles u ON u.oid = p.proowner\r\n" + 
 					"  LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace\r\n" + 
@@ -556,11 +558,9 @@ public class DBAdapterPostgres extends DBAdapter {
 			ResultSet rs = stmt.executeQuery(query);
 			while(rs.next()){
 				String name = rs.getString("name");
-				String sql = rs.getString("src");
 				String owner = rs.getString("rolname");
 				String args = rs.getString("arguments");
 				DBFunction func = new DBFunction(name);
-				func.setSql(sql);
 				func.setSchema(schema);
 				func.setOwner(owner);
 				rowToProperties(rs,func.getOptions());
@@ -581,7 +581,7 @@ public class DBAdapterPostgres extends DBAdapter {
 			String query = "SELECT n.nspname as \"schema\",u.rolname,\r\n" + 
 					"       p.proname as \"name\",\r\n" + 
 					"       pg_catalog.pg_get_function_arguments(p.oid) as \"arguments\",\r\n" + 
-					"	   pg_get_functiondef(p.oid) AS src\r\n" + 
+					"	   pg_get_functiondef(p.oid) AS ddl\r\n" + 
 					"FROM pg_catalog.pg_proc p\r\n" + 
 					"  JOIN pg_catalog.pg_roles u ON u.oid = p.proowner\r\n" + 
 					"  LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace\r\n" + 
@@ -595,7 +595,6 @@ public class DBAdapterPostgres extends DBAdapter {
 			String owner = rs.getString("rolname");
 			String args = rs.getString("arguments");
 			func.setSchema(schema);
-			func.setSql(rs.getString("src"));
 			func.setOwner(owner);
 			//func.setArguments(args);
 			rowToProperties(rs,func.getOptions());

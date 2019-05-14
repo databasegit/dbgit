@@ -24,11 +24,9 @@ public class DBSQLObject extends DBSchemaObject {
 	}
 
 	public String getSql() {
-		return sql;
+		return options.get("ddl") != null ? options.get("ddl").toString() : "";
 	}
-	public void setSql(String sql) {
-		this.sql = sql;
-	}
+	
 	public String getOwner() {
 		return owner;
 	}
