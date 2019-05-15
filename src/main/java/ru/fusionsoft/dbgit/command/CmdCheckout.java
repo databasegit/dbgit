@@ -1,6 +1,8 @@
 package ru.fusionsoft.dbgit.command;
 
 import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLine.Builder;
+import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
 import ru.fusionsoft.dbgit.core.DBGit;
@@ -13,6 +15,7 @@ public class CmdCheckout implements IDBGitCommand {
 
 	public CmdCheckout() {
 		opts.addOption("b", false, "create and checkout a new branch");
+		opts.addOption("r", false, "Updates database");
 	}
 	
 	@Override
@@ -38,6 +41,7 @@ public class CmdCheckout implements IDBGitCommand {
 
 	@Override
 	public void execute(CommandLine cmdLine) throws Exception {
+		
 		String[] args = cmdLine.getArgs();
 		ConsoleWriter.setDetailedLog(cmdLine.hasOption("v"));
 		
@@ -50,7 +54,14 @@ public class CmdCheckout implements IDBGitCommand {
 		}		
 		
 		CmdRestore restoreCommand = new CmdRestore();
-		restoreCommand.execute(new CommandLine.Builder().build());
+		
+		Builder builder = new CommandLine.Builder();
+
+		if (cmdLine.hasOption("r")) {
+			builder.addOption(new Option("r", false, ""));			
+		}
+
+		restoreCommand.execute(builder.build());
 
 	}
 

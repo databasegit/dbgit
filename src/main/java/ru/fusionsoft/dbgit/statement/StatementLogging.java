@@ -48,13 +48,26 @@ public class StatementLogging implements Statement {
 	}
 	
 	protected void writeSql(String sql) {
+		writeSql(sql, null);
+	}
+	
+	protected void writeSql(String sql, String separator) {
 		if (stream == null) return ;
+		if (sql.equals("")) return;
 
 		try {
-			String buf = sql+";\n\r";
+			String buf = sql.trim();
+			if (!(sql.trim().endsWith(";") || sql.trim().endsWith("/")))
+				buf += ";";
+				
+			buf += "\n\r";
+			
+			if (separator != null) 
+				buf += separator + "\n\r";			
+			
 			stream.write(buf.getBytes("UTF-8"));
 		} catch (Exception e) {
-			getLogger().error("Error write dunp file ", e);
+			getLogger().error("Error write dump file ", e);
 		}
 	}
 	
@@ -157,6 +170,14 @@ public class StatementLogging implements Statement {
 	public boolean execute(String sql) throws SQLException {
 		log(sql);
 		writeSql(sql);
+		if (!isExecuteSql()) return true;
+
+		return delegate.execute(sql);
+	}
+	
+	public boolean execute(String sql, String separator) throws SQLException {
+		log(sql);
+		writeSql(sql, separator);
 		if (!isExecuteSql()) return true;
 
 		return delegate.execute(sql);

@@ -31,14 +31,14 @@ public class DBRestoreFunctionOracle extends DBRestoreAdapter {
 						if(restoreFunction.getSqlObject().getName().equals(fnc.getName())){
 							exist = true;
 							if(!restoreFunction.getSqlObject().getSql().equals(fnc.getSql())) {								
-								st.execute(restoreFunction.getSqlObject().getSql());
+								st.execute(restoreFunction.getSqlObject().getSql(), "/");
 							}					
 							//TODO Восстановление привилегий							
 						}
 					}					
 				}
 				if(!exist){
-					st.execute(restoreFunction.getSqlObject().getSql());
+					st.execute(restoreFunction.getSqlObject().getSql(), "/");
 					//TODO Восстановление привилегий	
 				}
 			}

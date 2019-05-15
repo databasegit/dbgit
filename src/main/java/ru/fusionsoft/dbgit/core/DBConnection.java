@@ -76,6 +76,8 @@ public class DBConnection {
 			DBGitPath.createDir(file.getParent());
 			DBGitPath.createDefaultDbignore(DBGitPath.getRootPath(), props.getProperty("user").toUpperCase());
 			DBGitPath.createDefaultDbgitConfig(DBGitPath.getFullPath());
+			DBGitPath.createLogDir();
+			DBGitPath.createScriptsDir();
 						
 			FileWriter writer = new FileWriter(file.getAbsolutePath());		
 		    writer.write("url="+url+"\n");

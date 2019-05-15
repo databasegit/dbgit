@@ -25,10 +25,14 @@ public class MetaPackage extends MetaSql {
 		IDBAdapter adapter = AdapterFactory.createAdapter();
 		NameMeta nm = MetaObjectFactory.parseMetaName(getName());
 
-		DBPackage pkg = adapter.getPackage(nm.getSchema(), nm.getName());
-		setSqlObject(pkg);
+		DBPackage pkg = adapter.getPackage(nm.getSchema(), nm.getName());		
 		
-		return true;
+		if (pkg == null) 
+			return false;
+		else {
+			setSqlObject(pkg);
+			return true;
+		}
 	}
 
 }

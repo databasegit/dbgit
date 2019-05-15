@@ -3,6 +3,7 @@ package ru.fusionsoft.dbgit;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.net.URL;
 
 import org.apache.commons.cli.CommandLine;
 import org.slf4j.LoggerFactory;
@@ -10,9 +11,12 @@ import org.slf4j.LoggerFactory;
 
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
+import ch.qos.logback.classic.util.ContextInitializer;
 import ch.qos.logback.core.joran.spi.JoranException;
+import ch.qos.logback.core.util.StatusPrinter;
 import ru.fusionsoft.dbgit.command.RequestCmd;
 import ru.fusionsoft.dbgit.core.DBGitPath;
+import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 import ru.fusionsoft.dbgit.utils.LoggerUtil;
 
@@ -32,7 +36,7 @@ public class App
 			cmd.printHelpAboutCommand(cmd.getCommand());
 			return ;
 		}
-		
+				
 		cmd.getCurrentCommand().execute(cmdLine);
 	}
 	
@@ -62,18 +66,31 @@ public class App
 		jc.doConfigure(logbackConfigFileUrl.openStream());
 		*/
 	}
+	
+	private static void updateLogback() {
+	    LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
 
+	    ContextInitializer ci = new ContextInitializer(loggerContext);
+	    URL url = ci.findURLOfDefaultConfigurationFile(true);
+
+	    try {
+	        JoranConfigurator configurator = new JoranConfigurator();
+	        configurator.setContext(loggerContext);
+	        loggerContext.reset();
+	        configurator.doConfigure(url);
+	    } catch (JoranException je) {
+	        // StatusPrinter will handle this
+	    }
+	    StatusPrinter.printInCaseOfErrorsOrWarnings(loggerContext);		
+	}
 	
     public static void main( String[] args ) throws Exception
     {    	
-    	/*
-    	 * TODO delete
-    	ConsoleWriter.println( "я русский");
-    	System.out.println("я русский");
-        */
         //configureLogback();
                
-        try {
+        try {        	
+        	DBGitPath.createLogDir();
+    		
         	executeDbGitCommand(args);
         	
         } catch (Exception e) {

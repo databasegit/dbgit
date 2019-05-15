@@ -61,13 +61,26 @@ public class DBGit {
 			FileRepositoryBuilder builder = new FileRepositoryBuilder();
 			
 			if (builder.readEnvironment().findGitDir().getGitDir() == null) {
-				ConsoleWriter.printlnRed( "Git repository not found");				
-				System.exit(0);
+				throw new ExceptionDBGit("Git repository not found");
 			}
 			
 			dbGit = new DBGit();
 		}
 		return dbGit;
+	}
+	
+	public static boolean checkIfRepositoryExists() throws ExceptionDBGit {
+		if (dbGit == null) {
+			FileRepositoryBuilder builder = new FileRepositoryBuilder();
+			
+			if (builder.readEnvironment().findGitDir().getGitDir() == null) {
+				return false;
+			} else {
+				return true;
+			}
+			
+		} else
+			return true;
 	}
 
 	public Repository getRepository() {

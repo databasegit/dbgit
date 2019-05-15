@@ -528,14 +528,17 @@ public class DBAdapterOracle extends DBAdapter {
 			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
-			rs.next();
-			DBPackage pack = new DBPackage(name);
-			String owner = rs.getString("OWNER");
-			//String args = rs.getString("arguments");
-			pack.setSchema(schema);
-			pack.setOwner(owner);
-			//pack.setArguments(args);
-			rowToProperties(rs,pack.getOptions());
+			
+			DBPackage pack = null;
+			while (rs.next()) {
+				pack = new DBPackage(name);
+				String owner = rs.getString("OWNER");
+				//String args = rs.getString("arguments");
+				pack.setSchema(schema);
+				pack.setOwner(owner);
+				//pack.setArguments(args);
+				rowToProperties(rs,pack.getOptions());
+			}
 			stmt.close();
 			
 			return pack;

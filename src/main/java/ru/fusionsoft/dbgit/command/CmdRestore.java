@@ -3,6 +3,8 @@ package ru.fusionsoft.dbgit.command;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Map;
 
 import org.apache.commons.cli.CommandLine;
@@ -29,6 +31,7 @@ public class CmdRestore implements IDBGitCommand {
 	
 	public CmdRestore() {
 		opts.addOption("s", true, "Save command restore to file");
+		opts.addOption("r", false, "Updates database");
 	}
 	
 	public String getCommandName() {
@@ -53,17 +56,32 @@ public class CmdRestore implements IDBGitCommand {
 	
 	@Override
 	public void execute(CommandLine cmdLine) throws Exception {
+		
 		AdapterFactory.createAdapter();
 		GitMetaDataManager gmdm = GitMetaDataManager.getInctance();
 		IMapMetaObject fileObjs = gmdm.loadFileMetaData();		
 		IMapMetaObject updateObjs = new TreeMapMetaObject();
 		IMapMetaObject deleteObjs = new TreeMapMetaObject();
-		
+
 		ConsoleWriter.setDetailedLog(cmdLine.hasOption("v"));
 		
 		FileOutputStream fop = null;
+		FileOutputStream scriptOutputStream = null;
+
+		SimpleDateFormat format = new SimpleDateFormat("yyyyMMddHHmmss");
+		
+		File scriptFile = new File(DBGitPath.getScriptsPath() + "script-" + format.format(new Date()) + ".sql");
+		DBGitPath.createScriptsDir();
+		
+		if (!scriptFile.exists()) 
+			scriptFile.createNewFile();
+		
+		scriptOutputStream = new FileOutputStream(scriptFile);
+
+		IDBAdapter adapter = AdapterFactory.createAdapter();
+		adapter.setDumpSqlCommand(scriptOutputStream, cmdLine.hasOption("r"));
+		
 		if (cmdLine.hasOption("s")) {
-			IDBAdapter adapter = AdapterFactory.createAdapter();
 			String scriptName = cmdLine.getOptionValue("s");
 			ConsoleWriter.detailsPrintLn("Script will be saved to " + scriptName);
 			
@@ -74,12 +92,11 @@ public class CmdRestore implements IDBGitCommand {
 			}
 			
 			fop = new FileOutputStream(file);
-
-			adapter.setDumpSqlCommand(fop, false);
 		}
 		try {
 			//delete obj
 			DBGitIndex index = DBGitIndex.getInctance();
+			ConsoleWriter.println("Objects to remove:");
 			for (ItemIndex item : index.getTreeItems().values()) {
 				//TODO db ignore
 				if (item.getIsDelete()) {
@@ -87,6 +104,7 @@ public class CmdRestore implements IDBGitCommand {
 						IMetaObject obj = MetaObjectFactory.createMetaObject(item.getName());
 						gmdm.loadFromDB(obj);					
 						if (item.getHash().equals(obj.getHash())) {
+							ConsoleWriter.println("    " + obj.getName());
 							deleteObjs.put(obj);
 						}
 					} catch(ExceptionDBGit e) {
@@ -94,9 +112,14 @@ public class CmdRestore implements IDBGitCommand {
 					}
 				}
 			}
+			
+			if (cmdLine.hasOption("r")) {
+				ConsoleWriter.println("Removing...");
+			}
 			gmdm.deleteDataBase(deleteObjs);
 			
-			
+			ConsoleWriter.println("Objects to restore:");
+
 			for (IMetaObject obj : fileObjs.values()) {
 				Boolean isRestore = false;
 				try {
@@ -112,15 +135,24 @@ public class CmdRestore implements IDBGitCommand {
 				}
 				if (isRestore) {
 					//запомнили файл если хеш разный или объекта нет				
+					ConsoleWriter.println("    " + obj.getName());
 					updateObjs.put(obj);
 				}
 			}
 			
+			if (cmdLine.hasOption("r")) {
+				ConsoleWriter.println("Restoring...");
+			}
 			gmdm.restoreDataBase(updateObjs);
+			
 		} finally {
 			if (fop != null) {
 				fop.flush();
 				fop.close();
+			}	
+			if (scriptOutputStream != null) {
+				scriptOutputStream.flush();
+				scriptOutputStream.close();
 			}	
 		}	
 		ConsoleWriter.println("Done!");

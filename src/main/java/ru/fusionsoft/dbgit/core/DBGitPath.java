@@ -20,7 +20,8 @@ public class DBGitPath {
 	public static final String DB_IGNORE_FILE = ".dbignore";
 	public static final String OBJECTS_PATH = ".objects";
 	public static final String INDEX_FILE = ".dbindex";
-	public static final String LOG_PATH = ".logs";
+	public static final String LOG_PATH = "logs";
+	public static final String SCRIPT_PATH = "scripts";
 	public static final String DATA_FILE = ".data";
 	public static final String DBGIT_CONFIG = "dbgitconfig";
 	
@@ -32,9 +33,43 @@ public class DBGitPath {
 	
 	//path utils
 	
+	public static void createLogDir() throws ExceptionDBGit {
+		if (DBGitPath.isRepositoryExists()) {
+			File file = new File(getFullPath());
+			
+			if (file.exists()) {
+				File logDir = new File(getLogsPath());
+				if (!logDir.exists())
+					logDir.mkdirs();
+			}
+		}		
+	}
+
+	public static void createScriptsDir() throws ExceptionDBGit {
+		if (DBGitPath.isRepositoryExists()) {
+			File file = new File(getFullPath());
+			
+			if (file.exists()) {
+				File scriptsDir = new File(getScriptsPath());
+				if (!scriptsDir.exists())
+					scriptsDir.mkdirs();
+			}
+		}		
+	}
+	
 	public static String getFullPath(String path) throws ExceptionDBGit {
 		if (path == null) return getFullPath();
 		return getFullPath() + path + "/";
+	}
+	
+	public static String getLogsPath() throws ExceptionDBGit {
+		DBGit dbGit = DBGit.getInstance();
+		return dbGit.getRootDirectory()+"/"+DB_GIT_PATH + "/" + LOG_PATH + "/";
+	}
+	
+	public static String getScriptsPath() throws ExceptionDBGit {
+		DBGit dbGit = DBGit.getInstance();
+		return dbGit.getRootDirectory()+"/"+DB_GIT_PATH + "/" + SCRIPT_PATH + "/";
 	}
 	
 	public static String getFullPath() throws ExceptionDBGit {
@@ -45,6 +80,10 @@ public class DBGitPath {
 	public static String getRootPath(String path) throws ExceptionDBGit {
 		if (path == null) return getRootPath();
 		return getRootPath() + path + "/";
+	}
+	
+	public static boolean isRepositoryExists() throws ExceptionDBGit {
+		return DBGit.checkIfRepositoryExists();		
 	}
 	
 	public static String getRootPath() throws ExceptionDBGit {
