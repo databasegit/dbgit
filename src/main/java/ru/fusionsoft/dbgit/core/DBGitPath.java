@@ -2,9 +2,16 @@ package ru.fusionsoft.dbgit.core;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.stream.Stream;
 
+import javax.print.attribute.standard.DateTimeAtCompleted;
+
 import ru.fusionsoft.dbgit.meta.DBGitMetaType;
+import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 import ru.fusionsoft.dbgit.utils.Convertor;
 
 /**
@@ -64,12 +71,16 @@ public class DBGitPath {
 	
 	public static String getLogsPath() throws ExceptionDBGit {
 		DBGit dbGit = DBGit.getInstance();
-		return dbGit.getRootDirectory()+"/"+DB_GIT_PATH + "/" + LOG_PATH + "/";
+		return dbGit.getRootDirectory()+"/" + DB_GIT_PATH + "/" + LOG_PATH + "/";
+	}
+	
+	public static String getLogsUserPath() throws ExceptionDBGit {
+		return System.getProperty("user.home") + "/dbgit/" + LOG_PATH + "/";
 	}
 	
 	public static String getScriptsPath() throws ExceptionDBGit {
 		DBGit dbGit = DBGit.getInstance();
-		return dbGit.getRootDirectory()+"/"+DB_GIT_PATH + "/" + SCRIPT_PATH + "/";
+		return dbGit.getRootDirectory()+"/" + DB_GIT_PATH + "/" + SCRIPT_PATH + "/";
 	}
 	
 	public static String getFullPath() throws ExceptionDBGit {
@@ -96,6 +107,51 @@ public class DBGitPath {
 		return dir.mkdirs();
 	}
 	
+	public static void deleteOldLogs() throws Exception {
+		int logRotate = DBGitConfig.getInstance().getInteger("core", "LOG_ROTATE", 31);
+		int scriptRotate = DBGitConfig.getInstance().getInteger("core", "SCRIPT_ROTATE", 31);
+		
+		SimpleDateFormat format = new SimpleDateFormat("yyyyMMdd");
+		
+		Calendar logCalendar = new GregorianCalendar();
+		Calendar scriptCalendar = new GregorianCalendar();
+		
+		logCalendar.add(Calendar.DATE, -1*logRotate);
+		scriptCalendar.add(Calendar.DATE, -1*scriptRotate);
+		
+		String logsLastDate = format.format(logCalendar.getTime());
+		String scriptLastDate = format.format(scriptCalendar.getTime());
+		
+		File logDir = new File(getLogsPath());
+		File logUserDir = new File(getLogsUserPath());
+		File scriptDir = new File(getScriptsPath());
+		
+		if (logDir.exists()) {
+			for (File entry : logDir.listFiles()) {
+				if (entry.getName().compareTo("log-" + logsLastDate + ".log") < 0) {
+					entry.delete();
+				}
+			}
+		}
+
+		if (logUserDir.exists()) {
+			for (File entry : logUserDir.listFiles()) {
+				if (entry.getName().compareTo("log-" + logsLastDate + ".log") < 0) {
+					entry.delete();
+				}
+			}
+		}
+
+		if (scriptDir.exists()) {
+			for (File entry : scriptDir.listFiles()) {
+				if (entry.getName().compareTo("script-" + scriptLastDate + "000000.sql") < 0) {
+					entry.delete();
+				}
+			}
+		}
+		
+	}
+	
 	public static boolean createDefaultDbgitConfig(String path) throws ExceptionDBGit {
 		try {
 			File dbIgnoreFile = new File(path + "/" + DBGIT_CONFIG);
@@ -105,6 +161,8 @@ public class DBGitPath {
 			writer.write("[core]\n");
 			writer.write("MAX_ROW_COUNT_FETCH = 10000\n");
 			writer.write("LIMIT_FETCH = true\n");
+			writer.write("LOG_ROTATE = 31\n");
+			writer.write("SCRIPT_ROTATE = 31\n");
 			
 			writer.close();
 			

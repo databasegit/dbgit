@@ -90,6 +90,7 @@ public class App
                
         try {        	
         	DBGitPath.createLogDir();
+        	DBGitPath.deleteOldLogs();
     		
         	executeDbGitCommand(args);
         	
