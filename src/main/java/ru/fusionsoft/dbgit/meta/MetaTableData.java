@@ -282,6 +282,9 @@ public class MetaTableData extends MetaBase {
 	public int removeFromGit() throws ExceptionDBGit {
 		int count = super.removeFromGit(); 
 		
+		if (mapRows == null)
+			return 1;
+		
 		for (RowData rd : mapRows.values()) {
 			for (ICellData cd : rd.getData().values()) {
 				count += cd.removeFromGit();

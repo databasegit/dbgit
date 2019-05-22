@@ -10,6 +10,7 @@ import ru.fusionsoft.dbgit.meta.IMetaObject;
 public class DBGitIndex {
 	private static DBGitIndex gitIndex = null;
 	private TreeMapItemIndex treeItems;
+	private boolean hasConflicts = false;
 	
 	private DBGitIndex() throws ExceptionDBGit {
 		treeItems = new TreeMapItemIndex();
@@ -79,6 +80,12 @@ public class DBGitIndex {
 			
 			BufferedReader br = new BufferedReader(new FileReader(file));			
 			for(String line; (line = br.readLine()) != null; ) {
+				
+				if (line.startsWith("<<<<<<<") || line.startsWith("=======") || line.startsWith(">>>>>>>")) {
+					hasConflicts = true;
+					continue;
+				}
+				
 			    ItemIndex item = ItemIndex.parseString(line);
 			    treeItems.put(item.getName(), item);
 			}
@@ -92,6 +99,10 @@ public class DBGitIndex {
 	public void addToGit() throws ExceptionDBGit {
 		DBGit dbGit = DBGit.getInstance();
 		dbGit.addFileToIndexGit(DBGitPath.DB_GIT_PATH+"/"+DBGitPath.INDEX_FILE);
+	}
+	
+	public boolean hasConflicts() {
+		return hasConflicts;
 	}
 }
 

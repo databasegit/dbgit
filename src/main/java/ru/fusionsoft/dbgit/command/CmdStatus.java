@@ -8,6 +8,7 @@ import org.apache.commons.cli.Options;
 import com.diogonunes.jcdp.color.api.Ansi.FColor;
 
 import ru.fusionsoft.dbgit.core.DBGit;
+import ru.fusionsoft.dbgit.core.DBGitIndex;
 import ru.fusionsoft.dbgit.core.DBGitPath;
 import ru.fusionsoft.dbgit.core.GitMetaDataManager;
 import ru.fusionsoft.dbgit.core.SchemaSynonym;
@@ -48,10 +49,16 @@ public class CmdStatus implements IDBGitCommand {
 		GitMetaDataManager gmdm = GitMetaDataManager.getInctance();
 		
 		IMapMetaObject dbObjs = gmdm.loadDBMetaData();		
-		IMapMetaObject fileObjs = gmdm.loadFileMetaData();
+		IMapMetaObject fileObjs = gmdm.loadFileMetaDataForce();
 		IMapMetaObject changeObjs = new TreeMapMetaObject();
 		IMapMetaObject addedObjs = new TreeMapMetaObject();
 		DBGit dbGit = DBGit.getInstance();
+		boolean hasConflicts = DBGitIndex.getInctance().hasConflicts();
+		
+		if (hasConflicts) {
+			ConsoleWriter.println("You have unmerged paths.\r\n" + 
+					"  (fix conflicts and run \"dbgit commit\")");
+		}
 		
 		SchemaSynonym ss = SchemaSynonym.getInctance();
 				

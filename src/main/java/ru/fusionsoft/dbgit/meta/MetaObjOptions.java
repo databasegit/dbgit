@@ -54,7 +54,7 @@ public abstract class MetaObjOptions extends MetaBase {
 		CalcHash ch = new CalcHash();
 		ch.addData(this.getName());
 		ch.addData(this.getType().getValue());
-		ch.addData(objectOption.getHash());
+		ch.addData(objectOption != null ? objectOption.getHash() : EMPTY_HASH);
 
 		return ch.calcHashStr();
 	}

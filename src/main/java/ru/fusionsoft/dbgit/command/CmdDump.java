@@ -51,7 +51,7 @@ public class CmdDump implements IDBGitCommand {
 		
 		ConsoleWriter.detailsPrintLn("Checking files...");
 
-		IMapMetaObject fileObjs = gmdm.loadFileMetaData();
+		IMapMetaObject fileObjs = gmdm.loadFileMetaDataForce();
 		
 		ConsoleWriter.detailsPrintLn("Dumping...");
 		

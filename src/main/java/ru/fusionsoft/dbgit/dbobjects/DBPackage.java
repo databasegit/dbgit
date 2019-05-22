@@ -1,6 +1,6 @@
 package ru.fusionsoft.dbgit.dbobjects;
 
-public class DBPackage extends DBSQLObject {
+public class DBPackage extends DBCode {
 
 	public DBPackage() { }
 	

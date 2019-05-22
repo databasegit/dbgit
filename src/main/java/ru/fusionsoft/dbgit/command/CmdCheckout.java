@@ -60,6 +60,9 @@ public class CmdCheckout implements IDBGitCommand {
 		if (cmdLine.hasOption("r")) {
 			builder.addOption(new Option("r", false, ""));			
 		}
+		if (cmdLine.hasOption("v")) {
+			builder.addOption(new Option("v", false, ""));			
+		}
 
 		restoreCommand.execute(builder.build());
 

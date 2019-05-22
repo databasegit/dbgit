@@ -151,7 +151,7 @@ public class DBAdapterOracle extends DBAdapter {
 			
 			//variant 2 from DBA_SEQUENCES
 			String query = 
-					"SELECT S.*, (SELECT dbms_metadata.get_ddl('SEQUENCE', S.SEQUENCE_NAME) from dual) AS DDL\n" + 
+					"SELECT S.SEQUENCE_NAME, (SELECT dbms_metadata.get_ddl('SEQUENCE', S.SEQUENCE_NAME) from dual) AS DDL\n" + 
 					"FROM DBA_SEQUENCES S WHERE S.SEQUENCE_OWNER = '" + schema + "'";
 			
 			Statement stmt = connect.createStatement();
@@ -179,7 +179,7 @@ public class DBAdapterOracle extends DBAdapter {
 		try {
 			Connection connect = getConnection();
 			String query = 
-					"SELECT S.*, (SELECT dbms_metadata.get_ddl('SEQUENCE', S.SEQUENCE_NAME) from dual) AS DDL\n" + 
+					"SELECT S.SEQUENCE_NAME, (SELECT dbms_metadata.get_ddl('SEQUENCE', S.SEQUENCE_NAME) from dual) AS DDL\n" + 
 					"FROM DBA_SEQUENCES S WHERE S.SEQUENCE_OWNER = '" + schema + "' AND S.SEQUENCE_NAME = '" + name + "'";
 			
 			Statement stmt = connect.createStatement();
@@ -205,7 +205,7 @@ public class DBAdapterOracle extends DBAdapter {
 	public Map<String, DBTable> getTables(String schema) {
 		Map<String, DBTable> listTable = new HashMap<String, DBTable>();
 		try {
-			String query = "SELECT T.*, (SELECT dbms_metadata.get_ddl('TABLE', T.TABLE_NAME) from dual) AS DDL\n" + 
+			String query = "SELECT T.TABLE_NAME, T.OWNER, (SELECT dbms_metadata.get_ddl('TABLE', T.TABLE_NAME) from dual) AS DDL\n" + 
 					"FROM DBA_TABLES T WHERE OWNER = '" + schema + "'";
 			Connection connect = getConnection();
 			
@@ -230,7 +230,7 @@ public class DBAdapterOracle extends DBAdapter {
 	@Override
 	public DBTable getTable(String schema, String name) {
 		try {
-			String query = "SELECT T.*, (SELECT dbms_metadata.get_ddl('TABLE', T.TABLE_NAME) from dual) AS DDL\n" + 
+			String query = "SELECT T.TABLE_NAME, T.OWNER, (SELECT dbms_metadata.get_ddl('TABLE', T.TABLE_NAME) from dual) AS DDL\n" + 
 							"FROM DBA_TABLES T WHERE T.OWNER = '" + schema + "' AND T.TABLE_NAME = '" + name + "'";
 			Connection connect = getConnection();
 			
@@ -334,7 +334,7 @@ public class DBAdapterOracle extends DBAdapter {
 	public Map<String, DBIndex> getIndexes(String schema, String nameTable) {
 		Map<String, DBIndex> indexes = new HashMap<>();
 		try {
-			String query = "SELECT  ind.*, (select dbms_metadata.get_ddl('INDEX', ind.INDEX_NAME) AS DDL from dual) AS DDL\n" + 
+			String query = "SELECT  ind.index_name, (select dbms_metadata.get_ddl('INDEX', ind.INDEX_NAME) AS DDL from dual) AS DDL\n" + 
 					"FROM all_indexes ind\n" + 
 					"WHERE table_name = '" + nameTable + "' AND owner = '" + schema + "'";
 			
@@ -362,7 +362,7 @@ public class DBAdapterOracle extends DBAdapter {
 	public Map<String, DBConstraint> getConstraints(String schema, String nameTable) {
 		Map<String, DBConstraint> constraints = new HashMap<>();
 		try {
-			String query = "SELECT cons.*, (select dbms_metadata.get_ddl('CONSTRAINT', cons.constraint_name) AS DDL from dual) AS DDL\n" + 
+			String query = "SELECT cons.constraint_type, cons.CONSTRAINT_NAME, (select dbms_metadata.get_ddl('CONSTRAINT', cons.constraint_name) AS DDL from dual) AS DDL\n" + 
 					"FROM all_constraints cons\n" + 
 					"WHERE owner = '" + schema + "' and table_name = '" + nameTable + "' and constraint_name not like 'SYS%' and cons.constraint_type = 'P'";
 

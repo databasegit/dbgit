@@ -57,7 +57,7 @@ public class CmdRm implements IDBGitCommand {
 		ConsoleWriter.detailsPrintLn("Checking files");
 
 		GitMetaDataManager gmdm = GitMetaDataManager.getInctance();		
-		IMapMetaObject dbObjs = gmdm.loadFileMetaData();
+		IMapMetaObject dbObjs = gmdm.loadFileMetaDataForce();
 		IMapMetaObject deleteObjs = new TreeMapMetaObject();
 		
 		Integer countDelete = 0;

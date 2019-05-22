@@ -136,7 +136,7 @@ public class DBAdapterPostgres extends DBAdapter {
 		try {
 			Connection connect = getConnection();
 			String query = 
-					"select s.*, rol.rolname as owner " + 
+					"select s.sequence_name, rol.rolname as owner " + 
 					"from pg_class cls " + 
 					"  join pg_roles rol on rol.oid = cls.relowner  " + 
 					"  join pg_namespace nsp on nsp.oid = cls.relnamespace " + 
@@ -171,7 +171,7 @@ public class DBAdapterPostgres extends DBAdapter {
 		try {
 			Connection connect = getConnection();
 			String query = 
-					"select s.*, rol.rolname as owner " + 
+					"select s.sequence_name, rol.rolname as owner " + 
 					"from pg_class cls " + 
 					"  join pg_roles rol on rol.oid = cls.relowner  " + 
 					"  join pg_namespace nsp on nsp.oid = cls.relnamespace " + 

@@ -160,9 +160,7 @@ public class GitMetaDataManager {
 		for (DBSchema sch : schemes.values()) {
 			for (DBTable tbl : adapter.getTables(sch.getName()).values()) {
 				MetaTable tblMeta = new MetaTable(tbl);
-				
 				if (ignore.matchOne(tblMeta.getName())) continue ;
-				
 				if ( tblMeta.loadFromDB(tbl) ) {
 					dbObjs.put(tblMeta);
 					tbls.put(tblMeta.getName(), tblMeta);
@@ -218,11 +216,19 @@ public class GitMetaDataManager {
 		return dbObjs;
 	}
 	
+	public IMapMetaObject loadFileMetaData() throws ExceptionDBGit {
+		return loadFileMetaData(false);
+	}
+	
+	public IMapMetaObject loadFileMetaDataForce() throws ExceptionDBGit {
+		return loadFileMetaData(true);
+	}
+	
 	/**
 	 * Load meta data from git files
 	 * @return
 	 */
-	public IMapMetaObject loadFileMetaData() throws ExceptionDBGit {
+	public IMapMetaObject loadFileMetaData(boolean force) throws ExceptionDBGit {
 		try {
 			IMapMetaObject objs = new TreeMapMetaObject();
 			DBGit dbGit = DBGit.getInstance();  
@@ -245,10 +251,15 @@ public class GitMetaDataManager {
 	    			isSuccessful = false;
 	    			ConsoleWriter.detailsPrintlnRed("FAIL");
 	    			ConsoleWriter.detailsPrintLn(e.getMessage());
+	    			
+	    			IMetaObject obj = MetaObjectFactory.createMetaObject(filename);
+	    			
+		    		if (obj != null) 
+		    			objs.put(obj);
 	    		}	    		
 	    	}
 			
-			if (!isSuccessful) {
+			if (!isSuccessful && !force) {
 				throw new ExceptionDBGit("There are invalid files");
 			}
 			

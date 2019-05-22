@@ -123,19 +123,26 @@ public class MetaTable extends MetaBase {
 		if (getTable() != null)
 			ch.addData(this.getTable().getHash());
 		
+		if (fields == null)
+			return EMPTY_HASH;
+		
 		for (String item : fields.keySet()) {
 			ch.addData(item);
 			ch.addData(fields.get(item).getHash());
 		}
 		
-		for (String item : indexes.keySet()) {
-			ch.addData(item);
-			ch.addData(indexes.get(item).getHash());
+		if (indexes != null) {
+			for (String item : indexes.keySet()) {
+				ch.addData(item);
+				ch.addData(indexes.get(item).getHash());
+			}
 		}
 		
-		for (String item : constraints.keySet()) {
-			ch.addData(item);
-			ch.addData(constraints.get(item).getHash());
+		if (constraints != null) {
+			for (String item : constraints.keySet()) {
+				ch.addData(item);
+				ch.addData(constraints.get(item).getHash());
+			}
 		}
 
 		return ch.calcHashStr();		

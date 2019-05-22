@@ -108,48 +108,44 @@ public class DBGitPath {
 	}
 	
 	public static void deleteOldLogs() throws Exception {
-		int logRotate = DBGitConfig.getInstance().getInteger("core", "LOG_ROTATE", 31);
-		int scriptRotate = DBGitConfig.getInstance().getInteger("core", "SCRIPT_ROTATE", 31);
+		int logRotate = 31;
+		int scriptRotate = 31; 
 		
-		SimpleDateFormat format = new SimpleDateFormat("yyyyMMdd");
-		
-		Calendar logCalendar = new GregorianCalendar();
-		Calendar scriptCalendar = new GregorianCalendar();
-		
-		logCalendar.add(Calendar.DATE, -1*logRotate);
-		scriptCalendar.add(Calendar.DATE, -1*scriptRotate);
-		
-		String logsLastDate = format.format(logCalendar.getTime());
-		String scriptLastDate = format.format(scriptCalendar.getTime());
-		
-		File logDir = new File(getLogsPath());
-		File logUserDir = new File(getLogsUserPath());
-		File scriptDir = new File(getScriptsPath());
-		
-		if (logDir.exists()) {
-			for (File entry : logDir.listFiles()) {
-				if (entry.getName().compareTo("log-" + logsLastDate + ".log") < 0) {
-					entry.delete();
+		if (isRepositoryExists()) {
+			logRotate = DBGitConfig.getInstance().getInteger("core", "LOG_ROTATE", 31);
+			scriptRotate = DBGitConfig.getInstance().getInteger("core", "SCRIPT_ROTATE", 31);
+			
+			File logDir = new File(getLogsPath());
+			File scriptDir = new File(getScriptsPath());
+			
+			if (logDir.exists()) {
+				for (File entry : logDir.listFiles()) {
+					if (entry.getName().compareTo("log-" + getLogsLastDate(logRotate) + ".log") < 0) {
+						entry.delete();
+					}
 				}
 			}
+
+			if (scriptDir.exists()) {
+				for (File entry : scriptDir.listFiles()) {
+					if (entry.getName().compareTo("script-" + getLogsLastDate(scriptRotate) + "000000.sql") < 0) {
+						entry.delete();
+					}
+				}
+			}
+
 		}
+				
+		File logUserDir = new File(getLogsUserPath());
 
 		if (logUserDir.exists()) {
 			for (File entry : logUserDir.listFiles()) {
-				if (entry.getName().compareTo("log-" + logsLastDate + ".log") < 0) {
+				if (entry.getName().compareTo("log-" + getLogsLastDate(logRotate) + ".log") < 0) {
 					entry.delete();
 				}
 			}
 		}
 
-		if (scriptDir.exists()) {
-			for (File entry : scriptDir.listFiles()) {
-				if (entry.getName().compareTo("script-" + scriptLastDate + "000000.sql") < 0) {
-					entry.delete();
-				}
-			}
-		}
-		
 	}
 	
 	public static boolean createDefaultDbgitConfig(String path) throws ExceptionDBGit {
@@ -226,4 +222,9 @@ public class DBGitPath {
 	    folder.delete();
 	}
 	
+	private static String getLogsLastDate(int logRotate) {
+		Calendar logCalendar = new GregorianCalendar();
+		logCalendar.add(Calendar.DATE, -1*logRotate);
+		return new SimpleDateFormat("yyyyMMdd").format(logCalendar.getTime());
+	}
 }

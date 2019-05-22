@@ -12,7 +12,9 @@ public class DBGitConfig {
 	private Ini ini;
 
 	private DBGitConfig() throws Exception {
-		ini = new Ini(new File(DBGitPath.getFullPath() + "/" + DBGitPath.DBGIT_CONFIG));
+		File file = new File(DBGitPath.getFullPath() + "/" + DBGitPath.DBGIT_CONFIG);
+		if (file.exists())
+			ini = new Ini(new File(DBGitPath.getFullPath() + "/" + DBGitPath.DBGIT_CONFIG));
 	}
 	
 	public static DBGitConfig getInstance() throws Exception {
@@ -23,31 +25,38 @@ public class DBGitConfig {
 	}
 	
 	public String getString(String section, String option, String defaultValue) {
-		String result = ini.get(section, option);
-		return result == null ? defaultValue : result;
+		try {
+			String result = ini.get(section, option);
+			return result == null ? defaultValue : result;
+		} catch (Exception e) {
+			return defaultValue;
+		}
 	}
 	
 	public Boolean getBoolean(String section, String option, Boolean defaultValue) {
-		String result = ini.get(section, option);
-		
-		return result == null ? defaultValue : Boolean.valueOf(result);
+		try {
+			String result = ini.get(section, option);
+			
+			return result == null ? defaultValue : Boolean.valueOf(result);
+		} catch (Exception e) {
+			return defaultValue;
+		}
 	}
 	
-	public Integer getInteger(String section, String option, Integer defaultValue) {
-		String result = ini.get(section, option);
-		
+	public Integer getInteger(String section, String option, Integer defaultValue) {		
 		try {
+			String result = ini.get(section, option);
 			return result == null ? defaultValue : Integer.valueOf(result);
-		} catch (NumberFormatException e) {
+		} catch (Exception e) {
 			return defaultValue;
 		}
 	}
 	
 	public Double getDouble(String section, String option, Double defaultValue) {
-		String result = ini.get(section, option);
 		try {
+			String result = ini.get(section, option);
 			return result == null ? defaultValue : Double.valueOf(result);
-		} catch (NumberFormatException e) {
+		} catch (Exception e) {
 			return defaultValue;
 		}
 	}

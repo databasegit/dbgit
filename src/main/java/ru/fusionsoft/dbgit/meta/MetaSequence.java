@@ -44,7 +44,7 @@ public class MetaSequence extends MetaBase {
 	public String getHash() {
 		CalcHash ch = new CalcHash();
 		ch.addData(this.getName());
-		ch.addData(this.getSequence().getHash());
+		ch.addData(getSequence() != null ? this.getSequence().getHash() : EMPTY_HASH);
 		return ch.calcHashStr();
 	}
 	

@@ -1,6 +1,7 @@
 package ru.fusionsoft.dbgit.dbobjects;
 
 import ru.fusionsoft.dbgit.utils.CalcHash;
+import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 import ru.fusionsoft.dbgit.utils.StringProperties;
 
 /**
@@ -17,9 +18,9 @@ public class DBSQLObject extends DBSchemaObject {
 		CalcHash ch = new CalcHash();
 		ch.addData(getSchema());
 		ch.addData(getName());
-		ch.addData(getSql());
+		ch.addData(getSql().trim().replace("\n", ""));
 		ch.addData(getOwner());
-		
+				
 		return ch.calcHashStr();
 	}
 
