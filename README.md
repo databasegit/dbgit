@@ -28,6 +28,10 @@ You need to have `Oracle JDBC driver` in your local Maven repository to build `d
 
 `dbgit-install-windows.bat`
 
+- You can install `dbgit` in Linux with `dbgit-install-linux.sh` file as follows:
+
+`sudo sh dbgit-install-linux.sh`
+
 This command will check if you have `JRE` and `Git` on your computer. If you don't, it will download and install them. 
 After that the installer will check your `PATH` system variable. 
 If the installer will find `dbgit` in `PATH` it will copy files to the path it found. 
@@ -37,7 +41,6 @@ Otherwise, the installer will set current directory to the `PATH` system variabl
 
 After checking and installing (if needed) `JRE` and `Git` the installer will copy `dbgit` files to the folder you set.
 
-- Linux installer in progress...
 
 ## Quick start
 First thing you need to do is to create git repository and bind `dbgit` with database. To create repository you can use one of next options:
@@ -57,6 +60,16 @@ To bind your database with `dbgit` you need to run `dbgit link` with command lik
 `dbgit link jdbc:oracle:thin:@192.168.1.1:1521:SCHEME user=username password=pass`
 
 `dbgit` is ready to use!
+
+Make sure your Oracle user have grants to next tables:
+
+- DBA_ROLE_PRIVS
+- DBA_OBJECTS
+- DBA_SEQUENCES
+- DBA_TABLES
+- DBA_TAB_COLS
+- DBA_USERS
+- dba_segments
 
 ## Commands
 Many of `dbgit` commands do the same work as the git commands with same names, but options are sometime specific to dbgit.
@@ -81,9 +94,11 @@ will create synonym for database schemes, so you can use simple names if your db
 
 - __restore__
 
-Restores db from the dbgit repository. Switch `-s` lets you save sql script to a file of restore without of execution. Examples:
+Restores db from the dbgit repository. This command doesn't change database by default, it creates sql file in `<repo_folder>/.dbgit/scripts`. Add `-r` switch to make command change database. Switch `-s` lets you save sql script to a specific without of execution. Examples:
 
 `dbgit restore`
+
+`dbgit restore -r`
 
 `dbgit restore -s c:\temp\script.sql`
 
@@ -160,6 +175,10 @@ Join two or more development histories together
 
 Fetch from and integrate with another repository or a local branch
 
+- __fetch__
+
+Download objects and refs from another repository
+
 - __push__
 
 Update remote refs along with associated objects. Runs without parameters
@@ -179,6 +198,10 @@ You can configure follow options:
 `LIMIT_FETCH` - if true `dbgit` will save table data if table has less then specific number of rows
 
 `MAX_ROW_COUNT_FETCH` - specifies max number of rows for table to save table data, if `LIMIT_FETCH` is true
+
+`LOG_ROTATE` - number of days of log rotation
+
+`SCRIPT_ROTATE` - number of days of sql files rotation
 
 
 ## Features
