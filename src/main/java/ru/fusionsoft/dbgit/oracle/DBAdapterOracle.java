@@ -278,7 +278,7 @@ public class DBAdapterOracle extends DBAdapter {
 			
 			String query = 
 					"SELECT ROWNUM AS NUM, TC.* FROM DBA_TAB_COLS TC \n" + 
-					"WHERE table_name = '" + nameTable + "' AND OWNER = '" + schema + "'";
+					"WHERE table_name = '" + nameTable + "' AND OWNER = '" + schema + "' ORDER BY column_id";
 			
 			ResultSet rs = stmt.executeQuery(query);
 			while(rs.next()){				

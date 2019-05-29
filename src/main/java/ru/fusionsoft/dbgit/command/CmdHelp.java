@@ -59,6 +59,7 @@ public class CmdHelp implements IDBGitCommand {
 				"collaborate\n" +
 				"    pull       fetch from and integrate with another repository or a local branch\n" +
 				"    push       update remote refs along with associated objects\n" +
+				"    fetch      download objects and refs from another repository\n" +
 				"\n" +
 				"See 'dbgit <command> -h' to read about a specific command");
 	}
