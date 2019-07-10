@@ -4,6 +4,7 @@ import java.io.OutputStream;
 import java.sql.Connection;
 import java.util.Map;
 
+import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.SchemaSynonym;
 import ru.fusionsoft.dbgit.dbobjects.DBConstraint;
 import ru.fusionsoft.dbgit.dbobjects.DBFunction;
@@ -49,6 +50,10 @@ public class DBAdapterProxy implements IDBAdapter {
 
 	public IFactoryDBAdapterRestoteMetaData getFactoryRestore() {
 		return adapter.getFactoryRestore();
+	}
+
+	public IFactoryDBBackupAdapter getBackupFactory() {
+		return adapter.getBackupAdapterFactory();
 	}
 
 	public void setDumpSqlCommand(OutputStream stream, Boolean isExecSql) {
@@ -200,5 +205,31 @@ public class DBAdapterProxy implements IDBAdapter {
 	@Override
 	public boolean userHasRightsToGetDdlOfOtherUsers() {
 		return false;
+	}
+
+	@Override
+	public IFactoryDBBackupAdapter getBackupAdapterFactory() {
+		return adapter.getBackupAdapterFactory();
+	}
+
+	@Override
+	public String getDbType() {
+		return adapter.getDbType();
+	}
+	
+	@Override
+	public String getDbVersion() {
+		return adapter.getDbVersion();
+	}
+
+	@Override
+	public void createSchemaIfNeed(String schemaName) throws ExceptionDBGit {
+		adapter.createSchemaIfNeed(schemaName);
+		
+	}
+
+	@Override
+	public void createRoleIfNeed(String roleName) throws ExceptionDBGit {
+		adapter.createRoleIfNeed(roleName);
 	}
 }

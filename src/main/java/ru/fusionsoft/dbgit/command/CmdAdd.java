@@ -1,5 +1,7 @@
 package ru.fusionsoft.dbgit.command;
 
+import java.sql.Timestamp;
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 
@@ -48,6 +50,9 @@ public class CmdAdd implements IDBGitCommand {
 			throw new ExceptionDBGit("Bad command. Not found object to add!");
 		}
 		
+		if (!DBGitIndex.getInctance().isCorrectVersion())
+			throw new ExceptionDBGit("Versions of Dbgit (" + DBGitIndex.VERSION + ") and repository(" + DBGitIndex.getInctance().getRepoVersion() + ") are different!");
+		
 		ConsoleWriter.setDetailedLog(cmdLine.hasOption("v"));
 						
 		String nameObj = cmdLine.getArgs()[0];
@@ -59,9 +64,9 @@ public class CmdAdd implements IDBGitCommand {
 		IMapMetaObject dbObjs = gmdm.loadDBMetaData();	
 		
 		Integer countSave = 0;
-		
 		for (IMetaObject obj : dbObjs.values()) {
 			if (maskAdd.match(obj.getName())) {			
+				Timestamp timestampBefore = new Timestamp(System.currentTimeMillis());
 				ConsoleWriter.detailsPrintLn("Processing object " + obj.getName());
 				ConsoleWriter.detailsPrint("Saving to file...", 2);
 				obj.saveToFile();
@@ -71,9 +76,12 @@ public class CmdAdd implements IDBGitCommand {
 				countSave += obj.addToGit();				
 				ConsoleWriter.detailsPrintlnGreen("OK");
 				
-				index.addItem(obj);
+    			Timestamp timestampAfter = new Timestamp(System.currentTimeMillis());
+    			Long diff = timestampAfter.getTime() - timestampBefore.getTime();
+				ConsoleWriter.detailsPrint("Time..." + diff + " ms", 2);
+				ConsoleWriter.detailsPrintLn("");
 				
-				
+				index.addItem(obj);				
 			}
 		}
 

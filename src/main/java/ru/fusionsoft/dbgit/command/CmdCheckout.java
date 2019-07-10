@@ -6,6 +6,7 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
 import ru.fusionsoft.dbgit.core.DBGit;
+import ru.fusionsoft.dbgit.core.DBGitIndex;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
@@ -44,6 +45,9 @@ public class CmdCheckout implements IDBGitCommand {
 		
 		String[] args = cmdLine.getArgs();
 		ConsoleWriter.setDetailedLog(cmdLine.hasOption("v"));
+		
+		if (!DBGitIndex.getInctance().isCorrectVersion())
+			throw new ExceptionDBGit("Versions of Dbgit (" + DBGitIndex.VERSION + ") and repository(" + DBGitIndex.getInctance().getRepoVersion() + ") are different!");
 		
 		if (args == null || args.length == 0) {
 			throw new ExceptionDBGit("Bad command. Please specify branch. ");		

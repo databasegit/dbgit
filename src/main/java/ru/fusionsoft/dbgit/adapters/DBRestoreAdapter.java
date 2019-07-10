@@ -3,6 +3,7 @@ package ru.fusionsoft.dbgit.adapters;
 import java.sql.Connection;
 
 import ru.fusionsoft.dbgit.core.SchemaSynonym;
+import ru.fusionsoft.dbgit.meta.IMetaObject;
 
 /**
  * <div class="en">Base class of adapters of restoration of a DB. Contains general solutions independent of a particular database</div>
@@ -20,6 +21,11 @@ public abstract class DBRestoreAdapter implements IDBAdapterRestoreMetaData {
 	
 	public IDBAdapter getAdapter() {
 		return adapter;
+	}
+	
+	public String getSourceDbType(IMetaObject obj) {		
+		
+		return obj.getDbType();
 	}
 	
 	public String getPhisicalSchema(String schema) {

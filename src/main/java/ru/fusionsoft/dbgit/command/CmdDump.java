@@ -1,5 +1,6 @@
 package ru.fusionsoft.dbgit.command;
 
+import java.sql.Timestamp;
 import java.util.Map;
 
 import org.apache.commons.cli.CommandLine;
@@ -8,6 +9,7 @@ import org.apache.commons.cli.Options;
 import ru.fusionsoft.dbgit.core.DBGit;
 import ru.fusionsoft.dbgit.core.DBGitIndex;
 import ru.fusionsoft.dbgit.core.DBGitPath;
+import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.GitMetaDataManager;
 import ru.fusionsoft.dbgit.meta.IMapMetaObject;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
@@ -49,6 +51,9 @@ public class CmdDump implements IDBGitCommand {
 				
 		DBGitIndex index = DBGitIndex.getInctance();
 		
+		if (!DBGitIndex.getInctance().isCorrectVersion())
+			throw new ExceptionDBGit("Versions of Dbgit (" + DBGitIndex.VERSION + ") and repository(" + DBGitIndex.getInctance().getRepoVersion() + ") are different!");
+		
 		ConsoleWriter.detailsPrintLn("Checking files...");
 
 		IMapMetaObject fileObjs = gmdm.loadFileMetaDataForce();
@@ -56,6 +61,7 @@ public class CmdDump implements IDBGitCommand {
 		ConsoleWriter.detailsPrintLn("Dumping...");
 		
 		for (IMetaObject obj : fileObjs.values()) {
+			Timestamp timestampBefore = new Timestamp(System.currentTimeMillis());
 			ConsoleWriter.detailsPrintLn("Processing " + obj.getName());
 			String hash = obj.getHash();
 			ConsoleWriter.detailsPrint("hash: " + hash + "\n", 2);
@@ -87,6 +93,10 @@ public class CmdDump implements IDBGitCommand {
 			} else {
 				ConsoleWriter.detailsPrint("Hashes match, no need to dump object...\n", 2);
 			}
+			Timestamp timestampAfter = new Timestamp(System.currentTimeMillis());
+			Long diff = timestampAfter.getTime() - timestampBefore.getTime();
+			ConsoleWriter.detailsPrint("Time..." + diff + " ms", 2);
+			ConsoleWriter.detailsPrintLn("");
 		}
 		
 		index.saveDBIndex();

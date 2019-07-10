@@ -12,6 +12,7 @@ import ru.fusionsoft.dbgit.adapters.IDBAdapterRestoreMetaData;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBAdapterRestoteMetaData;
 import ru.fusionsoft.dbgit.meta.DBGitMetaType;
 import ru.fusionsoft.dbgit.meta.IDBGitMetaType;
+import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
 public class FactoryDBAdapterRestoreOracle implements IFactoryDBAdapterRestoteMetaData {
 	
@@ -39,7 +40,10 @@ public class FactoryDBAdapterRestoreOracle implements IFactoryDBAdapterRestoteMe
 	@Override
 	public IDBAdapterRestoreMetaData getAdapterRestore(IDBGitMetaType tp, IDBAdapter adapter) {		
 		if (!restoreAdapters.containsKey(tp.getValue())) {
-			return new DBRestoreMetaNotSupport();
+			//return new DBRestoreMetaNotSupport();
+			
+			ConsoleWriter.println("Cannot restore " + tp.getValue() + "!");
+			return null;
 		}
 		
 		IDBAdapterRestoreMetaData re = restoreAdapters.get(tp.getValue());

@@ -11,7 +11,8 @@ import java.io.OutputStream;
 public class MetaBlobData extends MetaBase {
 
 	public MetaBlobData(String name) {
-		
+		setDbType();
+		setDbVersion();
 	}
 	
 	@Override

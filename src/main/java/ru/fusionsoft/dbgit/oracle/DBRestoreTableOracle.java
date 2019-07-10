@@ -3,6 +3,7 @@ package ru.fusionsoft.dbgit.oracle;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import com.google.common.collect.MapDifference;
 import com.google.common.collect.Maps;
@@ -57,11 +58,11 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 				
 				ConsoleWriter.detailsPrint("Restoring table " + tblName + "\n", 1);
 
-				Map<String, DBTable> tables = adapter.getTables(schema);
+				Map<String, DBTable> tables = adapter.getTables(schema.toUpperCase());
 				boolean exist = false;
 				if(!(tables.isEmpty() || tables == null)) {
 					for(DBTable table:tables.values()) {
-						if(restoreTable.getTable().getName().equals(table.getName())){
+						if(restoreTable.getTable().getName().equalsIgnoreCase(table.getName())){
 							exist = true;
 																									
 						}						
@@ -69,11 +70,22 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 				}
 				if(!exist){			
 					ConsoleWriter.detailsPrint("Creating table...", 2);
-					st.execute(restoreTable.getTable().getOptions().get("ddl").getData());	
+					String ddl = "";
+					if (restoreTable.getTable().getOptions().get("ddl") != null)
+						ddl = restoreTable.getTable().getOptions().get("ddl").getData();
+					else {
+						DBTable table = restoreTable.getTable();
+						
+						ddl = "create table " + table.getSchema() + "." + table.getName() +
+								" (" + restoreTable.getFields().values().stream()
+									.map(field -> field.getName() + " " + field.getTypeSQL())
+									.collect(Collectors.joining(", ")) + ")";
+					}
+					st.execute(ddl);	
 					ConsoleWriter.detailsPrintlnGreen("OK");
-				}
+				} else {
 				//restore tabl fields
-							Map<String, DBTableField> currentFileds = adapter.getTableFields(restoreTable.getTable().getSchema(), restoreTable.getTable().getName());
+							Map<String, DBTableField> currentFileds = adapter.getTableFields(restoreTable.getTable().getSchema(), restoreTable.getTable().getName().toLowerCase());
 							MapDifference<String, DBTableField> diffTableFields = Maps.difference(restoreTable.getFields(),currentFileds);
 							
 							if(!diffTableFields.entriesOnlyOnLeft().isEmpty()){
@@ -106,7 +118,7 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 								}		
 								ConsoleWriter.detailsPrintlnGreen("OK");
 							}						
-						
+				}
 				ResultSet rs = st.executeQuery("SELECT COUNT(cons.constraint_name) constraintscount \n" + 
 						"FROM all_constraints cons \n" + 
 						"WHERE owner = '" + schema + "' and table_name = '" + tblName+ "' and constraint_name not like 'SYS%' and cons.constraint_type = 'P'");
@@ -119,7 +131,11 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 				for(DBConstraint tableconst: restoreTable.getConstraints().values()) {
 					if(tableconst.getConstraintType().equals("p")) {
 						ConsoleWriter.detailsPrint("Adding PK...", 2);
-						st.execute("alter table "+ tblName +" add constraint PK_"+ tableconst.getName() + " primary key ("+tableconst.getName() + ")");
+						
+						if (tableconst.getConstraintDef().toLowerCase().startsWith("alter table")) 
+							st.execute(tableconst.getConstraintDef());
+						else if (tableconst.getConstraintDef().toLowerCase().startsWith("primary key"))
+							st.execute("alter table "+ tblName +" add constraint PK_"+ tableconst.getName() + tableconst.getConstraintDef());
 						ConsoleWriter.detailsPrintlnGreen("OK");
 						break;
 					}
@@ -282,7 +298,7 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 				MetaTable restoreTable = (MetaTable)obj;
 				String schema = getPhisicalSchema(restoreTable.getTable().getSchema());
 				for(DBConstraint constrs :restoreTable.getConstraints().values()) {
-					if(!constrs.getConstraintType().equals("P")) {				
+					if(!constrs.getConstraintType().equalsIgnoreCase("P")) {				
 						//String tblName = schema+"."+restoreTable.getTable().getName();
 						
 						st.execute(constrs.getConstraintDef().toString());

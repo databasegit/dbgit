@@ -1,11 +1,17 @@
 package ru.fusionsoft.dbgit.dbobjects;
 
 import ru.fusionsoft.dbgit.utils.CalcHash;
+import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
 public class DBTableField implements IDBObject, Comparable<DBTableField> {
 	private String name;
 	private String typeSQL;
 	private String typeMapping;
+	private String typeUniversal;
+	private String length;
+	private int scale;
+	private int precision;
+	private boolean fixed;
 	
 	private Boolean isPrimaryKey = false;
 
@@ -21,12 +27,50 @@ public class DBTableField implements IDBObject, Comparable<DBTableField> {
 		CalcHash ch = new CalcHash();
 		ch.addData(this.getName());
 		ch.addData(this.getTypeSQL());
-		if (this.getTypeMapping() != null) {
-			ch.addData(this.getTypeMapping());
-		}
-		ch.addData(isPrimaryKey.toString());
+		
+		ch.addData(isPrimaryKey.toString());		
 
 		return ch.calcHashStr();
+	}
+	
+	public void setTypeUniversal(String typeUniversal) {
+		this.typeUniversal = typeUniversal;
+	}
+	
+	public String getTypeUniversal() {
+		return typeUniversal;
+	}
+	
+	public void setLength(String length) {
+		this.length = length;
+	}
+	
+	public String getLength() {			
+		return length;
+	}
+
+	public void setScale(int scale) {
+		this.scale = scale;
+	}
+	
+	public int getScale() {
+		return scale;
+	}
+
+	public void setPrecision(int precision) {
+		this.precision = precision;
+	}
+	
+	public int getPrecision() {
+		return precision;
+	}
+
+	public void setFixed(boolean fixed) {
+		this.fixed = fixed;
+	}
+	
+	public boolean getFixed() {
+		return fixed;
 	}
 
 	public String getName() {
@@ -45,8 +89,7 @@ public class DBTableField implements IDBObject, Comparable<DBTableField> {
 		this.typeSQL = typeSQL;
 	}
 
-
-	public String getTypeMapping() {
+	public String getTypeMappingName() {
 		return typeMapping;
 	}
 

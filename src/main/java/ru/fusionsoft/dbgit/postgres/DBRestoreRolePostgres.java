@@ -37,8 +37,7 @@ public class DBRestoreRolePostgres extends DBRestoreAdapter{
 								}
 								else {
 									st.execute("ALTER ROLE "+ role.getName() +" NOBYPASSRLS");
-								}
-								
+								}								
 							}
 							
 							String rolcanlogin = restoreRole.getObjectOption().getOptions().getChildren().get("rolcanlogin").getData();	

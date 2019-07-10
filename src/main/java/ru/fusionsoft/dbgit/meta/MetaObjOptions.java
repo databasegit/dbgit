@@ -22,7 +22,10 @@ public abstract class MetaObjOptions extends MetaBase {
 
 	private DBOptionsObject objectOption = null;
 	
-	public MetaObjOptions() {}
+	public MetaObjOptions() {
+		setDbType();
+		setDbVersion();
+	}
 	
 	public MetaObjOptions(DBOptionsObject objectOption) {
 		this();

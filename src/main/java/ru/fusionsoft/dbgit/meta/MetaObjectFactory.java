@@ -2,8 +2,10 @@ package ru.fusionsoft.dbgit.meta;
 
 import java.lang.reflect.Constructor;
 
+import ru.fusionsoft.dbgit.adapters.AdapterFactory;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
+import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
 /**
  * Factory meta class by type 
@@ -32,6 +34,10 @@ public class MetaObjectFactory  {
 			*/
 			Constructor<?> cons = c.getConstructor();
 			IMetaObject obj = (IMetaObject)cons.newInstance();
+
+			obj.setDbType();
+			obj.setDbVersion();
+			
 			return obj;
 		} catch (Exception e) {
 			throw new ExceptionDBGit(e);

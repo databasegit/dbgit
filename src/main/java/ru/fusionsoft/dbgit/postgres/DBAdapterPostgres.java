@@ -12,10 +12,13 @@ import java.util.Map;
 import ru.fusionsoft.dbgit.adapters.AdapterFactory;
 import ru.fusionsoft.dbgit.adapters.DBAdapter;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBAdapterRestoteMetaData;
+import ru.fusionsoft.dbgit.adapters.IFactoryDBBackupAdapter;
 import ru.fusionsoft.dbgit.core.DBGitConfig;
+import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitObjectNotFound;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
 import ru.fusionsoft.dbgit.data_table.MapFileData;
+import ru.fusionsoft.dbgit.data_table.DateData;
 import ru.fusionsoft.dbgit.data_table.FactoryCellData;
 import ru.fusionsoft.dbgit.data_table.LongData;
 import ru.fusionsoft.dbgit.data_table.StringData;
@@ -37,6 +40,8 @@ import ru.fusionsoft.dbgit.dbobjects.DBUser;
 import ru.fusionsoft.dbgit.dbobjects.DBView;
 import ru.fusionsoft.dbgit.meta.IMapMetaObject;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
+import ru.fusionsoft.dbgit.statement.StatementLogging;
+import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 import ru.fusionsoft.dbgit.utils.LoggerUtil;
 import org.slf4j.Logger;
 
@@ -50,11 +55,13 @@ public class DBAdapterPostgres extends DBAdapter {
 	private FactoryDBAdapterRestorePostgres restoreFactory = new FactoryDBAdapterRestorePostgres();
 	
 	public void registryMappingTypes() {
-		FactoryCellData.regMappingTypes(DEFAULT_MAPPING_TYPE, StringData.class);
-		FactoryCellData.regMappingTypes("integer", LongData.class);
-		FactoryCellData.regMappingTypes("bigint", LongData.class);
-		FactoryCellData.regMappingTypes("bytea", MapFileData.class);
-		//FactoryCellData.regMappingTypes("bytea", LargeBlobPg.class);
+		FactoryCellData.regMappingTypes(DEFAULT_MAPPING_TYPE, StringData.class);		
+		FactoryCellData.regMappingTypes("string", StringData.class);
+		FactoryCellData.regMappingTypes("number", LongData.class);
+		FactoryCellData.regMappingTypes("binary", MapFileData.class);
+		FactoryCellData.regMappingTypes("date", DateData.class);
+		FactoryCellData.regMappingTypes("native", StringData.class);
+
 	}
 	
 	@Override
@@ -136,7 +143,7 @@ public class DBAdapterPostgres extends DBAdapter {
 		try {
 			Connection connect = getConnection();
 			String query = 
-					"select s.sequence_name, rol.rolname as owner " + 
+					"select s.sequence_name, rol.rolname as owner, s.start_value, s.minimum_value, s.maximum_value, s.increment, s.cycle_option " + 
 					"from pg_class cls " + 
 					"  join pg_roles rol on rol.oid = cls.relowner  " + 
 					"  join pg_namespace nsp on nsp.oid = cls.relnamespace " + 
@@ -171,7 +178,7 @@ public class DBAdapterPostgres extends DBAdapter {
 		try {
 			Connection connect = getConnection();
 			String query = 
-					"select s.sequence_name, rol.rolname as owner " + 
+					"select s.sequence_name, rol.rolname as owner, s.start_value, s.minimum_value, s.maximum_value, s.increment, s.cycle_option " + 
 					"from pg_class cls " + 
 					"  join pg_roles rol on rol.oid = cls.relowner  " + 
 					"  join pg_namespace nsp on nsp.oid = cls.relnamespace " + 
@@ -185,14 +192,15 @@ public class DBAdapterPostgres extends DBAdapter {
 			stmt.setString("name", name);
 						
 			ResultSet rs = stmt.executeQuery();
-			rs.next();
-			String nameSeq = rs.getString("sequence_name");
-			DBSequence sequence = new DBSequence();
-			sequence.setName(nameSeq);
-			sequence.setSchema(schema);
-			sequence.setValue(0L);
-			rowToProperties(rs, sequence.getOptions());
-				
+			DBSequence sequence = null;
+			while (rs.next()) {
+				String nameSeq = rs.getString("sequence_name");
+				sequence = new DBSequence();
+				sequence.setName(nameSeq);
+				sequence.setSchema(schema);
+				sequence.setValue(0L);
+				rowToProperties(rs, sequence.getOptions());
+			}
 			stmt.close();
 			return sequence;
 		}catch(Exception e) {
@@ -206,7 +214,7 @@ public class DBAdapterPostgres extends DBAdapter {
 		Map<String, DBTable> listTable = new HashMap<String, DBTable>();
 		try {
 			String query = 
-					"select tablename,tableowner,tablespace,hasindexes,hasrules,hastriggers "
+					"select tablename as table_name,tableowner as owner,tablespace,hasindexes,hasrules,hastriggers "
 					+ "from pg_tables where schemaname not in ('information_schema', 'pg_catalog') "
 					+ "and schemaname not like 'pg_toast%' and schemaname = :schema ";
 			Connection connect = getConnection();
@@ -216,7 +224,7 @@ public class DBAdapterPostgres extends DBAdapter {
 			
 			ResultSet rs = stmt.executeQuery();
 			while(rs.next()){
-				String nameTable = rs.getString("tablename");
+				String nameTable = rs.getString("table_name");
 				DBTable table = new DBTable(nameTable);
 				table.setSchema(schema);
 				rowToProperties(rs, table.getOptions());
@@ -234,19 +242,22 @@ public class DBAdapterPostgres extends DBAdapter {
 	public DBTable getTable(String schema, String name) {
 		try {
 			String query = 
-					"select tablename,tableowner,tablespace,hasindexes,hasrules,hastriggers from pg_tables where schemaname not in ('information_schema', 'pg_catalog') "
+					"select tablename as table_name,tableowner as owner,tablespace,hasindexes,hasrules,hastriggers from pg_tables where schemaname not in ('information_schema', 'pg_catalog') "
 					+ "and schemaname not like 'pg_toast%' and schemaname = \'"+schema+"\' and tablename = \'"+name+"\' ";
 			Connection connect = getConnection();
 			
 			Statement stmt = connect.createStatement();
 			
 			ResultSet rs = stmt.executeQuery(query);
-			rs.next();
-			String nameTable = rs.getString("tablename");
-			DBTable table = new DBTable(nameTable);
-			table.setSchema(schema);
-			rowToProperties(rs, table.getOptions());
 
+			DBTable table = null;
+			
+			while (rs.next()) {
+				String nameTable = rs.getString("table_name");
+				table = new DBTable(nameTable);
+				table.setSchema(schema);
+				rowToProperties(rs, table.getOptions());
+			}
 			stmt.close();
 			return table;
 		
@@ -263,7 +274,17 @@ public class DBAdapterPostgres extends DBAdapter {
 			Map<String, DBTableField> listField = new HashMap<String, DBTableField>();
 			
 			String query = 
-					"SELECT distinct col.column_name,col.is_nullable,col.data_type,col.character_maximum_length, tc.constraint_name  FROM " + 
+					"SELECT distinct col.column_name,col.is_nullable,col.data_type,col.character_maximum_length, tc.constraint_name, " +
+					"case\r\n" + 
+					"	when lower(data_type) in ('integer', 'numeric', 'smallint', 'double precision', 'bigint') then 'number' \r\n" + 
+					"	when lower(data_type) in ('character varying', 'text', 'char', 'character', 'varchar') then 'string'\r\n" + 
+					"	when lower(data_type) in ('timestamp without time zone', 'timestamp with time zone', 'date') then 'date'\r\n" + 
+					"	when lower(data_type) in ('boolean') then 'boolean'\r\n" + 
+					"   when lower(data_type) in ('bytea') then 'binary'" +
+					"	else 'native'\r\n" + 
+					"	end tp, " +
+					"    case when lower(data_type) in ('char', 'character') then true else false end fixed, " +
+					"col.*  FROM " + 
 					"information_schema.columns col  " + 
 					"left join information_schema.key_column_usage kc on col.table_schema = kc.table_schema and col.table_name = kc.table_name and col.column_name=kc.column_name " + 
 					"left join information_schema.table_constraints tc on col.table_schema = kc.table_schema and col.table_name = kc.table_name and kc.constraint_name = tc.constraint_name and tc.constraint_type = 'PRIMARY KEY' " + 
@@ -284,6 +305,12 @@ public class DBAdapterPostgres extends DBAdapter {
 				}
 				field.setTypeSQL(getFieldType(rs));
 				field.setTypeMapping(getTypeMapping(rs));
+				field.setTypeUniversal(rs.getString("tp"));
+				field.setFixed(false);
+				field.setLength(rs.getString("character_maximum_length"));
+				field.setPrecision(rs.getInt("numeric_precision"));
+				field.setScale(rs.getInt("numeric_scale"));
+				field.setFixed(rs.getBoolean("fixed"));
 				listField.put(field.getName(), field);
 			}
 			stmt.close();
@@ -296,7 +323,8 @@ public class DBAdapterPostgres extends DBAdapter {
 	}
 	
 	protected String getTypeMapping(ResultSet rs) throws SQLException {
-		String tp = rs.getString("data_type");
+		//String tp = rs.getString("data_type");
+		String tp = rs.getString("tp");
 		if (FactoryCellData.contains(tp) ) 
 			return tp;
 		
@@ -369,7 +397,7 @@ public class DBAdapterPostgres extends DBAdapter {
 		Map<String, DBConstraint> constraints = new HashMap<>();
 		try {
 			String query = "select conname as constraint_name,contype as constraint_type, " + 
-					"  pg_catalog.pg_get_constraintdef(r.oid, true) as constraint_def " + 
+					"  pg_catalog.pg_get_constraintdef(r.oid, true) as ddl " + 
 					"from " + 
 					"    pg_class c " + 
 					"    join pg_namespace n on n.oid = c.relnamespace " + 
@@ -386,7 +414,7 @@ public class DBAdapterPostgres extends DBAdapter {
 			while(rs.next()){
 				DBConstraint con = new DBConstraint();
 				con.setName(rs.getString("constraint_name"));
-				con.setConstraintDef(rs.getString("constraint_def"));
+				con.setConstraintDef(rs.getString("ddl"));
 				con.setConstraintType(rs.getString("constraint_type"));
 				con.setSchema(schema);
 				rowToProperties(rs, con.getOptions());
@@ -407,7 +435,7 @@ public class DBAdapterPostgres extends DBAdapter {
 		Map<String, DBView> listView = new HashMap<String, DBView>();
 		try {
 			String query = "select nsp.nspname as object_schema, " + 
-				       "cls.relname as object_name,  rol.rolname as owner, pg_get_viewdef(cls.oid) as ddl "+
+				       "cls.relname as object_name,  rol.rolname as owner, 'create or replace view ' || nsp.nspname || '.' || cls.relname || ' as \n' || pg_get_viewdef(cls.oid) as ddl "+
 				       "from pg_class cls " + 
 				         " join pg_roles rol on rol.oid = cls.relowner" +
 				         " join pg_namespace nsp on nsp.oid = cls.relnamespace " + 
@@ -439,7 +467,7 @@ public class DBAdapterPostgres extends DBAdapter {
 		view.setSchema(schema);
 		try {
 			String query = "select nsp.nspname as object_schema, " + 
-				       "cls.relname as object_name,  rol.rolname as owner, pg_get_viewdef(cls.oid) as ddl "+
+				       "cls.relname as object_name,  rol.rolname as owner, 'create or replace view ' || nsp.nspname || '.' || cls.relname || ' as \n' || pg_get_viewdef(cls.oid) as ddl "+
 				       "from pg_class cls " + 
 				         " join pg_roles rol on rol.oid = cls.relowner" +
 				         " join pg_namespace nsp on nsp.oid = cls.relnamespace " + 
@@ -450,10 +478,10 @@ public class DBAdapterPostgres extends DBAdapter {
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
 			
-			rs.next();
-			view.setOwner(rs.getString("owner"));
-			rowToProperties(rs, view.getOptions());
-			
+			while (rs.next()) {
+				view.setOwner(rs.getString("owner"));
+				rowToProperties(rs, view.getOptions());
+			}
 			stmt.close();
 			return view;
 			
@@ -590,14 +618,17 @@ public class DBAdapterPostgres extends DBAdapter {
 			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
-			rs.next();
-			DBFunction func = new DBFunction(rs.getString("name"));
-			String owner = rs.getString("rolname");
-			String args = rs.getString("arguments");
-			func.setSchema(schema);
-			func.setOwner(owner);
-			//func.setArguments(args);
-			rowToProperties(rs,func.getOptions());
+
+			DBFunction func = null;
+			while (rs.next()) {
+				func = new DBFunction(rs.getString("name"));
+				String owner = rs.getString("rolname");
+				String args = rs.getString("arguments");
+				func.setSchema(schema);
+				func.setOwner(owner);
+				//func.setArguments(args);
+				rowToProperties(rs,func.getOptions());
+			}
 			stmt.close();
 			
 			return func;
@@ -702,6 +733,80 @@ public class DBAdapterPostgres extends DBAdapter {
 	public boolean userHasRightsToGetDdlOfOtherUsers() {
 		return true;
 	}
+
+	@Override
+	public IFactoryDBBackupAdapter getBackupAdapterFactory() {
+		return null;
+	}
 	
+	@Override
+	public String getDbType() {
+		return "postgresql";
+	}
+	
+	@Override
+	public String getDbVersion() {
+		try {
+		PreparedStatement stmt = getConnection().prepareStatement("SHOW server_version");
+		ResultSet resultSet = stmt.executeQuery();			
+		resultSet.next();
+		
+		String result = resultSet.getString("server_version");
+		resultSet.close();
+		stmt.close();
+		
+		return result;
+		} catch (SQLException e) {
+			return "";
+		}
+	}
+
+	@Override
+	public void createSchemaIfNeed(String schemaName) throws ExceptionDBGit {
+		try {
+			Statement st = connect.createStatement();
+			ResultSet rs = st.executeQuery("select count(*) cnt from information_schema.schemata where upper(schema_name) = '" + 
+					schemaName.toUpperCase() + "'");
+			
+			rs.next();
+			if (rs.getInt("cnt") == 0) {
+				ConsoleWriter.detailsPrintLn("Creating schema " + schemaName);
+				StatementLogging stLog = new StatementLogging(connect, getStreamOutputSqlCommand(), isExecSql());
+				stLog.execute("create schema " + schemaName);
+
+				stLog.close();
+			}
+			
+			rs.close();
+			st.close();
+		} catch (SQLException e) {			
+			throw new ExceptionDBGit("Cannot create schema: " + e.getLocalizedMessage());
+		}
+		
+	}
+
+	@Override
+	public void createRoleIfNeed(String roleName) throws ExceptionDBGit {
+		try {
+			Statement st = connect.createStatement();
+			ResultSet rs = st.executeQuery("select count(*) cnt from pg_catalog.pg_roles where upper(rolname) = '" + 
+					roleName.toUpperCase() + "'");
+			
+			rs.next();
+			if (rs.getInt("cnt") == 0) {
+				ConsoleWriter.detailsPrintLn("Creating role " + roleName);
+				StatementLogging stLog = new StatementLogging(connect, getStreamOutputSqlCommand(), isExecSql());
+				stLog.execute("CREATE ROLE " + roleName + " LOGIN PASSWORD '" + roleName +  "'");
+	
+				stLog.close();
+			}
+			
+			connect.commit();
+			rs.close();
+			st.close();
+		} catch (SQLException e) {			
+			throw new ExceptionDBGit("Cannot create schema: " + e.getLocalizedMessage());
+		}		
+	}	
 
 }

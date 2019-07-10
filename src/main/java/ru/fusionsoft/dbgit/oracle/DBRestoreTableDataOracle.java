@@ -1,5 +1,7 @@
 package ru.fusionsoft.dbgit.oracle;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.util.Collection;
@@ -20,12 +22,18 @@ import ru.fusionsoft.dbgit.adapters.DBRestoreAdapter;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRestore;
 import ru.fusionsoft.dbgit.core.GitMetaDataManager;
+import ru.fusionsoft.dbgit.data_table.DateData;
 import ru.fusionsoft.dbgit.data_table.ICellData;
+import ru.fusionsoft.dbgit.data_table.LongData;
+import ru.fusionsoft.dbgit.data_table.MapFileData;
 import ru.fusionsoft.dbgit.data_table.RowData;
+import ru.fusionsoft.dbgit.data_table.StringData;
+import ru.fusionsoft.dbgit.data_table.TreeMapRowData;
 import ru.fusionsoft.dbgit.dbobjects.DBConstraint;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
 import ru.fusionsoft.dbgit.meta.MetaTable;
 import ru.fusionsoft.dbgit.meta.MetaTableData;
+import ru.fusionsoft.dbgit.statement.PrepareStatementLogging;
 import ru.fusionsoft.dbgit.statement.StatementLogging;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
@@ -39,6 +47,16 @@ public class DBRestoreTableDataOracle extends DBRestoreAdapter {
 			
 			IMetaObject currentMetaObj = GitMetaDataManager.getInctance().getCacheDBMetaObject(obj.getName());
 			MetaTableData currentTableData = (MetaTableData) currentMetaObj;
+			
+			if (currentMetaObj != null)
+				currentTableData = (MetaTableData) currentMetaObj;
+			else {
+				currentTableData = new MetaTableData();
+				currentTableData.setTable(restoreTableData.getTable());
+				currentTableData.setMapRows(new TreeMapRowData());
+				currentTableData.setDataTable(restoreTableData.getDataTable());
+				currentTableData.getmapRows().clear();
+			}
 			
 			if(Integer.valueOf(step).equals(0)) {
 				removeTableConstraintsOracle(restoreTableData.getMetaTable());
@@ -78,12 +96,36 @@ public class DBRestoreTableDataOracle extends DBRestoreAdapter {
 				for(RowData rowData:diffTableData.entriesOnlyOnLeft().values()) {
 					String values = 
 							rowData.getData().values().stream()
-							.map(d -> d.getSQLData())
+							//.map(d -> d.getSQLData())
+							.map(d -> "?")
 							.collect(Collectors.joining(","));				
 					insertQuery = "insert into "+tblName +
 							fields + " values (" + values + ")";
 					
-					st.execute(insertQuery);
+					PrepareStatementLogging ps = new PrepareStatementLogging(connect, insertQuery, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
+					int i = 0;
+					for (ICellData data : rowData.getData().values()) {
+						i++;
+						ConsoleWriter.detailsPrintLn(data.getSQLData());
+						if (data instanceof MapFileData) {
+							File file = ((MapFileData) data).getFile();
+							FileInputStream fis = new FileInputStream(file);
+							ps.setBinaryStream(i, fis, file.length());
+						} else if (data instanceof LongData) {
+							ps.setDouble(i, Double.parseDouble(data.getSQLData().replace("'", "")));
+						} else if (data instanceof DateData) {
+							ps.setDate(i, ((DateData) data).getDate());
+						} else {
+							ps.setString(i, ((StringData) data).getValue());
+						}						
+					}
+					
+					if (adapter.isExecSql())
+						ps.execute();
+					ps.close();
+
+					
+					//st.execute(insertQuery);
 
 				}
 				ConsoleWriter.detailsPrintlnGreen("OK");

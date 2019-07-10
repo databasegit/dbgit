@@ -54,6 +54,12 @@ public class CmdStatus implements IDBGitCommand {
 		IMapMetaObject addedObjs = new TreeMapMetaObject();
 		DBGit dbGit = DBGit.getInstance();
 		boolean hasConflicts = DBGitIndex.getInctance().hasConflicts();
+		String repoVersion = DBGitIndex.getInctance().getRepoVersion();
+		ConsoleWriter.println("Repository version: " + repoVersion);
+		ConsoleWriter.println("Dbgit version: " + DBGitIndex.VERSION);
+		
+		if (!DBGitIndex.getInctance().isCorrectVersion())
+			ConsoleWriter.println("Repository was created in different Dbgit version!");
 		
 		if (hasConflicts) {
 			ConsoleWriter.println("You have unmerged paths.\r\n" + 

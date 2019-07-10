@@ -8,9 +8,12 @@ import java.io.FileWriter;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
 
 public class DBGitIndex {
+	public static final String VERSION = "0.2.1";
+	
 	private static DBGitIndex gitIndex = null;
 	private TreeMapItemIndex treeItems;
 	private boolean hasConflicts = false;
+	private String version = "";
 	
 	private DBGitIndex() throws ExceptionDBGit {
 		treeItems = new TreeMapItemIndex();
@@ -42,6 +45,10 @@ public class DBGitIndex {
 		return treeItems;
 	}
 	
+	public String getRepoVersion() {
+		return version;
+	}
+	
 	protected ItemIndex editItem(IMetaObject obj, Boolean isDelete) {
 		ItemIndex item = getItemIndexExistsOrNew(obj.getName());
 		item.setIsDelete(isDelete);
@@ -63,6 +70,7 @@ public class DBGitIndex {
 			File file = new File(DBGitPath.getFullPath(DBGitPath.INDEX_FILE));				
 			DBGitPath.createDir(file.getParent());
 			FileWriter writer = new FileWriter(file.getAbsolutePath());		
+			writer.write("version=" + VERSION + "\n");
 		    for (ItemIndex item : treeItems.values()) {
 		    	writer.write(item.toString()+"\n");
 		    }			
@@ -86,8 +94,12 @@ public class DBGitIndex {
 					continue;
 				}
 				
-			    ItemIndex item = ItemIndex.parseString(line);
-			    treeItems.put(item.getName(), item);
+				if (line.startsWith("version=")) {
+					version = line.substring(8);
+				} else {				
+				    ItemIndex item = ItemIndex.parseString(line);
+				    treeItems.put(item.getName(), item);
+				}
 			}
 			    
 			br.close();		    
@@ -99,10 +111,22 @@ public class DBGitIndex {
 	public void addToGit() throws ExceptionDBGit {
 		DBGit dbGit = DBGit.getInstance();
 		dbGit.addFileToIndexGit(DBGitPath.DB_GIT_PATH+"/"+DBGitPath.INDEX_FILE);
+		dbGit.addFileToIndexGit(DBGitPath.DB_GIT_PATH+"/"+DBGitPath.DB_LINK_FILE);
+	}
+	
+	public void addLinkToGit() throws ExceptionDBGit {
+		DBGit.getInstance().addFileToIndexGit(DBGitPath.DB_GIT_PATH+"/"+DBGitPath.DB_LINK_FILE);
 	}
 	
 	public boolean hasConflicts() {
 		return hasConflicts;
+	}
+	
+	public boolean isCorrectVersion() {
+		if (version == null || version.equals(""))
+			return true;
+		else
+			return version.equals(VERSION);
 	}
 }
 

@@ -57,7 +57,12 @@ public class CmdRestore implements IDBGitCommand {
 	@Override
 	public void execute(CommandLine cmdLine) throws Exception {
 		
-		AdapterFactory.createAdapter();
+		try {
+			AdapterFactory.createAdapter();
+		} catch (NullPointerException e) {
+			ConsoleWriter.println("Can't connect to db!");
+			System.exit(0);
+		}
 		GitMetaDataManager gmdm = GitMetaDataManager.getInctance();
 		IMapMetaObject fileObjs = gmdm.loadFileMetaData();		
 		IMapMetaObject updateObjs = new TreeMapMetaObject();
@@ -125,7 +130,9 @@ public class CmdRestore implements IDBGitCommand {
 				try {
 					IMetaObject dbObj = MetaObjectFactory.createMetaObject(obj.getName());				
 					gmdm.loadFromDB(dbObj);
+					
 					isRestore = !dbObj.getHash().equals(obj.getHash());
+					
 				} catch (ExceptionDBGit e) {
 					isRestore = true;
 					e.printStackTrace();

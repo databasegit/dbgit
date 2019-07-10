@@ -9,9 +9,12 @@ import ru.fusionsoft.dbgit.core.ExceptionDBGitRestore;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
 import ru.fusionsoft.dbgit.dbobjects.DBConstraint;
 import ru.fusionsoft.dbgit.dbobjects.DBIndex;
+import ru.fusionsoft.dbgit.dbobjects.DBOptionsObject;
+import ru.fusionsoft.dbgit.dbobjects.DBRole;
 import ru.fusionsoft.dbgit.dbobjects.DBTable;
 import ru.fusionsoft.dbgit.dbobjects.DBTableField;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
+import ru.fusionsoft.dbgit.meta.MetaRole;
 import ru.fusionsoft.dbgit.meta.MetaTable;
 import ru.fusionsoft.dbgit.statement.StatementLogging;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
@@ -24,6 +27,10 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 
 	@Override
 	public boolean restoreMetaObject(IMetaObject obj, int step) throws Exception {
+		
+		ConsoleWriter.println("source: " + obj.getDbType());
+		
+		
 		if(Integer.valueOf(step).equals(0)) {
 			restoreTablePostgres(obj);
 			return false;
@@ -51,7 +58,7 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 		try {
 			if (obj instanceof MetaTable) {
 				MetaTable restoreTable = (MetaTable)obj;	
-				String schema = getPhisicalSchema(restoreTable.getTable().getSchema());
+				String schema = getPhisicalSchema(restoreTable.getTable().getSchema().toLowerCase());
 				String tblName = schema+"."+restoreTable.getTable().getName();
 				
 				ConsoleWriter.detailsPrint("Restoring table " + tblName + "\n", 1);
@@ -60,11 +67,11 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 				boolean exist = false;
 				if(!(tables.isEmpty() || tables == null)) {
 					for(DBTable table:tables.values()) {
-						if(restoreTable.getTable().getName().equals(table.getName())){
+						if(restoreTable.getTable().getName().equalsIgnoreCase(table.getName())){
 							exist = true;
 							//Map<String, DBIndex> currentIndexes = adapter.getIndexes(restoreTable.getTable().getSchema(), restoreTable.getTable().getName());
-							String owner = restoreTable.getTable().getOptions().get("tableowner").getData();
-							if(!owner.equals(table.getOptions().get("tableowner").getData())) {
+							String owner = restoreTable.getTable().getOptions().get("owner").getData();
+							if(!owner.equals(table.getOptions().get("owner").getData())) {
 								st.execute("alter table "+ tblName + " owner to "+ owner);
 							}
 														
@@ -80,21 +87,24 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 				}
 				if(!exist){								
 					ConsoleWriter.detailsPrint("Creating table...", 2);
+					String ownerName = restoreTable.getTable().getOptions().get("owner").getData();
+					Map<String, DBRole> roles = adapter.getRoles();
+					
 					if(restoreTable.getTable().getOptions().getChildren().containsKey("tablespace")) {
 						String tablespace = restoreTable.getTable().getOptions().get("tablespace").getData();
 						String querry ="create table "+ tblName + "() tablespace "+ tablespace +";\n";
-						querry+="alter table "+ tblName + " owner to "+ restoreTable.getTable().getOptions().get("tableowner").getData()+";";
+						querry+="alter table "+ tblName + " owner to "+ ownerName + ";";
 						st.execute(querry);			
 					}
 					else {
-						String querry = "create table "+ tblName + "()"+";\n";
-						querry+="alter table "+ tblName + " owner to "+ restoreTable.getTable().getOptions().get("tableowner").getData()+";";
+						String querry = "create table " + tblName + " ()" + ";\n";
+						querry+="alter table "+ tblName + " owner to "+ ownerName + ";";
 						st.execute(querry);	
 					}				
 					ConsoleWriter.detailsPrintlnGreen("OK");
 				}
 				//restore tabl fields
-							Map<String, DBTableField> currentFileds = adapter.getTableFields(restoreTable.getTable().getSchema(), restoreTable.getTable().getName());
+							Map<String, DBTableField> currentFileds = adapter.getTableFields(restoreTable.getTable().getSchema().toLowerCase(), restoreTable.getTable().getName().toLowerCase());
 							MapDifference<String, DBTableField> diffTableFields = Maps.difference(restoreTable.getFields(),currentFileds);
 							
 							if(!diffTableFields.entriesOnlyOnLeft().isEmpty()){
@@ -129,7 +139,7 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 							}						
 						
 				ResultSet rs = st.executeQuery("SELECT COUNT(*) as constraintscount\n" +
-						"FROM pg_catalog.pg_constraint const JOIN pg_catalog.pg_class cl ON (const.conrelid=cl.oid) WHERE cl.relname = " + tblName);
+						"FROM pg_catalog.pg_constraint const JOIN pg_catalog.pg_class cl ON (const.conrelid=cl.oid) WHERE cl.relname = '" + tblName + "'");
 				rs.next();
 				Integer constraintsCount = Integer.valueOf(rs.getString("constraintscount"));
 				if(constraintsCount.intValue()>0) {
@@ -139,7 +149,7 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 				for(DBConstraint tableconst: restoreTable.getConstraints().values()) {
 					if(tableconst.getConstraintType().equals("p")) {
 						ConsoleWriter.detailsPrint("Adding PK...", 2);
-						st.execute("alter table "+ tblName +" add constraint "+ tableconst.getName() + " "+tableconst.getConstraintDef());
+						st.execute("alter table "+ tblName +" add constraint "+ tableconst.getName() + " "+tableconst.getSql());
 						ConsoleWriter.detailsPrintlnGreen("OK");
 						break;
 					}
@@ -217,7 +227,7 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 				// set primary key
 				for(DBConstraint tableconst: restoreTable.getConstraints().values()) {
 					if(tableconst.getConstraintType().equals("p")) {
-						st.execute("alter table "+ tblName +" add constraint "+ tableconst.getName() + " "+tableconst.getConstraintDef());
+						st.execute("alter table "+ tblName +" add constraint "+ tableconst.getName() + " "+tableconst.getSql());
 						break;
 					}
 				}
@@ -319,8 +329,8 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 				MetaTable restoreTable = (MetaTable)obj;
 				String schema = getPhisicalSchema(restoreTable.getTable().getSchema());
 				for(DBConstraint constrs :restoreTable.getConstraints().values()) {
-					if(!constrs.getConstraintType().equals("p")) {				
-					st.execute("alter table "+ schema+"."+restoreTable.getTable().getName() +" add constraint "+ constrs.getName() + " "+constrs.getConstraintDef());
+					if(!constrs.getConstraintType().equalsIgnoreCase("p")) {				
+					st.execute("alter table "+ schema+"."+restoreTable.getTable().getName() +" add constraint "+ constrs.getName() + " "+constrs.getSql());
 					}
 				}
 			}

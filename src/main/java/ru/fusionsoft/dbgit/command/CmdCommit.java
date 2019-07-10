@@ -4,6 +4,7 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 
 import ru.fusionsoft.dbgit.core.DBGit;
+import ru.fusionsoft.dbgit.core.DBGitIndex;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
@@ -53,7 +54,12 @@ public class CmdCommit implements IDBGitCommand {
 		if (cmdLine.hasOption("m")) {
 			msg = cmdLine.getOptionValue("m");
 		}
-		ConsoleWriter.println("commiting...");		
+		
+		if (!DBGitIndex.getInctance().isCorrectVersion())
+			throw new ExceptionDBGit("Versions of Dbgit (" + DBGitIndex.VERSION + ") and repository(" + DBGitIndex.getInctance().getRepoVersion() + ") are different!");
+		
+		ConsoleWriter.println("commiting...");	
+		DBGitIndex.getInctance().addLinkToGit();
 		DBGit.getInstance().gitCommit(cmdLine.hasOption("a"), msg, filePath);
 	}
 

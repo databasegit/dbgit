@@ -1,6 +1,8 @@
 package ru.fusionsoft.dbgit.command;
 
 
+import java.sql.Connection;
+import java.sql.DriverManager;
 import java.util.Arrays;
 import java.util.Properties;
 

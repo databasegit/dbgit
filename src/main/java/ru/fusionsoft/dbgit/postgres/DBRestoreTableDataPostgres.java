@@ -1,5 +1,7 @@
 package ru.fusionsoft.dbgit.postgres;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.util.Collection;
@@ -12,12 +14,18 @@ import ru.fusionsoft.dbgit.adapters.DBRestoreAdapter;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRestore;
 import ru.fusionsoft.dbgit.core.GitMetaDataManager;
+import ru.fusionsoft.dbgit.data_table.DateData;
 import ru.fusionsoft.dbgit.data_table.ICellData;
+import ru.fusionsoft.dbgit.data_table.LongData;
+import ru.fusionsoft.dbgit.data_table.MapFileData;
 import ru.fusionsoft.dbgit.data_table.RowData;
+import ru.fusionsoft.dbgit.data_table.StringData;
+import ru.fusionsoft.dbgit.data_table.TreeMapRowData;
 import ru.fusionsoft.dbgit.dbobjects.DBConstraint;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
 import ru.fusionsoft.dbgit.meta.MetaTable;
 import ru.fusionsoft.dbgit.meta.MetaTableData;
+import ru.fusionsoft.dbgit.statement.PrepareStatementLogging;
 import ru.fusionsoft.dbgit.statement.StatementLogging;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
@@ -34,9 +42,21 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 			MetaTableData restoreTableData = (MetaTableData)obj;
 			GitMetaDataManager gitMetaMng = GitMetaDataManager.getInctance();
 			//TODO не факт что в кеше есть мета описание нашей таблицы, точнее ее не будет если при старте ресторе таблицы в бд не было совсем
+			
 			IMetaObject currentMetaObj = gitMetaMng.getCacheDBMetaObject(obj.getName());
-			if (currentMetaObj instanceof MetaTableData) {
-				currentTableData = (MetaTableData)currentMetaObj;		
+			
+			if (currentMetaObj instanceof MetaTableData || currentMetaObj == null) {
+				
+				if (currentMetaObj != null)
+					currentTableData = (MetaTableData) currentMetaObj;
+				else {
+					currentTableData = new MetaTableData();
+					currentTableData.setTable(restoreTableData.getTable());
+					currentTableData.setMapRows(new TreeMapRowData());
+					currentTableData.setDataTable(restoreTableData.getDataTable());
+					currentTableData.getmapRows().clear();
+				}
+				
 				if(Integer.valueOf(step).equals(0)) {
 					removeTableConstraintsPostgres(restoreTableData.getMetaTable());
 					return false;
@@ -69,7 +89,6 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 		Connection connect = adapter.getConnection();
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
 		try {
-			String insertQuery= "";
 			String fields = keysToString(restoreTableData.getmapRows().firstEntry().getValue().getData().keySet()) + " values ";
 			MapDifference<String, RowData> diffTableData = Maps.difference(restoreTableData.getmapRows(),currentTableData.getmapRows());
 			String schema = getPhisicalSchema(restoreTableData.getTable().getSchema());
@@ -77,18 +96,36 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 			
 			ConsoleWriter.detailsPrint("Restoring table data for " + tblName + "\n", 1);
 			
-			if(!diffTableData.entriesOnlyOnLeft().isEmpty()){
+			if(!diffTableData.entriesOnlyOnLeft().isEmpty()) {
+				
 				ConsoleWriter.detailsPrint("Inserting...", 2);
 				for(RowData rowData:diffTableData.entriesOnlyOnLeft().values()) {
-					insertQuery += "insert into "+tblName +
+										
+					String insertQuery = "insert into "+tblName +
 							fields+valuesToString(rowData.getData().values()) + ";\n";
-					if(insertQuery.length() > 50000 ){
-						st.execute(insertQuery);
-						insertQuery = "";
+					
+					ConsoleWriter.detailsPrintLn(insertQuery);
+					PrepareStatementLogging ps = new PrepareStatementLogging(connect, insertQuery, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
+					int i = 0;
+					for (ICellData data : rowData.getData().values()) {
+						i++;
+						ConsoleWriter.detailsPrintLn(data.getSQLData());
+						if (data instanceof MapFileData) {
+							File file = ((MapFileData) data).getFile();
+							FileInputStream fis = new FileInputStream(file);
+							ps.setBinaryStream(i, fis, file.length());
+						} else if (data instanceof LongData) {
+							ps.setDouble(i, Double.parseDouble(data.getSQLData().replace("'", "")));
+						} else if (data instanceof DateData) {
+							ps.setDate(i, ((DateData) data).getDate());
+						} else {
+							ps.setString(i, ((StringData) data).getValue());
+						}							
 					}
-				}
-				if(insertQuery.length()>1){
-					st.execute(insertQuery);
+					
+					if (adapter.isExecSql())
+						ps.execute();
+					ps.close();
 				}
 				ConsoleWriter.detailsPrintlnGreen("OK");
 			}
@@ -205,7 +242,8 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 		String values="(";
 		StringJoiner joiner = new StringJoiner(",");
 		for (ICellData data : datas) {			
-			joiner.add(data.getSQLData());
+			//joiner.add(data.getSQLData());
+			joiner.add("?");
 		}
 		values+=joiner.toString()+")";
 		return values;		
@@ -258,8 +296,8 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 		String tblName = schema + "." +table.getTable().getName();
 		ConsoleWriter.detailsPrint("Deleting constraints for " + table.getName() + "...", 1);
 		try {					
-			ResultSet rs = st.executeQuery("SELECT COUNT(*) as constraintscount\n" +
-					"FROM pg_catalog.pg_constraint const JOIN pg_catalog.pg_class cl ON (const.conrelid=cl.oid) WHERE cl.relname = " + tblName);
+			ResultSet rs = st.executeQuery("SELECT COUNT(*) as constraints_count\n" +
+					"FROM pg_catalog.pg_constraint const JOIN pg_catalog.pg_class cl ON (const.conrelid=cl.oid) WHERE cl.relname = '" + tblName + "'");
 			rs.next();
 			Integer constraintsCount = Integer.valueOf(rs.getString("constraints_count"));
 			if(constraintsCount.intValue()>0) {

@@ -14,12 +14,13 @@ import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
 public class DBRestoreTriggerOracle extends DBRestoreAdapter {
 
+	StatementLogging st;
 
 	@Override
 	public boolean restoreMetaObject(IMetaObject obj, int step) throws Exception {
 		IDBAdapter adapter = getAdapter();
 		Connection connect = adapter.getConnection();
-		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
+		st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
 		ConsoleWriter.detailsPrint("Restoring trigger " + obj.getName() + "...", 1);
 		try {						
 			if (obj instanceof MetaTrigger) {
@@ -31,14 +32,14 @@ public class DBRestoreTriggerOracle extends DBRestoreAdapter {
 						if(restoreTrigger.getSqlObject().getName().equals(trg.getName())){
 							exist = true;					
 							if(!restoreTrigger.getSqlObject().getSql().equals(trg.getSql())) {
-								st.execute(restoreTrigger.getSqlObject().getSql());
+								executeSql(restoreTrigger.getSqlObject().getSql());
 							}
 							//TODO Восстановление привилегий							
 						}
 					}
 				}
 				if(!exist){
-					st.execute(restoreTrigger.getSqlObject().getSql());
+					executeSql(restoreTrigger.getSqlObject().getSql());
 					//TODO Восстановление привилегий	
 				}
 				ConsoleWriter.detailsPrintlnGreen("OK");
@@ -49,9 +50,6 @@ public class DBRestoreTriggerOracle extends DBRestoreAdapter {
 				throw new ExceptionDBGitRestore("Error restore: Unable to restore Triggers.");
 			}			
 			
-			
-			
-			
 		}
 		catch (Exception e) {
 			ConsoleWriter.detailsPrintlnRed("FAIL");
@@ -59,14 +57,6 @@ public class DBRestoreTriggerOracle extends DBRestoreAdapter {
 		} finally {
 			st.close();
 		}
-		
-		
-		
-		
-		
-		
-		
-		
 		
 		return true;
 	}
@@ -77,4 +67,13 @@ public class DBRestoreTriggerOracle extends DBRestoreAdapter {
 
 	}
 
+	private void executeSql(String sql) throws Exception {
+		int index = sql.indexOf("ALTER TRIGGER");
+		
+		String sqlHead = sql.substring(0, index);								
+		String sqlBody = sql.substring(index);	
+		
+		st.execute(sqlHead, "/");
+		st.execute(sqlBody, "/");
+	}
 }

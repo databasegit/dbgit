@@ -21,7 +21,10 @@ import ru.fusionsoft.dbgit.dbobjects.DBSQLObject;
  */
 public abstract class MetaSql extends MetaBase {
 	protected DBSQLObject sqlObject;
-	public MetaSql() {}
+	public MetaSql() {
+		setDbType();
+		setDbVersion();
+	}
 	
 	public MetaSql(DBSQLObject sqlObject) {
 		this();

@@ -47,9 +47,14 @@ public class MetaTableData extends MetaBase {
 	 
 	 private TreeMapRowData mapRows = null;
 
-	 public MetaTableData() {}
+	 public MetaTableData() {
+		 setDbType();
+		 setDbVersion();
+	 }
 	 
 	 public MetaTableData(DBTable tbl) {
+		 setDbType();
+		 setDbVersion();
 		 setTable(tbl);
 	 }
 	 
@@ -60,6 +65,18 @@ public class MetaTableData extends MetaBase {
 
 	public TreeMap<String, RowData> getmapRows() {
 		return mapRows;
+	}
+	
+	public DBTableData getDataTable() {
+		return dataTable;
+	}
+	
+	public void setMapRows(TreeMapRowData mapRows) {
+		this.mapRows = mapRows;
+	}
+	
+	public void setDataTable(DBTableData dataTable) {
+		this.dataTable = dataTable;
 	}
 	
 	public void setTable(DBTable table) {

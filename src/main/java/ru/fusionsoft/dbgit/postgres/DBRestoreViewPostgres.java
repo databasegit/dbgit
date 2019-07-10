@@ -31,7 +31,7 @@ public class DBRestoreViewPostgres extends DBRestoreAdapter {
 							exist = true;
 							if(!restoreView.getSqlObject().getSql().equals(vw.getSql())) {
 								//String ss = "CREATE OR REPLACE VIEW "+restoreView.getSqlObject().getName() +" AS\n"+restoreView.getSqlObject().getSql();
-								st.execute("CREATE OR REPLACE VIEW "+restoreView.getSqlObject().getName() +" AS\n"+restoreView.getSqlObject().getSql()); 							
+								st.execute(restoreView.getSqlObject().getName() +" AS\n"+restoreView.getSqlObject().getSql()); 							
 							}
 							
 							if(!restoreView.getSqlObject().getOwner().equals(vw.getOwner())) {
@@ -42,7 +42,7 @@ public class DBRestoreViewPostgres extends DBRestoreAdapter {
 					}
 				}
 				if(!exist){
-					String query = "CREATE VIEW "+restoreView.getSqlObject().getName() +" AS\n"+restoreView.getSqlObject().getSql()+";\n";
+					String query = restoreView.getSqlObject().getName() +" AS\n"+restoreView.getSqlObject().getSql()+";\n";
 					query+= "ALTER VIEW "+restoreView.getSqlObject().getName() +" OWNER TO "+restoreView.getSqlObject().getOwner()+";\n";
 					st.execute(query); 
 					//TODO Восстановление привилегий	

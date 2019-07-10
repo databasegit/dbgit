@@ -19,7 +19,8 @@ public class DBSQLObject extends DBSchemaObject {
 		ch.addData(getSchema());
 		ch.addData(getName());
 		ch.addData(getSql().trim().replace("\n", ""));
-		ch.addData(getOwner());
+		if (getOwner() != null)
+			ch.addData(getOwner());
 				
 		return ch.calcHashStr();
 	}

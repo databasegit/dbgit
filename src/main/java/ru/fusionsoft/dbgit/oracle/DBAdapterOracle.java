@@ -13,9 +13,11 @@ import ru.fusionsoft.dbgit.adapters.DBAdapter;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
 import ru.fusionsoft.dbgit.adapters.IDBAdapterRestoreMetaData;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBAdapterRestoteMetaData;
+import ru.fusionsoft.dbgit.adapters.IFactoryDBBackupAdapter;
 import ru.fusionsoft.dbgit.core.DBGitConfig;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
+import ru.fusionsoft.dbgit.data_table.DateData;
 import ru.fusionsoft.dbgit.data_table.FactoryCellData;
 import ru.fusionsoft.dbgit.data_table.LongData;
 import ru.fusionsoft.dbgit.data_table.MapFileData;
@@ -39,6 +41,7 @@ import ru.fusionsoft.dbgit.dbobjects.DBView;
 import ru.fusionsoft.dbgit.meta.IMapMetaObject;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
 import ru.fusionsoft.dbgit.oracle.FactoryDBAdapterRestoreOracle;
+import ru.fusionsoft.dbgit.statement.StatementLogging;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 import ru.fusionsoft.dbgit.utils.LoggerUtil;
 import org.slf4j.Logger;
@@ -49,14 +52,17 @@ public class DBAdapterOracle extends DBAdapter {
 	
 	private Logger logger = LoggerUtil.getLogger(this.getClass());
 	private FactoryDBAdapterRestoreOracle restoreFactory = new FactoryDBAdapterRestoreOracle();
+	
 
 	private String s;
 
 	public void registryMappingTypes() {
 		FactoryCellData.regMappingTypes(DEFAULT_MAPPING_TYPE, StringData.class);
-		FactoryCellData.regMappingTypes("VARCHAR2", StringData.class);
-		FactoryCellData.regMappingTypes("NUMBER", LongData.class);
-		FactoryCellData.regMappingTypes("BLOB", MapFileData.class);
+		FactoryCellData.regMappingTypes("number", LongData.class);
+		FactoryCellData.regMappingTypes("date", DateData.class);
+		FactoryCellData.regMappingTypes("string", StringData.class);
+		FactoryCellData.regMappingTypes("binary", MapFileData.class);
+		FactoryCellData.regMappingTypes("native", StringData.class);
 	}
 	
 	@Override
@@ -151,7 +157,8 @@ public class DBAdapterOracle extends DBAdapter {
 			
 			//variant 2 from DBA_SEQUENCES
 			String query = 
-					"SELECT S.SEQUENCE_NAME, (SELECT dbms_metadata.get_ddl('SEQUENCE', S.SEQUENCE_NAME) from dual) AS DDL\n" + 
+					"SELECT S.SEQUENCE_NAME, (SELECT dbms_metadata.get_ddl('SEQUENCE', S.SEQUENCE_NAME) from dual) AS DDL,\n" + 
+					"order_flag, increment_by, last_number, min_value, max_value, cache_size \n" +
 					"FROM DBA_SEQUENCES S WHERE S.SEQUENCE_OWNER = '" + schema + "'";
 			
 			Statement stmt = connect.createStatement();
@@ -179,20 +186,22 @@ public class DBAdapterOracle extends DBAdapter {
 		try {
 			Connection connect = getConnection();
 			String query = 
-					"SELECT S.SEQUENCE_NAME, (SELECT dbms_metadata.get_ddl('SEQUENCE', S.SEQUENCE_NAME) from dual) AS DDL\n" + 
+					"SELECT S.SEQUENCE_NAME, (SELECT dbms_metadata.get_ddl('SEQUENCE', S.SEQUENCE_NAME) from dual) AS DDL, \n" +
+					"order_flag, increment_by, last_number, min_value, max_value, cache_size \n" +
 					"FROM DBA_SEQUENCES S WHERE S.SEQUENCE_OWNER = '" + schema + "' AND S.SEQUENCE_NAME = '" + name + "'";
 			
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
-						
-			rs.next();
-			String nameSeq = rs.getString("SEQUENCE_NAME");
-			DBSequence sequence = new DBSequence();
-			sequence.setName(nameSeq);
-			sequence.setSchema(schema);
-			sequence.setValue(0L);
-			rowToProperties(rs, sequence.getOptions());
-				
+					
+			DBSequence sequence = null;
+			while (rs.next()) {
+				String nameSeq = rs.getString("SEQUENCE_NAME");
+				sequence = new DBSequence();
+				sequence.setName(nameSeq);
+				sequence.setSchema(schema);
+				sequence.setValue(0L);
+				rowToProperties(rs, sequence.getOptions());
+			}
 			stmt.close();
 			return sequence;
 		}catch(Exception e) {
@@ -277,7 +286,16 @@ public class DBAdapterOracle extends DBAdapter {
 				s = rs1.getString("COLUMN_NAME").toLowerCase();
 			
 			String query = 
-					"SELECT ROWNUM AS NUM, TC.* FROM DBA_TAB_COLS TC \n" + 
+					"SELECT case \r\n" + 
+					"    when lower(data_type) in ('number', 'numeric', 'dec', 'decimal', 'pls_integer') then 'number'\r\n" + 
+					"    when lower(data_type) in ('varchar2', 'varchar', 'char', 'nchar', 'nvarchar2') then 'string'\r\n" + 
+					"    when substr(lower(data_type), 1, instr(data_type, '(') - 1) in ('date', 'timestamp') then 'date'\r\n" +
+					"    when lower(data_type) in ('date', 'timestamp') then 'date'\r\n" +
+					"    when lower(data_type) in ('blob') then 'binary'" +
+					"    else 'native'\r\n" + 
+					"    end type, " +
+					"    case when lower(data_type) in ('char', 'nchar') then 1 else 0 end fixed, " +
+					"    ROWNUM AS NUM, TC.* FROM DBA_TAB_COLS TC \n" + 
 					"WHERE table_name = '" + nameTable + "' AND OWNER = '" + schema + "' ORDER BY column_id";
 			
 			ResultSet rs = stmt.executeQuery(query);
@@ -289,6 +307,11 @@ public class DBAdapterOracle extends DBAdapter {
 				}
 				field.setTypeSQL(getFieldType(rs));
 				field.setTypeMapping(getTypeMapping(rs));
+				field.setTypeUniversal(rs.getString("TYPE"));
+				field.setLength(rs.getString("DATA_LENGTH"));
+				field.setScale(rs.getInt("DATA_SCALE"));
+				field.setPrecision(rs.getInt("DATA_PRECISION"));
+				field.setFixed(rs.getBoolean("fixed"));
 				listField.put(field.getName(), field);
 			}
 			
@@ -302,7 +325,8 @@ public class DBAdapterOracle extends DBAdapter {
 	}
 
 	protected String getTypeMapping(ResultSet rs) throws SQLException {
-		String tp = rs.getString("DATA_TYPE");
+		//String tp = rs.getString("DATA_TYPE");
+		String tp = rs.getString("type");
 		if (FactoryCellData.contains(tp) ) 
 			return tp;
 		
@@ -315,13 +339,13 @@ public class DBAdapterOracle extends DBAdapter {
 			type.append(rs.getString("DATA_TYPE"));
 			
 			Integer max_length = rs.getInt("CHAR_LENGTH");
-			if (!rs.wasNull()) {
+			if (!rs.wasNull() && !rs.getString("DATA_TYPE").contains("(")) {
 				type.append("("+max_length.toString()+")");
 			}
+			
 			if (rs.getString("NULLABLE").equals("N")){
 				type.append(" NOT NULL");
-			}
-			
+			}			
 			
 			return type.toString();
 		}catch(Exception e) {
@@ -641,14 +665,17 @@ public class DBAdapterOracle extends DBAdapter {
 			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
-			rs.next();
-			DBFunction func = new DBFunction(rs.getString("OBJECT_NAME"));
-			String owner = rs.getString("OWNER");
-			//String args = rs.getString("arguments");
-			func.setSchema(schema);
-			func.setOwner(owner);
-			//func.setArguments(args);
-			rowToProperties(rs,func.getOptions());
+			DBFunction func = null;
+			
+			while (rs.next()) {
+				func = new DBFunction(rs.getString("OBJECT_NAME"));
+				String owner = rs.getString("OWNER");
+				//String args = rs.getString("arguments");
+				func.setSchema(schema);
+				func.setOwner(owner);
+				//func.setArguments(args);
+				rowToProperties(rs,func.getOptions());
+			}
 			stmt.close();
 			
 			return func;
@@ -778,4 +805,62 @@ public class DBAdapterOracle extends DBAdapter {
 		}		
 	}
 
+	@Override
+	public IFactoryDBBackupAdapter getBackupAdapterFactory() {
+		return null;
+	}
+
+	@Override
+	public String getDbType() {
+		return "oracle";
+	}
+	
+	@Override
+	public String getDbVersion() {
+		try {
+			PreparedStatement stmt = getConnection().prepareStatement("SELECT version FROM V$INSTANCE");
+			ResultSet resultSet = stmt.executeQuery();			
+			resultSet.next();
+			
+			String result = resultSet.getString("version");
+			resultSet.close();
+			stmt.close();
+			
+			return result;
+		} catch (SQLException e) {
+			return "";
+		}
+	}
+
+	@Override
+	public void createSchemaIfNeed(String schemaName) throws ExceptionDBGit {
+		try {
+			Statement st = 	connect.createStatement();
+			ResultSet rs = st.executeQuery("select count(*) cnt from all_users where USERNAME = '" + schemaName.toUpperCase() + "'");
+			rs.next();
+			if (rs.getInt("cnt") == 0) {
+				StatementLogging stLog = new StatementLogging(connect, getStreamOutputSqlCommand(), isExecSql());
+				ConsoleWriter.detailsPrintLn("Creating schema " + schemaName.toUpperCase());
+				stLog.execute("create USER \"" + schemaName.toUpperCase() + "\"\r\n" + 
+						"IDENTIFIED BY \"" + schemaName.toUpperCase() + "\"\r\n" + 
+						"DEFAULT TABLESPACE \"SYSTEM\"\r\n" + 
+						"TEMPORARY TABLESPACE \"TEMP\"\r\n" + 
+						"ACCOUNT UNLOCK");
+				
+				stLog.execute("ALTER USER \"" + schemaName.toUpperCase() + "\" QUOTA UNLIMITED ON SYSTEM");
+				stLog.close();
+			}
+			
+			rs.close();
+			st.close();
+		} catch (SQLException e) {
+			throw new ExceptionDBGit("Cannot create schema: " + e.getLocalizedMessage());
+		}
+		
+	}
+
+	@Override
+	public void createRoleIfNeed(String roleName) throws ExceptionDBGit {
+		
+	}	
 }

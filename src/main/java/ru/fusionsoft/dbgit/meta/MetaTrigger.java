@@ -28,11 +28,18 @@ public class MetaTrigger extends MetaSql {
 			IDBAdapter adapter = AdapterFactory.createAdapter();
 			NameMeta nm = MetaObjectFactory.parseMetaName(getName());			
 			DBTrigger trg = adapter.getTrigger(nm.getSchema(), nm.getName());
+			
+			if (trg != null) {
+				setSqlObject(trg);
+				return true;
+			} else
+				return false;
+/*			
 			if(trg==null)
 			{
 				throw new ExceptionDBGitObjectNotFound("Error ");
 			}
-			setSqlObject(trg);		
-		return true;
+				
+		return true;*/
 	}
 }

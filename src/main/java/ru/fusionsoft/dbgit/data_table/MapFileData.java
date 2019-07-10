@@ -104,7 +104,11 @@ public class MapFileData implements ICellData {
 	@Override
 	public String getSQLData() {
 		// TODO Auto-generated method stub
-		return null;
+		return srcFile;
+	}
+	
+	public File getFile() throws ExceptionDBGit {
+		return new File(DBGitPath.getFullPath() + srcFile);
 	}
 		
 }

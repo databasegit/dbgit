@@ -2,6 +2,7 @@ package ru.fusionsoft.dbgit.core;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -129,7 +130,7 @@ public class GitMetaDataManager {
 		
 		addToMapDBOptionsObject(dbObjs, adapter.getUsers(), DBGitMetaType.DBGitUser);
 		addToMapDBOptionsObject(dbObjs, adapter.getRoles(), DBGitMetaType.DBGitRole);
-		addToMapDBOptionsObject(dbObjs, adapter.getTableSpaces(), DBGitMetaType.DBGitTableSpace);
+		//addToMapDBOptionsObject(dbObjs, adapter.getTableSpaces(), DBGitMetaType.DBGitTableSpace);
 		
 		Map<String, DBSchema> schemes;
 		if (adapter.userHasRightsToGetDdlOfOtherUsers()) {
@@ -143,6 +144,7 @@ public class GitMetaDataManager {
 				throw new ExceptionDBGit("Can't get current schema name");
 			}
 		}
+		
 		addToMapDBOptionsObject(dbObjs, schemes, DBGitMetaType.DBGitSchema);
 		
 		//load sequence
@@ -235,14 +237,21 @@ public class GitMetaDataManager {
 			
 			List<String> files = dbGit.getGitIndexFiles(DBGitPath.DB_GIT_PATH);
 			boolean isSuccessful = true;
+			
 			for (int i = 0; i < files.size(); i++) {
 	    		String filename = files.get(i);
-
 	    		if (DBGitPath.isServiceFile(filename)) continue;
 	    		ConsoleWriter.detailsPrint(filename + "...", 1);
 	    		try {
+	    			Timestamp timestampBefore = new Timestamp(System.currentTimeMillis());
+	    				    			
 	    			IMetaObject obj = loadMetaFile(filename);
-	    			ConsoleWriter.detailsPrintlnGreen("OK");
+	    			
+	    			Timestamp timestampAfter = new Timestamp(System.currentTimeMillis());
+	    			
+	    			Long diff = timestampAfter.getTime() - timestampBefore.getTime();
+
+	    			ConsoleWriter.detailsPrintlnGreen("OK (" + diff + " ms)");
 	    			
 		    		if (obj != null) {
 		    			objs.put(obj);

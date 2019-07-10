@@ -4,6 +4,7 @@ import java.io.OutputStream;
 import java.sql.Connection;
 import java.util.Map;
 
+import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.dbobjects.DBConstraint;
 import ru.fusionsoft.dbgit.dbobjects.DBFunction;
 import ru.fusionsoft.dbgit.dbobjects.DBIndex;
@@ -134,6 +135,14 @@ public interface IDBAdapter {
 	public Map<String, DBRole> getRoles();
 	
 	public boolean userHasRightsToGetDdlOfOtherUsers();
+
+	public IFactoryDBBackupAdapter getBackupAdapterFactory();
+	
+	public String getDbType();
+	public String getDbVersion();	
+	
+	public void createSchemaIfNeed(String schemaName) throws ExceptionDBGit;
+	public void createRoleIfNeed(String roleName) throws ExceptionDBGit;
 	
 	/*Если будет нужно - сюда можно добавить подписчиков на события*/
 }

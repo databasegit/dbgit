@@ -46,7 +46,19 @@ public interface IMetaObject {
 	
 	public void setName(String name);
 	
+	public String getDbType ();
+	
+	public void setDbType(String dbType);
+	
+	public String getDbVersion();
+	
+	public void setDbVersion(String dbVersion);
+	
 	public String getFileName();
+	
+	public void setDbType();
+	
+	public void setDbVersion();
 		
 	/**
 	 * Save data to stream

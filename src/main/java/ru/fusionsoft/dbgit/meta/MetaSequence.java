@@ -18,9 +18,13 @@ public class MetaSequence extends MetaBase {
 		
 	public MetaSequence() {
 		super();
+		setDbType();
+		setDbVersion();
 	}
 	
 	public MetaSequence(DBSequence seq) {
+		setDbType();
+		setDbVersion();
 		this.sequence = seq;
 	}
 	
@@ -68,9 +72,11 @@ public class MetaSequence extends MetaBase {
 		NameMeta nm = MetaObjectFactory.parseMetaName(getName());
 
 		DBSequence seq = adapter.getSequence(nm.getSchema(), nm.getName());
-		setSequence(seq);
-		
-		return true;
+		if (seq != null) {
+			setSequence(seq);		
+			return true;
+		} else
+			return false;
 	}
 
 

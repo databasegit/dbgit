@@ -8,9 +8,12 @@ import java.nio.charset.Charset;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
+import ru.fusionsoft.dbgit.adapters.AdapterFactory;
 import ru.fusionsoft.dbgit.core.DBGit;
 import ru.fusionsoft.dbgit.core.DBGitPath;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
+import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
+import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 import ru.fusionsoft.dbgit.yaml.DBGitYamlConstructor;
 import ru.fusionsoft.dbgit.yaml.DBGitYamlRepresenter;
 import ru.fusionsoft.dbgit.yaml.YamlOrder;
@@ -25,17 +28,42 @@ public abstract class MetaBase implements IMetaObject {
 	@YamlOrder(0)
 	protected String name;
 	
+	@YamlOrder(1)
+	protected String dbType;
+	
+	@YamlOrder(1)
+	protected String dbVersion;
+	
 	@Override
 	public String getName() {
 		return name;
 	}
 	
 	@Override
-	public void setName(String name) {
-		this.name = name;
-		
+	public void setDbType(String dbType) {
+		this.dbType = dbType;		
 	}
 	
+	@Override
+	public String getDbType() {
+		return dbType;
+	}
+	
+	@Override
+	public void setDbVersion(String dbVersion) {
+		this.dbVersion = dbVersion;		
+	}
+	
+	@Override
+	public String getDbVersion() {
+		return dbVersion;
+	}
+	
+	@Override
+	public void setName(String name) {
+		this.name = name;		
+	}
+
 	@Override
 	public String getFileName() {
 		return getName();
@@ -48,10 +76,8 @@ public abstract class MetaBase implements IMetaObject {
 	 * @throws IOException
 	 */
 	public boolean yamlSerialize(OutputStream stream) throws IOException {
-        Yaml yaml = createYaml();
-        
+        Yaml yaml = createYaml();        	
         String output = yaml.dump(this);
-        //System.out.rintln(output);//TODO delete
         stream.write(output.getBytes(Charset.forName("UTF-8")));
         return true;
 	}
@@ -84,5 +110,24 @@ public abstract class MetaBase implements IMetaObject {
 		dbGit.removeFileFromIndexGit(DBGitPath.DB_GIT_PATH+"/"+getFileName());
 		return 1;
 	}
+	
+	public void setDbType() {
+		try {
+			setDbType(AdapterFactory.createAdapter().getDbType());
+		} catch (ExceptionDBGit e) {
+			throw new ExceptionDBGitRunTime(e.getLocalizedMessage());
+		}
+
+	}
+	
+	public void setDbVersion() {
+		try {
+			setDbVersion(AdapterFactory.createAdapter().getDbVersion());
+		} catch (ExceptionDBGit e) {
+			throw new ExceptionDBGitRunTime(e.getLocalizedMessage());
+		}
+
+	}
+
 	
 }

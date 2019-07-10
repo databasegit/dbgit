@@ -27,9 +27,12 @@ public class MetaFunction extends MetaSql {
 		NameMeta nm = MetaObjectFactory.parseMetaName(getName());
 		
 		DBFunction fun = adapter.getFunction(nm.getSchema(), nm.getName());
-		setSqlObject(fun);
-		
-		return true;
+		if (fun != null) {
+			setSqlObject(fun);
+			return true;
+		}
+		else
+			return false;
 	}
 
 }

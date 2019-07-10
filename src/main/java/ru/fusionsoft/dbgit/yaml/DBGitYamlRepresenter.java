@@ -19,6 +19,7 @@ import org.yaml.snakeyaml.nodes.Tag;
 import org.yaml.snakeyaml.representer.Represent;
 import org.yaml.snakeyaml.representer.Representer;
 
+import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 import ru.fusionsoft.dbgit.utils.StringProperties;
 
 
@@ -88,7 +89,7 @@ public class DBGitYamlRepresenter extends Representer {
         	StringProperties tree = (StringProperties) data;        
         	
         	if (tree.getChildren().size() > 0) {
-        		return representMapping(Tag.MAP, tree.getChildren(), DumperOptions.FlowStyle.AUTO);
+        		return representMapping(Tag.MAP, tree.getChildren(), DumperOptions.FlowStyle.FLOW);
         	}
         	if (tree.getData() == null) {
         		return representScalar(Tag.STR, "");

@@ -5,6 +5,8 @@ import java.util.Map;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 
+import ru.fusionsoft.dbgit.core.DBGitIndex;
+import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.GitMetaDataManager;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
@@ -39,6 +41,9 @@ public class CmdValid implements IDBGitCommand {
 		GitMetaDataManager gmdm = GitMetaDataManager.getInctance();
 		ConsoleWriter.setDetailedLog(cmdLine.hasOption("v"));
 		
+		if (!DBGitIndex.getInctance().isCorrectVersion())
+			throw new ExceptionDBGit("Versions of Dbgit (" + DBGitIndex.VERSION + ") and repository(" + DBGitIndex.getInctance().getRepoVersion() + ") are different!");
+				
 		//возможно за списком файлов нужно будет сходить в гит индекс
 		try {
 			Map<String, IMetaObject> fileObjs = gmdm.loadFileMetaData();

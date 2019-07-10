@@ -159,6 +159,9 @@ public class DBGitPath {
 			writer.write("LIMIT_FETCH = true\n");
 			writer.write("LOG_ROTATE = 31\n");
 			writer.write("SCRIPT_ROTATE = 31\n");
+			writer.write("TO_MAKE_BACKUP = true\n");
+			writer.write("BACKUP_TO_SCHEME = false\n");
+			writer.write("BACKUP_TABLEDATA = true\n");
 			
 			writer.close();
 			

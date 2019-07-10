@@ -30,7 +30,7 @@ public class DBConnection {
 			Properties props = new Properties();
 			String url = loadFileDBLink(props);
 			
-			if (url != null) {
+			if (url != null && isConnect) {
 				props.put("characterEncoding", "UTF-8");
 				connect = DriverManager.getConnection(url, props);
 				

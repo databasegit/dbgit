@@ -1,5 +1,7 @@
 package ru.fusionsoft.dbgit.command;
 
+import java.sql.Timestamp;
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 
@@ -64,7 +66,8 @@ public class CmdRm implements IDBGitCommand {
 		
 		ConsoleWriter.detailsPrintLn("Deleting");
 		for (IMetaObject obj : dbObjs.values()) {
-			if (maskAdd.match(obj.getName())) {										
+			if (maskAdd.match(obj.getName())) {			
+				Timestamp timestampBefore = new Timestamp(System.currentTimeMillis());
 				ConsoleWriter.detailsPrintLn("Processing object " + obj.getName());
 				
 				deleteObjs.put(obj);
@@ -75,6 +78,11 @@ public class CmdRm implements IDBGitCommand {
 				ConsoleWriter.detailsPrint("Removing from index...", 2);
 				index.deleteItem(obj);
 				ConsoleWriter.detailsPrintlnGreen("OK");
+				
+    			Timestamp timestampAfter = new Timestamp(System.currentTimeMillis());
+    			Long diff = timestampAfter.getTime() - timestampBefore.getTime();
+				ConsoleWriter.detailsPrint("Time..." + diff + " ms", 2);
+				ConsoleWriter.detailsPrintLn("");
 			}
 		}
 		if (cmdLine.hasOption("db")) {

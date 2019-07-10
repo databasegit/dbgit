@@ -17,6 +17,7 @@ import ru.fusionsoft.dbgit.adapters.AdapterFactory;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
 import ru.fusionsoft.dbgit.core.DBGitIndex;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
+import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
 import ru.fusionsoft.dbgit.core.ItemIndex;
 import ru.fusionsoft.dbgit.dbobjects.DBConstraint;
 import ru.fusionsoft.dbgit.dbobjects.DBIndex;
@@ -24,6 +25,7 @@ import ru.fusionsoft.dbgit.dbobjects.DBSchema;
 import ru.fusionsoft.dbgit.dbobjects.DBTable;
 import ru.fusionsoft.dbgit.dbobjects.DBTableField;
 import ru.fusionsoft.dbgit.utils.CalcHash;
+import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 import ru.fusionsoft.dbgit.yaml.YamlOrder;
 
 /**
@@ -47,13 +49,20 @@ public class MetaTable extends MetaBase {
 	private Map<String, DBConstraint> constraints = new TreeMap<>();
 	
 	public MetaTable() {	
+		setDbType();
+		setDbVersion();
 	}
 	
 	public MetaTable(String namePath) {
+		setDbType();
+		setDbVersion();
+
 		this.name = namePath;
 	}
 	
 	public MetaTable(DBTable tbl) {
+		setDbType();
+		setDbVersion();
 		setTable(tbl);
 	}
 	
@@ -120,8 +129,9 @@ public class MetaTable extends MetaBase {
 		CalcHash ch = new CalcHash();
 		ch.addData(this.getName());
 		
-		if (getTable() != null)
+		if (getTable() != null) {
 			ch.addData(this.getTable().getHash());
+		}
 		
 		if (fields == null)
 			return EMPTY_HASH;
@@ -129,12 +139,14 @@ public class MetaTable extends MetaBase {
 		for (String item : fields.keySet()) {
 			ch.addData(item);
 			ch.addData(fields.get(item).getHash());
+
 		}
 		
 		if (indexes != null) {
 			for (String item : indexes.keySet()) {
 				ch.addData(item);
 				ch.addData(indexes.get(item).getHash());
+
 			}
 		}
 		
@@ -142,6 +154,7 @@ public class MetaTable extends MetaBase {
 			for (String item : constraints.keySet()) {
 				ch.addData(item);
 				ch.addData(constraints.get(item).getHash());
+
 			}
 		}
 

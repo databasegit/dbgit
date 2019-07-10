@@ -2,15 +2,17 @@ if type java ; then
    echo "Java found"
 else
    echo "Downloading java"
-   apt-get install default-jre
+   sudo apt-get install default-jre
 fi
 
 if type git ; then
    echo "Git found"
 else
    echo "Downloading git"
-   apt-get install git
+   sudo apt-get install git
 fi
+
+USER_HOME=$HOME
 
 echo "Copying files"
 mkdir ~/dbgit -p
@@ -21,6 +23,6 @@ cd ~/dbgit/bin
 chmod +x dbgit
 
 cd /usr/bin
-ln -sf ~/dbgit/bin/dbgit
+sudo ln -sf $USER_HOME/dbgit/bin/dbgit
 
 echo "Done!"

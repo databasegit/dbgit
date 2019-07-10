@@ -17,6 +17,7 @@ import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
 import ru.fusionsoft.dbgit.dbobjects.DBTable;
 import ru.fusionsoft.dbgit.meta.MetaTable;
 import ru.fusionsoft.dbgit.utils.CalcHash;
+import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
 public class RowData {
 	protected Map<String, ICellData> data = new TreeMap<>();
@@ -38,7 +39,7 @@ public class RowData {
 				
 		for (int i = 0; i < rs.getMetaData().getColumnCount(); i++) {	
 			String columnName = rs.getMetaData().getColumnName(i+1).toLowerCase();
-			ICellData cd = FactoryCellData.createCellData(metaTable.getFieldsMap().get(columnName).getTypeMapping());
+			ICellData cd = FactoryCellData.createCellData(metaTable.getFieldsMap().get(columnName).getTypeUniversal());
 			
 			if (cd.loadFromDB(rs, rs.getMetaData().getColumnName(i+1)))
 				data.put(columnName, cd);
@@ -53,15 +54,15 @@ public class RowData {
 
 		if (record.size() != titleColumns.size()) {
 			throw new ExceptionDBGit("Different count columns title and line");
-		}
-		
+		}		
 		
 		for (int i = 0; i < record.size(); i++) {	
 			String columnName = titleColumns.get(i);
 			if (metaTable.getFieldsMap().get(columnName) == null) {
 				throw new ExceptionDBGitRunTime("Field "+columnName+" not found"); 
 			}
-			ICellData cd = FactoryCellData.createCellData(metaTable.getFieldsMap().get(columnName).getTypeMapping());
+			
+			ICellData cd = FactoryCellData.createCellData(metaTable.getFieldsMap().get(columnName).getTypeUniversal());
 			cd.deserialize(record.get(i));
 			
 			data.put(columnName, cd);
