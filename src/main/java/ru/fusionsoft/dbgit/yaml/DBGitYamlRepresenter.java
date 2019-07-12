@@ -13,12 +13,20 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import org.yaml.snakeyaml.DumperOptions;
+import org.yaml.snakeyaml.DumperOptions.FlowStyle;
+import org.yaml.snakeyaml.DumperOptions.ScalarStyle;
 import org.yaml.snakeyaml.introspector.Property;
+import org.yaml.snakeyaml.nodes.MappingNode;
 import org.yaml.snakeyaml.nodes.Node;
+import org.yaml.snakeyaml.nodes.NodeTuple;
+import org.yaml.snakeyaml.nodes.ScalarNode;
 import org.yaml.snakeyaml.nodes.Tag;
 import org.yaml.snakeyaml.representer.Represent;
 import org.yaml.snakeyaml.representer.Representer;
 
+import ru.fusionsoft.dbgit.dbobjects.DBSQLObject;
+import ru.fusionsoft.dbgit.dbobjects.DBTrigger;
+import ru.fusionsoft.dbgit.meta.MetaSql;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 import ru.fusionsoft.dbgit.utils.StringProperties;
 
@@ -73,8 +81,44 @@ public class DBGitYamlRepresenter extends Representer {
 		}
 	}
 	
-	public DBGitYamlRepresenter() {        
+	@Override
+	protected MappingNode representJavaBean(Set<Property> properties, Object javaBean) {
+        List<NodeTuple> value = new ArrayList<NodeTuple>(properties.size());
+        Tag tag;
+        tag = Tag.MAP;
+        // flow style will be chosen by BaseRepresenter
+        MappingNode node = new MappingNode(tag, value, FlowStyle.AUTO);
+        representedObjects.put(javaBean, node);
+        DumperOptions.FlowStyle bestStyle = FlowStyle.FLOW;
+        for (Property property : properties) {
+            Object memberValue = property.get(javaBean);
+            Tag customPropertyTag = memberValue == null ? null
+                    : classTags.get(memberValue.getClass());
+            NodeTuple tuple = representJavaBeanProperty(javaBean, property, memberValue,
+                    customPropertyTag);
+            if (tuple == null) {
+                continue;
+            }
+            if (!((ScalarNode) tuple.getKeyNode()).isPlain()) {
+                bestStyle = FlowStyle.BLOCK;
+            }
+            Node nodeValue = tuple.getValueNode();
+            if (!(nodeValue instanceof ScalarNode && ((ScalarNode) nodeValue).isPlain())) {
+                bestStyle = FlowStyle.BLOCK;
+            }
+            value.add(tuple);
+        }
+        if (defaultFlowStyle != FlowStyle.AUTO) {
+            node.setFlowStyle(defaultFlowStyle);
+        } else {
+            node.setFlowStyle(bestStyle);
+        }
+        return node;
+    }
+	
+	public DBGitYamlRepresenter() {
         this.representers.put(StringProperties.class, new RepresentYamlStringProperties());
+        this.representers.put(String.class, new RepresentYamlString());
     }
 	
 	@Override
@@ -83,18 +127,38 @@ public class DBGitYamlRepresenter extends Representer {
         result.addAll(super.getProperties(type));
         return result;
 	}
+
+	private class RepresentYamlString implements Represent {
+
+		@Override
+		public Node representData(Object data) {
+			String dt = (String) data;
+			
+        	if (dt.contains("\n") || dt.contains("\r")) {
+        		return representScalar(Tag.STR, dt, ScalarStyle.LITERAL);
+        	}
+        		
+            return representScalar(Tag.STR, dt);		
+		}
+		
+	}
 	
 	private class RepresentYamlStringProperties implements Represent {
 		public Node representData(Object data) {        
         	StringProperties tree = (StringProperties) data;        
         	
-        	if (tree.getChildren().size() > 0) {
-        		return representMapping(Tag.MAP, tree.getChildren(), DumperOptions.FlowStyle.FLOW);
-        	}
-        	if (tree.getData() == null) {
-        		return representScalar(Tag.STR, "");
+        	if (tree.getChildren().size() > 0) {        		
+        		return representMapping(Tag.MAP, tree.getChildren(), DumperOptions.FlowStyle.BLOCK);        		
         	}
         	
+        	if (tree.getData() == null) {
+        		return representScalar(Tag.STR, "");
+        	}       	
+        	
+        	if (tree.getData().contains("\n") || tree.getData().contains("\r")) {
+        		return representScalar(Tag.STR, tree.getData(), ScalarStyle.LITERAL);
+        	}
+        		
             return representScalar(Tag.STR, tree.getData());
         }
     }

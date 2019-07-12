@@ -8,7 +8,7 @@ public class DBTableField implements IDBObject, Comparable<DBTableField> {
 	private String typeSQL;
 	private String typeMapping;
 	private String typeUniversal;
-	private String length;
+	private int length;
 	private int scale;
 	private int precision;
 	private boolean fixed;
@@ -41,11 +41,11 @@ public class DBTableField implements IDBObject, Comparable<DBTableField> {
 		return typeUniversal;
 	}
 	
-	public void setLength(String length) {
+	public void setLength(int length) {
 		this.length = length;
 	}
 	
-	public String getLength() {			
+	public int getLength() {			
 		return length;
 	}
 

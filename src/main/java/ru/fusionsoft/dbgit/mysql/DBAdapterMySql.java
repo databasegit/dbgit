@@ -16,6 +16,7 @@ import com.axiomalaska.jdbc.NamedParameterPreparedStatement;
 import ru.fusionsoft.dbgit.adapters.DBAdapter;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBAdapterRestoteMetaData;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBBackupAdapter;
+import ru.fusionsoft.dbgit.core.DBGitConfig;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
 import ru.fusionsoft.dbgit.data_table.DateData;
@@ -128,7 +129,7 @@ public class DBAdapterMySql extends DBAdapter {
 		Map<String, DBTable> listTable = new HashMap<String, DBTable>();
 		try {
 			String query = "SELECT T.TABLE_NAME, T.TABLE_SCHEMA " + 
-					"FROM information_schema.tables T WHERE TABLE_SCHEMA = '" + schema + "'";
+					"FROM information_schema.tables T WHERE TABLE_SCHEMA = '" + schema + "' and TABLE_TYPE = 'BASE TABLE'";
 			Connection connect = getConnection();
 			
 			Statement stmt = connect.createStatement();
@@ -144,7 +145,7 @@ public class DBAdapterMySql extends DBAdapter {
 				ResultSet rsDdl = stmtDdl.executeQuery("show create table " + schema + "." + nameTable);
 				rsDdl.next();
 				
-				table.getOptions().addChild("ddl", rsDdl.getString(2));
+				table.getOptions().addChild("ddl", cleanString(rsDdl.getString(2)));
 				
 				listTable.put(nameTable, table);
 				
@@ -181,7 +182,7 @@ public class DBAdapterMySql extends DBAdapter {
 				ResultSet rsDdl = stmtDdl.executeQuery("show create table " + schema + "." + nameTable);
 				rsDdl.next();
 				
-				table.getOptions().addChild("ddl", rsDdl.getString("Create Table"));
+				table.getOptions().addChild("ddl", cleanString(rsDdl.getString(2)));
 				
 				rowToProperties(rs, table.getOptions());
 				
@@ -208,10 +209,10 @@ public class DBAdapterMySql extends DBAdapter {
 					"SELECT distinct col.column_name,col.is_nullable,col.data_type,col.character_maximum_length, tc.constraint_name, " +
 					"case\r\n" + 
 					"	when lower(data_type) in ('tinyint', 'smallint', 'mediumint', 'int', 'bigint', 'float', 'double', 'decimal') then 'number' \r\n" + 
-					"	when lower(data_type) in ('tinytext', 'text', 'char', 'mediumtext', 'longtext', 'blob', 'mediumblob', 'longblob', 'varchar') then 'string'\r\n" + 
+					"	when lower(data_type) in ('tinytext', 'text', 'char', 'mediumtext', 'longtext', 'varchar') then 'string'\r\n" + 
 					"	when lower(data_type) in ('datetime', 'timestamp', 'date') then 'date'\r\n" + 
 					"	when lower(data_type) in ('boolean') then 'boolean'\r\n" + 
-					"   when lower(data_type) in ('bytea') then 'binary'" +
+					"   when lower(data_type) in ('blob', 'mediumblob', 'longblob', 'binary', 'varbinary') then 'binary'" +
 					"	else 'native'\r\n" + 
 					"	end tp, " +
 					"    case when lower(data_type) in ('char', 'character') then true else false end fixed, " +
@@ -238,7 +239,7 @@ public class DBAdapterMySql extends DBAdapter {
 				field.setTypeMapping(getTypeMapping(rs));
 				field.setTypeUniversal(rs.getString("tp"));
 				field.setFixed(false);
-				field.setLength(rs.getString("character_maximum_length"));
+				field.setLength(rs.getInt("character_maximum_length"));
 				field.setPrecision(rs.getInt("numeric_precision"));
 				field.setScale(rs.getInt("numeric_scale"));
 				field.setFixed(rs.getBoolean("fixed"));
@@ -267,14 +268,61 @@ public class DBAdapterMySql extends DBAdapter {
 
 	@Override
 	public Map<String, DBView> getViews(String schema) {
-		Map<String, DBView> views = new HashMap<String, DBView>();
-		return views;
+		Map<String, DBView> listView = new HashMap<String, DBView>();
+		try {
+			String query = "show full tables in " + schema + " where TABLE_TYPE like 'VIEW'";
+			Connection connect = getConnection();
+			Statement stmt = connect.createStatement();
+			ResultSet rs = stmt.executeQuery(query);
+			while(rs.next()){
+				DBView view = new DBView(rs.getString(1));
+				view.setSchema(schema);
+				view.setOwner(schema);
+				rowToProperties(rs, view.getOptions());
+				
+				Statement stmtDdl = connect.createStatement();
+				ResultSet rsDdl = stmtDdl.executeQuery("show create view " + schema + "." + rs.getString(1));
+				rsDdl.next();
+				
+				view.getOptions().addChild("ddl", cleanString(rsDdl.getString(2)));
+				listView.put(rs.getString(1), view);
+				
+				stmtDdl.close();
+				rsDdl.close();
+			}
+			stmt.close();
+			return listView;
+		} catch(Exception e) {
+			logger.error(e.getMessage());
+			System.out.println(e.getMessage());
+			throw new ExceptionDBGitRunTime(e.getMessage());
+		}
 	}
 
 	@Override
 	public DBView getView(String schema, String name) {
-		// TODO Auto-generated method stub
-		return null;
+		DBView view = new DBView(name);
+		view.setSchema(schema);
+		try {
+			view.setSchema(schema);
+			view.setOwner(schema);
+			
+			Statement stmtDdl = connect.createStatement();
+			ResultSet rsDdl = stmtDdl.executeQuery("show create view " + schema + "." + name);
+			rsDdl.next();
+			
+			view.getOptions().addChild("ddl", cleanString(rsDdl.getString(2)));
+			
+			stmtDdl.close();
+			rsDdl.close();
+			
+			return view;
+			
+		}catch(Exception e) {
+			logger.error(e.getMessage());
+			throw new ExceptionDBGitRunTime(e.getMessage());
+		}
+			
 	}
 
 	@Override
@@ -315,20 +363,95 @@ public class DBAdapterMySql extends DBAdapter {
 
 	@Override
 	public Map<String, DBTrigger> getTriggers(String schema) {
-		Map<String, DBTrigger> triggers = new HashMap<String, DBTrigger>();
-		return triggers;
+		Map<String, DBTrigger> listTrigger = new HashMap<String, DBTrigger>();
+		try {
+			String query = "show triggers in " + schema;
+			
+			Connection connect = getConnection();
+			Statement stmt = connect.createStatement();
+			ResultSet rs = stmt.executeQuery(query);
+			while(rs.next()){
+				String name = rs.getString(1);
+				DBTrigger trigger = new DBTrigger(name);
+				trigger.setSchema(schema);
+				trigger.setOwner(schema);				
+				
+				Statement stmtDdl = connect.createStatement();
+				ResultSet rsDdl = stmtDdl.executeQuery("show create trigger " + schema + "." + rs.getString(1));
+				rsDdl.next();
+				
+				trigger.getOptions().addChild("ddl", cleanString(rsDdl.getString(3)));
+				
+				stmtDdl.close();
+				rsDdl.close();				
+				
+				rowToProperties(rs, trigger.getOptions());
+				listTrigger.put(name, trigger);
+			}
+			stmt.close();
+			return listTrigger;
+		}catch(Exception e) {
+			throw new ExceptionDBGitRunTime("Error ", e);	
+		}
 	}
 
 	@Override
 	public DBTrigger getTrigger(String schema, String name) {
-		// TODO Auto-generated method stub
-		return null;
+		DBTrigger trigger = new DBTrigger(name);
+		try {
+			trigger.setSchema(schema);
+			trigger.setOwner(schema);
+			
+			Statement stmtDdl = connect.createStatement();
+			ResultSet rsDdl = stmtDdl.executeQuery("show create trigger " + schema + "." + name);
+			rsDdl.next();
+			
+			trigger.getOptions().addChild("ddl", cleanString(rsDdl.getString(3)));
+			
+			stmtDdl.close();
+			rsDdl.close();
+			
+			return trigger;
+			
+		}catch(Exception e) {
+			throw new ExceptionDBGitRunTime("Error ", e);	
+		}
 	}
 
 	@Override
 	public DBTableData getTableData(String schema, String nameTable) {
-		// TODO Auto-generated method stub
-		return null;
+		String tableName = schema + "." + nameTable;
+		try {
+			DBTableData data = new DBTableData();
+			
+			int maxRowsCount = DBGitConfig.getInstance().getInteger("core", "MAX_ROW_COUNT_FETCH", MAX_ROW_COUNT_FETCH);
+			
+			if (DBGitConfig.getInstance().getBoolean("core", "LIMIT_FETCH", true)) {
+				Statement st = getConnection().createStatement();
+				String query = "select COALESCE(count(*), 0) kolvo from ( select 1 from "+
+						tableName + " limit " + (maxRowsCount + 1) + " ) tbl";
+				ResultSet rs = st.executeQuery(query);
+				rs.next();
+				if (rs.getInt("kolvo") > maxRowsCount) {
+					data.setErrorFlag(DBTableData.ERROR_LIMIT_ROWS);
+					return data;
+				}
+				
+				rs = st.executeQuery("select * from "+tableName);
+				data.setResultSet(rs);
+				return data;
+			}
+			
+			return data;
+		} catch(Exception e) {
+			logger.error("Error load data from "+tableName, e);
+			try {
+				getConnection().rollback(); 
+			} catch (Exception e2) {
+				logger.error("Error rollback  ", e2);
+			}
+			throw new ExceptionDBGitRunTime(e.getMessage());
+		}
 	}
 
 	@Override
@@ -350,7 +473,6 @@ public class DBAdapterMySql extends DBAdapter {
 
 	@Override
 	public IFactoryDBBackupAdapter getBackupAdapterFactory() {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
@@ -389,7 +511,6 @@ public class DBAdapterMySql extends DBAdapter {
 	}
 
 	protected String getTypeMapping(ResultSet rs) throws SQLException {
-		//String tp = rs.getString("data_type");
 		String tp = rs.getString("tp");
 		if (FactoryCellData.contains(tp) ) 
 			return tp;
@@ -404,12 +525,11 @@ public class DBAdapterMySql extends DBAdapter {
 			
 			BigDecimal max_length = rs.getBigDecimal("character_maximum_length");
 			if (!rs.wasNull()) {
-				type.append("("+max_length + ")");
+				type.append("(" + max_length + ")");
 			}
 			if (rs.getString("is_nullable").equals("NO")){
 				type.append(" NOT NULL");
 			}
-			
 			
 			return type.toString();
 		}catch(Exception e) {

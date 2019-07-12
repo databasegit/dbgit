@@ -9,6 +9,7 @@ import org.yaml.snakeyaml.constructor.Constructor;
 import org.yaml.snakeyaml.nodes.MappingNode;
 import org.yaml.snakeyaml.nodes.Node;
 import org.yaml.snakeyaml.nodes.ScalarNode;
+import org.yaml.snakeyaml.nodes.Tag;
 
 import ru.fusionsoft.dbgit.utils.StringProperties;
 
@@ -23,6 +24,7 @@ public class DBGitYamlConstructor extends Constructor {
 	
 	public DBGitYamlConstructor() {
 		constructorsByClass.put(StringProperties.class, new ConstructYamlStringProperties());
+		
 	}
 	
 	@Override

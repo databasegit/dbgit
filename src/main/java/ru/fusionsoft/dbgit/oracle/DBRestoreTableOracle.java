@@ -132,10 +132,10 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 					if(tableconst.getConstraintType().equals("p")) {
 						ConsoleWriter.detailsPrint("Adding PK...", 2);
 						
-						if (tableconst.getConstraintDef().toLowerCase().startsWith("alter table")) 
-							st.execute(tableconst.getConstraintDef());
-						else if (tableconst.getConstraintDef().toLowerCase().startsWith("primary key"))
-							st.execute("alter table "+ tblName +" add constraint PK_"+ tableconst.getName() + tableconst.getConstraintDef());
+						if (tableconst.getOptions().get("ddl").toString().toLowerCase().startsWith("alter table")) 
+							st.execute(tableconst.getOptions().get("ddl").toString());
+						else if (tableconst.getOptions().get("ddl").toString().toLowerCase().startsWith("primary key"))
+							st.execute("alter table "+ tblName +" add constraint PK_"+ tableconst.getName() + tableconst.getOptions().get("ddl").toString());
 						ConsoleWriter.detailsPrintlnGreen("OK");
 						break;
 					}
@@ -215,7 +215,7 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 				// set primary key
 				for(DBConstraint tableconst: restoreTable.getConstraints().values()) {
 					if(tableconst.getConstraintType().equals("p")) {
-						st.execute(restoreTable.getConstraints().get("constraintDef").getConstraintDef().toString());
+						st.execute(restoreTable.getConstraints().get("constraintDef").getOptions().get("ddl").toString());
 						//st.execute("alter table "+ tblName +" add constraint PK_"+ tableconst.getName() + " primary key ("+tableconst.getName() + ")");
 						break;
 					}
@@ -301,7 +301,7 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 					if(!constrs.getConstraintType().equalsIgnoreCase("P")) {				
 						//String tblName = schema+"."+restoreTable.getTable().getName();
 						
-						st.execute(constrs.getConstraintDef().toString());
+						st.execute(constrs.getOptions().get("ddl").toString());
 					}
 				}
 				ConsoleWriter.detailsPrintlnGreen("OK");

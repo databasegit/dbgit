@@ -307,7 +307,7 @@ public class DBAdapterPostgres extends DBAdapter {
 				field.setTypeMapping(getTypeMapping(rs));
 				field.setTypeUniversal(rs.getString("tp"));
 				field.setFixed(false);
-				field.setLength(rs.getString("character_maximum_length"));
+				field.setLength(rs.getInt("character_maximum_length"));
 				field.setPrecision(rs.getInt("numeric_precision"));
 				field.setScale(rs.getInt("numeric_scale"));
 				field.setFixed(rs.getBoolean("fixed"));
@@ -414,7 +414,6 @@ public class DBAdapterPostgres extends DBAdapter {
 			while(rs.next()){
 				DBConstraint con = new DBConstraint();
 				con.setName(rs.getString("constraint_name"));
-				con.setConstraintDef(rs.getString("ddl"));
 				con.setConstraintType(rs.getString("constraint_type"));
 				con.setSchema(schema);
 				rowToProperties(rs, con.getOptions());

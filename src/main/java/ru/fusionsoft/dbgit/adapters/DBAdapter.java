@@ -125,11 +125,20 @@ public abstract class DBAdapter implements IDBAdapter {
 
 	}
 	
+	public String cleanString(String str) {
+		String dt = str.replace("\r\n", "\n");
+		while (dt.contains(" \n")) dt = dt.replace(" \n", "\n");
+		dt = dt.replace("\t", "   ").trim();
+		
+		return dt;
+	}
+	
 	public void rowToProperties(ResultSet rs, StringProperties properties) {
 		try {
 			for (int i = 1; i <= rs.getMetaData().getColumnCount(); i++) {
-				if (rs.getString(i) == null) continue ;
-				properties.addChild(rs.getMetaData().getColumnName(i).toLowerCase(), rs.getString(i));
+				if (rs.getString(i) == null) continue ;			
+				
+				properties.addChild(rs.getMetaData().getColumnName(i).toLowerCase(), cleanString(rs.getString(i)));
 			}
 		} catch(Exception e) {
 			throw new ExceptionDBGitRunTime(e);

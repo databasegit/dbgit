@@ -308,7 +308,7 @@ public class DBAdapterOracle extends DBAdapter {
 				field.setTypeSQL(getFieldType(rs));
 				field.setTypeMapping(getTypeMapping(rs));
 				field.setTypeUniversal(rs.getString("TYPE"));
-				field.setLength(rs.getString("DATA_LENGTH"));
+				field.setLength(rs.getInt("DATA_LENGTH"));
 				field.setScale(rs.getInt("DATA_SCALE"));
 				field.setPrecision(rs.getInt("DATA_PRECISION"));
 				field.setFixed(rs.getBoolean("fixed"));
@@ -397,7 +397,6 @@ public class DBAdapterOracle extends DBAdapter {
 				DBConstraint con = new DBConstraint();
 				con.setName(rs.getString("CONSTRAINT_NAME"));
 				//This is DDL?
-				con.setConstraintDef(rs.getString("DDL"));
 				con.setConstraintType(rs.getString("CONSTRAINT_TYPE"));
 				con.setSchema(schema);
 				rowToProperties(rs, con.getOptions());

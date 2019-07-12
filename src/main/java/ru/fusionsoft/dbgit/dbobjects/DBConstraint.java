@@ -3,14 +3,8 @@ package ru.fusionsoft.dbgit.dbobjects;
 import ru.fusionsoft.dbgit.utils.CalcHash;
 
 public class DBConstraint extends DBSQLObject {
-	private String constraintDef; 
 	private String constraintType;
-	public String getConstraintDef() {
-		return constraintDef;
-	}
-	public void setConstraintDef(String constraintDef) {
-		this.constraintDef = constraintDef;
-	}
+	
 	public String getConstraintType() {
 		return constraintType;
 	}

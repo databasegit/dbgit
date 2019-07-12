@@ -7,6 +7,8 @@ import java.nio.charset.Charset;
 
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.DumperOptions.ScalarStyle;
+import org.yaml.snakeyaml.nodes.Tag;
 
 import ru.fusionsoft.dbgit.adapters.AdapterFactory;
 import ru.fusionsoft.dbgit.core.DBGit;
@@ -71,13 +73,14 @@ public abstract class MetaBase implements IMetaObject {
 	
 	/**
 	 * <div class="en">When you save the yaml object, the library ignores properties for which there is no getter and setter</div>
-	 * <div class="ru">При сохранении объекта yaml библиотека игнорирует свойсва для которых нет геттера и сеттера</div>
+	 * <div class="ru">При сохранении объекта yaml библиотека игнорирует свойства для которых нет геттера и сеттера</div>
 	 * @param stream
 	 * @throws IOException
 	 */
 	public boolean yamlSerialize(OutputStream stream) throws IOException {
-        Yaml yaml = createYaml();        	
-        String output = yaml.dump(this);
+        Yaml yaml = createYaml();     
+        String output = yaml.dumpAs(this, Tag.MAP, DumperOptions.FlowStyle.BLOCK);
+        
         stream.write(output.getBytes(Charset.forName("UTF-8")));
         return true;
 	}

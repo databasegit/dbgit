@@ -275,7 +275,7 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 		try {	
 				for(DBConstraint constrs :table.getConstraints().values()) {
 					if(!constrs.getConstraintType().equals("p")) {				
-					st.execute("alter table "+schema+"."+ table.getTable().getName() +" add constraint "+ constrs.getName() + " "+constrs.getConstraintDef());
+					st.execute("alter table "+schema+"."+ table.getTable().getName() +" add constraint "+ constrs.getName() + " "+constrs.getOptions().get("ddl").toString());
 					}
 				}						
 		}

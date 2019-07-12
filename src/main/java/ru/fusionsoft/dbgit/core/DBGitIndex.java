@@ -8,7 +8,7 @@ import java.io.FileWriter;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
 
 public class DBGitIndex {
-	public static final String VERSION = "0.2.1";
+	public static final String VERSION = "0.2.2";
 	
 	private static DBGitIndex gitIndex = null;
 	private TreeMapItemIndex treeItems;

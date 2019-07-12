@@ -231,7 +231,7 @@ public class DBRestoreTableDataOracle extends DBRestoreAdapter {
 			for(DBConstraint constraint : table.getConstraints().values()) {
 				if(!constraint.getConstraintType().equalsIgnoreCase("p")) {				
 					String query = "alter table " + schema + "." + table.getTable().getName() 
-							+ " add constraint "+ constraint.getName() + " " +constraint.getConstraintDef();
+							+ " add constraint "+ constraint.getName() + " " +constraint.getOptions().get("ddl").toString();
 					ConsoleWriter.println(query);
 					st.execute(query);
 				}
