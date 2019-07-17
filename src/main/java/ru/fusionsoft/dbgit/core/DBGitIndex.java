@@ -118,13 +118,17 @@ public class DBGitIndex {
 		DBGit.getInstance().addFileToIndexGit(DBGitPath.DB_GIT_PATH+"/"+DBGitPath.DB_LINK_FILE);
 	}
 	
+	public void addIgnoreToGit() throws ExceptionDBGit {
+		DBGit.getInstance().addFileToIndexGit(DBGitPath.DB_GIT_PATH+"/"+DBGitPath.DB_IGNORE_FILE);
+	}
+	
 	public boolean hasConflicts() {
 		return hasConflicts;
 	}
 	
 	public boolean isCorrectVersion() {
 		if (version == null || version.equals(""))
-			return true;
+			return false;
 		else
 			return version.equals(VERSION);
 	}

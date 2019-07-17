@@ -112,8 +112,8 @@ public class DBGitPath {
 		int scriptRotate = 31; 
 		
 		if (isRepositoryExists()) {
-			logRotate = DBGitConfig.getInstance().getInteger("core", "LOG_ROTATE", 31);
-			scriptRotate = DBGitConfig.getInstance().getInteger("core", "SCRIPT_ROTATE", 31);
+			logRotate = DBGitConfig.getInstance().getInteger("core", "LOG_ROTATE", DBGitConfig.getInstance().getIntegerGlobal("core", "LOG_ROTATE", 31));
+			scriptRotate = DBGitConfig.getInstance().getInteger("core", "SCRIPT_ROTATE", DBGitConfig.getInstance().getIntegerGlobal("core", "SCRIPT_ROTATE", 31));
 			
 			File logDir = new File(getLogsPath());
 			File scriptDir = new File(getScriptsPath());
@@ -158,6 +158,7 @@ public class DBGitPath {
 			writer.write("MAX_ROW_COUNT_FETCH = 10000\n");
 			writer.write("LIMIT_FETCH = true\n");
 			writer.write("LOG_ROTATE = 31\n");
+			writer.write("LANG = ENG\n");
 			writer.write("SCRIPT_ROTATE = 31\n");
 			writer.write("TO_MAKE_BACKUP = true\n");
 			writer.write("BACKUP_TO_SCHEME = false\n");

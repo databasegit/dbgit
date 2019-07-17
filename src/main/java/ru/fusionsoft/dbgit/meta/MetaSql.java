@@ -9,6 +9,7 @@ import java.util.Map;
 
 import org.apache.commons.io.IOUtils;
 
+import ru.fusionsoft.dbgit.core.DBGitLang;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitObjectNotFound;
 import ru.fusionsoft.dbgit.dbobjects.DBOptionsObject;
@@ -26,7 +27,7 @@ public abstract class MetaSql extends MetaBase {
 		setDbVersion();
 	}
 	
-	public MetaSql(DBSQLObject sqlObject) {
+	public MetaSql(DBSQLObject sqlObject) throws ExceptionDBGit {
 		this();
 		setSqlObject(sqlObject);
 	}	
@@ -36,7 +37,7 @@ public abstract class MetaSql extends MetaBase {
 	}
 
 
-	public void setSqlObject(DBSQLObject sqlObject) {
+	public void setSqlObject(DBSQLObject sqlObject) throws ExceptionDBGit {
 		this.sqlObject = sqlObject;
 		setName(sqlObject.getSchema()+"/"+sqlObject.getName()+"."+getType().getValue());
 	}
@@ -83,7 +84,7 @@ public abstract class MetaSql extends MetaBase {
 	public void setObjectOptionFromMap(Map<String, ? extends DBSQLObject> map) throws ExceptionDBGit {
 		NameMeta nm = MetaObjectFactory.parseMetaName(getName());
 		if (!map.containsKey(nm.getName())) {
-			throw new ExceptionDBGitObjectNotFound("Not found object "+getName());
+			throw new ExceptionDBGitObjectNotFound(DBGitLang.getInstance().getValue("errors", "meta", "notFound").withParams(getName()));
 		}
 		setSqlObject(map.get(nm.getName()));
 	}

@@ -13,7 +13,7 @@ public class MetaRole extends MetaObjOptions {
 		super();
 	}
 	
-	public MetaRole(DBRole role) {
+	public MetaRole(DBRole role) throws ExceptionDBGit {
 		super(role);
 	}
 	

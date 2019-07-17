@@ -62,7 +62,7 @@ public abstract class MetaBase implements IMetaObject {
 	}
 	
 	@Override
-	public void setName(String name) {
+	public void setName(String name) throws ExceptionDBGit {
 		this.name = name;		
 	}
 

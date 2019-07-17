@@ -72,7 +72,7 @@ public class DBRestoreTableDataOracle extends DBRestoreAdapter {
 			
 			return true;
 		} else {
-			throw new ExceptionDBGitRestore("Error restore: Unable to restore Table Data.");
+			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()));
 		}
 	}
 
@@ -84,7 +84,7 @@ public class DBRestoreTableDataOracle extends DBRestoreAdapter {
 		try {
 			String tblName = getPhisicalSchema(restoreTableData.getTable().getSchema()) + "." + restoreTableData.getTable().getName();
 
-			ConsoleWriter.detailsPrint("Restoring table data for " + tblName + "\n", 1);
+			ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "tableData").withParams(tblName) + "\n", 1);
 
 			String insertQuery= "";
 			
@@ -92,7 +92,7 @@ public class DBRestoreTableDataOracle extends DBRestoreAdapter {
 			MapDifference<String, RowData> diffTableData = Maps.difference(restoreTableData.getmapRows(), currentTableData == null ? new TreeMap<String, RowData>() : currentTableData.getmapRows());
 
 			if(!diffTableData.entriesOnlyOnLeft().isEmpty()) {
-				ConsoleWriter.detailsPrint("Inserting...", 2);
+				ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "inserting"), 2);
 				for(RowData rowData:diffTableData.entriesOnlyOnLeft().values()) {
 					String values = 
 							rowData.getData().values().stream()
@@ -128,19 +128,19 @@ public class DBRestoreTableDataOracle extends DBRestoreAdapter {
 					//st.execute(insertQuery);
 
 				}
-				ConsoleWriter.detailsPrintlnGreen("OK");
+				ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
 
 			}
 			if(!diffTableData.entriesOnlyOnRight().isEmpty()) {
 				boolean isSuccessful = true;
-				ConsoleWriter.detailsPrint("Deleteng...", 2);
+				ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "deleting"), 2);
 
 				for(RowData rowData : diffTableData.entriesOnlyOnRight().values()) {
 					Map<String,String> primarykeys = getKeys(rowData);
 					
 					if (primarykeys.size() == 0) {
-						ConsoleWriter.detailsPrintlnRed("FAIL");
-						ConsoleWriter.printlnRed("PK not found for table " + tblName + ", cannot delete row!");
+						ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
+						ConsoleWriter.printlnRed(lang.getValue("general", "restore", "pkNotFound").withParams(tblName));
 						isSuccessful = false;
 						break;
 					}
@@ -159,14 +159,14 @@ public class DBRestoreTableDataOracle extends DBRestoreAdapter {
 			
 			if(!diffTableData.entriesDiffering().isEmpty()) {
 				boolean isSuccessful = true;
-				ConsoleWriter.detailsPrint("Updating...", 2);
+				ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "updating"), 2);
 				for (ValueDifference<RowData> diffRowData:diffTableData.entriesDiffering().values()) {
 					if (!diffRowData.leftValue().getHashRow().equals(diffRowData.rightValue().getHashRow())) {
 						Map<String,String> primarykeys = getKeys(diffRowData.leftValue());
 						
 						if (primarykeys.size() == 0) {
-							ConsoleWriter.detailsPrintlnRed("FAIL");
-							ConsoleWriter.printlnRed("PK not found for table " + tblName + ", cannot update row!");
+							ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
+							ConsoleWriter.printlnRed(lang.getValue("general", "restore", "pkNotFound").withParams(tblName));
 							isSuccessful = false;
 							break;
 						}
@@ -193,7 +193,7 @@ public class DBRestoreTableDataOracle extends DBRestoreAdapter {
 
 		}
 		catch (Exception e) {
-			throw new ExceptionDBGitRestore("Error restore " + restoreTableData.getTable().getSchema() + "." + restoreTableData.getTable().getName() , e);
+			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(restoreTableData.getTable().getSchema() + "." + restoreTableData.getTable().getName()), e);
 		} finally {
 			st.close();
 		}
@@ -211,7 +211,7 @@ public class DBRestoreTableDataOracle extends DBRestoreAdapter {
 						primarykeys.put(entry.getKey(), entry.getValue().convertToString());
 					}
 				} catch (Exception e) {
-					ConsoleWriter.printlnRed("Can't get PK for table");
+					ConsoleWriter.printlnRed(lang.getValue("general", "restore", "pkNotFound").withParams(""));
 					ConsoleWriter.printlnRed(e.getMessage());
 				} 
 			}			        	
@@ -222,7 +222,7 @@ public class DBRestoreTableDataOracle extends DBRestoreAdapter {
 
 	
 	private void restoreTableConstraintOracle(MetaTable table) throws Exception {
-		ConsoleWriter.detailsPrint("Restoring constraints for " + table.getName() + "...", 1);
+		ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "restoreConstr").withParams(table.getName()), 1);
 		IDBAdapter adapter = getAdapter();
 		Connection connect = adapter.getConnection();
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
@@ -236,17 +236,17 @@ public class DBRestoreTableDataOracle extends DBRestoreAdapter {
 					st.execute(query);
 				}
 			}					
-			ConsoleWriter.detailsPrintlnGreen("OK");
+			ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
 		} catch (Exception e) {
-			ConsoleWriter.detailsPrintlnRed("FAIL");
-			throw new ExceptionDBGitRestore("Error restore " + table.getTable().getName(), e);
+			ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
+			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(table.getTable().getName()), e);
 		} finally {
 			st.close();
 		}			
 	}
 
 	private void removeTableConstraintsOracle(MetaTable table) throws Exception {
-		ConsoleWriter.detailsPrint("Deleting constraints for " + table.getName() + "...", 1);
+		ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "delConstr").withParams(table.getName()), 1);
 		IDBAdapter adapter = getAdapter();
 		StatementLogging st = new StatementLogging(adapter.getConnection(), adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
 		String schema = getPhisicalSchema(table.getTable().getSchema());
@@ -259,10 +259,10 @@ public class DBRestoreTableDataOracle extends DBRestoreAdapter {
 					st.execute(query);
 				}					
 			}
-			ConsoleWriter.detailsPrintlnGreen("OK");
+			ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
 		} catch(Exception e) {
-			ConsoleWriter.detailsPrintlnRed("FAIL");
-			throw new ExceptionDBGitRestore("Cannot restore " + schema + "." +table.getTable().getName(), e);
+			ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
+			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "cannotRestore").withParams(schema + "." + table.getTable().getName()), e);
 		} finally {
 			st.close();
 		}		

@@ -17,6 +17,7 @@ import ru.fusionsoft.dbgit.adapters.DBAdapter;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBAdapterRestoteMetaData;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBBackupAdapter;
 import ru.fusionsoft.dbgit.core.DBGitConfig;
+import ru.fusionsoft.dbgit.core.DBGitLang;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
 import ru.fusionsoft.dbgit.data_table.DateData;
@@ -99,8 +100,8 @@ public class DBAdapterMySql extends DBAdapter {
 			}	
 			stmt.close();
 		}catch(Exception e) {
-			logger.error("Error load schemes!", e);
-			throw new ExceptionDBGitRunTime("Error load schemes!", e);
+			logger.error(lang.getValue("errors", "adapter", "schemes").toString(), e);
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "schemes").toString(), e);
 		} 
 
 		return listScheme;
@@ -155,8 +156,8 @@ public class DBAdapterMySql extends DBAdapter {
 			rs.close();
 			stmt.close();			
 		}catch(Exception e) {
-			logger.error("Error load tables.", e);			
-			throw new ExceptionDBGitRunTime("Error load tables.", e);
+			logger.error(lang.getValue("errors", "adapter", "tables").toString(), e);			
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "tables").toString(), e);
 		}
 		return listTable;
 	}
@@ -195,8 +196,8 @@ public class DBAdapterMySql extends DBAdapter {
 			return table;
 		
 		}catch(Exception e) {
-			logger.error("Error load tables.", e);			
-			throw new ExceptionDBGitRunTime("Error load tables.", e);
+			logger.error(lang.getValue("errors", "adapter", "tables").toString(), e);			
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "tables").toString(), e);
 		}
 	}
 
@@ -249,8 +250,8 @@ public class DBAdapterMySql extends DBAdapter {
 			
 			return listField;
 		}catch(Exception e) {
-			logger.error("Error load tables.", e);			
-			throw new ExceptionDBGitRunTime("Error load tables.", e);
+			logger.error(lang.getValue("errors", "adapter", "tables").toString(), e);			
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "tables").toString(), e);
 		}		
 	}
 
@@ -391,7 +392,7 @@ public class DBAdapterMySql extends DBAdapter {
 			stmt.close();
 			return listTrigger;
 		}catch(Exception e) {
-			throw new ExceptionDBGitRunTime("Error ", e);	
+			throw new ExceptionDBGitRunTime(e);	
 		}
 	}
 
@@ -414,7 +415,7 @@ public class DBAdapterMySql extends DBAdapter {
 			return trigger;
 			
 		}catch(Exception e) {
-			throw new ExceptionDBGitRunTime("Error ", e);	
+			throw new ExceptionDBGitRunTime(e);	
 		}
 	}
 
@@ -424,9 +425,9 @@ public class DBAdapterMySql extends DBAdapter {
 		try {
 			DBTableData data = new DBTableData();
 			
-			int maxRowsCount = DBGitConfig.getInstance().getInteger("core", "MAX_ROW_COUNT_FETCH", MAX_ROW_COUNT_FETCH);
+			int maxRowsCount = DBGitConfig.getInstance().getInteger("core", "MAX_ROW_COUNT_FETCH", DBGitConfig.getInstance().getIntegerGlobal("core", "MAX_ROW_COUNT_FETCH", MAX_ROW_COUNT_FETCH));
 			
-			if (DBGitConfig.getInstance().getBoolean("core", "LIMIT_FETCH", true)) {
+			if (DBGitConfig.getInstance().getBoolean("core", "LIMIT_FETCH", DBGitConfig.getInstance().getBooleanGlobal("core", "LIMIT_FETCH", true))) {
 				Statement st = getConnection().createStatement();
 				String query = "select COALESCE(count(*), 0) kolvo from ( select 1 from "+
 						tableName + " limit " + (maxRowsCount + 1) + " ) tbl";
@@ -444,11 +445,11 @@ public class DBAdapterMySql extends DBAdapter {
 			
 			return data;
 		} catch(Exception e) {
-			logger.error("Error load data from "+tableName, e);
+			logger.error(lang.getValue("errors", "adapter", "tableData").toString(), e);
 			try {
 				getConnection().rollback(); 
 			} catch (Exception e2) {
-				logger.error("Error rollback  ", e2);
+				logger.error(lang.getValue("errors", "adapter", "rollback").toString(), e2);
 			}
 			throw new ExceptionDBGitRunTime(e.getMessage());
 		}
@@ -533,8 +534,17 @@ public class DBAdapterMySql extends DBAdapter {
 			
 			return type.toString();
 		}catch(Exception e) {
-			logger.error("Error load tables.", e);			
-			throw new ExceptionDBGitRunTime("Error load tables.", e);
+			logger.error(lang.getValue("errors", "adapter", "tables").toString(), e);			
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "tables").toString(), e);
 		}	
+	}
+
+	@Override
+	public String getDefaultScheme() throws ExceptionDBGit {
+		try {
+			return getConnection().getSchema();
+		} catch (SQLException e) {
+			throw new ExceptionDBGit(lang.getValue("errors", "adapter", "getSchema") + ": " + e.getLocalizedMessage());
+		}
 	}
 }

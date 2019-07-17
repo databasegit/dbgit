@@ -4,7 +4,7 @@
 
   <groupId>ru.fusionsoft</groupId>
   <artifactId>dbgit</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
+  <version>0.2.2</version>
   <packaging>jar</packaging>
   <build>
 	  <plugins>
@@ -73,6 +73,7 @@
       <includes><!-- what -->
         <include>dbgit-install-windows.bat</include>
         <include>dbgit-install-linux.sh</include>
+        <include>dbgit-install-mac.sh</include>
         <include>INSTALLER-README.txt</include>
       </includes>
     </resource>
@@ -86,6 +87,21 @@
         <include>path-parser.ps1</include>
       </includes>
     </resource>
+    <resource>
+      <directory>${project.basedir}/src/main/resources/lang</directory><!-- from -->
+      <targetPath>${project.build.directory}/dbgit/lang</targetPath><!-- to -->
+      <includes><!-- what -->
+        <include>eng.yaml</include>
+        <include>rus.yaml</include>
+      </includes>
+    </resource>    
+    <resource>
+      <directory>${project.basedir}/src/main/resources</directory><!-- from -->
+      <targetPath>${project.build.directory}/dbgit</targetPath><!-- to -->
+      <includes><!-- what -->
+        <include>dbgitconfig</include>
+      </includes>
+    </resource>     
   </resources>
   
   </build>  
@@ -178,10 +194,18 @@
 	</dependency>
 			
 			
-    <dependency>
-	    <groupId>postgresql</groupId>
+	<!-- https://mvnrepository.com/artifact/org.postgresql/postgresql -->
+	<dependency>
+	    <groupId>org.postgresql</groupId>
 	    <artifactId>postgresql</artifactId>
-	    <version>9.1-901-1.jdbc4</version>
+	    <version>42.2.5</version>
+	</dependency>
+
+	<!-- https://mvnrepository.com/artifact/mysql/mysql-connector-java -->
+	<dependency>
+	    <groupId>mysql</groupId>
+	    <artifactId>mysql-connector-java</artifactId>
+	    <version>8.0.16</version>
 	</dependency>
 	
 	<!-- https://mvnrepository.com/artifact/com.google.collections/google-collections -->

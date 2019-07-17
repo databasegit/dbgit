@@ -32,27 +32,19 @@ public class CmdAdd implements IDBGitCommand {
 	}
 	
 	public String getHelperInfo() {
-		//return "Command for add database objects to dbgit. \n"
-		//		+ "You need to specify db object name as parameter in format just like it shows in status command output.\n"
-		//		+ "You can also use masks to add many files by one command";
-		
-		return "Examples: \n"
-				+ "    dbgit add <SCHEME>/TEST_TABLE*\n"
-				+ "    dbgit add <SCHEME>/TEST_VIEW.vw";
+			return getLang().getValue("help", "add").toString();
 	}
 	
 	public Options getOptions() {
 		return opts;
 	}
 	
-	public void execute(CommandLine cmdLine)  throws Exception {		
+	public void execute(CommandLine cmdLine)  throws Exception {			
 		if (cmdLine.getArgs().length == 0) {
-			throw new ExceptionDBGit("Bad command. Not found object to add!");
+			throw new ExceptionDBGit(getLang().getValue("errors", "add", "badCommand"));
 		}
 		
-		if (!DBGitIndex.getInctance().isCorrectVersion())
-			throw new ExceptionDBGit("Versions of Dbgit (" + DBGitIndex.VERSION + ") and repository(" + DBGitIndex.getInctance().getRepoVersion() + ") are different!");
-		
+		checkVersion();
 		ConsoleWriter.setDetailedLog(cmdLine.hasOption("v"));
 						
 		String nameObj = cmdLine.getArgs()[0];
@@ -67,18 +59,18 @@ public class CmdAdd implements IDBGitCommand {
 		for (IMetaObject obj : dbObjs.values()) {
 			if (maskAdd.match(obj.getName())) {			
 				Timestamp timestampBefore = new Timestamp(System.currentTimeMillis());
-				ConsoleWriter.detailsPrintLn("Processing object " + obj.getName());
-				ConsoleWriter.detailsPrint("Saving to file...", 2);
+				ConsoleWriter.detailsPrintLn(getLang().getValue("general", "add", "processingObject") + " " + obj.getName());
+				ConsoleWriter.detailsPrint(getLang().getValue("general", "add", "savingToFile"), 2);
 				obj.saveToFile();
-				ConsoleWriter.detailsPrintlnGreen("OK");
+				ConsoleWriter.detailsPrintlnGreen(getLang().getValue("general", "ok"));
 								
-				ConsoleWriter.detailsPrint("Adding to git...", 2);
+				ConsoleWriter.detailsPrint(getLang().getValue("general", "addToGit"), 2);
 				countSave += obj.addToGit();				
-				ConsoleWriter.detailsPrintlnGreen("OK");
+				ConsoleWriter.detailsPrintlnGreen(getLang().getValue("general", "ok"));
 				
     			Timestamp timestampAfter = new Timestamp(System.currentTimeMillis());
     			Long diff = timestampAfter.getTime() - timestampBefore.getTime();
-				ConsoleWriter.detailsPrint("Time..." + diff + " ms", 2);
+				ConsoleWriter.detailsPrint(getLang().getValue("general", "time").withParams(diff.toString()), 2);
 				ConsoleWriter.detailsPrintLn("");
 				
 				index.addItem(obj);				
@@ -89,8 +81,8 @@ public class CmdAdd implements IDBGitCommand {
 			index.saveDBIndex();
 			index.addToGit();
 		} else {
-			ConsoleWriter.printlnRed("Can't find object \"" + nameObj + "\" in database");
+			ConsoleWriter.printlnRed(getLang().getValue("errors", "add", "cantFindObjectInDb").withParams(nameObj));
 		}
-		ConsoleWriter.println("Done!");
+		ConsoleWriter.println(getLang().getValue("general", "done"));
 	}
 }

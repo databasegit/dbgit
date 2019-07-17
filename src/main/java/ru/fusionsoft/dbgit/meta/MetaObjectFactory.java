@@ -3,6 +3,7 @@ package ru.fusionsoft.dbgit.meta;
 import java.lang.reflect.Constructor;
 
 import ru.fusionsoft.dbgit.adapters.AdapterFactory;
+import ru.fusionsoft.dbgit.core.DBGitLang;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
@@ -17,7 +18,7 @@ public class MetaObjectFactory  {
 		IDBGitMetaType tp = parseMetaName(name).getType();
 		
 		if (tp == null) {
-			throw new ExceptionDBGit("Error parse type metaObject by name: "+name);
+			throw new ExceptionDBGit(DBGitLang.getInstance().getValue("errors", "meta", "parseError").withParams(name));
 		}
 		
 		IMetaObject obj = createMetaObject(tp);
@@ -45,7 +46,7 @@ public class MetaObjectFactory  {
 		
 	}
 		
-	public static NameMeta parseMetaName(String name) {
+	public static NameMeta parseMetaName(String name) throws ExceptionDBGit {
 		try {
 			NameMeta nm = new NameMeta();
 			
@@ -61,7 +62,7 @@ public class MetaObjectFactory  {
 
 			return nm;
 		} catch(Exception e) {
-			throw new ExceptionDBGitRunTime("Error parse object name: "+name, e);
+			throw new ExceptionDBGitRunTime(DBGitLang.getInstance().getValue("errors", "meta", "parseError").withParams(name), e);
 		}
 	}
 }

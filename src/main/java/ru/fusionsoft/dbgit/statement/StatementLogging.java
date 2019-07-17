@@ -10,6 +10,9 @@ import java.sql.Statement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import ru.fusionsoft.dbgit.core.DBGitLang;
+import ru.fusionsoft.dbgit.core.ExceptionDBGit;
+
 public class StatementLogging implements Statement {	
 	private OutputStream stream;
 	private Boolean isExec;
@@ -67,7 +70,7 @@ public class StatementLogging implements Statement {
 			
 			stream.write(buf.getBytes("UTF-8"));
 		} catch (Exception e) {
-			getLogger().error("Error write dump file ", e);
+			getLogger().error(DBGitLang.getInstance().getValue("errors", "errorDump").toString(), e);
 		}
 	}
 	

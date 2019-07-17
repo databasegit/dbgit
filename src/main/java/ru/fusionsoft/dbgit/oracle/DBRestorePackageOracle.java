@@ -23,7 +23,7 @@ public class DBRestorePackageOracle extends DBRestoreAdapter {
 		IDBAdapter adapter = getAdapter();
 		Connection connect = adapter.getConnection();
 		st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
-		ConsoleWriter.detailsPrint("Restoring package " + obj.getName() + "...", 1);
+		ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "restorePkg").withParams(obj.getName()), 1);
 		try {						
 			if (obj instanceof MetaPackage) {
 				MetaPackage restorePackage = (MetaPackage) obj;								
@@ -45,18 +45,18 @@ public class DBRestorePackageOracle extends DBRestoreAdapter {
 					 executeSql(restorePackage.getSqlObject().getSql());
 					//TODO Восстановление привилегий	
 				}
-				ConsoleWriter.detailsPrintlnGreen("OK");
+				ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
 			}
 			else
 			{
-				ConsoleWriter.detailsPrintlnRed("FAIL");
-				throw new ExceptionDBGitRestore("Error restore: Unable to restore Packages.");
+				ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
+				throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()));
 			}			
 			
 		}
 		catch (Exception e) {
-			ConsoleWriter.detailsPrintlnRed("FAIL");
-			throw new ExceptionDBGitRestore("Error restore "+obj.getName(), e);
+			ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
+			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()), e);
 		} finally {
 			st.close();
 		}	

@@ -26,8 +26,7 @@ public class CmdPull implements IDBGitCommand {
 
 	@Override
 	public String getHelperInfo() {
-		return "Example:\n"
-				+ "    dbgit pull origin master";
+		return getLang().getValue("help", "pull").toString();
 	}
 
 	@Override
@@ -47,7 +46,7 @@ public class CmdPull implements IDBGitCommand {
 			remote = args[0];
 			remoteBranch = args[1];
 		} else if (args.length > 2) {
-			throw new ExceptionDBGit("Bad command. Number of parameters is not correct!");
+			throw new ExceptionDBGit(getLang().getValue("errors", "paramsNumberIncorrect"));
 		}
 		
 		DBGit.getInstance().gitPull(remote, remoteBranch);

@@ -9,7 +9,9 @@ import java.util.Properties;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 
+import ru.fusionsoft.dbgit.adapters.AdapterFactory;
 import ru.fusionsoft.dbgit.core.DBConnection;
+import ru.fusionsoft.dbgit.core.DBGitPath;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
@@ -31,8 +33,7 @@ public class CmdLink implements IDBGitCommand {
 	
 	public String getHelperInfo() {
 		//return "Command creates link to database, you need to specify connection string as parameter in JDBC driver connection URL format";
-		return "Example:\n"
-				+ "    dbgit link jdbc:oracle:thin:@<SERVER_NAME>:<PORT>:<SID> user=<USER> password=<PASSWORD>";
+		return getLang().getValue("help", "link").toString();
 	}
 	
 	public Options getOptions() {
@@ -44,7 +45,7 @@ public class CmdLink implements IDBGitCommand {
 		String[] args = cmdLine.getArgs();
 		
 		if(args == null || args.length == 0) {
-			throw new ExceptionDBGit("Url database is empty");			
+			throw new ExceptionDBGit(getLang().getValue("errors", "link", "emptyLink"));			
 		}
 		
 		String url = args[0];
@@ -53,7 +54,8 @@ public class CmdLink implements IDBGitCommand {
 		DBConnection conn = DBConnection.getInctance(false);
 		
 		if(conn.testingConnection(url, props)) {
-			DBConnection.createFileDBLink(url, props);					
+			DBConnection.createFileDBLink(url, props);	
+			DBGitPath.createDefaultDbignore(DBGitPath.getFullPath(), props.getProperty("user").toUpperCase());
 		}			
 	}
 	

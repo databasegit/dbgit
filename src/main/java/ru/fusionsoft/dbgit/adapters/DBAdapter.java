@@ -10,6 +10,7 @@ import java.util.List;
 import com.axiomalaska.jdbc.NamedParameterPreparedStatement;
 
 import ru.fusionsoft.dbgit.core.DBGitConfig;
+import ru.fusionsoft.dbgit.core.DBGitLang;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRestore;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
 import ru.fusionsoft.dbgit.dbobjects.DBSequence;
@@ -33,7 +34,8 @@ import ru.fusionsoft.dbgit.utils.StringProperties;
 public abstract class DBAdapter implements IDBAdapter {
 	protected Connection connect;
 	protected Boolean isExec = true;
-	protected OutputStream streamSql = null;
+	protected OutputStream streamSql = null;	
+	protected DBGitLang lang = DBGitLang.getInstance();
 	
 	@Override
 	public void setConnection(Connection conn) {
@@ -65,6 +67,9 @@ public abstract class DBAdapter implements IDBAdapter {
 	public void restoreDataBase(IMapMetaObject updateObjs) throws Exception {
 		Connection connect = getConnection();
 		IMapMetaObject currStep = updateObjs;
+		
+		DBGitLang lang = DBGitLang.getInstance();
+		
 		try {
 			List<String> createdSchemas = new ArrayList<String>();
 			List<String> createdRoles = new ArrayList<String>();
@@ -77,7 +82,7 @@ public abstract class DBAdapter implements IDBAdapter {
 				
 				while (!res) {	
 					if (obj.getDbType() == null) {
-						ConsoleWriter.println("Can't get db type of object");
+						ConsoleWriter.println(lang.getValue("errors", "emptyDbType"));
 						break;
 					}
 					
@@ -89,18 +94,18 @@ public abstract class DBAdapter implements IDBAdapter {
 					step++;
 
 					if (step > 100) {
-						throw new Exception("Error restore objects.... restoreMetaObject must return true if object restore.");
+						throw new Exception(lang.getValue("errors", "restore", "restoreErrorDidNotReturnTrue").toString());
 					}
 				}
     			Timestamp timestampAfter = new Timestamp(System.currentTimeMillis());
     			Long diff = timestampAfter.getTime() - timestampBefore.getTime();
-    			ConsoleWriter.println("(" + diff + " ms)");
+    			ConsoleWriter.println("(" + diff + " " + lang.getValue("general", "ms") +")");
 			}
 
 			connect.commit();
 		} catch (Exception e) {
 			connect.rollback();
-			throw new ExceptionDBGitRestore("Restore objects error", e);
+			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "restoreError").toString(), e);
 		} finally {
 			//connect.setAutoCommit(false);
 		} 
@@ -118,7 +123,7 @@ public abstract class DBAdapter implements IDBAdapter {
 			connect.commit();
 		} catch (Exception e) {
 			connect.rollback();
-			throw new ExceptionDBGitRestore("Remove objects error", e);
+			throw new ExceptionDBGitRestore(DBGitLang.getInstance().getValue("errors", "restore", "removeError").toString(), e);
 		} finally {
 			//connect.setAutoCommit(false);
 		} 

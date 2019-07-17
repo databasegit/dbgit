@@ -20,7 +20,7 @@ public class CmdRm implements IDBGitCommand {
 	private Options opts = new Options();
 	
 	public CmdRm() {
-		opts.addOption("db", false, "Removes objects from index and from database");
+		opts.addOption("db", false, getLang().getValue("help", "rm-db").toString());
 	}
 	
 	public String getCommandName() {
@@ -32,11 +32,7 @@ public class CmdRm implements IDBGitCommand {
 	}
 	
 	public String getHelperInfo() {
-		//return "Command removes object from dbgit. Object you want to remove must be specified as parameter like here:\n"
-		//		+ "    dbgit rm <object_name>\n"
-		//		+ "    Object you want to remove must exist in index";
-		return "Example:\n"
-				+ "    dbgit rm <object_name>";
+		return getLang().getValue("help", "rm").toString();
 	}
 	
 	public Options getOptions() {
@@ -46,9 +42,11 @@ public class CmdRm implements IDBGitCommand {
 	@Override
 	public void execute(CommandLine cmdLine) throws Exception {
 		if (cmdLine.getArgs().length == 0) {
-			throw new ExceptionDBGit("Bad command. Not found object to remove!");
-		}
-						
+			throw new ExceptionDBGit(getLang().getValue("errors", "rm", "badCommand"));
+		}						
+		
+		checkVersion();
+		
 		ConsoleWriter.setDetailedLog(cmdLine.hasOption("v"));
 		
 		String nameObj = cmdLine.getArgs()[0];
@@ -56,7 +54,7 @@ public class CmdRm implements IDBGitCommand {
 		
 		DBGitIndex index = DBGitIndex.getInctance();
 
-		ConsoleWriter.detailsPrintLn("Checking files");
+		ConsoleWriter.detailsPrintLn(getLang().getValue("general", "rm", "checking"));
 
 		GitMetaDataManager gmdm = GitMetaDataManager.getInctance();		
 		IMapMetaObject dbObjs = gmdm.loadFileMetaDataForce();
@@ -64,40 +62,40 @@ public class CmdRm implements IDBGitCommand {
 		
 		Integer countDelete = 0;
 		
-		ConsoleWriter.detailsPrintLn("Deleting");
+		ConsoleWriter.detailsPrintLn(getLang().getValue("general", "rm", "deleteng"));
 		for (IMetaObject obj : dbObjs.values()) {
 			if (maskAdd.match(obj.getName())) {			
 				Timestamp timestampBefore = new Timestamp(System.currentTimeMillis());
-				ConsoleWriter.detailsPrintLn("Processing object " + obj.getName());
+				ConsoleWriter.detailsPrintLn(getLang().getValue("general", "rm", "processing").withParams(obj.getName()));
 				
 				deleteObjs.put(obj);
-				ConsoleWriter.detailsPrint("Removing from git...", 2);				
+				ConsoleWriter.detailsPrint(getLang().getValue("general", "rm", "removingFromGit"), 2);				
 				countDelete += obj.removeFromGit();					
-				ConsoleWriter.detailsPrintlnGreen("OK");
+				ConsoleWriter.detailsPrintlnGreen(getLang().getValue("general", "ok"));
 				
-				ConsoleWriter.detailsPrint("Removing from index...", 2);
+				ConsoleWriter.detailsPrint(getLang().getValue("general", "rm", "removingFromIndex"), 2);
 				index.deleteItem(obj);
-				ConsoleWriter.detailsPrintlnGreen("OK");
+				ConsoleWriter.detailsPrintlnGreen(getLang().getValue("general", "ok"));
 				
     			Timestamp timestampAfter = new Timestamp(System.currentTimeMillis());
     			Long diff = timestampAfter.getTime() - timestampBefore.getTime();
-				ConsoleWriter.detailsPrint("Time..." + diff + " ms", 2);
+				ConsoleWriter.detailsPrint(getLang().getValue("general", "time").withParams(diff.toString()), 2);
 				ConsoleWriter.detailsPrintLn("");
 			}
 		}
 		if (cmdLine.hasOption("db")) {
-			ConsoleWriter.detailsPrint("Removing from db...", 2);
+			ConsoleWriter.detailsPrint(getLang().getValue("general", "rm", "removingFromDb"), 2);
 			gmdm.deleteDataBase(deleteObjs);
-			ConsoleWriter.detailsPrintlnGreen("OK");
+			ConsoleWriter.detailsPrintlnGreen(getLang().getValue("general", "ok"));
 		}
 		
 		if (countDelete > 0) {
 			index.saveDBIndex();
 			index.addToGit();
 		} else {
-			ConsoleWriter.printlnRed("Can't find file \"" + nameObj + "\" in index");
+			ConsoleWriter.printlnRed(getLang().getValue("errors", "rm", "cantFindFile").withParams(nameObj));
 		}
-		ConsoleWriter.println("Done!");
+		ConsoleWriter.println(getLang().getValue("general", "done"));
 	}
 
 

@@ -24,6 +24,7 @@ public class DBConnection {
 	private static DBConnection dbGitConnection = null;
 	private Connection connect = null;
 	private Logger logger = LoggerUtil.getLogger(this.getClass());
+	private DBGitLang lang = DBGitLang.getInstance();
 	
 	private DBConnection(Boolean isConnect) throws ExceptionDBGit {
 		try {
@@ -37,7 +38,7 @@ public class DBConnection {
 				connect.setAutoCommit(false);
 			}
 		} catch(Exception e) {
-			logger.error("Error connection to database", e);
+			logger.error(lang.getValue("errors", "connectionError").toString(), e);
 			throw new ExceptionDBGit(e);
 		}		
 		 
@@ -60,12 +61,12 @@ public class DBConnection {
 	public boolean testingConnection(String url, Properties props) {
 		try {
 			Connection conTest = DriverManager.getConnection(url, props);
-			ConsoleWriter.printlnGreen("Connection established");
+			ConsoleWriter.printlnGreen(lang.getValue("general", "link", "connectionEstablished"));
 			conTest.close();
 			conTest = null;
 			return true;
 		} catch(Exception e) {
-			ConsoleWriter.printlnRed("Test connection error: "+e.getMessage());			
+			ConsoleWriter.printlnRed(lang.getValue("errors", "link", "cantConnect") + ": " + e.getMessage());
 			return false;
 		}	
 	}
@@ -73,8 +74,8 @@ public class DBConnection {
 	public static void createFileDBLink(String url, Properties props) throws ExceptionDBGit {
 		try{	
 			File file = new File(DBGitPath.getFullPath(DBGitPath.DB_LINK_FILE));				
-			DBGitPath.createDir(file.getParent());
-			DBGitPath.createDefaultDbignore(DBGitPath.getRootPath(), props.getProperty("user").toUpperCase());
+			DBGitPath.createDir(file.getParent());			
+			
 			DBGitPath.createDefaultDbgitConfig(DBGitPath.getFullPath());
 			DBGitPath.createLogDir();
 			DBGitPath.createScriptsDir();
@@ -88,7 +89,7 @@ public class DBConnection {
 		      writer.write(key+"="+ props.getProperty(key)+"\n");		      
 		    }		   
 		    writer.close();
-		    ConsoleWriter.println("File " + DBGitPath.getFullPath(DBGitPath.DB_LINK_FILE) + " has been created.");
+		    ConsoleWriter.println(DBGitLang.getInstance().getValue("general", "link", "dblinkCreated").withParams(DBGitPath.getFullPath(DBGitPath.DB_LINK_FILE)));
 	    } catch(Exception e) {
 	    	throw new ExceptionDBGit(e);
 	    }
@@ -114,7 +115,7 @@ public class DBConnection {
 			
 			return url;			
 	    } catch(Exception e) {
-	    	throw new ExceptionDBGit("Error load file " + DBGitPath.DB_LINK_FILE, e);
+	    	throw new ExceptionDBGit(DBGitLang.getInstance().getValue("errors", "fileLoadError").withParams(DBGitPath.DB_LINK_FILE), e);
 	    }
 	}
 }

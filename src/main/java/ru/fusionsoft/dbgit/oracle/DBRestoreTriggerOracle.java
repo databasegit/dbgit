@@ -21,7 +21,7 @@ public class DBRestoreTriggerOracle extends DBRestoreAdapter {
 		IDBAdapter adapter = getAdapter();
 		Connection connect = adapter.getConnection();
 		st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
-		ConsoleWriter.detailsPrint("Restoring trigger " + obj.getName() + "...", 1);
+		ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "restoreTrigger").withParams(obj.getName()), 1);
 		try {						
 			if (obj instanceof MetaTrigger) {
 				MetaTrigger restoreTrigger = (MetaTrigger)obj;								
@@ -42,18 +42,18 @@ public class DBRestoreTriggerOracle extends DBRestoreAdapter {
 					executeSql(restoreTrigger.getSqlObject().getSql());
 					//TODO Восстановление привилегий	
 				}
-				ConsoleWriter.detailsPrintlnGreen("OK");
+				ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
 			}
 			else
 			{
-				ConsoleWriter.detailsPrintlnRed("FAIL");
-				throw new ExceptionDBGitRestore("Error restore: Unable to restore Triggers.");
+				ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
+				throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()));
 			}			
 			
 		}
 		catch (Exception e) {
-			ConsoleWriter.detailsPrintlnRed("FAIL");
-			throw new ExceptionDBGitRestore("Error restore "+obj.getName(), e);
+			ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
+			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()), e);
 		} finally {
 			st.close();
 		}

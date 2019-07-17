@@ -139,9 +139,9 @@ public class GitMetaDataManager {
 			schemes = new HashMap<String, DBSchema>();			
 			try {
 				schemes.put(adapter.getConnection().getSchema(), new DBSchema(adapter.getConnection().getSchema()));
-				ConsoleWriter.println("Can't show db objects of other users! Shown objects for current db user only!");
+				ConsoleWriter.println(DBGitLang.getInstance().getValue("errors", "meta", "cantGetOtherUsersObjects"));
 			} catch (SQLException e) {
-				throw new ExceptionDBGit("Can't get current schema name");
+				throw new ExceptionDBGit(DBGitLang.getInstance().getValue("errors", "meta", "cantGetCurrentSchema"));
 			}
 		}
 		
@@ -242,34 +242,42 @@ public class GitMetaDataManager {
 	    		String filename = files.get(i);
 	    		if (DBGitPath.isServiceFile(filename)) continue;
 	    		ConsoleWriter.detailsPrint(filename + "...", 1);
-	    		try {
-	    			Timestamp timestampBefore = new Timestamp(System.currentTimeMillis());
-	    				    			
-	    			IMetaObject obj = loadMetaFile(filename);
-	    			
-	    			Timestamp timestampAfter = new Timestamp(System.currentTimeMillis());
-	    			
-	    			Long diff = timestampAfter.getTime() - timestampBefore.getTime();
-
-	    			ConsoleWriter.detailsPrintlnGreen("OK (" + diff + " ms)");
-	    			
-		    		if (obj != null) {
-		    			objs.put(obj);
-		    		}
-	    		} catch (Exception e) {
-	    			isSuccessful = false;
-	    			ConsoleWriter.detailsPrintlnRed("FAIL");
-	    			ConsoleWriter.detailsPrintLn(e.getMessage());
-	    			
+	    		
+	    		if (force) {			
 	    			IMetaObject obj = MetaObjectFactory.createMetaObject(filename);
 	    			
 		    		if (obj != null) 
 		    			objs.put(obj);
-	    		}	    		
+		    		
+		    		ConsoleWriter.detailsPrintlnGreen(DBGitLang.getInstance().getValue("errors", "meta", "ok"));
+	    		} else {
+	    			try {		
+	    				Timestamp timestampBefore = new Timestamp(System.currentTimeMillis());
+		    			IMetaObject obj = loadMetaFile(filename);
+		    			
+		    			Timestamp timestampAfter = new Timestamp(System.currentTimeMillis());		    			
+		    			Long diff = timestampAfter.getTime() - timestampBefore.getTime();
+
+		    			ConsoleWriter.detailsPrintlnGreen(DBGitLang.getInstance().getValue("errors", "meta", "okTime").withParams(diff.toString()));
+		    			
+			    		if (obj != null) {
+			    			objs.put(obj);
+			    		}
+		    		} catch (Exception e) {
+		    			isSuccessful = false;
+		    			ConsoleWriter.detailsPrintlnRed(DBGitLang.getInstance().getValue("errors", "meta", "fail"));
+		    			ConsoleWriter.detailsPrintLn(e.getMessage());
+		    			
+		    			IMetaObject obj = MetaObjectFactory.createMetaObject(filename);
+		    			
+			    		if (obj != null) 
+			    			objs.put(obj);
+		    		}	
+	    		}	    			    		
 	    	}
 			
 			if (!isSuccessful && !force) {
-				throw new ExceptionDBGit("There are invalid files");
+				throw new ExceptionDBGit(DBGitLang.getInstance().getValue("errors", "meta", "invalidFiles"));
 			}
 			
 			return objs;

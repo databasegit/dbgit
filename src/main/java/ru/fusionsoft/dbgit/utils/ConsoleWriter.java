@@ -13,6 +13,35 @@ public class ConsoleWriter {
 	private static ColoredPrinter cp = new ColoredPrinter.Builder(1, false).build();
 	private static boolean showDetailedLog = false;
 	
+	
+	public static void detailsPrintLn(Object msg) {
+		if (showDetailedLog)
+			println(msg.toString());
+	}
+
+	public static void detailsPrint(Object msg, int level) {
+		if (showDetailedLog)
+			print(msg.toString(), level);
+	}
+
+	public static void detailsPrintlnGreen(Object msg) {
+		if (showDetailedLog)
+			printlnColor(msg.toString(), FColor.GREEN, 0);
+	}
+	
+	public static void detailsPrintlnRed(Object msg) {
+		if (showDetailedLog)
+			printlnColor(msg.toString(), FColor.RED, 0);
+	}
+
+	public static void printlnGreen(Object msg) {
+		printlnColor(msg.toString(), FColor.GREEN, 0);
+	}
+	
+	public static void printlnRed(Object msg) {
+		printlnColor(msg.toString(), FColor.RED, 0);
+	}
+	
 	public static void detailsPrintLn(String msg) {
 		if (showDetailedLog)
 			println(msg);
@@ -63,9 +92,14 @@ public class ConsoleWriter {
 		logger.info(msg);		
 	}
 	
+	public static void println(Object msg) {
+		println(msg.toString(), 0);
+	}
+
 	public static void println(String msg) {
 		println(msg, 0);
 	}
+
 	public static void println(String msg, Integer level) {
 		String tab = StringUtils.leftPad("", 4*level, " ");
 		/*

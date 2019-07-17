@@ -144,5 +144,7 @@ public interface IDBAdapter {
 	public void createSchemaIfNeed(String schemaName) throws ExceptionDBGit;
 	public void createRoleIfNeed(String roleName) throws ExceptionDBGit;
 	
+	public String getDefaultScheme() throws ExceptionDBGit;
+	
 	/*Если будет нужно - сюда можно добавить подписчиков на события*/
 }

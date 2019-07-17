@@ -44,7 +44,7 @@ public interface IMetaObject {
 	 */
 	public String getName();
 	
-	public void setName(String name);
+	public void setName(String name) throws ExceptionDBGit;
 	
 	public String getDbType ();
 	

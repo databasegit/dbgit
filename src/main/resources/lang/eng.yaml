@@ -1,0 +1,306 @@
+general:
+  ok: OK
+  done: Done!
+  time: Time... {0} ms
+  addToGit: Adding to git...    
+  add:
+    processingObject: Processing object
+    savingToFile: Saving to file...
+    ms: ms
+  link:
+    connectionEstablished: Connection established
+    dblinkCreated: File {0} has been created
+  checkout:
+    toCreateBranch: To create new branch
+    branchName: Branch name
+    commitName: Commit name
+    updatedFromIndex: Updated {0} path{1} from the index
+  clone:
+    cloned: Repository cloned
+  commit:
+    commiting: commiting...
+    commit: commit
+  remote:
+    added: Remote added
+    removed: Remote removed
+    unknown: Unknown command
+  init:
+    created: Repository created
+  dump:
+    checking: Checking files...
+    dumping: Dumping...
+    hash: hash
+    dbHash: db hash
+    hashesDifferent: Hashes are different, saving to file...
+    hashesMatch: Hashes match, no need to dump object...
+    processing: Processing {0}
+    loading: Loading object from db...
+    cantFindInDb: Can't find {0} in DB
+    fSwitchFound: f switch found, saving to file...
+    addToIndex: Adding to index...
+  fetch:
+    fetching: Fetching...
+  restore:
+    scriptWillSaveTo: Script will be saved to {0}
+    toRestore: Objects to restore
+    toRemove: Objects to remove
+    restoring: Restoring...
+    removing: Removing...
+    created: Created file {0}
+    restoreView: Restoring view {0} ...
+    restoreTrigger: Restoring trigger {0} ...
+    restoreSeq: Restoring sequence {0} ...
+    restoreSchema: Restoring schema {0} ...
+    restoreRole: Restoring role {0} ...
+    restorePrc: Restoring procedure {0} ...
+    restorePkg: Restoring package {0} ...
+    restoreUser: Restoring user {0} ...
+    restoreFnc: Restoring function {0} ...
+    restoreTable: Restoring table {0} ...
+    restoreTableData: Restoring table data for {0} ...
+    restoreTablespace: Restoring tablespace {0} ...
+    restoreConstr: Restoring constraints for table {0} ...
+    delConstr: Deleteng constraints for table {0} ...
+    restoreIndex: Restoring indexes for table {0} ...
+    createTable: Creating table...
+    addColumns: Adding columns...
+    modifyColumns: Modifying columns...
+    droppingColumns: Dropping columns...
+    addPk: Adding PK...
+    inserting: Deleteng...
+    deleting: Deleteng...
+    updating: Updating...
+  rm:
+    checking: Checking files
+    deleteng: Deleting
+    processing: Processing object {0}
+    removingFromGit: Removing from git...
+    removingFromIndex: Removing from index...
+    removingFromDb: Removing from db...
+  status:
+    repVersion: "Repository version: {0}" 
+    dbgitVersion: "Dbgit version: {0}"
+    differentVersions: Repository was created in different Dbgit version!
+    conflicts: |
+      You have unmerged paths. 
+        (fix conflicts and run "dbgit commit")
+    usedSynonyms: "Used synonyms for real schemes:"
+    synSchema: Synonym - schema
+    changesToCommit: Changes to be committed
+    notStaged: Changes db objects not staged for commit
+    untracked: Untracked db objects
+    localNotStaged: Local files not staged for commit
+    localToCommit: Local files to be committed
+  valid:
+    allOk: All files are OK
+  dataTable:
+    writeData: Write file object {0}
+  meta:
+    diffSize1: MetaTableData diff size!!! {0} {1}
+    diffSize2: MetaTableData diff size row {0}!!!
+    diffDataRow: MetaTableData diff data row {0} {1}  {2}  {3}
+errors:
+  commandNotFound: Command {0} not found!
+  executionError: Error execute dbgit
+  gitRepNotFound: Git repository not found
+  gitLoginNotFound: Can't find git login
+  gitPasswordNotFound: Can't find git password
+  gitRemoteNotFound: Cannot find {0}
+  dirNotFound: Dir not found!
+  emptyDbType: Can't get db type of object  
+  incorrectVersion: |
+    Versions of Dbgit ({0}) and repository({1}) are different!
+    Please upgrade your repository!
+    (Note that this action will replace your local repository with actual db state) 
+  paramsNumberIncorrect: Bad command. Number of parameters is not correct!
+  connectionError: Error connection to database
+  fileLoadError: Error load file {0}
+  errorParseIndex: Error parse ItemIndex!
+  errorDump: Error write dump file
+  hash:
+    errorSha: error search MessageDigest SHA-256
+    nullParam: Calc hash use null params
+    unsupportedEncode: UnsupportedEncodingException UTF-8
+  link:
+    emptyLink: Url database is empty
+    cantConnect: Test connection error    
+  restore:
+    restoreErrorDidNotReturnTrue: Error restore objects.... restoreMetaObject must return true if object restore
+    restoreError: Restore objects error
+    restoreNotSupport: Restore object {0} doesn't support
+    removeError: Remove objects error
+    objectRestoreError: Error restore {0}
+    objectRemoveError: Error remove {0}
+    cannotRestore: Cannot restore {0}!
+    pkNotFound: PK not found for table {0}, cannot process row!
+  add: 
+    badCommand: Bad command. Not found object to add!
+    cantFindObjectInDb: Can't find object {0} in database
+  checkout:
+    badCommand: Bad command. Please specify branch
+  commit:
+    cantFindObject: Can't find {0}, it will be removed from index
+  restore:
+    cantConnect: Can't connect to db!
+    errorLoadDelete: Error load and delete object
+  rm:
+    badCommand: Bad command. Not found object to remove!
+    cantFindFile: Can't find file {0} in index
+  synonym:
+    badCommand1: Bad command. Please specify synonym and scheme
+    badCommand2: Bad command. Please specify scheme
+    synonymExists: Synonym {0} exists!
+    schemeDoesntExist: Scheme {0} doesn't exist!
+    schemeExists: Schema {0} exists!
+  config:
+    badCommand: Please specify one parameter to change
+    noParameter: There is no parameter {0}
+  meta:
+    fail: FAIL
+    okTime: OK ({0} ms)
+    invalidFiles: There are invalid files
+    cantGetCurrentSchema: Can't get current schema name
+    cantGetOtherUsersObjects: Can't show db objects of other users! Shown objects for current db user only!
+    parseError: Error parse type metaObject {0}
+    notFound: Not found object {0}
+    tooManyRecords: Table {0} has more than {1} records. dbgit can't save this table data.
+    compareMetaError: compareMeta Error! {0} to {1}
+  dataTable:
+    errorCellData: Error create CellData for type {0}
+    differentCount: Different count columns title and line
+    fieldNotFound: Field {0} not found
+  adapter:
+    schemes: Error load schemes!
+    tables: Error load tables!
+    tableFields: Error load table fields!
+    tableData: Error load table data!
+    index: Error load indexes!
+    constraint: Error load constraints!
+    views: Error load views!
+    triggers: Error load triggers!
+    prc: Error load procedures!
+    fnc: Error load functions!
+    seq: Error load sequences!
+    pkg: Error load packages!
+    users: Error load users!
+    roles: Error load roles!    
+    rollback: Error while rollback!
+    createSchema: Cannot create schema
+help:
+  h: Shows this help
+  v: Outputs full log of command execution
+  common: |
+    usage: dbgit <command> [<args>]                                                  
+                                                                                    
+    These are common Dbgit commands used in various situations:                      
+                                                                                    
+    start a working area                                                             
+       clone      clone a repository into a new directory                           
+       init       create an empty Git repository or reinitialize an existing one    
+       link       establishes connection with database                              
+       synonym    specifies synonym for db scheme                                   
+       remote     let you bind your local repository with remote repository         
+                                                                                    
+    work on the current change                                                       
+       status     shows current status of db objects                                
+       add        adds db objects into the dbgit index                              
+       reset      reset current HEAD to the specified state                         
+       rm         removes objects from the dbgit index                              
+       restore    restores db from the dbgit repository                             
+       dump       dumps db objects into the dbgit repository                        
+                                                                                    
+    grow, mark and tweak your common history                                         
+       valid      checks if dbgit data files are valid                              
+       checkout   switch branches or restore working tree files                     
+       commit     makes git commit                                                  
+       merge      join two or more development histories together                   
+                                                                                    
+    collaborate                                                                      
+       pull       fetch from and integrate with another repository or a local branch
+       push       update remote refs along with associated objects                  
+       fetch      download objects and refs from another repository                 
+                                                                                    
+    See 'dbgit <command> -h' to read about a specific command
+  link: |
+    Example:
+      dbgit link jdbc:oracle:thin:@<SERVER_NAME>:<PORT>:<SID> user=<USER> password=<PASSWORD>
+  add: |
+    Examples:
+      dbgit add <SCHEME>/TEST_TABLE*
+      dbgit add <SCHEME>/TEST_VIEW.vw
+  checkout: |
+    Example:
+      dbgit checkout master
+  checkout-b: create and checkout a new branch
+  checkout-r: Updates database
+  checkout-u: Upgrades branch to actual db and dbgit version state
+  checkout-no-db: Doesn't do restore after checkout
+  clone: |
+    Example:
+      dbgit clone <link>
+  commit: |
+    Examples:
+      dbgit commit -m <Message>
+      dbgit commit -a -m <Message>
+      dbgit commit <file_name> -m <Message>
+  commit-a: dumps db changes to the dbgit repository and adds them to the git index
+  commit-m: adds message to commit. You must add message as parameter
+  dump: |
+    Examples:
+      dbgit dump
+      dbgit dump -a
+  dump-a: adds files to git
+  dump-f: dumps all objects that exist in index even there didn't changes in database
+  dump-u: upgrades repository to actual version
+  init: |
+    Example:
+      dbgit init
+  merge: |
+    Example:
+      dbgit merge master
+  pull: |
+    Example:
+      dbgit pull origin master
+  push: |
+    Example:
+      dbgit push
+  remote: |
+    Examples:
+      dbgit remote
+      dbgit remote add rep https://login:password@example.com/rep.git
+      dbgit remote remove rep
+  reset: |
+    Examples:
+      dbgit reset
+      dbgit reset -hard
+  reset-soft: reset HEAD and index
+  reset-mixed: reset only HEAD
+  reset-hard: reset HEAD, index and working tree
+  reset-merge: reset HEAD, index and working tree
+  reset-keep: reset HEAD but keep local changes
+  restore: |
+    Examples:
+      dbgit restore -s <file_name>
+      dbgit restore
+  restore-s: Save command restore to file
+  restore-r: Updates database
+  rm: |
+    Example:
+      dbgit rm <object_name>
+  rm-db: Removes objects from index and from database
+  fetch: _
+  status: _
+  synonym: |
+    Examples:
+      dbgit synonym <syn> <scheme>
+      dbgit synonym <synonym> -d
+      dbgit synonym -s
+  synonym-d: Delete synonym
+  synonym-s: Show synonyms
+  valid: |
+    Example:
+      dbgit valid -v
+  config: |
+    Example:
+      dbgit config LIMIT_FETCH=true
+  config-g: sets global parameter

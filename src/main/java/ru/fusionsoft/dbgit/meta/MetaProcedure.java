@@ -12,7 +12,7 @@ public class MetaProcedure extends MetaSql {
 		super();
 	}
 	
-	public MetaProcedure(DBProcedure pr) {
+	public MetaProcedure(DBProcedure pr) throws ExceptionDBGit {
 		super(pr);
 	}
 	

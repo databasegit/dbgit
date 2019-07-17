@@ -22,8 +22,7 @@ public class CmdClone implements IDBGitCommand {
 
 	@Override
 	public String getHelperInfo() {
-		return "Example:\n"
-				+ "    dbgit clone <link>";
+		return getLang().getValue("help", "clone").toString();
 	}
 
 	@Override
@@ -38,7 +37,7 @@ public class CmdClone implements IDBGitCommand {
 		String link = "";
 		String remote = "";
 		if (args.length > 2) {
-			throw new ExceptionDBGit("Bad command. Number of parameters is not correct!");
+			throw new ExceptionDBGit(getLang().getValue("errors", "paramsNumberIncorrect"));
 		} else if (args.length == 1) {
 			link = args[0];
 		} else if (args.length == 2) {

@@ -8,6 +8,7 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 
+import ru.fusionsoft.dbgit.core.DBGitLang;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 import ru.fusionsoft.dbgit.utils.LoggerUtil;
@@ -59,15 +60,20 @@ public class RequestCmd {
 		currCommand = args.length == 0 ? "help" : args[0].toLowerCase();		
 
 		if (!commands.containsKey(currCommand)) {
-			throw new ExceptionCmdNotFound("Command "+currCommand+ " not found!");
+			throw new ExceptionCmdNotFound(DBGitLang.getInstance().getValue("errors", "commandNotFound").withParams(currCommand));
 		}
 		
-		String[] cmdargs = args.length > 0 ? Arrays.copyOfRange(args, 1, args.length) : null;
-		
+		//String[] cmdargs = args.length > 0 ? Arrays.copyOfRange(args, 1, args.length) : null;
 		
 		CommandLineParser clParse = new DefaultParser();
 		Options opts = commands.get(currCommand).getOptions();
 		addHelpOptions(opts);
+		
+		String[] cmdargs = Arrays.stream(args)
+				.skip(1)
+				.map(arg -> arg.replaceAll("--([\\w,-]+)", "-" + arg.replace("-", "")))
+				.toArray(String[] :: new);		
+		
 		cmdLine = clParse.parse(opts, cmdargs);
 		
 		return cmdLine;
@@ -86,13 +92,13 @@ public class RequestCmd {
 	}
 	
 	
-	protected static Options addHelpOptions(Options opts) {
+	protected static Options addHelpOptions(Options opts) throws ExceptionDBGit {
 		if (opts.getOption("h") == null) {
-			opts.addOption("h", false, "Shows this help");
+			opts.addOption("h", false, DBGitLang.getInstance().getValue("help", "h").toString());
 		}
 
 		if (opts.getOption("v") == null) {
-			opts.addOption("v", false, "Outputs full log of command execution");
+			opts.addOption("v", false, DBGitLang.getInstance().getValue("help", "v").toString());
 		}
 
 		return opts;
@@ -100,7 +106,7 @@ public class RequestCmd {
 	
 	public void printHelpAboutCommand(String command) throws Exception {
 		if (!commands.containsKey(command)) {
-			throw new ExceptionCmdNotFound("Command "+command+ " not found!");
+			throw new ExceptionCmdNotFound(DBGitLang.getInstance().getValue("errors", "commandNotFound").withParams(command));
 		}
 				
 		IDBGitCommand cmdObj = commands.get(command);

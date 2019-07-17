@@ -12,7 +12,7 @@ public class MetaSchema extends MetaObjOptions {
 		super();
 	}
 	
-	public MetaSchema(DBSchema shema) {
+	public MetaSchema(DBSchema shema) throws ExceptionDBGit {
 		super(shema);
 	}
 	

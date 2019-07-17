@@ -29,7 +29,7 @@ public class DBAdapterProxy implements IDBAdapter {
 	private SchemaSynonym ss;	
 	
 
-	public DBAdapterProxy(IDBAdapter adapter) {
+	public DBAdapterProxy(IDBAdapter adapter) throws ExceptionDBGit {
 		super();
 		this.adapter = adapter;
 		
@@ -231,5 +231,10 @@ public class DBAdapterProxy implements IDBAdapter {
 	@Override
 	public void createRoleIfNeed(String roleName) throws ExceptionDBGit {
 		adapter.createRoleIfNeed(roleName);
+	}
+
+	@Override
+	public String getDefaultScheme() throws ExceptionDBGit {
+		return adapter.getDefaultScheme();
 	}
 }

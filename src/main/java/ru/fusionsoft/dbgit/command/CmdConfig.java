@@ -10,6 +10,10 @@ import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 public class CmdConfig implements IDBGitCommand {
 	
 	private Options opts = new Options();
+	
+	public CmdConfig() {
+		opts.addOption("g", false, getLang().getValue("help", "config-g").toString());
+	}
 
 	@Override
 	public String getCommandName() {
@@ -23,8 +27,7 @@ public class CmdConfig implements IDBGitCommand {
 
 	@Override
 	public String getHelperInfo() {
-		return "Example:\n"
-				+ "    dbgit config LIMIT_FETCH = true";
+		return getLang().getValue("help", "config").toString();
 	}
 
 	@Override
@@ -37,13 +40,16 @@ public class CmdConfig implements IDBGitCommand {
 		String[] args = cmdLine.getArgs();
 		
 		if (args.length != 1) {
-			throw new ExceptionDBGit("Please specify one parameter to change");
+			throw new ExceptionDBGit(getLang().getValue("errors", "config", "badCommand"));
 		} else {
 			
 			String[] expression = args[0].split("=");
 			
-			DBGitConfig.getInstance().setValue(expression[0], expression[1]);
-			
+			if (cmdLine.hasOption("g")) {
+				DBGitConfig.getInstance().setValueGlobal(expression[0], expression[1]);
+			} else {
+				DBGitConfig.getInstance().setValue(expression[0], expression[1]);
+			}
 		}
 
 	}

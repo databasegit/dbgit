@@ -1,0 +1,80 @@
+general:
+  ok: OK
+  done: Готово!
+  add:
+    processingObject: Обработка объекта...
+    savingToFile: Сохранение в файл...
+    addToGit: Добавление в git...
+    time: Время... {0} мс
+  link:
+    connectionEstablished: Соединение установлено
+    dblinkCreated: Файл {0} создан
+errors:
+  executionError: Ошибка во время работы dbgit
+  gitRepNotFound: Git репозиторий не найден
+  emptyDbType: Не удалось получить тип базы данных
+  link:
+    emptyLink: Url базы данных пустой
+    cantConnect: Ошибка соединения
+    dblinkLoadError: Ошибка загрузки файла {0}
+  restore:
+    restoreErrorDidNotReturnTrue: Error restore objects.... restoreMetaObject must return true if object restore
+    restoreError: Restore objects error
+    restoreNotSupport: Restore object {0} doesn't support  
+  add: 
+    badCommand: Некорректная команда. Не указан объект для добавления!
+    incorrectVersion: Версии Dbgit ({0}) и репозитория ({1}) не совпадают!
+    cantFindObjectInDb: Не удалось найти объект {0} в базе данных
+  
+help:
+  common: |
+    Использование: dbgit <команда> [<args>]                                                  
+                                                                                    
+    Основные dbgit команды, используемые в разных ситуациях:                      
+                                                                                    
+    start a working area                                                             
+       clone      clone a repository into a new directory                           
+       init       create an empty Git repository or reinitialize an existing one    
+       link       establishes connection with database                              
+       synonym    specifies synonym for db scheme                                   
+       remote     let you bind your local repository with remote repository         
+                                                                                    
+    work on the current change                                                       
+       status     shows current status of db objects                                
+       add        adds db objects into the dbgit index                              
+       reset      reset current HEAD to the specified state                         
+       rm         removes objects from the dbgit index                              
+       restore    restores db from the dbgit repository                             
+       dump       dumps db objects into the dbgit repository                        
+                                                                                    
+    grow, mark and tweak your common history                                         
+       valid      checks if dbgit data files are valid                              
+       checkout   switch branches or restore working tree files                     
+       commit     makes git commit                                                  
+       merge      join two or more development histories together                   
+                                                                                    
+    collaborate                                                                      
+       pull       fetch from and integrate with another repository or a local branch
+       push       update remote refs along with associated objects                  
+       fetch      download objects and refs from another repository                 
+                                                                                    
+    Смотрите 'dbgit <команда> -h' для просмотра деталей по конкретной команде
+  link: |
+    Использование: dbgit link <строка_подключения> [-h] [-v]
+    Примеры:
+      dbgit link jdbc:oracle:thin:@<сервер>:<порт>:<база> user=<пользователь> password=<пароль>
+    -h   Показывает эту помощь
+    -v   Выводит полный отчет выполнения команды
+  status: |
+    Использование: dbgit status  [-h] [-v]
+    -h   Показывает эту помощь
+    -v   Выводит полный отчет выполнения команды
+  add: |
+    Использование: dbgit add <маска_файла> [-h] [-v]
+    Примеры:
+      dbgit add <SCHEME>/TEST_TABLE*
+      dbgit add <SCHEME>/TEST_VIEW.vw
+    -h   Показывает эту помощь
+    -v   Выводит полный отчет выполнения команды
+  
+    

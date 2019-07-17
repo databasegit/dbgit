@@ -12,11 +12,11 @@ public class CmdReset implements IDBGitCommand {
 	private Options opts = new Options();
 	
 	public CmdReset() {
-		opts.addOption("soft", false, "reset HEAD and index");
-		opts.addOption("mixed", false, "reset only HEAD");
-		opts.addOption("hard", false, "reset HEAD, index and working tree");
-		opts.addOption("merge", false, "reset HEAD, index and working tree");
-		opts.addOption("keep", false, "reset HEAD but keep local changes");
+		opts.addOption("soft", false, getLang().getValue("help", "reset-soft").toString());
+		opts.addOption("mixed", false, getLang().getValue("help", "reset-mixed").toString());
+		opts.addOption("hard", false, getLang().getValue("help", "reset-hard").toString());
+		opts.addOption("merge", false, getLang().getValue("help", "reset-merge").toString());
+		opts.addOption("keep", false, getLang().getValue("help", "reset-keep").toString());
 	}
 	
 	@Override
@@ -31,9 +31,7 @@ public class CmdReset implements IDBGitCommand {
 
 	@Override
 	public String getHelperInfo() {
-		return "Examples: \n"
-				+ "    dbgit reset\n"
-				+ "    dbgit reset -hard";
+		return getLang().getValue("help", "reset").toString();
 	}
 
 	@Override

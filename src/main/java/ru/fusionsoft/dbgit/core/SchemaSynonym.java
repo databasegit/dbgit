@@ -20,20 +20,21 @@ public class SchemaSynonym {
 	
 	private Map<String, String> mapSchema = new HashMap<>();
 	private Map<String, String> mapSynonym = new HashMap<>();
+	DBGitLang lang = DBGitLang.getInstance();
 	
-	public static SchemaSynonym getInctance() {
+	public static SchemaSynonym getInctance() throws ExceptionDBGit {
 		if (ss == null) {
 			ss = new SchemaSynonym();
 		}
 		return ss;
 	}
 	
-	public SchemaSynonym() {
+	public SchemaSynonym() throws ExceptionDBGit {
 		loadFile();
 	}
 	
 	//@SuppressWarnings("unchecked")
-	public void loadFile() {
+	public void loadFile() throws ExceptionDBGit {
 		try{						
 			String filename = DBGitPath.getFullPath(DBGitPath.DB_SYNONYMS);							
 			File file = new File(filename);						
@@ -53,8 +54,8 @@ public class SchemaSynonym {
 			fis.close();			
 				
 	    } catch(Exception e) {
-	    	throw new ExceptionDBGitRunTime("Error load file " + DBGitPath.DB_SYNONYMS, e);
-	    }
+	    	throw new ExceptionDBGitRunTime(lang.getValue("errors", "fileLoadError").withParams(DBGitPath.DB_SYNONYMS), e);
+	    } 
 	}
 	
 	public void saveFile() throws ExceptionDBGit {
@@ -106,16 +107,16 @@ public class SchemaSynonym {
 	
 	public void addSchemaSynonym(String schema, String synonym) throws ExceptionDBGit {
 		if (mapSchema.containsKey(synonym)) {
-			throw new ExceptionDBGit("Synonym: " + synonym + " exists!");
+			throw new ExceptionDBGit(lang.getValue("errors", "synonym", "synonymExists").withParams(synonym));
 		}
 		if (mapSynonym.containsKey(schema)) {
-			throw new ExceptionDBGit("Schema: " + schema + " exists!");
+			throw new ExceptionDBGit(lang.getValue("errors", "synonym", "schemeExists").withParams(schema));
 		}
 
 		Map<String, DBSchema> schemes = AdapterFactory.createAdapter().getSchemes();
 		
 		if (!schemes.containsKey(schema))
-			throw new ExceptionDBGit("Scheme " + schema + " doesn't exist!");
+			throw new ExceptionDBGit(lang.getValue("errors", "synonym", "schemeDoesntExist").withParams(schema));
 		
 		mapSchema.put(synonym, schema);
 		mapSynonym.put(schema, synonym);

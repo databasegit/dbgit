@@ -19,7 +19,7 @@ public class DBRestoreSequenceOracle extends DBRestoreAdapter {
 		IDBAdapter adapter = getAdapter();
 		Connection connect = adapter.getConnection();
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
-		ConsoleWriter.detailsPrint("Restoring sequence " + obj.getName() + "...", 1);
+		ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "restoreSeq").withParams(obj.getName()), 1);
 		try {
 			if (obj instanceof MetaSequence) {
 				MetaSequence restoreSeq = (MetaSequence)obj;								
@@ -82,16 +82,16 @@ public class DBRestoreSequenceOracle extends DBRestoreAdapter {
 				st.execute(query);		
 					//TODO Восстановление привилегий	
 				}
-				ConsoleWriter.detailsPrintlnGreen("OK");
+				ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
 			}
 			else
 			{
-				ConsoleWriter.detailsPrintlnRed("FAIL");
-				throw new ExceptionDBGitRestore("Error restore: Unable to restore Sequences.");
+				ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
+				throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()));
 			}			
 		} catch (Exception e) {
-			ConsoleWriter.detailsPrintlnRed("FAIL");
-			throw new ExceptionDBGitRestore("Error restore "+obj.getName(), e);
+			ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
+			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()), e);
 		} finally {
 			st.close();
 		}				

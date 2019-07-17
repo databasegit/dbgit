@@ -21,10 +21,7 @@ public class CmdRemote implements IDBGitCommand {
 
 	@Override
 	public String getHelperInfo() {
-		return "Examples:\n"
-				+ "    dbgit remote\n"
-				+ "    dbgit remote add rep https://login:password@example.com/rep.git\n"
-				+ "    dbgit remote remove rep";
+		return getLang().getValue("help", "remote").toString();
 	}
 
 	@Override

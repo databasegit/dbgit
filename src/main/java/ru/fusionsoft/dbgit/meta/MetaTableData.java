@@ -25,6 +25,7 @@ import com.diogonunes.jcdp.color.api.Ansi.FColor;
 import ru.fusionsoft.dbgit.adapters.AdapterFactory;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
 import ru.fusionsoft.dbgit.core.DBGit;
+import ru.fusionsoft.dbgit.core.DBGitLang;
 import ru.fusionsoft.dbgit.core.DBGitPath;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.GitMetaDataManager;
@@ -52,7 +53,7 @@ public class MetaTableData extends MetaBase {
 		 setDbVersion();
 	 }
 	 
-	 public MetaTableData(DBTable tbl) {
+	 public MetaTableData(DBTable tbl) throws ExceptionDBGit {
 		 setDbType();
 		 setDbVersion();
 		 setTable(tbl);
@@ -79,7 +80,7 @@ public class MetaTableData extends MetaBase {
 		this.dataTable = dataTable;
 	}
 	
-	public void setTable(DBTable table) {
+	public void setTable(DBTable table) throws ExceptionDBGit {
 		this.table = table;
 		setName(table.getSchema()+"/"+table.getName()+"."+getType().getValue());
 	}
@@ -87,7 +88,7 @@ public class MetaTableData extends MetaBase {
 	
 	
 	@Override
-	public void setName(String name) {
+	public void setName(String name) throws ExceptionDBGit {
 		if (table == null) {
 			NameMeta nm = MetaObjectFactory.parseMetaName(name);
 			table = new DBTable();
@@ -206,8 +207,8 @@ public class MetaTableData extends MetaBase {
 			dataTable = adapter.getTableData(table.getSchema(), table.getName());
 			
 			if (dataTable.getErrorFlag() > 0) {
-				ConsoleWriter.printlnColor("Table "+getName()+" has more than "+IDBAdapter.MAX_ROW_COUNT_FETCH+
-						" records. dbgit can't save this table data.", FColor.RED, 0);
+				ConsoleWriter.printlnColor(DBGitLang.getInstance().getValue("errors", "meta", "tooManyRecords").
+						withParams(getName(), String.valueOf(IDBAdapter.MAX_ROW_COUNT_FETCH)), FColor.RED, 0);
 				return false;
 			}
 			
@@ -235,7 +236,7 @@ public class MetaTableData extends MetaBase {
 	
 	public void diff(MetaTableData ob) throws Exception {
 		if (mapRows.size() != ob.mapRows.size()) {
-			System.out.println("MetaTableData diff size!!! "+mapRows.size()+" "+ob.mapRows.size());
+			System.out.println(DBGitLang.getInstance().getValue("general", "meta", "diffSize1").withParams(String.valueOf(mapRows.size()), String.valueOf(ob.mapRows.size())));
 		}
 		for (String rowHash : mapRows.keySet()) {
 			RowData r1 = mapRows.get(rowHash);
@@ -245,7 +246,7 @@ public class MetaTableData extends MetaBase {
 			System.out.println(r1.getData()+ " "+ r2.getData());
 			
 			if (r1.getData().size() != r2.getData().size()) {
-				System.out.println("MetaTableData diff size row "+rowHash+"!!!");
+				System.out.println(DBGitLang.getInstance().getValue("general", "meta", "diffSize2").withParams(rowHash));
 			}
 			
 			for (String col : r1.getData().keySet()) {
@@ -254,7 +255,8 @@ public class MetaTableData extends MetaBase {
 				
 				if (d1 != d2) {				
 					if (!d1.equals(r2.getData().get(col))) {
-						System.out.println("MetaTableData diff data row "+rowHash+" "+col+"  "+r1.getData().get(col)+"  "+r2.getData().get(col));
+						System.out.println(DBGitLang.getInstance().getValue("general", "meta", "diffDataRow").
+								withParams(rowHash, col, r1.getData().get(col).toString(), r2.getData().get(col).toString()));
 					}
 				}
 			}

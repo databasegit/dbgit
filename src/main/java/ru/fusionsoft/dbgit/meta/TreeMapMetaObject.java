@@ -3,6 +3,8 @@ package ru.fusionsoft.dbgit.meta;
 import java.util.Comparator;
 import java.util.TreeMap;
 
+import ru.fusionsoft.dbgit.core.DBGitLang;
+import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.utils.LoggerUtil;
 
 /**
@@ -57,7 +59,7 @@ public class TreeMapMetaObject extends TreeMap<String, IMetaObject> implements I
 			
 			return nm1.compareTo(nm2);
 		} catch (Exception e) {
-			LoggerUtil.getGlobalLogger().error("compareMeta Error! " + nm1 + " to "+ nm2, e);
+				LoggerUtil.getGlobalLogger().error(DBGitLang.getInstance().getValue("errors", "meta", "compareMetaError").withParams(nm1, nm2), e);
 			return 0;
 		}
 	}

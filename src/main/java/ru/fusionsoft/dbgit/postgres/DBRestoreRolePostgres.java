@@ -19,7 +19,7 @@ public class DBRestoreRolePostgres extends DBRestoreAdapter{
 		IDBAdapter adapter = getAdapter();
 		Connection connect = adapter.getConnection();
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
-		ConsoleWriter.detailsPrint("Restoring role " + obj.getName() + "...", 1);
+		ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "restoreRole").withParams(obj.getName()), 1);
 		try {
 			if (obj instanceof MetaRole) {
 				MetaRole restoreRole = (MetaRole)obj;
@@ -193,14 +193,14 @@ public class DBRestoreRolePostgres extends DBRestoreAdapter{
 		}
 			else
 			{
-				ConsoleWriter.detailsPrintlnRed("FAIL");
-				throw new ExceptionDBGitRestore("Error restore: Unable to restore ROLES.");
+				ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
+				throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()));
 			}			
 		} catch (Exception e) {
-			ConsoleWriter.detailsPrintlnRed("FAIL");
-			throw new ExceptionDBGitRestore("Error restore "+obj.getName(), e);
+			ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
+			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()), e);
 		} finally {
-			ConsoleWriter.detailsPrintlnGreen("OK");
+			ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
 			st.close();
 		}
 		return true;

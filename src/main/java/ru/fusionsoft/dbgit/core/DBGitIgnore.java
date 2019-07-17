@@ -29,7 +29,7 @@ public class DBGitIgnore {
 	
 	protected void loadFileDBIgnore() throws ExceptionDBGit {
 		try{				
-			File file = new File(DBGitPath.getRootPath(DBGitPath.DB_IGNORE_FILE));
+			File file = new File(DBGitPath.getRootPath(DBGitPath.DB_GIT_PATH+"/"+DBGitPath.DB_IGNORE_FILE));
 			
 			if (!file.exists()) return ;
 			

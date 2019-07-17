@@ -12,6 +12,7 @@ import java.util.TreeMap;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.csv.CSVRecord;
 
+import ru.fusionsoft.dbgit.core.DBGitLang;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
 import ru.fusionsoft.dbgit.dbobjects.DBTable;
@@ -53,13 +54,13 @@ public class RowData {
 	public void loadDataFromCSVRecord(CSVRecord record, CSVRecord titleColumns) throws Exception {
 
 		if (record.size() != titleColumns.size()) {
-			throw new ExceptionDBGit("Different count columns title and line");
+			throw new ExceptionDBGit(DBGitLang.getInstance().getValue("errors", "tableData", "differentCount"));
 		}		
 		
 		for (int i = 0; i < record.size(); i++) {	
 			String columnName = titleColumns.get(i);
 			if (metaTable.getFieldsMap().get(columnName) == null) {
-				throw new ExceptionDBGitRunTime("Field "+columnName+" not found"); 
+				throw new ExceptionDBGitRunTime(DBGitLang.getInstance().getValue("errors", "tableData", "fieldNotFound").withParams(columnName)); 
 			}
 			
 			ICellData cd = FactoryCellData.createCellData(metaTable.getFieldsMap().get(columnName).getTypeUniversal());

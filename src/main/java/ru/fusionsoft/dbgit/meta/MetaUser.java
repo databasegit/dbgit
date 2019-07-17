@@ -16,7 +16,7 @@ public class MetaUser extends MetaObjOptions {
 		super();
 	}
 	
-	public MetaUser(DBUser user) {
+	public MetaUser(DBUser user) throws ExceptionDBGit {
 		super(user);
 	}
 	

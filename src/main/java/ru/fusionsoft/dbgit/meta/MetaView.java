@@ -11,7 +11,7 @@ public class MetaView  extends MetaSql {
 		super();
 	}
 	
-	public MetaView(DBView vw) {
+	public MetaView(DBView vw) throws ExceptionDBGit {
 		super(vw);
 	}
 	

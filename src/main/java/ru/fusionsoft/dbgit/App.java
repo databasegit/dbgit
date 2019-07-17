@@ -15,6 +15,7 @@ import ch.qos.logback.classic.util.ContextInitializer;
 import ch.qos.logback.core.joran.spi.JoranException;
 import ch.qos.logback.core.util.StatusPrinter;
 import ru.fusionsoft.dbgit.command.RequestCmd;
+import ru.fusionsoft.dbgit.core.DBGitLang;
 import ru.fusionsoft.dbgit.core.DBGitPath;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
@@ -95,7 +96,7 @@ public class App
         	executeDbGitCommand(args);
         	
         } catch (Exception e) {
-        	ConsoleWriter.printlnRed("Error execute dbgit: "+e.getMessage());
+        	ConsoleWriter.printlnRed(DBGitLang.getInstance().getValue("errors", "executionError") + ": " + e.getMessage());
         	LoggerUtil.getGlobalLogger().error(e.getMessage(), e);
         } finally {
         	DBGitPath.clearTempDir();

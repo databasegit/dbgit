@@ -11,7 +11,7 @@ public class MetaPackage extends MetaSql {
 		super();
 	}
 	
-	public MetaPackage(DBPackage pac) {
+	public MetaPackage(DBPackage pac) throws ExceptionDBGit {
 		super(pac);
 	}
 	

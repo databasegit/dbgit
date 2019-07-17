@@ -21,7 +21,7 @@ public class DBRestoreViewOracle extends DBRestoreAdapter {
 		IDBAdapter adapter = getAdapter();
 		Connection connect = adapter.getConnection();
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
-		ConsoleWriter.detailsPrint("Restoring view " + obj.getName() + "...", 1);
+		ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "restoreView").withParams(obj.getName()), 1);
 		try {
 			if (obj instanceof MetaView) {
 				MetaView restoreView = (MetaView)obj;								
@@ -44,16 +44,16 @@ public class DBRestoreViewOracle extends DBRestoreAdapter {
 					st.execute(restoreView.getSqlObject().getSql());	
 					//TODO Восстановление привилегий	
 				}
-				ConsoleWriter.detailsPrintlnGreen("OK");
+				ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
 			}
 			else
 			{
-				ConsoleWriter.detailsPrintlnRed("FAIL");
-				throw new ExceptionDBGitRestore("Error restore: Unable to restore VIEWS.");
+				ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
+				throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()));
 			}			
 		} catch (Exception e) {
-			ConsoleWriter.detailsPrintlnRed("FAIL");
-			throw new ExceptionDBGitRestore("Error restore "+obj.getName(), e);
+			ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
+			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()), e);
 		} finally {
 			st.close();
 		}
@@ -71,7 +71,7 @@ public class DBRestoreViewOracle extends DBRestoreAdapter {
 			st.execute("DROP VIEW " + vwMeta.getSqlObject().getName());
 
 		} catch (Exception e) {
-			throw new ExceptionDBGitRestore("Error remove " + obj.getName(), e);
+			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRemoveError").withParams(obj.getName()), e);
 		} finally {
 			st.close();
 		}

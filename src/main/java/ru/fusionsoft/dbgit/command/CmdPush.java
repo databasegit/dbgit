@@ -25,8 +25,7 @@ public class CmdPush implements IDBGitCommand {
 
 	@Override
 	public String getHelperInfo() {
-		return "Example:\n"
-				+ "    dbgit push";
+		return getLang().getValue("help", "push").toString();
 	}
 
 	@Override
@@ -45,7 +44,7 @@ public class CmdPush implements IDBGitCommand {
 		}
 		
 		if (args.length > 1) {
-			throw new ExceptionDBGit("Bad command. Number of parameters is not correct!");
+			throw new ExceptionDBGit(getLang().getValue("errors", "paramsNumberIncorrect"));
 		}
 
 		DBGit.getInstance().gitPush(remote);

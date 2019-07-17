@@ -23,7 +23,7 @@ public class CmdFetch implements IDBGitCommand {
 
 	@Override
 	public String getHelperInfo() {
-		return "";
+		return getLang().getValue("help", "fetch").toString();
 	}
 
 	@Override
@@ -37,12 +37,12 @@ public class CmdFetch implements IDBGitCommand {
 		String[] args = cmdLine.getArgs();
 		String remote = "";
 		
-		ConsoleWriter.println("Fetching...");
+		ConsoleWriter.println(getLang().getValue("general", "fetch", "fetching"));
 		
 		if (args.length == 1) {
 			remote = args[0];
 		} else if (args.length > 1) {
-			throw new ExceptionDBGit("Bad command. Number of parameters is not correct!");
+			throw new ExceptionDBGit(getLang().getValue("errors", "paramsNumberIncorrect"));
 		}
 		
 		DBGit.getInstance().gitFetch(remote);

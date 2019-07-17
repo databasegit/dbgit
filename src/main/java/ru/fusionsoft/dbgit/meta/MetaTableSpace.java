@@ -13,7 +13,7 @@ public class MetaTableSpace extends MetaObjOptions {
 		super();
 	}
 	
-	public MetaTableSpace(DBTableSpace sp) {
+	public MetaTableSpace(DBTableSpace sp) throws ExceptionDBGit {
 		super(sp);
 	}
 	

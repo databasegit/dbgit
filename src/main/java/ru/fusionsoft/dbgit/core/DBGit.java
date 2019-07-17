@@ -8,9 +8,11 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.eclipse.jgit.api.CheckoutCommand;
 import org.eclipse.jgit.api.FetchCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.InitCommand;
+import org.eclipse.jgit.api.ListBranchCommand.ListMode;
 import org.eclipse.jgit.api.MergeCommand;
 import org.eclipse.jgit.api.MergeResult;
 import org.eclipse.jgit.api.PullCommand;
@@ -41,7 +43,7 @@ public class DBGit {
 	private static DBGit dbGit = null;
 	private Repository repository;
 	private Git git;
-
+	
 	private DBGit() throws ExceptionDBGit {
 		try {
 			FileRepositoryBuilder builder = new FileRepositoryBuilder();
@@ -61,7 +63,7 @@ public class DBGit {
 			FileRepositoryBuilder builder = new FileRepositoryBuilder();
 			
 			if (builder.readEnvironment().findGitDir().getGitDir() == null) {
-				throw new ExceptionDBGit("Git repository not found");
+				throw new ExceptionDBGit(DBGitLang.getInstance().getValue("errors", "gitRepNotFound"));
 			}
 			
 			dbGit = new DBGit();
@@ -195,7 +197,7 @@ public class DBGit {
 				for (IMetaObject obj : fileObjs.values()) {
 					String hash = obj.getHash();
 					if (!gmdm.loadFromDB(obj)) {
-						ConsoleWriter.println("Can't find " + obj.getName() + ", it will be removed from index");
+						ConsoleWriter.println(DBGitLang.getInstance().getValue("errors", "commit", "cantFindObject"));
 						obj.removeFromGit();
 						index.deleteItem(obj);
 						index.saveDBIndex();
@@ -229,7 +231,7 @@ public class DBGit {
 					res = git.commit().setAll(existsSwitchA).setOnly(DBGitPath.DB_GIT_PATH + "/" + path).call();
 				}								
 			}
-			ConsoleWriter.printlnGreen("commit: " + res.getName());
+			ConsoleWriter.printlnGreen(DBGitLang.getInstance().getValue("general", "commit", "commit") + ": " + res.getName());
 			ConsoleWriter.printlnGreen(res.getAuthorIdent().getName() + "<" + res.getAuthorIdent().getEmailAddress() + ">, " + res.getAuthorIdent().getWhen());
 			
         } catch (Exception e) {
@@ -239,14 +241,26 @@ public class DBGit {
 	
 	public void gitCheckout(String branch, String commit, boolean isNewBranch) throws ExceptionDBGit {
 		try {
-			ConsoleWriter.detailsPrintLn("To create new branch: " + isNewBranch);
-			ConsoleWriter.detailsPrintLn("Branch name: " + branch);
-			ConsoleWriter.detailsPrintLn("Commit name: " + commit);
-
+			ConsoleWriter.detailsPrintLn(DBGitLang.getInstance().getValue("general", "checkout", "toCreateBranch") + ": " + isNewBranch);
+			ConsoleWriter.detailsPrintLn(DBGitLang.getInstance().getValue("general", "checkout", "branchName") + ": " + branch);
+			if (commit != null)
+				ConsoleWriter.detailsPrintLn(DBGitLang.getInstance().getValue("general", "checkout", "commitName") + ": " + commit);
+			
 			Ref result;
 			if (git.getRepository().findRef(branch) != null || isNewBranch) {
 				
-				result = git.checkout().setCreateBranch(isNewBranch).setName(branch).setStartPoint(commit).call();
+				CheckoutCommand checkout = git.checkout().setCreateBranch(isNewBranch).setName(branch);
+				
+				if (commit != null)
+					checkout = checkout.setStartPoint(commit);
+				else {
+					if (git.branchList().setListMode(ListMode.REMOTE).call().stream()
+							.filter(ref -> ref.getName().equals("refs/remotes/origin/" + branch))
+							.count() > 0)
+						checkout = checkout.setStartPoint("remotes/origin/" + branch);
+				}				
+				
+				result = checkout.call();
 
 				ConsoleWriter.printlnGreen(result.getName());
 			} else {				
@@ -261,12 +275,12 @@ public class DBGit {
 				}
 				String s = "";
 				if (counter != 1) s = "s";
-				ConsoleWriter.println("Updated " + counter + " path" + s + " from the index");
+				ConsoleWriter.println(DBGitLang.getInstance().getValue("general", "checkout", "updatedFromIndex").withParams(String.valueOf(counter), s));
 			}			
 			
 			
 		} catch (Exception e) {
-			throw new ExceptionDBGit(e);
+			throw new ExceptionDBGit(e.getLocalizedMessage());
 		} 
 	}
 	
@@ -333,14 +347,14 @@ public class DBGit {
 			if (!dirPath.equals("")) {
 				File dir = new File(dirPath);
 				if (!dir.exists()) {
-					throw new ExceptionDBGit("Dir not found!");
+					throw new ExceptionDBGit(DBGitLang.getInstance().getValue("errors", "dirNotFound"));
 				}
 				init.setDirectory(dir);
 			}
 			
 			init.call();
 			
-			ConsoleWriter.println("Repository created");
+			ConsoleWriter.println(DBGitLang.getInstance().getValue("general", "init", "created"));
 			
 		} catch (Exception e) {
 			throw new ExceptionDBGit(e);
@@ -352,7 +366,7 @@ public class DBGit {
 			Git.cloneRepository().setURI(link).setCredentialsProvider(getCredentialsProvider(link))
 				.setRemote(remoteName.equals("") ? Constants.DEFAULT_REMOTE_NAME : remoteName).call();
 			
-			ConsoleWriter.println("Repository cloned");
+			ConsoleWriter.println(DBGitLang.getInstance().getValue("general", "clone", "cloned"));
 			
 		} catch (Exception e) {
 			throw new ExceptionDBGit(e);
@@ -374,7 +388,7 @@ public class DBGit {
 					remote.setUri(new URIish(uri));
 					remote.call();
 					
-					ConsoleWriter.printlnGreen("Remote added");
+					ConsoleWriter.printlnGreen(DBGitLang.getInstance().getValue("general", "remote", "added"));
 					
 					break;
 				}
@@ -384,12 +398,12 @@ public class DBGit {
 					remote.setName(name);
 					remote.call();
 					
-					ConsoleWriter.printlnGreen("Remote removed");
+					ConsoleWriter.printlnGreen(DBGitLang.getInstance().getValue("general", "remote", "removed"));
 					
 					break;
 				}
 				
-				default : ConsoleWriter.println("Unknown command");
+				default : ConsoleWriter.println(DBGitLang.getInstance().getValue("general", "remote", "unknown"));
 			}			
 			
 		} catch (Exception e) {
@@ -403,7 +417,7 @@ public class DBGit {
 				git.reset().call();
 			else 
 				git.reset().setMode(ResetType.valueOf(mode)).call();
-			ConsoleWriter.println("Done");
+			ConsoleWriter.println(DBGitLang.getInstance().getValue("general", "done"));
 		} catch (Exception e) {
 			throw new ExceptionDBGit(e);
 		}
@@ -421,7 +435,7 @@ public class DBGit {
 
 			fetch.call();
 			
-			ConsoleWriter.println("Done!");
+			ConsoleWriter.println(DBGitLang.getInstance().getValue("general", "done"));
 		} catch (Exception e) {
 			throw new ExceptionDBGit(e);
 		}
@@ -434,7 +448,7 @@ public class DBGit {
 		if (link != null)
 			return getCredentialsProvider(link);
 		else
-			throw new ExceptionDBGit("Cannot find " + remoteName);
+			throw new ExceptionDBGit(DBGitLang.getInstance().getValue("errors", "gitRemoteNotFound").withParams(remoteName));
 	}
 	
 	private CredentialsProvider getCredentialsProvider() throws ExceptionDBGit {
@@ -455,7 +469,7 @@ public class DBGit {
 			{
 				pass = matcher.group();				
 			} else {
-				throw new ExceptionDBGit("Can't find git password");
+				throw new ExceptionDBGit(DBGitLang.getInstance().getValue("errors", "gitPasswordNotFound"));
 			}
 			
 			matcher = patternLogin.matcher(link);
@@ -463,7 +477,7 @@ public class DBGit {
 			{
 				login = matcher.group();				
 			} else {
-				throw new ExceptionDBGit("Can't find git login");
+				throw new ExceptionDBGit(DBGitLang.getInstance().getValue("errors", "gitLoginNotFound"));
 			}
 	
 			return new UsernamePasswordCredentialsProvider(login, pass);

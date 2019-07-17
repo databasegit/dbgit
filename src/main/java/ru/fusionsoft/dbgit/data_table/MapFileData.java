@@ -7,6 +7,7 @@ import java.nio.file.StandardCopyOption;
 import java.sql.ResultSet;
 
 import ru.fusionsoft.dbgit.core.DBGit;
+import ru.fusionsoft.dbgit.core.DBGitLang;
 import ru.fusionsoft.dbgit.core.DBGitPath;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.dbobjects.DBTable;
@@ -44,7 +45,7 @@ public class MapFileData implements ICellData {
 		DBGitPath.createDir(wrtFile.getAbsolutePath());
 		
 		Files.move(tmpFile.toPath(), wrtFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-		ConsoleWriter.println("Write file object: "+srcFile);
+		ConsoleWriter.println(DBGitLang.getInstance().getValue("general", "dataTable", "errorCellData").withParams(srcFile));
 		tmpFile = null;
 		
 		return srcFile;

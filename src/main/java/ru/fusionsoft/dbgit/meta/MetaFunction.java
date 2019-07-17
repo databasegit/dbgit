@@ -12,7 +12,7 @@ public class MetaFunction extends MetaSql {
 		super();
 	}
 	
-	public MetaFunction(DBFunction fun) {
+	public MetaFunction(DBFunction fun) throws ExceptionDBGit {
 		super(fun);
 	}
 

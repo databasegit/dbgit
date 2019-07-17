@@ -2,6 +2,8 @@ package ru.fusionsoft.dbgit.adapters;
 
 import java.sql.Connection;
 
+import ru.fusionsoft.dbgit.core.DBGitLang;
+import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.SchemaSynonym;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
 
@@ -14,6 +16,7 @@ import ru.fusionsoft.dbgit.meta.IMetaObject;
  */
 public abstract class DBRestoreAdapter implements IDBAdapterRestoreMetaData {
 	protected IDBAdapter adapter = null;
+	protected DBGitLang lang = DBGitLang.getInstance();
 	 	
 	public void  setAdapter(IDBAdapter adapter) {
 		this.adapter = adapter;
@@ -28,7 +31,7 @@ public abstract class DBRestoreAdapter implements IDBAdapterRestoreMetaData {
 		return obj.getDbType();
 	}
 	
-	public String getPhisicalSchema(String schema) {
+	public String getPhisicalSchema(String schema) throws ExceptionDBGit {
 		SchemaSynonym ss = SchemaSynonym.getInctance();
 		
 		return ss.getSchemaNvl(schema);

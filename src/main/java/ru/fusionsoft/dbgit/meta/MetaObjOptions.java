@@ -7,6 +7,7 @@ import java.util.Map;
 
 import ru.fusionsoft.dbgit.adapters.AdapterFactory;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
+import ru.fusionsoft.dbgit.core.DBGitLang;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitObjectNotFound;
 import ru.fusionsoft.dbgit.dbobjects.DBOptionsObject;
@@ -27,7 +28,7 @@ public abstract class MetaObjOptions extends MetaBase {
 		setDbVersion();
 	}
 	
-	public MetaObjOptions(DBOptionsObject objectOption) {
+	public MetaObjOptions(DBOptionsObject objectOption) throws ExceptionDBGit {
 		this();
 		setObjectOption(objectOption);
 	}
@@ -36,7 +37,7 @@ public abstract class MetaObjOptions extends MetaBase {
 		return objectOption;
 	}
 
-	public void setObjectOption(DBOptionsObject objectOption) {
+	public void setObjectOption(DBOptionsObject objectOption) throws ExceptionDBGit {
 		this.objectOption = objectOption;
 		setName(objectOption.getName()+"."+getType().getValue());
 	}
@@ -69,7 +70,7 @@ public abstract class MetaObjOptions extends MetaBase {
 	public void setObjectOptionFromMap(Map<String, ? extends DBOptionsObject> map) throws ExceptionDBGit {
 		NameMeta nm = MetaObjectFactory.parseMetaName(getName());
 		if (!map.containsKey(nm.getName())) {
-			throw new ExceptionDBGitObjectNotFound("Not found object "+getName());
+			throw new ExceptionDBGitObjectNotFound(DBGitLang.getInstance().getValue("errors", "meta", "notFound").withParams(getName()));
 		}
 		setObjectOption(map.get(nm.getName()));
 	}

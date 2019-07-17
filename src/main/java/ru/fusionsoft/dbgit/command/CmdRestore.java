@@ -30,8 +30,8 @@ public class CmdRestore implements IDBGitCommand {
 	private Options opts = new Options();
 	
 	public CmdRestore() {
-		opts.addOption("s", true, "Save command restore to file");
-		opts.addOption("r", false, "Updates database");
+		opts.addOption("s", true, getLang().getValue("help", "restore-s").toString());
+		opts.addOption("r", false, getLang().getValue("help", "restore-r").toString());
 	}
 	
 	public String getCommandName() {
@@ -43,11 +43,7 @@ public class CmdRestore implements IDBGitCommand {
 	}
 	
 	public String getHelperInfo() {
-		//return "Command restores database. Runs without parameters. You can use switch -s to output restore script into file like this:\n"
-		//		+ "    dbgit restore -s <file_name>";
-		return "Examples:\n"
-				+ "    dbgit restore -s <file_name>\n"
-				+ "    dbgit restore";
+		return getLang().getValue("help", "restore").toString();
 	}
 	
 	public Options getOptions() {
@@ -60,7 +56,7 @@ public class CmdRestore implements IDBGitCommand {
 		try {
 			AdapterFactory.createAdapter();
 		} catch (NullPointerException e) {
-			ConsoleWriter.println("Can't connect to db!");
+			ConsoleWriter.println(getLang().getValue("errors", "restore", "cantConnect"));
 			System.exit(0);
 		}
 		GitMetaDataManager gmdm = GitMetaDataManager.getInctance();
@@ -88,12 +84,12 @@ public class CmdRestore implements IDBGitCommand {
 		
 		if (cmdLine.hasOption("s")) {
 			String scriptName = cmdLine.getOptionValue("s");
-			ConsoleWriter.detailsPrintLn("Script will be saved to " + scriptName);
+			ConsoleWriter.detailsPrintLn(getLang().getValue("general", "restore", "scriptWillSaveTo").withParams(scriptName));
 			
 			File file = new File(scriptName);
 			if (!file.exists()) {
 				file.createNewFile();
-				ConsoleWriter.detailsPrintLn("Created file " + scriptName);
+				ConsoleWriter.detailsPrintLn(getLang().getValue("general", "restore", "created").withParams(scriptName));
 			}
 			
 			fop = new FileOutputStream(file);
@@ -101,7 +97,7 @@ public class CmdRestore implements IDBGitCommand {
 		try {
 			//delete obj
 			DBGitIndex index = DBGitIndex.getInctance();
-			ConsoleWriter.println("Objects to remove:");
+			ConsoleWriter.println(getLang().getValue("general", "restore", "toRemove"));
 			for (ItemIndex item : index.getTreeItems().values()) {
 				//TODO db ignore
 				if (item.getIsDelete()) {
@@ -113,17 +109,17 @@ public class CmdRestore implements IDBGitCommand {
 							deleteObjs.put(obj);
 						}
 					} catch(ExceptionDBGit e) {
-						LoggerUtil.getGlobalLogger().error("Error load and delete object: "+item.getName(), e);
+						LoggerUtil.getGlobalLogger().error(getLang().getValue("errors", "restore", "cantConnect") + ": " + item.getName(), e);
 					}
 				}
 			}
 			
 			if (cmdLine.hasOption("r")) {
-				ConsoleWriter.println("Removing...");
+				ConsoleWriter.println(getLang().getValue("general", "restore", "removing"));
 			}
 			gmdm.deleteDataBase(deleteObjs);
 			
-			ConsoleWriter.println("Objects to restore:");
+			ConsoleWriter.println(getLang().getValue("general", "restore", "toRestore"));
 
 			for (IMetaObject obj : fileObjs.values()) {
 				Boolean isRestore = false;
@@ -148,7 +144,7 @@ public class CmdRestore implements IDBGitCommand {
 			}
 			
 			if (cmdLine.hasOption("r")) {
-				ConsoleWriter.println("Restoring...");
+				ConsoleWriter.println(getLang().getValue("general", "restore", "restoring"));
 			}
 			gmdm.restoreDataBase(updateObjs);
 			
@@ -162,7 +158,7 @@ public class CmdRestore implements IDBGitCommand {
 				scriptOutputStream.close();
 			}	
 		}	
-		ConsoleWriter.println("Done!");
+		ConsoleWriter.println(getLang().getValue("general", "done"));
 	}
 
 

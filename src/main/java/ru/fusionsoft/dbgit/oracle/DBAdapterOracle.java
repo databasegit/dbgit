@@ -15,6 +15,7 @@ import ru.fusionsoft.dbgit.adapters.IDBAdapterRestoreMetaData;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBAdapterRestoteMetaData;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBBackupAdapter;
 import ru.fusionsoft.dbgit.core.DBGitConfig;
+import ru.fusionsoft.dbgit.core.DBGitLang;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
 import ru.fusionsoft.dbgit.data_table.DateData;
@@ -51,8 +52,7 @@ public class DBAdapterOracle extends DBAdapter {
 	public static final String DEFAULT_MAPPING_TYPE = "VARCHAR2";
 	
 	private Logger logger = LoggerUtil.getLogger(this.getClass());
-	private FactoryDBAdapterRestoreOracle restoreFactory = new FactoryDBAdapterRestoreOracle();
-	
+	private FactoryDBAdapterRestoreOracle restoreFactory = new FactoryDBAdapterRestoreOracle();	
 
 	private String s;
 
@@ -107,8 +107,8 @@ public class DBAdapterOracle extends DBAdapter {
 			}	
 			stmt.close();
 		}catch(Exception e) {
-			logger.error("Error load schemes!", e);
-			throw new ExceptionDBGitRunTime("Error load schemes!", e);
+			logger.error(lang.getValue("errors", "adapter", "schemes").toString(), e);
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "schemes").toString(), e);
 		} 
 
 		return listScheme;
@@ -175,8 +175,8 @@ public class DBAdapterOracle extends DBAdapter {
 			}
 			stmt.close();
 		}catch(Exception e) {
-			logger.error(e.getMessage(), e);
-			throw new ExceptionDBGitRunTime(e.getMessage(), e);
+			logger.error(lang.getValue("errors", "adapter", "sequences").toString(), e);
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "sequences").toString(), e);
 		}
 		return listSequence;
 	}
@@ -205,8 +205,8 @@ public class DBAdapterOracle extends DBAdapter {
 			stmt.close();
 			return sequence;
 		}catch(Exception e) {
-			logger.error(e.getMessage(), e);
-			throw new ExceptionDBGitRunTime(e.getMessage(), e);
+			logger.error(lang.getValue("errors", "adapter", "sequences").toString(), e);
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "sequences").toString(), e);
 		}
 	}
 
@@ -230,8 +230,8 @@ public class DBAdapterOracle extends DBAdapter {
 			}
 			stmt.close();
 		}catch(Exception e) {
-			logger.error("Error load tables.", e);			
-			throw new ExceptionDBGitRunTime("Error load tables.", e);
+			logger.error(lang.getValue("errors", "adapter", "tables").toString(), e);			
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "tables").toString(), e);
 		}
 		return listTable;
 	}
@@ -259,8 +259,8 @@ public class DBAdapterOracle extends DBAdapter {
 			return table;
 		
 		}catch(Exception e) {
-			logger.error("Error load tables.", e);			
-			throw new ExceptionDBGitRunTime("Error load tables.", e);
+			logger.error(lang.getValue("errors", "adapter", "tables").toString(), e);			
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "tables").toString(), e);
 		}
 	}
 
@@ -319,8 +319,8 @@ public class DBAdapterOracle extends DBAdapter {
 			
 			return listField;
 		}catch(Exception e) {
-			logger.error("Error load tables.", e);			
-			throw new ExceptionDBGitRunTime("Error load tables.", e);
+			logger.error(lang.getValue("errors", "adapter", "tables").toString(), e);			
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "tables").toString(), e);
 		}		
 	}
 
@@ -349,8 +349,8 @@ public class DBAdapterOracle extends DBAdapter {
 			
 			return type.toString();
 		}catch(Exception e) {
-			logger.error("Error load tables.", e);			
-			throw new ExceptionDBGitRunTime("Error load tables.", e);
+			logger.error(lang.getValue("errors", "adapter", "tables").toString(), e);			
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "tables").toString(), e);
 		}	
 	}
 	
@@ -377,8 +377,8 @@ public class DBAdapterOracle extends DBAdapter {
 			return indexes;
 			
 		}catch(Exception e) {
-			logger.error("Error load Indexes");
-			throw new ExceptionDBGitRunTime(e.getMessage());
+			logger.error(lang.getValue("errors", "adapter", "indexes").toString());
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "indexes").toString(), e);
 		}
 	}
 
@@ -407,8 +407,8 @@ public class DBAdapterOracle extends DBAdapter {
 			return constraints;		
 			
 		}catch(Exception e) {
-			logger.error("Error load Constraints");
-			throw new ExceptionDBGitRunTime("Error", e);
+			logger.error(lang.getValue("errors", "adapter", "constraints").toString());
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "constraints").toString(), e);
 		}
 	}
 
@@ -431,9 +431,8 @@ public class DBAdapterOracle extends DBAdapter {
 			stmt.close();
 			return listView;
 		}catch(Exception e) {
-			logger.error(e.getMessage());
-			System.out.println(e.getMessage());
-			throw new ExceptionDBGitRunTime(e.getMessage());
+			logger.error(lang.getValue("errors", "adapter", "views") + ": "+ e.getMessage());
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "views") + ": " + e.getMessage());
 		}
 	}
 
@@ -458,8 +457,8 @@ public class DBAdapterOracle extends DBAdapter {
 			return view;
 			
 		}catch(Exception e) {
-			logger.error(e.getMessage());
-			throw new ExceptionDBGitRunTime(e.getMessage());
+			logger.error(lang.getValue("errors", "adapter", "views").toString() + ": "+ e.getMessage());
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "views").toString() + ": "+ e.getMessage());
 		}
 	}
 	
@@ -488,7 +487,7 @@ public class DBAdapterOracle extends DBAdapter {
 			stmt.close();
 			return listTrigger;
 		}catch(Exception e) {
-			throw new ExceptionDBGitRunTime("Error ", e);	
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "triggers").toString(), e);	
 		}
 	}
 	
@@ -512,7 +511,7 @@ public class DBAdapterOracle extends DBAdapter {
 			stmt.close();
 			return trigger;
 		}catch(Exception e) {
-			throw new ExceptionDBGitRunTime("Error ", e);	
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "triggers").toString(), e);	
 		}
 	}
 
@@ -538,7 +537,7 @@ public class DBAdapterOracle extends DBAdapter {
 			}
 			stmt.close();
 		}catch(Exception e) {
-			throw new ExceptionDBGitRunTime("Error load functions from " +schema, e);
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "pkg").toString(), e);
 		}
 		return listPackage;
 	}
@@ -567,7 +566,7 @@ public class DBAdapterOracle extends DBAdapter {
 			return pack;
 			
 		}catch(Exception e) {
-			throw new ExceptionDBGitRunTime("Error load function " +schema+"."+name, e);			
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "views").toString(), e);			
 		}
 	}
 
@@ -594,7 +593,7 @@ public class DBAdapterOracle extends DBAdapter {
 			}
 			stmt.close();
 		}catch(Exception e) {
-			throw new ExceptionDBGitRunTime("Error load functions from " +schema, e);
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "prc").toString(), e);
 		}
 		return listProcedure;
 	}
@@ -623,7 +622,7 @@ public class DBAdapterOracle extends DBAdapter {
 			return proc;
 			
 		}catch(Exception e) {
-			throw new ExceptionDBGitRunTime("Error load function " +schema+"."+name, e);			
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "prc").toString(), e);			
 		}
 	}
 
@@ -650,7 +649,7 @@ public class DBAdapterOracle extends DBAdapter {
 			}
 			stmt.close();
 		}catch(Exception e) {
-			throw new ExceptionDBGitRunTime("Error load functions from " +schema, e);
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "fnc").toString(), e);
 		}
 		return listFunction;
 	}
@@ -680,7 +679,7 @@ public class DBAdapterOracle extends DBAdapter {
 			return func;
 			
 		}catch(Exception e) {
-			throw new ExceptionDBGitRunTime("Error load function " +schema+"."+name, e);			
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "fnc").toString(), e);			
 		}
 	}
 
@@ -690,9 +689,9 @@ public class DBAdapterOracle extends DBAdapter {
 		try {
 			DBTableData data = new DBTableData();
 			
-			int maxRowsCount = DBGitConfig.getInstance().getInteger("core", "MAX_ROW_COUNT_FETCH", MAX_ROW_COUNT_FETCH);
+			int maxRowsCount = DBGitConfig.getInstance().getInteger("core", "MAX_ROW_COUNT_FETCH", DBGitConfig.getInstance().getIntegerGlobal("core", "MAX_ROW_COUNT_FETCH", MAX_ROW_COUNT_FETCH));
 			
-			if (DBGitConfig.getInstance().getBoolean("core", "LIMIT_FETCH", true)) {
+			if (DBGitConfig.getInstance().getBoolean("core", "LIMIT_FETCH", DBGitConfig.getInstance().getBooleanGlobal("core", "LIMIT_FETCH", true))) {
 				Statement st = getConnection().createStatement();
 				String query = "select COALESCE(count(*), 0) row_count from ( select 1 from "+
 						tableName+" where ROWNUM <= " + (maxRowsCount + 1) + " ) tbl";
@@ -712,11 +711,11 @@ public class DBAdapterOracle extends DBAdapter {
 			
 			return data;
 		} catch(Exception e) {
-			logger.error("Error load data from " + tableName, e);
+			logger.error(lang.getValue("errors", "adapter", "tableData").toString(), e);
 			try {
 				getConnection().rollback(); 
 			} catch (Exception e2) {
-				logger.error("Error rollback  ", e2);
+				logger.error(lang.getValue("errors", "adapter", "rollback").toString(), e2);
 			}
 			throw new ExceptionDBGitRunTime(e.getMessage());
 		}
@@ -745,8 +744,8 @@ public class DBAdapterOracle extends DBAdapter {
 			}
 			stmt.close();
 		}catch(Exception e) {
-			logger.error(e.getMessage());
-			throw new ExceptionDBGitRunTime(e.getMessage());
+			logger.error(lang.getValue("errors", "adapter", "users") + ": " +e.getMessage());
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "users") + ": " + e.getMessage());
 		}
 		return listUser;
 	}
@@ -773,8 +772,8 @@ public class DBAdapterOracle extends DBAdapter {
 			}
 			stmt.close();
 		}catch(Exception e) {
-			logger.error(e.getMessage());
-			throw new ExceptionDBGitRunTime(e.getMessage());
+			logger.error(lang.getValue("errors", "adapter", "roles") + ": " + e.getMessage());
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "roles") + ": " + e.getMessage());
 		}
 		return listRole;
 	}
@@ -839,7 +838,6 @@ public class DBAdapterOracle extends DBAdapter {
 			rs.next();
 			if (rs.getInt("cnt") == 0) {
 				StatementLogging stLog = new StatementLogging(connect, getStreamOutputSqlCommand(), isExecSql());
-				ConsoleWriter.detailsPrintLn("Creating schema " + schemaName.toUpperCase());
 				stLog.execute("create USER \"" + schemaName.toUpperCase() + "\"\r\n" + 
 						"IDENTIFIED BY \"" + schemaName.toUpperCase() + "\"\r\n" + 
 						"DEFAULT TABLESPACE \"SYSTEM\"\r\n" + 
@@ -853,7 +851,7 @@ public class DBAdapterOracle extends DBAdapter {
 			rs.close();
 			st.close();
 		} catch (SQLException e) {
-			throw new ExceptionDBGit("Cannot create schema: " + e.getLocalizedMessage());
+			throw new ExceptionDBGit(lang.getValue("errors", "adapter", "createSchema") + ": " + e.getLocalizedMessage());
 		}
 		
 	}
@@ -861,5 +859,14 @@ public class DBAdapterOracle extends DBAdapter {
 	@Override
 	public void createRoleIfNeed(String roleName) throws ExceptionDBGit {
 		
+	}
+
+	@Override
+	public String getDefaultScheme() throws ExceptionDBGit {
+		try {
+			return getConnection().getSchema();
+		} catch (SQLException e) {
+			throw new ExceptionDBGit(lang.getValue("errors", "adapter", "getSchema") + ": " + e.getLocalizedMessage());
+		}
 	}	
 }

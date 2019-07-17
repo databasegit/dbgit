@@ -37,7 +37,7 @@ public class ItemIndex {
 			item.setIsDelete(Boolean.valueOf(tmp[2]));
 			return item;
 		} catch(Exception e) {
-			throw new ExceptionDBGit("Error parse ItemIndex!", e);
+			throw new ExceptionDBGit(DBGitLang.getInstance().getValue("errors", "errorParseIndex").toString(), e);
 		}  
 	}
 }

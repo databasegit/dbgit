@@ -35,9 +35,7 @@ public class CmdStatus implements IDBGitCommand {
 	}
 	
 	public String getHelperInfo() {
-		//return "Command status databse object\n"
-		//		+ "    Runs without parameters, shows database objects possible to process and status of them";
-		return "_";
+		return getLang().getValue("help", "status").toString();
 	}
 	
 	public Options getOptions() {
@@ -55,22 +53,21 @@ public class CmdStatus implements IDBGitCommand {
 		DBGit dbGit = DBGit.getInstance();
 		boolean hasConflicts = DBGitIndex.getInctance().hasConflicts();
 		String repoVersion = DBGitIndex.getInctance().getRepoVersion();
-		ConsoleWriter.println("Repository version: " + repoVersion);
-		ConsoleWriter.println("Dbgit version: " + DBGitIndex.VERSION);
+		ConsoleWriter.println(getLang().getValue("general", "status", "repVersion").withParams(repoVersion));
+		ConsoleWriter.println(getLang().getValue("general", "status", "dbgitVersion").withParams(DBGitIndex.VERSION));
 		
 		if (!DBGitIndex.getInctance().isCorrectVersion())
-			ConsoleWriter.println("Repository was created in different Dbgit version!");
+			ConsoleWriter.println(getLang().getValue("general", "status", "differentVersions"));
 		
 		if (hasConflicts) {
-			ConsoleWriter.println("You have unmerged paths.\r\n" + 
-					"  (fix conflicts and run \"dbgit commit\")");
+			ConsoleWriter.println(getLang().getValue("general", "status", "conflicts"));
 		}
 		
 		SchemaSynonym ss = SchemaSynonym.getInctance();
 				
 		if (ss.getCountSynonym() > 0) {
-			ConsoleWriter.printlnGreen("Used synonyms for real schemes:");
-			ConsoleWriter.printlnGreen("Synonym - schema");
+			ConsoleWriter.printlnGreen(getLang().getValue("general", "status", "usedSynonyms"));
+			ConsoleWriter.printlnGreen(getLang().getValue("general", "status", "synSchema"));
 			for (Entry<String, String> el : ss.getMapSchema().entrySet()) {
 				ConsoleWriter.println(el.getKey() + " - " + el.getValue());
 			}			
@@ -107,20 +104,20 @@ public class CmdStatus implements IDBGitCommand {
 				addedObjs.put(fileObjs.get(name));					
 		}
 		
-		ConsoleWriter.println("Changes to be committed:");
+		ConsoleWriter.println(getLang().getValue("general", "status", "changesToCommit"));
 		for(IMetaObject obj : addedObjs.values()) {
 			printObect(obj, FColor.GREEN, 1);
 		}
 		ConsoleWriter.println(" ");
 
-		ConsoleWriter.println("Changes db objects not staged for commit:");
+		ConsoleWriter.println(getLang().getValue("general", "status", "notStaged"));
 		for(IMetaObject obj : changeObjs.values()) {
 			printObect(obj, FColor.RED, 1);
 		}
 		ConsoleWriter.println(" ");
 		
 				
-		ConsoleWriter.println("Untracked db objects:");
+		ConsoleWriter.println(getLang().getValue("general", "status", "untracked"));
 		for (String name : dbObjs.keySet()) {
 			if (!fileObjs.containsKey(name)) {
 				ConsoleWriter.println(name, 1);
@@ -128,14 +125,14 @@ public class CmdStatus implements IDBGitCommand {
 		}
 		ConsoleWriter.println(" ");
 
-		ConsoleWriter.println("Local files not staged for commit:");
+		ConsoleWriter.println(getLang().getValue("general", "status", "localNotStaged"));
 		for (String modified : DBGit.getInstance().getModifiedFiles()) {
 			ConsoleWriter.printlnColor(modified, FColor.RED, 1);
 		}
 		
 		ConsoleWriter.println(" ");
 
-		ConsoleWriter.println("Local files to be committed:");
+		ConsoleWriter.println(getLang().getValue("general", "status", "localToCommit"));
 		for (String modified : DBGit.getInstance().getChanged()) {
 			ConsoleWriter.printlnColor(modified, FColor.GREEN, 1);
 		}

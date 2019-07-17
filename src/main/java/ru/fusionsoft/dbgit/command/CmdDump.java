@@ -19,8 +19,9 @@ public class CmdDump implements IDBGitCommand {
 	private Options opts = new Options();
 	
 	public CmdDump() {
-		opts.addOption("a", false, "adds files to git");
-		opts.addOption("f", false, "dumps all objects that exist in index even there didn't changes in database");
+		opts.addOption("a", false, getLang().getValue("help", "dump-a").toString());
+		opts.addOption("f", false, getLang().getValue("help", "dump-f").toString());
+		opts.addOption("u", false, getLang().getValue("help", "dump-u").toString());
 	}
 	
 	public String getCommandName() {
@@ -32,9 +33,7 @@ public class CmdDump implements IDBGitCommand {
 	}
 	
 	public String getHelperInfo() {
-		return "Examples: \n"
-				+ "    dbgit dump\n"
-				+ "    dbgit dump -a";
+		return getLang().getValue("help", "dump").toString();
 	}
 	
 	public Options getOptions() {
@@ -51,59 +50,59 @@ public class CmdDump implements IDBGitCommand {
 				
 		DBGitIndex index = DBGitIndex.getInctance();
 		
-		if (!DBGitIndex.getInctance().isCorrectVersion())
-			throw new ExceptionDBGit("Versions of Dbgit (" + DBGitIndex.VERSION + ") and repository(" + DBGitIndex.getInctance().getRepoVersion() + ") are different!");
+		if (!cmdLine.hasOption("u"))
+			checkVersion();
 		
-		ConsoleWriter.detailsPrintLn("Checking files...");
+		ConsoleWriter.detailsPrintLn(getLang().getValue("general", "dump", "checking"));
 
 		IMapMetaObject fileObjs = gmdm.loadFileMetaDataForce();
 		
-		ConsoleWriter.detailsPrintLn("Dumping...");
+		ConsoleWriter.detailsPrintLn(getLang().getValue("general", "dump", "dumping"));
 		
 		for (IMetaObject obj : fileObjs.values()) {
 			Timestamp timestampBefore = new Timestamp(System.currentTimeMillis());
-			ConsoleWriter.detailsPrintLn("Processing " + obj.getName());
+			ConsoleWriter.detailsPrintLn(getLang().getValue("general", "dump", "processing").withParams(obj.getName()));
 			String hash = obj.getHash();
-			ConsoleWriter.detailsPrint("hash: " + hash + "\n", 2);
+			ConsoleWriter.detailsPrint(getLang().getValue("general", "dump", "hash") + ": " + hash + "\n", 2);
 			
-			ConsoleWriter.detailsPrint("Loading object from db...\n", 2);
+			ConsoleWriter.detailsPrint(getLang().getValue("general", "dump", "loading") + "\n", 2);
 			if (!gmdm.loadFromDB(obj)) {
-				ConsoleWriter.println("Can't find " + obj.getName() + " in DB");
+				ConsoleWriter.println(getLang().getValue("general", "dump", "cantFindInDb").withParams(obj.getName()));
 				continue;
 			}
-			ConsoleWriter.detailsPrint("db hash: " + obj.getHash() + "\n", 2);
+			ConsoleWriter.detailsPrint(getLang().getValue("general", "dump", "dbHash") + ": " + obj.getHash() + "\n", 2);
 			
 			if (isAllDump || !obj.getHash().equals(hash)) {
 				if (!obj.getHash().equals(hash))
-					ConsoleWriter.detailsPrint("Hashes are different, saving to file...", 2);
+					ConsoleWriter.detailsPrint(getLang().getValue("general", "dump", "hashesDifferent"), 2);
 				else
-					ConsoleWriter.detailsPrint("-f switch found, saving to file...", 2);
+					ConsoleWriter.detailsPrint(getLang().getValue("general", "dump", "fSwitchFound"), 2);
 				//сохранили файл если хеш разный
 				obj.saveToFile();
-				ConsoleWriter.detailsPrintlnGreen("OK");
-				ConsoleWriter.detailsPrint("Adding to index...", 2);
+				ConsoleWriter.detailsPrintlnGreen(getLang().getValue("general", "ok"));
+				ConsoleWriter.detailsPrint(getLang().getValue("general", "dump", "addToIndex"), 2);
 				index.addItem(obj);				
-				ConsoleWriter.detailsPrintlnGreen("OK");
+				ConsoleWriter.detailsPrintlnGreen(getLang().getValue("general", "ok"));
 				
 				if (isAddToGit) {
-					ConsoleWriter.detailsPrint("Adding to git...", 2);
+					ConsoleWriter.detailsPrint(getLang().getValue("general", "addToGit"), 2);
 					obj.addToGit();						
-					ConsoleWriter.detailsPrintlnGreen("OK");
+					ConsoleWriter.detailsPrintlnGreen(getLang().getValue("general", "ok"));
 				}
 			} else {
-				ConsoleWriter.detailsPrint("Hashes match, no need to dump object...\n", 2);
+				ConsoleWriter.detailsPrint(getLang().getValue("general", "dump", "hashesMatch") + "\n", 2);
 			}
 			Timestamp timestampAfter = new Timestamp(System.currentTimeMillis());
 			Long diff = timestampAfter.getTime() - timestampBefore.getTime();
-			ConsoleWriter.detailsPrint("Time..." + diff + " ms", 2);
+			ConsoleWriter.detailsPrint(getLang().getValue("general", "time").withParams(diff.toString()), 2);
 			ConsoleWriter.detailsPrintLn("");
 		}
 		
 		index.saveDBIndex();
 		if (isAddToGit) {
-			ConsoleWriter.detailsPrintLn("Adding to git");
+			ConsoleWriter.detailsPrintLn(getLang().getValue("general", "addToGit"));
 			index.addToGit();
 		}			
-		ConsoleWriter.println("Done!");
+		ConsoleWriter.println(getLang().getValue("general", "done"));
 	}
 }

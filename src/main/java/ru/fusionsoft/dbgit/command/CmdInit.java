@@ -22,8 +22,7 @@ public class CmdInit implements IDBGitCommand {
 
 	@Override
 	public String getHelperInfo() {
-		return "Example:\n"
-				+ "    dbgit init";
+		return getLang().getValue("help", "init").toString();
 	}
 
 	@Override
@@ -37,7 +36,7 @@ public class CmdInit implements IDBGitCommand {
 		
 		String dir = "";
 		if (args.length > 1) {
-			throw new ExceptionDBGit("Bad command. Number of parameters is not correct!");
+			throw new ExceptionDBGit(getLang().getValue("errors", "paramsNumberIncorrect"));
 		} else if (args.length == 1) {
 			dir = args[0];
 		}

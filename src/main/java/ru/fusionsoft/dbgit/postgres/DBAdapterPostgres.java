@@ -18,6 +18,7 @@ import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitObjectNotFound;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
 import ru.fusionsoft.dbgit.data_table.MapFileData;
+import ru.fusionsoft.dbgit.data_table.BooleanData;
 import ru.fusionsoft.dbgit.data_table.DateData;
 import ru.fusionsoft.dbgit.data_table.FactoryCellData;
 import ru.fusionsoft.dbgit.data_table.LongData;
@@ -61,6 +62,7 @@ public class DBAdapterPostgres extends DBAdapter {
 		FactoryCellData.regMappingTypes("binary", MapFileData.class);
 		FactoryCellData.regMappingTypes("date", DateData.class);
 		FactoryCellData.regMappingTypes("native", StringData.class);
+		FactoryCellData.regMappingTypes("boolean", BooleanData.class);
 
 	}
 	
@@ -106,8 +108,8 @@ public class DBAdapterPostgres extends DBAdapter {
 			}	
 			stmt.close();
 		}catch(Exception e) {
-			logger.error("Error load schemes!", e);
-			throw new ExceptionDBGitRunTime("Error load schemes!", e);
+			logger.error(lang.getValue("errors", "adapter", "schemes").toString(), e);
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "schemes").toString(), e);
 		} 
 
 		return listScheme;
@@ -232,8 +234,8 @@ public class DBAdapterPostgres extends DBAdapter {
 			}
 			stmt.close();
 		}catch(Exception e) {
-			logger.error("Error load tables.", e);			
-			throw new ExceptionDBGitRunTime("Error load tables.", e);
+			logger.error(lang.getValue("errors", "adapter", "tables").toString(), e);			
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "tables").toString(), e);
 		}
 		return listTable;
 	}
@@ -262,8 +264,8 @@ public class DBAdapterPostgres extends DBAdapter {
 			return table;
 		
 		}catch(Exception e) {
-			logger.error("Error load tables.", e);			
-			throw new ExceptionDBGitRunTime("Error load tables.", e);
+			logger.error(lang.getValue("errors", "adapter", "tables").toString(), e);			
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "tables").toString(), e);
 		}
 	}
 
@@ -317,8 +319,8 @@ public class DBAdapterPostgres extends DBAdapter {
 			
 			return listField;
 		}catch(Exception e) {
-			logger.error("Error load tables.", e);			
-			throw new ExceptionDBGitRunTime("Error load tables.", e);
+			logger.error(lang.getValue("errors", "adapter", "tables").toString(), e);			
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "tables").toString(), e);
 		}		
 	}
 	
@@ -347,8 +349,8 @@ public class DBAdapterPostgres extends DBAdapter {
 			
 			return type.toString();
 		}catch(Exception e) {
-			logger.error("Error load tables.", e);			
-			throw new ExceptionDBGitRunTime("Error load tables.", e);
+			logger.error(lang.getValue("errors", "adapter", "tables").toString(), e);			
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "tables").toString(), e);
 		}	
 	}
 
@@ -386,7 +388,7 @@ public class DBAdapterPostgres extends DBAdapter {
 			return indexes;
 			
 		}catch(Exception e) {
-			logger.error("Error load Indexes");
+			logger.error(lang.getValue("errors", "adapter", "indexes").toString());
 			throw new ExceptionDBGitRunTime(e.getMessage());
 		}
 		
@@ -424,8 +426,8 @@ public class DBAdapterPostgres extends DBAdapter {
 			return constraints;		
 			
 		}catch(Exception e) {
-			logger.error("Error load Constraints");
-			throw new ExceptionDBGitRunTime("Error", e);
+			logger.error(lang.getValue("errors", "adapter", "constraints").toString());
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "constraints").toString(), e);
 		}
 	}
 			
@@ -455,8 +457,8 @@ public class DBAdapterPostgres extends DBAdapter {
 			return listView;
 		}catch(Exception e) {
 			logger.error(e.getMessage());
-			System.out.println(e.getMessage());
-			throw new ExceptionDBGitRunTime(e.getMessage());
+			System.out.println(lang.getValue("errors", "adapter", "views") + ": "+ e.getMessage());
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "views") + ": "+ e.getMessage());
 		}
 	}
 
@@ -485,11 +487,11 @@ public class DBAdapterPostgres extends DBAdapter {
 			return view;
 			
 		}catch(Exception e) {
-			logger.error(e.getMessage());
-			throw new ExceptionDBGitRunTime(e.getMessage());
-		}
-		
+			logger.error(lang.getValue("errors", "adapter", "views") + ": "+ e.getMessage());
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "views") + ": "+ e.getMessage());
+		}		
 	}
+	
 	@Override
 	public Map<String, DBTrigger> getTriggers(String schema) {
 		Map<String, DBTrigger> listTrigger = new HashMap<String, DBTrigger>();
@@ -514,7 +516,7 @@ public class DBAdapterPostgres extends DBAdapter {
 			stmt.close();
 			return listTrigger;
 		}catch(Exception e) {
-			throw new ExceptionDBGitRunTime("Error ", e);	
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "triggers").toString(), e);	
 		}
 	}
 	@Override
@@ -539,7 +541,7 @@ public class DBAdapterPostgres extends DBAdapter {
 			stmt.close();
 			return trigger;
 		}catch(Exception e) {
-			throw new ExceptionDBGitRunTime("Error ", e);	
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "triggers").toString(), e);	
 		}
 
 	}
@@ -596,7 +598,7 @@ public class DBAdapterPostgres extends DBAdapter {
 			}
 			stmt.close();
 		}catch(Exception e) {
-			throw new ExceptionDBGitRunTime("Error load functions from " +schema, e);
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "fnc").toString(), e);
 		}
 		return listFunction;
 	}
@@ -633,7 +635,7 @@ public class DBAdapterPostgres extends DBAdapter {
 			return func;
 			
 		}catch(Exception e) {
-			throw new ExceptionDBGitRunTime("Error load function " +schema+"."+name, e);			
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "fnc").toString(), e);			
 		}
 	}
 
@@ -643,9 +645,9 @@ public class DBAdapterPostgres extends DBAdapter {
 		try {
 			DBTableData data = new DBTableData();
 			
-			int maxRowsCount = DBGitConfig.getInstance().getInteger("core", "MAX_ROW_COUNT_FETCH", MAX_ROW_COUNT_FETCH);
+			int maxRowsCount = DBGitConfig.getInstance().getInteger("core", "MAX_ROW_COUNT_FETCH", DBGitConfig.getInstance().getIntegerGlobal("core", "MAX_ROW_COUNT_FETCH", MAX_ROW_COUNT_FETCH));
 			
-			if (DBGitConfig.getInstance().getBoolean("core", "LIMIT_FETCH", true)) {
+			if (DBGitConfig.getInstance().getBoolean("core", "LIMIT_FETCH", DBGitConfig.getInstance().getBooleanGlobal("core", "LIMIT_FETCH", true))) {
 				Statement st = getConnection().createStatement();
 				String query = "select COALESCE(count(*), 0) kolvo from ( select 1 from "+
 						tableName + " limit " + (maxRowsCount + 1) + " ) tbl";
@@ -665,11 +667,11 @@ public class DBAdapterPostgres extends DBAdapter {
 			
 			return data;
 		} catch(Exception e) {
-			logger.error("Error load data from "+tableName, e);
+			logger.error(lang.getValue("errors", "adapter", "tableData").toString(), e);
 			try {
 				getConnection().rollback(); 
 			} catch (Exception e2) {
-				logger.error("Error rollback  ", e2);
+				logger.error(lang.getValue("errors", "adapter", "rollback").toString(), e2);
 			}
 			throw new ExceptionDBGitRunTime(e.getMessage());
 		}
@@ -769,7 +771,6 @@ public class DBAdapterPostgres extends DBAdapter {
 			
 			rs.next();
 			if (rs.getInt("cnt") == 0) {
-				ConsoleWriter.detailsPrintLn("Creating schema " + schemaName);
 				StatementLogging stLog = new StatementLogging(connect, getStreamOutputSqlCommand(), isExecSql());
 				stLog.execute("create schema " + schemaName);
 
@@ -779,7 +780,7 @@ public class DBAdapterPostgres extends DBAdapter {
 			rs.close();
 			st.close();
 		} catch (SQLException e) {			
-			throw new ExceptionDBGit("Cannot create schema: " + e.getLocalizedMessage());
+			throw new ExceptionDBGit(lang.getValue("errors", "adapter", "createSchema") + ": " + e.getLocalizedMessage());
 		}
 		
 	}
@@ -793,7 +794,6 @@ public class DBAdapterPostgres extends DBAdapter {
 			
 			rs.next();
 			if (rs.getInt("cnt") == 0) {
-				ConsoleWriter.detailsPrintLn("Creating role " + roleName);
 				StatementLogging stLog = new StatementLogging(connect, getStreamOutputSqlCommand(), isExecSql());
 				stLog.execute("CREATE ROLE " + roleName + " LOGIN PASSWORD '" + roleName +  "'");
 	
@@ -804,8 +804,13 @@ public class DBAdapterPostgres extends DBAdapter {
 			rs.close();
 			st.close();
 		} catch (SQLException e) {			
-			throw new ExceptionDBGit("Cannot create schema: " + e.getLocalizedMessage());
+			throw new ExceptionDBGit(lang.getValue("errors", "adapter", "createSchema") + ": " + e.getLocalizedMessage());
 		}		
+	}
+
+	@Override
+	public String getDefaultScheme() throws ExceptionDBGit {
+		return "public";
 	}	
 
 }

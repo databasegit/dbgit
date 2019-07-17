@@ -7,6 +7,9 @@ import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
+import ru.fusionsoft.dbgit.core.DBGitLang;
+import ru.fusionsoft.dbgit.core.ExceptionDBGit;
+
 /**
  * Class utility for calculate hash 
  * 
@@ -20,7 +23,7 @@ public class CalcHash {
 		try {
 			md = MessageDigest.getInstance("SHA-256");						
 		} catch (NoSuchAlgorithmException e) {
-			LoggerUtil.getGlobalLogger().error("error search MessageDigest SHA-256", e);			
+			LoggerUtil.getGlobalLogger().error(DBGitLang.getInstance().getValue("errors", "hash", "errorSha").toString(), e);			
 		}		
 	}
 	
@@ -59,14 +62,14 @@ public class CalcHash {
 		try {
 			int n = data.length();
 		} catch (Exception e) {
-			LoggerUtil.getGlobalLogger().warn("Calc hash use null params ", e);
+			LoggerUtil.getGlobalLogger().warn(DBGitLang.getInstance().getValue("errors", "hash", "nullParam").toString(), e);
 			return this;				
 		}
 
 		try {
 			return addData(data.getBytes("UTF-8"));
 		} catch (UnsupportedEncodingException e) {
-			LoggerUtil.getGlobalLogger().error("UnsupportedEncodingException UTF-8", e);
+			LoggerUtil.getGlobalLogger().error(DBGitLang.getInstance().getValue("errors", "hash", "unsupportedEncode").toString(), e);
 			throw new RuntimeException(e);
 		}
 		

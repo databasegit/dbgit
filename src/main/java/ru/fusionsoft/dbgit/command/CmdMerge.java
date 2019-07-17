@@ -24,8 +24,7 @@ public class CmdMerge implements IDBGitCommand {
 
 	@Override
 	public String getHelperInfo() {
-		return "Example: \n"
-				+ "    dbgit merge master";
+		return getLang().getValue("help", "merge").toString();
 	}
 
 	@Override

@@ -10,6 +10,7 @@ import ru.fusionsoft.dbgit.adapters.DBRestoreMetaSql;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
 import ru.fusionsoft.dbgit.adapters.IDBAdapterRestoreMetaData;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBAdapterRestoteMetaData;
+import ru.fusionsoft.dbgit.core.DBGitLang;
 import ru.fusionsoft.dbgit.meta.DBGitMetaType;
 import ru.fusionsoft.dbgit.meta.IDBGitMetaType;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
@@ -42,7 +43,7 @@ public class FactoryDBAdapterRestoreOracle implements IFactoryDBAdapterRestoteMe
 		if (!restoreAdapters.containsKey(tp.getValue())) {
 			//return new DBRestoreMetaNotSupport();
 			
-			ConsoleWriter.println("Cannot restore " + tp.getValue() + "!");
+			ConsoleWriter.println(DBGitLang.getInstance().getValue("errors", "restore", "cannotRestore").withParams(tp.getValue()));
 			return null;
 		}
 		

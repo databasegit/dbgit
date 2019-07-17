@@ -61,7 +61,7 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 				String schema = getPhisicalSchema(restoreTable.getTable().getSchema().toLowerCase());
 				String tblName = schema+"."+restoreTable.getTable().getName();
 				
-				ConsoleWriter.detailsPrint("Restoring table " + tblName + "\n", 1);
+				ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "table").withParams(tblName) + "\n", 1);
 				
 				Map<String, DBTable> tables = adapter.getTables(schema);
 				boolean exist = false;
@@ -86,7 +86,7 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 					}
 				}
 				if(!exist){								
-					ConsoleWriter.detailsPrint("Creating table...", 2);
+					ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "createTable"), 2);
 					String ownerName = restoreTable.getTable().getOptions().get("owner").getData();
 					Map<String, DBRole> roles = adapter.getRoles();
 					
@@ -101,31 +101,31 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 						querry+="alter table "+ tblName + " owner to "+ ownerName + ";";
 						st.execute(querry);	
 					}				
-					ConsoleWriter.detailsPrintlnGreen("OK");
+					ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
 				}
 				//restore tabl fields
 							Map<String, DBTableField> currentFileds = adapter.getTableFields(restoreTable.getTable().getSchema().toLowerCase(), restoreTable.getTable().getName().toLowerCase());
 							MapDifference<String, DBTableField> diffTableFields = Maps.difference(restoreTable.getFields(),currentFileds);
 							
 							if(!diffTableFields.entriesOnlyOnLeft().isEmpty()){
-								ConsoleWriter.detailsPrint("Adding columns...", 2);
+								ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "addColumns"), 2);
 								for(DBTableField tblField:diffTableFields.entriesOnlyOnLeft().values()) {
 										String as = "alter table "+ tblName +" add column " + tblField.getName()  + " " + tblField.getTypeSQL();
 										st.execute("alter table "+ tblName +" add column " + tblField.getName()  + " " + tblField.getTypeSQL());
 								}	
-								ConsoleWriter.detailsPrintlnGreen("OK");
+								ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
 							}
 							
 							if(!diffTableFields.entriesOnlyOnRight().isEmpty()) {
-								ConsoleWriter.detailsPrint("Dropping columns...", 2);
+								ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "droppingColumns"), 2);
 								for(DBTableField tblField:diffTableFields.entriesOnlyOnRight().values()) {
 									st.execute("alter table "+ tblName +" drop column "+ tblField.getName());
 								}		
-								ConsoleWriter.detailsPrintlnGreen("OK");
+								ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
 							}
 							
 							if(!diffTableFields.entriesDiffering().isEmpty()) {		
-								ConsoleWriter.detailsPrint("Modifying columns...", 2);
+								ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "modifyColumns"), 2);
 								for(ValueDifference<DBTableField> tblField:diffTableFields.entriesDiffering().values()) {
 									if(!tblField.leftValue().getName().equals(tblField.rightValue().getName())) {
 										st.execute("alter table "+ tblName +" rename column "+ tblField.rightValue().getName() +" to "+ tblField.leftValue().getName());
@@ -135,7 +135,7 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 										st.execute("alter table "+ tblName +" alter column "+ tblField.leftValue().getName() +" type "+ tblField.leftValue().getTypeSQL());
 									}
 								}		
-								ConsoleWriter.detailsPrintlnGreen("OK");
+								ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
 							}						
 						
 				ResultSet rs = st.executeQuery("SELECT COUNT(*) as constraintscount\n" +
@@ -148,20 +148,20 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 				// set primary key
 				for(DBConstraint tableconst: restoreTable.getConstraints().values()) {
 					if(tableconst.getConstraintType().equals("p")) {
-						ConsoleWriter.detailsPrint("Adding PK...", 2);
+						ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "addPk"), 2);
 						st.execute("alter table "+ tblName +" add constraint "+ tableconst.getName() + " "+tableconst.getSql());
-						ConsoleWriter.detailsPrintlnGreen("OK");
+						ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
 						break;
 					}
 				}									
 			}
 			else
 			{
-				throw new ExceptionDBGitRestore("Error restore: Unable to restore Table.");
+				throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()));
 			}						
 		}
 		catch (Exception e) {
-			throw new ExceptionDBGitRestore("Error restore "+obj.getName(), e);
+			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()), e);
 		} finally {
 			st.close();
 		}			
@@ -234,11 +234,11 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 			}
 			else
 			{
-				throw new ExceptionDBGitRestore("Error restore: Unable to restore TableFields.");
+				throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()));
 			}						
 		}
 		catch (Exception e) {
-			throw new ExceptionDBGitRestore("Error restore "+obj.getName(), e);
+			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()), e);
 		} finally {
 			st.close();
 		}			
@@ -248,7 +248,7 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 		IDBAdapter adapter = getAdapter();
 		Connection connect = adapter.getConnection();
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
-		ConsoleWriter.detailsPrint("Restore indexes for table " + obj.getName() + "...", 1);
+		ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "restoreIndex").withParams(obj.getName()), 1);
 		try {
 			if (obj instanceof MetaTable) {
 				MetaTable restoreTable = (MetaTable)obj;	
@@ -307,15 +307,15 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 			}
 			else
 			{
-				ConsoleWriter.detailsPrintlnRed("FAIL");
-				throw new ExceptionDBGitRestore("Error restore: Unable to restore TableIndexes.");
+				ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
+				throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()));
 			}						
 		}
 		catch (Exception e) {
-			ConsoleWriter.detailsPrintlnRed("FAIL");
-			throw new ExceptionDBGitRestore("Error restore "+obj.getName(), e);
+			ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
+			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()), e);
 		} finally {
-			ConsoleWriter.detailsPrintlnGreen("OK");
+			ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
 			st.close();
 		}			
 	}
@@ -323,7 +323,7 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 		IDBAdapter adapter = getAdapter();
 		Connection connect = adapter.getConnection();
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
-		ConsoleWriter.detailsPrint("Restore constraints for table " + obj.getName() + "...", 1);
+		ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "restoreConstr").withParams(obj.getName()), 1);
 		try {
 			if (obj instanceof MetaTable) {
 				MetaTable restoreTable = (MetaTable)obj;
@@ -336,15 +336,15 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 			}
 			else
 			{
-				ConsoleWriter.detailsPrintlnRed("FAIL");
-				throw new ExceptionDBGitRestore("Error restore: Unable to restore TableConstraints.");
+				ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
+				throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()));
 			}						
 		}
 		catch (Exception e) {
-			ConsoleWriter.detailsPrintlnRed("FAIL");
-			throw new ExceptionDBGitRestore("Error restore "+obj.getName(), e);
+			ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
+			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()), e);
 		} finally {
-			ConsoleWriter.detailsPrintlnGreen("OK");
+			ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
 			st.close();
 		}			
 	}
@@ -369,11 +369,11 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 			}
 			else
 			{
-				throw new ExceptionDBGitRestore("Error restore: Unable to remove TableConstraints.");
+				throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()));
 			}	
 		}
 		catch(Exception e) {
-			throw new ExceptionDBGitRestore("Error restore "+obj.getName(), e);
+			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()), e);
 		}		
 	}
 	
@@ -414,7 +414,7 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 		
 			// TODO Auto-generated method stub
 		} catch (Exception e) {
-			throw new ExceptionDBGitRestore("Error remove "+obj.getName(), e);
+			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRemoveError").withParams(obj.getName()), e);
 		} finally {
 			st.close();
 		}

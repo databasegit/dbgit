@@ -26,10 +26,7 @@ public class CmdValid implements IDBGitCommand {
 	}
 	
 	public String getHelperInfo() {
-		//return "Command checks if dbgit data files are valid. You can get details with -log switch like this example:\n"
-		//		+ "    dbgit valid -log";
-		return "Example:\n"
-				+ "    dbgit valid -v";
+		return getLang().getValue("help", "valid").toString();
 	}
 	
 	public Options getOptions() {
@@ -41,13 +38,12 @@ public class CmdValid implements IDBGitCommand {
 		GitMetaDataManager gmdm = GitMetaDataManager.getInctance();
 		ConsoleWriter.setDetailedLog(cmdLine.hasOption("v"));
 		
-		if (!DBGitIndex.getInctance().isCorrectVersion())
-			throw new ExceptionDBGit("Versions of Dbgit (" + DBGitIndex.VERSION + ") and repository(" + DBGitIndex.getInctance().getRepoVersion() + ") are different!");
-				
+		checkVersion();
+		
 		//возможно за списком файлов нужно будет сходить в гит индекс
 		try {
 			Map<String, IMetaObject> fileObjs = gmdm.loadFileMetaData();
-			ConsoleWriter.printlnGreen("All files are OK");
+			ConsoleWriter.printlnGreen(getLang().getValue("general", "valid", "allOk"));
 		} catch (Exception e) {
 			ConsoleWriter.printlnRed(e.getMessage());
 		}

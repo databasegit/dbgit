@@ -13,8 +13,8 @@ public class CmdSynonymSchema implements IDBGitCommand {
 	private Options opts = new Options();
 	
 	public CmdSynonymSchema() {
-		opts.addOption("d", false, "Delete synonym");
-		opts.addOption("s", false, "Show synonyms");
+		opts.addOption("d", false, getLang().getValue("help", "synonym-d").toString());
+		opts.addOption("s", false, getLang().getValue("help", "synonym-s").toString());
 	}
 	
 	public String getCommandName() {
@@ -26,10 +26,7 @@ public class CmdSynonymSchema implements IDBGitCommand {
 	}
 	
 	public String getHelperInfo() {
-		return "Examples:\n"
-			+ "    dbgit synonym <syn> <scheme>\n"
-			+ "    dbgit synonym <synonym> -d \n"
-			+ "    dbgit synonym -s";
+		return getLang().getValue("help", "synonym").toString();
 	}
 	
 	public Options getOptions() {
@@ -42,7 +39,7 @@ public class CmdSynonymSchema implements IDBGitCommand {
 		Boolean isShow = cmdLine.hasOption('s');
 		
 		if (isShow) {
-			ConsoleWriter.printlnGreen("Synonym - schema");
+			ConsoleWriter.printlnGreen(getLang().getValue("general", "status", "synSchema"));
 			for (Entry<String, String> el : ss.getMapSchema().entrySet()) {
 				ConsoleWriter.println(el.getKey() + " - " + el.getValue());
 			}
@@ -50,7 +47,7 @@ public class CmdSynonymSchema implements IDBGitCommand {
 		}
 		
 		if (cmdLine.getArgs().length == 0) {
-			throw new ExceptionDBGit("Bad command. Please specify synonym and scheme. ");
+			throw new ExceptionDBGit(getLang().getValue("errors", "synonym", "badCommand1"));
 		}
 		
 		Boolean isDelete = cmdLine.hasOption('d');
@@ -61,7 +58,7 @@ public class CmdSynonymSchema implements IDBGitCommand {
 			ss.deleteBySynonym(synonym);
 		} else {
 			if (cmdLine.getArgs().length < 2) {
-				throw new ExceptionDBGit("Bad command. Please specify scheme. ");
+				throw new ExceptionDBGit(getLang().getValue("errors", "synonym", "badCommand2"));
 			}
 			
 			String schema = cmdLine.getArgs()[1];
@@ -69,6 +66,6 @@ public class CmdSynonymSchema implements IDBGitCommand {
 		}
 		
 		ss.saveFile();
-		ConsoleWriter.println("Synonyms save.");
+		ConsoleWriter.println(getLang().getValue("general", "done"));
 	}
 }

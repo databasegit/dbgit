@@ -13,8 +13,8 @@ public class CmdCommit implements IDBGitCommand {
 	private Options opts = new Options();
 	
 	public CmdCommit() {
-		opts.addOption("a", false, "dumps db changes to the dbgit repository and adds them to the git index");
-		opts.addOption("m", true, "adds message to commit. You must add message as parameter");
+		opts.addOption("a", false, getLang().getValue("help", "commit-a").toString());
+		opts.addOption("m", true, getLang().getValue("help", "commit-m").toString());
 	}
 	
 	@Override
@@ -29,10 +29,7 @@ public class CmdCommit implements IDBGitCommand {
 
 	@Override
 	public String getHelperInfo() {
-		return "Examples:\n"
-		+ "    dbgit commit -m <Message>\n"
-		+ "    dbgit commit -a -m <Message>\n"
-		+ "    dbgit commit <file_name> -m <Message>";
+		return getLang().getValue("help", "commit").toString();
 	}
 
 	@Override
@@ -55,11 +52,11 @@ public class CmdCommit implements IDBGitCommand {
 			msg = cmdLine.getOptionValue("m");
 		}
 		
-		if (!DBGitIndex.getInctance().isCorrectVersion())
-			throw new ExceptionDBGit("Versions of Dbgit (" + DBGitIndex.VERSION + ") and repository(" + DBGitIndex.getInctance().getRepoVersion() + ") are different!");
+		checkVersion();
 		
-		ConsoleWriter.println("commiting...");	
+		ConsoleWriter.println(getLang().getValue("general", "commit", "commiting"));	
 		DBGitIndex.getInctance().addLinkToGit();
+		DBGitIndex.getInctance().addIgnoreToGit();
 		DBGit.getInstance().gitCommit(cmdLine.hasOption("a"), msg, filePath);
 	}
 

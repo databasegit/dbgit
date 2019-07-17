@@ -3,6 +3,7 @@ package ru.fusionsoft.dbgit.data_table;
 import java.util.HashMap;
 import java.util.Map;
 
+import ru.fusionsoft.dbgit.core.DBGitLang;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 
 public class FactoryCellData {	
@@ -23,7 +24,7 @@ public class FactoryCellData {
 			return cl.newInstance();
 			
 		} catch (Exception e) {
-			throw new ExceptionDBGit("Error create CellData for type "+typeMapping, e);
+			throw new ExceptionDBGit(DBGitLang.getInstance().getValue("errors", "dataTable", "errorCellData").withParams(typeMapping), e);
 		}
 	}
 }

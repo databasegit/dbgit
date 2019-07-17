@@ -2,6 +2,7 @@ package ru.fusionsoft.dbgit.adapters;
 
 import java.sql.Connection;
 
+import ru.fusionsoft.dbgit.core.DBGitLang;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
 
@@ -29,7 +30,7 @@ public class DBRestoreMetaNotSupport implements IDBAdapterRestoreMetaData {
 	public boolean restoreMetaObject(IMetaObject obj, int step) throws Exception {
 		// TODO Auto-generated method stub
 		//throw exception not support
-		throw new ExceptionDBGit("Restore object "+obj.getName()+" NotSupport");
+		throw new ExceptionDBGit(DBGitLang.getInstance().getValue("errors", "restore", "restoreNotSupport").withParams(obj.getName()));
 		
 	}
 	
