@@ -9,4 +9,4 @@
 - No need to write `dbgit checkout -b branch remotes/origin/branch` to download branch from remote repository. It's enough to call `dbgit checkout -b branch`
 
 ### Changed
-- `.dbgitignore` placed in `.dbgit` directory, and the file will be add to repository when commit
+- `.dbgitignore` placed in `.dbgit` directory, and the file will be added to repository when commit
