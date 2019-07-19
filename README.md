@@ -1,11 +1,41 @@
-# DBGIT
+# [DBGit](https://databasegit.com) by [Fusionsoft](https://www.fusionsoft.ru/en/) [![GitHub license](https://img.shields.io/badge/license-Apache%20License%202.0-blue.svg?style=flat)](http://www.apache.org/licenses/LICENSE-2.0)
 
-A tool to bind your database and git version control system
+### A tool to bind your database and git version control system
+![DBGit](http://databasegit.com/public/images/logo_t.png "DBGit")
 
-## Start DBGit
+#### Works on
+Windows, macOS, Linux
+
+#### Supported build tools
+Maven
+
+#### Supported databases
+Oracle, PostgreSQL
+
+#### Start DBGit
 
 - [Install](https://github.com/databasegit/dbgit/wiki/Installation) or [build from sources ](https://github.com/databasegit/dbgit/wiki/Build-DBGit-From-Source) DBGit.
 - See [examples](https://github.com/databasegit/dbgit/wiki/Usage) of using supported databases
 - [More on all the commands](https://github.com/databasegit/dbgit/wiki#more-on-all-the-commands)
 
+## Documentation
+https://github.com/databasegit/dbgit/wiki
 
+
+## License
+Copyright (C) 2018-2019 [Fusionsoft](https://www.fusionsoft.ru/en/)
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+## Trademark
+DBGit is a registered trademark of [Fusionsoft](https://www.fusionsoft.ru/en/).
