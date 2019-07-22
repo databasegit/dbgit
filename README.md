@@ -6,9 +6,6 @@
 #### Works on
 Windows, macOS, Linux
 
-#### Supported build tools
-Maven
-
 #### Supported databases
 Oracle, PostgreSQL
 
