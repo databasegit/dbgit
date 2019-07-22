@@ -12,7 +12,7 @@ Maven
 #### Supported databases
 Oracle, PostgreSQL
 
-#### Start DBGit
+#### Start using DBGit
 
 - [Install](https://github.com/databasegit/dbgit/wiki/Installation) or [build from sources ](https://github.com/databasegit/dbgit/wiki/Build-DBGit-From-Source) DBGit.
 - See [examples](https://github.com/databasegit/dbgit/wiki/Usage) of using supported databases
@@ -38,4 +38,4 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 ## Trademark
-DBGit is a registered trademark of [Fusionsoft](https://www.fusionsoft.ru/en/).
+DBGit is a trademark of [Fusionsoft](https://www.fusionsoft.ru/en/).
