@@ -1,13 +1,16 @@
-# [DBGit](https://databasegit.com) by [Fusionsoft](https://www.fusionsoft.ru/en/) [![GitHub license](http://databasegit.com/static/assets/img/logo_t.png)](http://www.apache.org/licenses/LICENSE-2.0)
+# [DBGit](https://databasegit.com) by [Fusionsoft](https://www.fusionsoft.ru/en/) [![GitHub license](https://img.shields.io/badge/license-Apache%20License%202.0-blue.svg?style=flat)](http://www.apache.org/licenses/LICENSE-2.0)
 
 ### A tool to bind your database and git version control system
-![DBGit](http://databasegit.com/public/images/logo_t.png "DBGit")
+![DBGit](http://databasegit.com/static/assets/img/logo_t.png "DBGit")
 
 #### Works on
 Windows, macOS, Linux
 
 #### Supported databases
 Oracle, PostgreSQL
+
+#### Release Notes
+[CHANGELOG](https://github.com/databasegit/dbgit/blob/master/CHANGELOG.md)
 
 #### Start using DBGit
 
