@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.3.0.4b85c2d] - 2019-07-29
+### Added
+ - You can backup db object before change manually or automatically now
+ - You can restore db into different db now (from Oracle to Postgresql or from Postgresql to Oracle)
+
 ## [0.3.0.427d28a] - 2019-07-29
 ### Added
 - Different schemes for different database types in default .dbignore file
@@ -14,7 +19,7 @@
 - Fixed bug with primary keys in Postgresql
 - Fixed some bugs with restore to Oracle database
 
-## [0.2.2] - 2019-07-17
+## [0.2.2.1cf9dfd] - 2019-07-17
 ### Added
 - All output messages store in yaml file now
 - You can switch between localization files 
