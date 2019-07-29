@@ -137,6 +137,7 @@ public interface IDBAdapter {
 	public boolean userHasRightsToGetDdlOfOtherUsers();
 
 	public IFactoryDBBackupAdapter getBackupAdapterFactory();
+	public IFactoryDBConvertAdapter getConvertAdapterFactory();
 	
 	public String getDbType();
 	public String getDbVersion();	

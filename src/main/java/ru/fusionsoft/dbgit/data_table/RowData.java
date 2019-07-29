@@ -37,7 +37,6 @@ public class RowData {
 	}
 	
 	public void loadDataFromRS(ResultSet rs) throws Exception {
-				
 		for (int i = 0; i < rs.getMetaData().getColumnCount(); i++) {	
 			String columnName = rs.getMetaData().getColumnName(i+1).toLowerCase();
 			ICellData cd = FactoryCellData.createCellData(metaTable.getFieldsMap().get(columnName).getTypeUniversal());
@@ -54,7 +53,7 @@ public class RowData {
 	public void loadDataFromCSVRecord(CSVRecord record, CSVRecord titleColumns) throws Exception {
 
 		if (record.size() != titleColumns.size()) {
-			throw new ExceptionDBGit(DBGitLang.getInstance().getValue("errors", "tableData", "differentCount"));
+			throw new ExceptionDBGit(DBGitLang.getInstance().getValue("errors", "dataTable", "differentCount"));
 		}		
 		
 		for (int i = 0; i < record.size(); i++) {	

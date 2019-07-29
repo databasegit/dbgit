@@ -118,7 +118,6 @@ public class MetaTable extends MetaBase {
 		} else {		
 			fields.putAll(actualFields);
 		}
-
 		indexes.putAll(adapter.getIndexes(tbl.getSchema(), tbl.getName()));
 		constraints.putAll(adapter.getConstraints(tbl.getSchema(), tbl.getName()));
 		return true;

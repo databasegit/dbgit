@@ -4,8 +4,10 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStreamReader;
+import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -25,6 +27,7 @@ import ru.fusionsoft.dbgit.adapters.IDBAdapter;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRestore;
 import ru.fusionsoft.dbgit.core.GitMetaDataManager;
 import ru.fusionsoft.dbgit.core.SchemaSynonym;
+import ru.fusionsoft.dbgit.data_table.BooleanData;
 import ru.fusionsoft.dbgit.data_table.DateData;
 import ru.fusionsoft.dbgit.data_table.ICellData;
 import ru.fusionsoft.dbgit.data_table.LongData;
@@ -49,24 +52,48 @@ public class DBRestoreTableDataOracle extends DBRestoreAdapter {
 		if (obj instanceof MetaTableData) {
 			MetaTableData restoreTableData = (MetaTableData) obj;
 			
+			String schema = getPhisicalSchema(restoreTableData.getTable().getSchema());					
+			schema = (SchemaSynonym.getInstance().getSchema(schema) == null) ? schema : SchemaSynonym.getInstance().getSchema(schema);
+			
 			IMetaObject currentMetaObj = GitMetaDataManager.getInctance().getCacheDBMetaObject(obj.getName());
 			MetaTableData currentTableData = (MetaTableData) currentMetaObj;
-			
-			if (currentMetaObj != null)
-				currentTableData = (MetaTableData) currentMetaObj;
-			else {
-				currentTableData = new MetaTableData();
-				currentTableData.setTable(restoreTableData.getTable());
-				currentTableData.setMapRows(new TreeMapRowData());
-				currentTableData.setDataTable(restoreTableData.getDataTable());
-				currentTableData.getmapRows().clear();
-			}
-			
+						
 			if(Integer.valueOf(step).equals(0)) {
 				removeTableConstraintsOracle(restoreTableData.getMetaTable());
 				return false;
 			}
 			if(Integer.valueOf(step).equals(1)) {
+				if (currentMetaObj != null) {
+					currentTableData = (MetaTableData) currentMetaObj;
+				} else {					
+					currentTableData = new MetaTableData();
+					currentTableData.setTable(restoreTableData.getTable());
+					currentTableData.getTable().setSchema(schema);
+					
+					currentTableData.setMapRows(new TreeMapRowData());
+					currentTableData.setDataTable(restoreTableData.getDataTable());
+				}
+				currentTableData.getmapRows().clear();
+			
+				if (getAdapter().getTable(schema, currentTableData.getTable().getName()) != null) {
+					currentTableData.setDataTable(getAdapter().getTableData(schema, currentTableData.getTable().getName()));
+				
+					ResultSet rs = currentTableData.getDataTable().getResultSet();
+					
+					TreeMapRowData mapRows = new TreeMapRowData(); 
+					
+					MetaTable metaTable = new MetaTable(currentTableData.getTable());
+					metaTable.loadFromDB(currentTableData.getTable());
+
+					ConsoleWriter.println("ids: " + metaTable.getIdColumns());
+					
+					while(rs.next()) {
+						RowData rd = new RowData(rs, metaTable);
+						mapRows.put(rd.calcRowKey(metaTable.getIdColumns()), rd);
+					}
+					currentTableData.setMapRows(mapRows);
+				}
+				
 				restoreTableDataOracle(restoreTableData, currentTableData);
 				return false;
 			}
@@ -92,7 +119,12 @@ public class DBRestoreTableDataOracle extends DBRestoreAdapter {
 
 			String insertQuery= "";
 			
-			String fields = "(" + restoreTableData.getmapRows().firstEntry().getValue().getData().keySet().stream().map(d -> d.toString()).collect(Collectors.joining(",")) + ")";
+			if (restoreTableData.getmapRows() == null)
+				restoreTableData.setMapRows(new TreeMapRowData());
+			
+			String fields = "";
+			if (restoreTableData.getmapRows().size() > 0)
+				fields = "(" + restoreTableData.getmapRows().firstEntry().getValue().getData().keySet().stream().map(d -> d.toString()).collect(Collectors.joining(",")) + ")";
 			MapDifference<String, RowData> diffTableData = Maps.difference(restoreTableData.getmapRows(), currentTableData == null ? new TreeMap<String, RowData>() : currentTableData.getmapRows());
 
 			if(!diffTableData.entriesOnlyOnLeft().isEmpty()) {
@@ -105,6 +137,8 @@ public class DBRestoreTableDataOracle extends DBRestoreAdapter {
 							.collect(Collectors.joining(","));				
 					insertQuery = "insert into "+tblName +
 							fields + " values (" + values + ")";
+					
+					ConsoleWriter.detailsPrintLn(insertQuery);
 					
 					PrepareStatementLogging ps = new PrepareStatementLogging(connect, insertQuery, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
 					int i = 0;
@@ -138,8 +172,8 @@ public class DBRestoreTableDataOracle extends DBRestoreAdapter {
 							}
 						} else if (data instanceof LongData) {
 							String dt = data.getSQLData().replace("'", "");
-							if (dt.equals("")) 
-								ps.setDouble(i, dt.equals("") ? 0 : Double.parseDouble(dt));
+							if (!dt.equals("")) 
+								ps.setDouble(i, Double.parseDouble(dt));
 							else
 								ps.setNull(i, java.sql.Types.DOUBLE);
 						} else if (data instanceof DateData) {
@@ -147,13 +181,21 @@ public class DBRestoreTableDataOracle extends DBRestoreAdapter {
 								ps.setDate(i, ((DateData) data).getDate());
 							else
 								ps.setNull(i, java.sql.Types.DATE);		
+						} else if (data instanceof BooleanData) {
+							Boolean value = ((BooleanData) data).getValue();
+							if (value != null)			
+								if (value)
+									ps.setInt(i, 1);
+								else
+									ps.setInt(i, 0);
+							else
+								ps.setNull(i, java.sql.Types.NULL);
 						} else {
 							if (((StringData) data).getValue() != null)								
 								ps.setString(i, ((StringData) data).getValue());
 							else
-								ps.setNull(i, java.sql.Types.VARCHAR);		
+								ps.setNull(i, java.sql.Types.NULL);		
 						}						
-					
 					}
 					
 					if (adapter.isExecSql())
@@ -176,7 +218,7 @@ public class DBRestoreTableDataOracle extends DBRestoreAdapter {
 					
 					if (primarykeys.size() == 0) {
 						ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
-						ConsoleWriter.printlnRed(lang.getValue("general", "restore", "pkNotFound").withParams(tblName));
+						ConsoleWriter.printlnRed(lang.getValue("errors", "restore", "pkNotFound").withParams(tblName));
 						isSuccessful = false;
 						break;
 					}
@@ -227,8 +269,9 @@ public class DBRestoreTableDataOracle extends DBRestoreAdapter {
 				if (isSuccessful) ConsoleWriter.detailsPrintlnGreen("OK");
 			}			
 
-		}
-		catch (Exception e) {
+		} catch (SQLException e1) {
+			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(restoreTableData.getTable().getSchema() + "." + restoreTableData.getTable().getName()));
+		} catch (Exception e) {
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(restoreTableData.getTable().getSchema() + "." + restoreTableData.getTable().getName()), e);
 		} finally {
 			st.close();
@@ -274,6 +317,9 @@ public class DBRestoreTableDataOracle extends DBRestoreAdapter {
 				}
 			}					
 			ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+		} catch (SQLException e1) {
+			ConsoleWriter.detailsPrintlnRed(lang.getValue(lang.getValue("errors", "restore", "objectRestoreError").withParams( table.getTable().getName()) + "\n"+ e1.getLocalizedMessage()));
+			//throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()) + "\n"+ e1.getLocalizedMessage());
 		} catch (Exception e) {
 			ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(table.getTable().getName()), e);
@@ -291,14 +337,26 @@ public class DBRestoreTableDataOracle extends DBRestoreAdapter {
 		try {		
 			for (DBConstraint constraint : adapter.getConstraints(schema, table.getTable().getName()).values()) {
 				if(!constraint.getConstraintType().equalsIgnoreCase("p")) {
-					String query = "alter table " + schema + "." + table.getTable().getName() 
-							+ " drop constraint " + constraint.getName();
-					ConsoleWriter.println(query);
-					st.execute(query);
+					String dropQuery = "declare cnt number;\r\n" + 
+							"begin    \r\n" + 
+							"select count(*) into cnt from ALL_CONSTRAINTS where upper(CONSTRAINT_NAME) = upper('" + constraint.getName() + "') and upper(owner) = upper('" + schema + "');\r\n" + 
+							"   if (cnt > 0) \r\n" + 
+							"    then \r\n" + 
+							"        execute immediate('alter table " + schema + "." + table.getTable().getName() + " drop constraint " + constraint.getName() + "');\r\n" + 
+							"    end if;\r\n" + 
+							"end;";	
+					
+					//String query = "if (OBJECT_ID(" + schema + "." + constraint.getName() + ")) then begin alter table " + schema + "." + table.getTable().getName() 
+					//		+ " drop constraint " + constraint.getName() + "; end";
+					ConsoleWriter.println(dropQuery);
+					st.execute(dropQuery);
 				}					
 			}
 			ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
-		} catch(Exception e) {
+		} catch (SQLException e1) {
+			ConsoleWriter.detailsPrintlnRed(lang.getValue(lang.getValue("errors", "restore", "objectRestoreError").withParams( table.getTable().getName()) + "\n"+ e1.getLocalizedMessage()));
+			//throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()) + "\n"+ e1.getLocalizedMessage());
+		} catch (Exception e) {
 			ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "cannotRestore").withParams(schema + "." + table.getTable().getName()), e);
 		} finally {

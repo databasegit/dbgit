@@ -16,6 +16,7 @@ import ru.fusionsoft.dbgit.adapters.IDBAdapter;
 import ru.fusionsoft.dbgit.adapters.IDBAdapterRestoreMetaData;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBAdapterRestoteMetaData;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBBackupAdapter;
+import ru.fusionsoft.dbgit.adapters.IFactoryDBConvertAdapter;
 import ru.fusionsoft.dbgit.core.DBGitConfig;
 import ru.fusionsoft.dbgit.core.DBGitLang;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
@@ -57,6 +58,8 @@ public class DBAdapterOracle extends DBAdapter {
 	
 	private Logger logger = LoggerUtil.getLogger(this.getClass());
 	private FactoryDBAdapterRestoreOracle restoreFactory = new FactoryDBAdapterRestoreOracle();	
+	private FactoryDbConvertAdapterOracle convertFactory = new FactoryDbConvertAdapterOracle();
+	private FactoryDBBackupAdapterOracle backupFactory = new FactoryDBBackupAdapterOracle();
 
 	private String s;
 
@@ -810,7 +813,7 @@ public class DBAdapterOracle extends DBAdapter {
 
 	@Override
 	public IFactoryDBBackupAdapter getBackupAdapterFactory() {
-		return null;
+		return backupFactory;
 	}
 
 	@Override
@@ -977,6 +980,12 @@ public class DBAdapterOracle extends DBAdapter {
 		
 		return reservedWords.contains(word.toUpperCase());
 	}
+	
+	@Override
+	public IFactoryDBConvertAdapter getConvertAdapterFactory() {
+		return convertFactory;
+	}
+
 
 	@Override
 	public void createRoleIfNeed(String roleName) throws ExceptionDBGit {

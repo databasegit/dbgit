@@ -13,6 +13,7 @@ import ru.fusionsoft.dbgit.adapters.AdapterFactory;
 import ru.fusionsoft.dbgit.adapters.DBAdapter;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBAdapterRestoteMetaData;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBBackupAdapter;
+import ru.fusionsoft.dbgit.adapters.IFactoryDBConvertAdapter;
 import ru.fusionsoft.dbgit.core.DBGitConfig;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitObjectNotFound;
@@ -55,6 +56,8 @@ public class DBAdapterPostgres extends DBAdapter {
 
 	private Logger logger = LoggerUtil.getLogger(this.getClass());
 	private FactoryDBAdapterRestorePostgres restoreFactory = new FactoryDBAdapterRestorePostgres();
+	private FactoryDbConvertAdapterPostgres convertFactory = new FactoryDbConvertAdapterPostgres();	
+	private FactoryDBBackupAdapterPostgres backupFactory = new FactoryDBBackupAdapterPostgres();
 
 	public void registryMappingTypes() {
 		FactoryCellData.regMappingTypes(DEFAULT_MAPPING_TYPE, StringData.class);		
@@ -739,7 +742,7 @@ public class DBAdapterPostgres extends DBAdapter {
 
 	@Override
 	public IFactoryDBBackupAdapter getBackupAdapterFactory() {
-		return null;
+		return backupFactory;
 	}
 	
 	@Override
@@ -763,7 +766,12 @@ public class DBAdapterPostgres extends DBAdapter {
 			return "";
 		}
 	}
-	
+
+	@Override
+	public IFactoryDBConvertAdapter getConvertAdapterFactory() {
+		return convertFactory;
+	}
+
 	@Override
 	public void createSchemaIfNeed(String schemaName) throws ExceptionDBGit {
 		try {

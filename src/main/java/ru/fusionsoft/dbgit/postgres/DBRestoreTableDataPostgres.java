@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStreamReader;
+import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.util.Collection;
@@ -50,23 +51,45 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 			
 			IMetaObject currentMetaObj = gitMetaMng.getCacheDBMetaObject(obj.getName());
 			
-			if (currentMetaObj instanceof MetaTableData || currentMetaObj == null) {
-				
-				if (currentMetaObj != null)
-					currentTableData = (MetaTableData) currentMetaObj;
-				else {
-					currentTableData = new MetaTableData();
-					currentTableData.setTable(restoreTableData.getTable());
-					currentTableData.setMapRows(new TreeMapRowData());
-					currentTableData.setDataTable(restoreTableData.getDataTable());
-					currentTableData.getmapRows().clear();
-				}
+			if (currentMetaObj instanceof MetaTableData || currentMetaObj == null) {				
 				
 				if(Integer.valueOf(step).equals(0)) {
 					removeTableConstraintsPostgres(restoreTableData.getMetaTable());
 					return false;
 				}
 				if(Integer.valueOf(step).equals(1)) {
+					String schema = getPhisicalSchema(restoreTableData.getTable().getSchema());					
+					schema = (SchemaSynonym.getInstance().getSchema(schema) == null) ? schema : SchemaSynonym.getInstance().getSchema(schema);
+					
+					if (currentMetaObj != null) {
+						currentTableData = (MetaTableData) currentMetaObj;
+					} else {					
+						currentTableData = new MetaTableData();
+						currentTableData.setTable(restoreTableData.getTable());
+						currentTableData.getTable().setSchema(schema);
+						
+						currentTableData.setMapRows(new TreeMapRowData());
+						currentTableData.setDataTable(restoreTableData.getDataTable());
+					}
+					currentTableData.getmapRows().clear();
+				
+					if (getAdapter().getTable(schema, currentTableData.getTable().getName()) != null) {
+						currentTableData.setDataTable(getAdapter().getTableData(schema, currentTableData.getTable().getName()));
+					
+						ResultSet rs = currentTableData.getDataTable().getResultSet();
+						
+						TreeMapRowData mapRows = new TreeMapRowData(); 
+						
+						MetaTable metaTable = new MetaTable(currentTableData.getTable());
+						metaTable.loadFromDB(currentTableData.getTable());
+
+						while(rs.next()) {
+							RowData rd = new RowData(rs, metaTable);
+							mapRows.put(rd.calcRowHash(), rd);
+						}
+						currentTableData.setMapRows(mapRows);
+					}
+					
 					restoreTableDataPostgres(restoreTableData,currentTableData);
 					return false;
 				}
@@ -93,7 +116,7 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 		IDBAdapter adapter = getAdapter();
 		Connection connect = adapter.getConnection();
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
-		try {
+		try {			
 			if (restoreTableData.getmapRows() == null)
 				restoreTableData.setMapRows(new TreeMapRowData());
 			
@@ -102,6 +125,7 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 				fields = keysToString(restoreTableData.getmapRows().firstEntry().getValue().getData().keySet()) + " values ";
 			MapDifference<String, RowData> diffTableData = Maps.difference(restoreTableData.getmapRows(),currentTableData.getmapRows());
 			String schema = getPhisicalSchema(restoreTableData.getTable().getSchema());
+			
 			schema = (SchemaSynonym.getInstance().getSchema(schema) == null) ? schema : SchemaSynonym.getInstance().getSchema(schema);
 			String tblName = schema + "." + restoreTableData.getTable().getName();
 			
@@ -110,7 +134,7 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 			if(!diffTableData.entriesOnlyOnLeft().isEmpty()) {
 				
 				ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "inserting"), 2);
-				ConsoleWriter.println(diffTableData.entriesOnlyOnLeft().values().size());
+				
 				for(RowData rowData:diffTableData.entriesOnlyOnLeft().values()) {
 					String insertQuery = "insert into "+tblName +
 							fields+valuesToString(rowData.getData().values()) + ";\n";
@@ -148,22 +172,26 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 							}
 						} else if (data instanceof LongData) {
 							String dt = data.getSQLData().replace("'", "");
-							if (dt.equals("")) 
-								ps.setDouble(i, dt.equals("") ? 0 : Double.parseDouble(dt));
+							if (!dt.equals("")) 
+								ps.setDouble(i, Double.parseDouble(dt));
 							else
-								ps.setNull(i, java.sql.Types.DOUBLE);
+								ps.setNull(i, java.sql.Types.NULL);
 						} else if (data instanceof DateData) {
 							if (((DateData) data).getDate() != null)								
 								ps.setDate(i, ((DateData) data).getDate());
 							else
-								ps.setNull(i, java.sql.Types.DATE);		
+								ps.setNull(i, java.sql.Types.NULL);								
+						} else if (data instanceof BooleanData) {
+							if (((BooleanData) data).getValue() != null)								
+								ps.setBoolean(i, ((BooleanData) data).getValue());
+							else
+								ps.setNull(i, java.sql.Types.NULL);
 						} else {
 							if (((StringData) data).getValue() != null)								
 								ps.setString(i, ((StringData) data).getValue());
 							else
-								ps.setNull(i, java.sql.Types.VARCHAR);		
-						}						
-							
+								ps.setNull(i, java.sql.Types.NULL);							
+						}								
 					}
 					
 					if (adapter.isExecSql())
@@ -336,29 +364,38 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 		IDBAdapter adapter = getAdapter();
 		Connection connect = adapter.getConnection();
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
+		StatementLogging stCnt = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
 		String schema = getPhisicalSchema(table.getTable().getSchema());
 		schema = (SchemaSynonym.getInstance().getSchema(schema) == null) ? schema : SchemaSynonym.getInstance().getSchema(schema);
 		String tblName = schema + "." +table.getTable().getName();
 		ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "delConstr").withParams(table.getName()), 1);
 		try {					
-			ResultSet rs = st.executeQuery("SELECT count(*) constraints_count\r\n" + 
+			ResultSet rs = stCnt.executeQuery("SELECT *\r\n" + 
 					"       FROM pg_catalog.pg_constraint con\r\n" + 
 					"            INNER JOIN pg_catalog.pg_class rel\r\n" + 
 					"                       ON rel.oid = con.conrelid\r\n" + 
 					"            INNER JOIN pg_catalog.pg_namespace nsp\r\n" + 
 					"                       ON nsp.oid = connamespace\r\n" + 
-					"       WHERE nsp.nspname = '" + schema + "'\r\n" + 
-					"             AND rel.relname = '" + table.getTable().getName() + "'");
-			rs.next();
-			Integer constraintsCount = Integer.valueOf(rs.getString("constraints_count"));
-			if(constraintsCount.intValue()>0) {
-				Map<String, DBConstraint> constraints = table.getConstraints();
+					"       WHERE upper(nsp.nspname) = upper('" + schema + "')\r\n" + 
+					"             AND upper(rel.relname) = upper('" + table.getTable().getName() + "')");
+			//rs.next();
+			//Integer constraintsCount = Integer.valueOf(rs.getString("constraints_count"));
+			//ConsoleWriter.println("cnstrCnt = " + constraintsCount);
+			//if(constraintsCount.intValue()>0) {
+			//	Map<String, DBConstraint> constraints = table.getConstraints();
+				/*
 				for(DBConstraint constrs :constraints.values()) {
 					if(!constrs.getConstraintType().equals("p")) {
 						st.execute("alter table "+schema+"."+ table.getTable().getName() +" drop constraint if exists "+constrs.getName());
 					}
+				}*/
+				
+				while (rs.next()) {
+					if(!rs.getString("contype").equals("p")) {
+						st.execute("alter table "+schema+"."+ table.getTable().getName() +" drop constraint if exists "+rs.getString("conname"));
+					}					
 				}
-			}	
+			//}	
 			ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
 		}
 		catch(Exception e) {

@@ -62,7 +62,7 @@ public class CmdRm implements IDBGitCommand {
 		
 		Integer countDelete = 0;
 		
-		ConsoleWriter.detailsPrintLn(getLang().getValue("general", "rm", "deleteng"));
+		ConsoleWriter.detailsPrintLn(getLang().getValue("general", "rm", "deleting"));
 		for (IMetaObject obj : dbObjs.values()) {
 			if (maskAdd.match(obj.getName())) {			
 				Timestamp timestampBefore = new Timestamp(System.currentTimeMillis());

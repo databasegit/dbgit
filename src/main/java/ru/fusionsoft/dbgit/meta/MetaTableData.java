@@ -198,12 +198,12 @@ public class MetaTableData extends MetaBase {
 			IDBAdapter adapter = AdapterFactory.createAdapter();
 						
 			MetaTable metaTable = getMetaTable();		
-			
+		
 			if (metaTable.getFields().size() == 0)
 				return false;
 			
 			List<String> idColumns = metaTable.getIdColumns();
-			
+
 			dataTable = adapter.getTableData(table.getSchema(), table.getName());
 			
 			if (dataTable.getErrorFlag() > 0) {
@@ -227,6 +227,7 @@ public class MetaTableData extends MetaBase {
 			System.out.println();
 			*/
 		} catch (Exception e) {
+			e.printStackTrace();
 			if (e instanceof ExceptionDBGit) 
 				throw (ExceptionDBGit)e;
 			throw new ExceptionDBGit(e);

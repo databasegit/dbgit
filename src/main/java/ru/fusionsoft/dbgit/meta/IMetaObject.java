@@ -100,6 +100,7 @@ public interface IMetaObject {
 			
 			return res;
 		} catch (Exception e) {
+			e.printStackTrace();
 			throw new ExceptionDBGit(e);
 		}
 	}

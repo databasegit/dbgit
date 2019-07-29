@@ -15,6 +15,7 @@ import ru.fusionsoft.dbgit.core.DBGitConfig;
 import ru.fusionsoft.dbgit.core.DBGitLang;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRestore;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
+import ru.fusionsoft.dbgit.core.SchemaSynonym;
 import ru.fusionsoft.dbgit.dbobjects.DBSequence;
 import ru.fusionsoft.dbgit.dbobjects.DBTableField;
 import ru.fusionsoft.dbgit.meta.DBGitMetaType;
@@ -94,12 +95,55 @@ public abstract class DBAdapter implements IDBAdapter {
 			
 			for (IMetaObject obj : updateObjs.values().stream().sorted(comparator).collect(Collectors.toList())) {
 				Integer step = 0;
+				
+				if (step == 0 && DBGitConfig.getInstance().getBoolean("core", "TO_MAKE_BACKUP", true)) {
+					obj = getBackupAdapterFactory().getBackupAdapter(this).backupDBObject(obj);
+				}
+				
 				String schemaName = getSchemaName(obj);
+				if (schemaName != null)
+					schemaName = (SchemaSynonym.getInstance().getSchema(schemaName) == null) ? schemaName : SchemaSynonym.getInstance().getSchema(schemaName);
 				
 				boolean res = false;
 				Timestamp timestampBefore = new Timestamp(System.currentTimeMillis());
+
+				if (step == 0) {
+					IDBConvertAdapter convertAdapter = getConvertAdapterFactory().getConvertAdapter(obj.getType().getValue());
+					
+					boolean isContainsNative = false;
+					if (obj instanceof MetaTable) {						
+						MetaTable table = (MetaTable) obj;		
+						
+						for (DBTableField field : table.getFields().values()) {
+							if (field.getTypeUniversal().equals("native")) {
+								isContainsNative = true;
+								break;
+							}
+						}
+					}
+					
+					if (isContainsNative) {
+						ConsoleWriter.println("Table " + obj.getName() + " contains unsupported types, it will be skipped");
+						continue;
+					}
+					
+					if (convertAdapter != null) {
+						if (!createdSchemas.contains(schemaName) && schemaName != null) {
+							createSchemaIfNeed(schemaName);
+							createdSchemas.add(schemaName);
+						}
+						
+						String ownerName = getOwnerName(obj);
+						if (!getRoles().containsKey(ownerName) && !createdRoles.contains(ownerName) && ownerName != null) {
+							createRoleIfNeed(ownerName);
+							createdRoles.add(ownerName);
+						}					
+
+						obj = convertAdapter.convert(getDbType(), getDbVersion(), obj);							
+					}
+				}
 				
-				while (!res) {	
+				while (!res) {						
 					if (obj.getDbType() == null) {
 						ConsoleWriter.println(lang.getValue("errors", "emptyDbType"));
 						break;
@@ -141,7 +185,7 @@ public abstract class DBAdapter implements IDBAdapter {
 				}
     			Timestamp timestampAfter = new Timestamp(System.currentTimeMillis());
     			Long diff = timestampAfter.getTime() - timestampBefore.getTime();
-    			ConsoleWriter.println("(" + diff + " " + lang.getValue("general", "ms") +")");
+    			ConsoleWriter.println("(" + diff + " " + lang.getValue("general", "add", "ms") +")");
 			}
 			
 			for (MetaTable table : tables) {
@@ -168,6 +212,9 @@ public abstract class DBAdapter implements IDBAdapter {
 		try {
 			//start transaction
 			for (IMetaObject obj : deleteObjs.values()) {
+				if (DBGitConfig.getInstance().getBoolean("core", "TO_MAKE_BACKUP", true)) 
+					obj = getBackupAdapterFactory().getBackupAdapter(this).backupDBObject(obj);
+
 				getFactoryRestore().getAdapterRestore(obj.getType(), this).removeMetaObject(obj);
 			}
 			connect.commit();

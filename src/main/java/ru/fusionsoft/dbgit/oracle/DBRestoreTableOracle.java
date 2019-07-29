@@ -2,6 +2,7 @@ package ru.fusionsoft.dbgit.oracle;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -57,8 +58,8 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 				
 				MetaTable restoreTable = (MetaTable)obj;	
 				String schema = getPhisicalSchema(restoreTable.getTable().getSchema());
-				String tblName = schema+"."+restoreTable.getTable().getName();
 				schema = (SchemaSynonym.getInstance().getSchema(schema) == null) ? schema : SchemaSynonym.getInstance().getSchema(schema);
+				String tblName = schema+"."+restoreTable.getTable().getName();
 				ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "table").withParams(tblName) + "\n", 1);
 
 				Map<String, DBTable> tables = adapter.getTables(schema.toUpperCase());
@@ -84,24 +85,10 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 						ddl = "create table " + schema + "." + table.getName() +
 								" (" + restoreTable.getFields().values().stream()
 									.sorted(comparator)
-									.map(field -> field.getName() + " " + field.getTypeSQL())
+									.map(field -> "" + (adapter.isReservedWord(field.getName()) ? "\"" + field.getName() + "\" " : field.getName()) + " " + field.getTypeSQL())
 									.collect(Collectors.joining(", ")) + ")";
 					}
-					st.execute(ddl);	
-					
-					// set primary key
-					for(DBConstraint tableconst: restoreTable.getConstraints().values()) {
-						if(tableconst.getConstraintType().equals("p")) {
-							ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "addPk"), 2);
-							
-							if (tableconst.getOptions().get("ddl").toString().toLowerCase().startsWith("alter table")) 
-								st.execute(tableconst.getOptions().get("ddl").toString());
-							else if (tableconst.getOptions().get("ddl").toString().toLowerCase().startsWith("primary key"))
-								st.execute("alter table "+ tblName +" add constraint PK_"+ tableconst.getName() + tableconst.getOptions().get("ddl").toString());
-							ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
-							break;
-						}
-					}
+					st.execute(ddl);					
 					
 					ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
 				} else {
@@ -139,29 +126,59 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 										st.execute("alter table "+ tblName +" rename column "+ tblField.rightValue().getName() +" to "+ tblField.leftValue().getName());
 									}
 
-									if(!tblField.leftValue().getTypeSQL().equals(tblField.rightValue().getTypeSQL())) {
+									if(!tblField.leftValue().getTypeUniversal().equals(tblField.rightValue().getTypeUniversal())) {
 										st.execute("alter table "+ tblName +" modify "+ tblField.leftValue().getName() +" "+ tblField.leftValue().getTypeSQL());
 									}
 								}		
 								ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
 							}						
 				}
+				
 				ResultSet rs = st.executeQuery("SELECT COUNT(cons.constraint_name) constraintscount \n" + 
 						"FROM all_constraints cons \n" + 
-						"WHERE owner = '" + schema + "' and table_name = '" + tblName+ "' and constraint_name not like 'SYS%' and cons.constraint_type = 'P'");
+						"WHERE upper(owner) = upper('" + schema + "') and upper(table_name) = upper('" + restoreTable.getTable().getName()+ "') and constraint_name not like 'SYS%' and cons.constraint_type = 'P'");
 				rs.next();
 				Integer constraintsCount = Integer.valueOf(rs.getString("constraintscount"));
 				if(constraintsCount.intValue()>0) {
-					removeTableConstraintsOracle(obj);
+					removeTableConstraintsOracle(obj);					
+				}	
+				// set primary key
+				boolean flagPkCreated = false;
+				for(DBConstraint tableconst: restoreTable.getConstraints().values()) {
+					if(tableconst.getConstraintType().equals("p")) {
+						ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "addPk"), 2);
+						
+						if (tableconst.getOptions().get("ddl").toString().toLowerCase().startsWith("alter table")) 
+							st.execute(tableconst.getOptions().get("ddl").toString().replace(" " +tableconst.getSchema() + ".", " " + schema + "."));
+						else if (tableconst.getOptions().get("ddl").toString().toLowerCase().startsWith("primary key"))
+							st.execute("alter table "+ tblName +" add constraint PK_"+ tableconst.getName() + tableconst.getOptions().get("ddl").toString());
+						ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+						flagPkCreated = true;
+						break;
+					}
 				}
-									
+				
+				if (!flagPkCreated) {
+					for(DBTableField field: restoreTable.getFields().values()) {
+						if (field.getIsPrimaryKey()) {
+							ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "addPk"), 2);
+							st.execute("alter table "+ tblName +" add constraint pk_" + restoreTable.getTable().getName() + "_" + field.getName() + " PRIMARY KEY (" + field.getName() + ")");
+							ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));							
+							break;
+						}
+					}
+				}
+				
+													
 			}
 			else
 			{
 				throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()));
 			}						
-		}
-		catch (Exception e) {
+		} catch (SQLException e1) {
+			ConsoleWriter.detailsPrintlnRed(lang.getValue(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()) + "\n"+ e1.getLocalizedMessage()));
+			//throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()) + "\n"+ e1.getLocalizedMessage());
+		} catch (Exception e) {
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()), e);
 		} finally {
 			st.close();
@@ -222,7 +239,7 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 						
 				ResultSet rs = st.executeQuery("SELECT COUNT(cons.constraint_name)\n" + 
 						"FROM all_constraints cons \n" + 
-						"WHERE owner = '" + schema + "' and table_name = '" + tblName+ "' and constraint_name not like 'SYS%' and cons.constraint_type = 'P'");
+						"WHERE upper(owner) = upper('" + schema + "') and upper(table_name) = upper('" + tblName+ "') and constraint_name not like 'SYS%' and cons.constraint_type = 'P'");
 				rs.next();
 				Integer constraintsCount = Integer.valueOf(rs.getString("constraintscount"));
 				if(constraintsCount.intValue()>0) {
@@ -241,8 +258,10 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 			{
 				throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()));
 			}						
-		}
-		catch (Exception e) {
+		} catch (SQLException e1) {
+			ConsoleWriter.detailsPrintlnRed(lang.getValue(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()) + "\n"+ e1.getLocalizedMessage()));
+			//throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()) + "\n"+ e1.getLocalizedMessage());
+		} catch (Exception e) {
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()), e);
 		} finally {
 			st.close();
@@ -296,8 +315,9 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 				ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
 				throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()));
 			}						
-		}
-		catch (Exception e) {
+		} catch (SQLException e1) {
+			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()) + "\n"+ e1.getLocalizedMessage());
+		} catch (Exception e) {
 			ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()), e);
 		} finally {
@@ -319,7 +339,7 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 					if(!constrs.getConstraintType().equalsIgnoreCase("P")) {				
 						//String tblName = schema+"."+restoreTable.getTable().getName();
 						
-						st.execute(constrs.getOptions().get("ddl").toString());
+						st.execute(constrs.getOptions().get("ddl").toString().replace(" " + constrs.getSchema() + ".", " " + schema + "."));
 					}
 				}
 				ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
@@ -329,8 +349,10 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 				ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
 				throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()));
 			}			
-		}
-		catch (Exception e) {
+		} catch (SQLException e1) {
+			ConsoleWriter.detailsPrintlnRed(lang.getValue(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()) + "\n"+ e1.getLocalizedMessage()));
+			//throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()) + "\n"+ e1.getLocalizedMessage());
+		} catch (Exception e) {
 			ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()), e);
 		} finally {
@@ -349,7 +371,18 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 				schema = (SchemaSynonym.getInstance().getSchema(schema) == null) ? schema : SchemaSynonym.getInstance().getSchema(schema);
 				Map<String, DBConstraint> constraints = table.getConstraints();
 				for(DBConstraint constrs :constraints.values()) {
-				st.execute("alter table " + table.getTable().getName() + " drop constraint " + constrs.getName());
+					
+					String dropQuery = "declare cnt number;\r\n" + 
+							"begin    \r\n" + 
+							"select count(*) into cnt from ALL_CONSTRAINTS where upper(CONSTRAINT_NAME) = upper('" + constrs.getName() + "') and upper(owner) = upper('" + schema + "');\r\n" + 
+							"   if (cnt > 0) \r\n" + 
+							"    then \r\n" + 
+							"        execute immediate('alter table " + schema + "." + table.getTable().getName() + " drop constraint " + constrs.getName() + "');\r\n" + 
+							"    end if;\r\n" + 
+							"end;";	
+
+					
+					st.execute(dropQuery);
 				}
 				//}	
 			}
@@ -357,8 +390,11 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 			{
 				throw new ExceptionDBGitRestore("Error restore: Unable to remove TableConstraints.");
 			}	
-		}
-		catch(Exception e) {
+
+		} catch (SQLException e1) {
+			ConsoleWriter.detailsPrintlnRed(lang.getValue(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()) + "\n"+ e1.getLocalizedMessage()));
+			//throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()) + "\n"+ e1.getLocalizedMessage());
+		} catch (Exception e) {
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()), e);
 		}		
 	}
@@ -381,6 +417,8 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 			st.execute("DROP TABLE " +tbl.getName());
 		
 			// TODO Auto-generated method stub
+		} catch (SQLException e1) {
+			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()) + "\n"+ e1.getLocalizedMessage());
 		} catch (Exception e) {
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRemoveError").withParams(obj.getName()), e);
 		} finally {

@@ -223,6 +223,11 @@ public class DBAdapterProxy implements IDBAdapter {
 	}
 
 	@Override
+	public IFactoryDBConvertAdapter getConvertAdapterFactory() {
+		return adapter.getConvertAdapterFactory();
+	}
+
+	@Override
 	public void createSchemaIfNeed(String schemaName) throws ExceptionDBGit {
 		adapter.createSchemaIfNeed(schemaName);
 		

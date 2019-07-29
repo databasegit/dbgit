@@ -71,10 +71,10 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 						if(restoreTable.getTable().getName().equalsIgnoreCase(table.getName())){
 							exist = true;
 							//Map<String, DBIndex> currentIndexes = adapter.getIndexes(restoreTable.getTable().getSchema(), restoreTable.getTable().getName());
-							String owner = restoreTable.getTable().getOptions().get("owner").getData();
-							if(!owner.equals(table.getOptions().get("owner").getData())) {
-								st.execute("alter table "+ tblName + " owner to "+ owner);
-							}
+							//String owner = restoreTable.getTable().getOptions().get("owner").getData();
+							//if(!owner.equals(table.getOptions().get("owner").getData())) {
+							//	st.execute("alter table "+ tblName + " owner to "+ schema);
+							//}
 														
 							if(restoreTable.getTable().getOptions().getChildren().containsKey("tablespace")) {
 								String tablespace = restoreTable.getTable().getOptions().get("tablespace").getData();
@@ -152,8 +152,8 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 									"                       ON rel.oid = con.conrelid\r\n" + 
 									"            INNER JOIN pg_catalog.pg_namespace nsp\r\n" + 
 									"                       ON nsp.oid = connamespace\r\n" + 
-									"       WHERE nsp.nspname = '" + schema + "'\r\n" + 
-									"             AND rel.relname = '" + restoreTable.getTable().getName() + "'");
+									"       WHERE upper(nsp.nspname) = upper('" + schema + "')\r\n" + 
+									"             AND upper(rel.relname) = upper('" + restoreTable.getTable().getName() + "')");
 				rs.next();
 				Integer constraintsCount = Integer.valueOf(rs.getString("constraints_count"));
 				if(constraintsCount.intValue()>0) {
@@ -166,8 +166,8 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 						"                       ON rel.oid = con.conrelid\r\n" + 
 						"            INNER JOIN pg_catalog.pg_namespace nsp\r\n" + 
 						"                       ON nsp.oid = connamespace\r\n" + 
-						"       WHERE contype = 'p' and nsp.nspname = '" + schema + "'\r\n" + 
-						"             AND rel.relname = '" + restoreTable.getTable().getName() + "'");
+						"       WHERE lower(contype) = 'p' and upper(nsp.nspname) = upper('" + schema + "')\r\n" + 
+						"             AND upper(rel.relname) = upper('" + restoreTable.getTable().getName() + "')");
 				rsPrimary.next();
 	
 				// set primary key

@@ -16,6 +16,7 @@ import com.axiomalaska.jdbc.NamedParameterPreparedStatement;
 import ru.fusionsoft.dbgit.adapters.DBAdapter;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBAdapterRestoteMetaData;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBBackupAdapter;
+import ru.fusionsoft.dbgit.adapters.IFactoryDBConvertAdapter;
 import ru.fusionsoft.dbgit.core.DBGitConfig;
 import ru.fusionsoft.dbgit.core.DBGitLang;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
@@ -546,6 +547,12 @@ public class DBAdapterMySql extends DBAdapter {
 		} catch (SQLException e) {
 			throw new ExceptionDBGit(lang.getValue("errors", "adapter", "getSchema") + ": " + e.getLocalizedMessage());
 		}
+	}
+
+	@Override
+	public IFactoryDBConvertAdapter getConvertAdapterFactory() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 	@Override

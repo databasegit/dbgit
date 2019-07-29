@@ -49,7 +49,7 @@ public class BooleanData implements ICellData {
 	}
 	
 	public Boolean getValue() {
-		return (value == null) ? false : value;
+		return value;
 	}
 
 	@Override
