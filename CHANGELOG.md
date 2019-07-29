@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.3.0.427d28a] - 2019-07-29
+### Added
+- Different schemes for different database types in default .dbignore file
+- Added dbgit link -d option, it creates default dblink that will be added to repository
+- .dbignore entries are case insensitive if they do not quoted now
+- Table columns restore with the same order as they were added to the source database
+
+### fixes
+- Fixed bug with Postgresql view restore
+- Fixed bug with table restore when one table has foreign key to table than doesn't restore yet
+- Fixed bug with boolean types in Postgresql restore adapter
+- Fixed bug with primary keys in Postgresql
+- Fixed some bugs with restore to Oracle database
+
 ## [0.2.2] - 2019-07-17
 ### Added
 - All output messages store in yaml file now
