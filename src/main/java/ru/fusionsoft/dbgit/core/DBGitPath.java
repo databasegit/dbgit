@@ -2,14 +2,17 @@ package ru.fusionsoft.dbgit.core;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.sql.DriverManager;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
+import java.util.Properties;
 import java.util.stream.Stream;
 
 import javax.print.attribute.standard.DateTimeAtCompleted;
 
+import ru.fusionsoft.dbgit.adapters.AdapterFactory;
 import ru.fusionsoft.dbgit.meta.DBGitMetaType;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 import ru.fusionsoft.dbgit.utils.Convertor;
@@ -24,6 +27,7 @@ public class DBGitPath {
 	public static final String DB_GIT_PATH = ".dbgit";
 	public static final String DB_SYNONYMS = ".synonyms";
 	public static final String DB_LINK_FILE = ".dblink";
+	public static final String DB_LINK_DEF_FILE = ".def_dblink";
 	public static final String DB_IGNORE_FILE = ".dbignore";
 	public static final String OBJECTS_PATH = ".objects";
 	public static final String INDEX_FILE = ".dbindex";
@@ -172,7 +176,7 @@ public class DBGitPath {
 	    }
 	}
 	
-	public static boolean createDefaultDbignore(String path, String userName) throws ExceptionDBGit {
+	public static boolean createDefaultDbignore(String path, String url, Properties props) throws ExceptionDBGit {
 		try {
 			File dbIgnoreFile = new File(path + "/" + DB_IGNORE_FILE);
 			DBGitPath.createDir(dbIgnoreFile.getParent());
@@ -182,13 +186,14 @@ public class DBGitPath {
 			
 			for (DBGitMetaType value : DBGitMetaType.values()) { 
 				if (!value.getValue().equals("csv"))
-					writer.write("!" + userName + "/*." + value.getValue() + "\n");
+					writer.write("!" + AdapterFactory.createAdapter(DriverManager.getConnection(url, props)).getDefaultScheme() + "/*." + value.getValue() + "\n");
 			}
 
 			writer.close();
 			
 			return false;
 	    } catch(Exception e) {
+	    	e.printStackTrace();
 	    	throw new ExceptionDBGit(e);
 	    }
 	}

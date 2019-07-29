@@ -2,6 +2,8 @@ package ru.fusionsoft.dbgit.oracle;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -12,6 +14,7 @@ import com.google.common.collect.MapDifference.ValueDifference;
 import ru.fusionsoft.dbgit.adapters.DBRestoreAdapter;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRestore;
+import ru.fusionsoft.dbgit.core.SchemaSynonym;
 import ru.fusionsoft.dbgit.dbobjects.DBConstraint;
 import ru.fusionsoft.dbgit.dbobjects.DBIndex;
 import ru.fusionsoft.dbgit.dbobjects.DBTable;
@@ -37,7 +40,7 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 			restoreTableIndexesOracle(obj);
 			return false;
 		}
-		if(Integer.valueOf(step).equals(2)) {
+		if(Integer.valueOf(step).equals(-1)) {
 			restoreTableConstraintOracle(obj);
 			return false;
 		}
@@ -55,7 +58,7 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 				MetaTable restoreTable = (MetaTable)obj;	
 				String schema = getPhisicalSchema(restoreTable.getTable().getSchema());
 				String tblName = schema+"."+restoreTable.getTable().getName();
-				
+				schema = (SchemaSynonym.getInstance().getSchema(schema) == null) ? schema : SchemaSynonym.getInstance().getSchema(schema);
 				ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "table").withParams(tblName) + "\n", 1);
 
 				Map<String, DBTable> tables = adapter.getTables(schema.toUpperCase());
@@ -76,21 +79,45 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 					else {
 						DBTable table = restoreTable.getTable();
 						
-						ddl = "create table " + table.getSchema() + "." + table.getName() +
+						Comparator<DBTableField> comparator = (o1, o2) -> o1.getOrder().compareTo(o2.getOrder());
+						
+						ddl = "create table " + schema + "." + table.getName() +
 								" (" + restoreTable.getFields().values().stream()
+									.sorted(comparator)
 									.map(field -> field.getName() + " " + field.getTypeSQL())
 									.collect(Collectors.joining(", ")) + ")";
 					}
 					st.execute(ddl);	
+					
+					// set primary key
+					for(DBConstraint tableconst: restoreTable.getConstraints().values()) {
+						if(tableconst.getConstraintType().equals("p")) {
+							ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "addPk"), 2);
+							
+							if (tableconst.getOptions().get("ddl").toString().toLowerCase().startsWith("alter table")) 
+								st.execute(tableconst.getOptions().get("ddl").toString());
+							else if (tableconst.getOptions().get("ddl").toString().toLowerCase().startsWith("primary key"))
+								st.execute("alter table "+ tblName +" add constraint PK_"+ tableconst.getName() + tableconst.getOptions().get("ddl").toString());
+							ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+							break;
+						}
+					}
+					
 					ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
 				} else {
 				//restore tabl fields
-							Map<String, DBTableField> currentFileds = adapter.getTableFields(restoreTable.getTable().getSchema(), restoreTable.getTable().getName().toLowerCase());
+							Map<String, DBTableField> currentFileds = adapter.getTableFields(schema, restoreTable.getTable().getName().toLowerCase());
 							MapDifference<String, DBTableField> diffTableFields = Maps.difference(restoreTable.getFields(),currentFileds);
 							
 							if(!diffTableFields.entriesOnlyOnLeft().isEmpty()){
 								ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "addColumns"), 2);
-								for(DBTableField tblField:diffTableFields.entriesOnlyOnLeft().values()) {
+								
+								Comparator<DBTableField> comparator = (o1, o2) -> o1.getOrder().compareTo(o2.getOrder());
+								
+								List<DBTableField> values = diffTableFields.entriesOnlyOnLeft().values().stream().collect(Collectors.toList());
+								values.sort(comparator);
+								
+								for(DBTableField tblField : values) {
 										st.execute("alter table "+ tblName +" add " + tblField.getName()  + " " + tblField.getTypeSQL());
 								}								
 								ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
@@ -111,7 +138,7 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 									if(!tblField.leftValue().getName().equals(tblField.rightValue().getName())) {
 										st.execute("alter table "+ tblName +" rename column "+ tblField.rightValue().getName() +" to "+ tblField.leftValue().getName());
 									}
-																	
+
 									if(!tblField.leftValue().getTypeSQL().equals(tblField.rightValue().getTypeSQL())) {
 										st.execute("alter table "+ tblName +" modify "+ tblField.leftValue().getName() +" "+ tblField.leftValue().getTypeSQL());
 									}
@@ -127,19 +154,7 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 				if(constraintsCount.intValue()>0) {
 					removeTableConstraintsOracle(obj);
 				}
-				// set primary key
-				for(DBConstraint tableconst: restoreTable.getConstraints().values()) {
-					if(tableconst.getConstraintType().equals("p")) {
-						ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "addPk"), 2);
-						
-						if (tableconst.getOptions().get("ddl").toString().toLowerCase().startsWith("alter table")) 
-							st.execute(tableconst.getOptions().get("ddl").toString());
-						else if (tableconst.getOptions().get("ddl").toString().toLowerCase().startsWith("primary key"))
-							st.execute("alter table "+ tblName +" add constraint PK_"+ tableconst.getName() + tableconst.getOptions().get("ddl").toString());
-						ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
-						break;
-					}
-				}									
+									
 			}
 			else
 			{
@@ -162,6 +177,7 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 			if (obj instanceof MetaTable) {
 				MetaTable restoreTable = (MetaTable)obj;	
 				String schema = getPhisicalSchema(restoreTable.getTable().getSchema());
+				schema = (SchemaSynonym.getInstance().getSchema(schema) == null) ? schema : SchemaSynonym.getInstance().getSchema(schema);
 				String tblName = schema+"."+restoreTable.getTable().getName();
 				Map<String, DBTable> tables = adapter.getTables(schema);
 				boolean exist = false;
@@ -177,7 +193,7 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 					st.execute(restoreTable.getTable().getOptions().get("ddl").getData());			
 				}
 				//restore tabl fields
-							Map<String, DBTableField> currentFileds = adapter.getTableFields(restoreTable.getTable().getSchema(), restoreTable.getTable().getName());
+							Map<String, DBTableField> currentFileds = adapter.getTableFields(schema, restoreTable.getTable().getName());
 							MapDifference<String, DBTableField> diffTableFields = Maps.difference(restoreTable.getFields(),currentFileds);
 							
 							if(!diffTableFields.entriesOnlyOnLeft().isEmpty()){
@@ -243,14 +259,15 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 		try {
 			if (obj instanceof MetaTable) {
 				MetaTable restoreTable = (MetaTable)obj;	
-				String schema = getPhisicalSchema(restoreTable.getTable().getSchema());									
+				String schema = getPhisicalSchema(restoreTable.getTable().getSchema());						
+				schema = (SchemaSynonym.getInstance().getSchema(schema) == null) ? schema : SchemaSynonym.getInstance().getSchema(schema);
 				Map<String, DBTable> tables = adapter.getTables(schema);
 				boolean exist = false;
 				if(!(tables.isEmpty() || tables == null)) {
 					for(DBTable table:tables.values()) {
 						if(restoreTable.getTable().getName().equals(table.getName())){
 							exist = true;
-							Map<String, DBIndex> currentIndexes = adapter.getIndexes(table.getSchema(), table.getName());
+							Map<String, DBIndex> currentIndexes = adapter.getIndexes(schema, table.getName());
 							MapDifference<String, DBIndex> diffInd = Maps.difference(restoreTable.getIndexes(), currentIndexes);
 							if(!diffInd.entriesOnlyOnLeft().isEmpty()) {
 								for(DBIndex ind:diffInd.entriesOnlyOnLeft().values()) {
@@ -297,6 +314,7 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 			if (obj instanceof MetaTable) {
 				MetaTable restoreTable = (MetaTable)obj;
 				String schema = getPhisicalSchema(restoreTable.getTable().getSchema());
+				schema = (SchemaSynonym.getInstance().getSchema(schema) == null) ? schema : SchemaSynonym.getInstance().getSchema(schema);
 				for(DBConstraint constrs :restoreTable.getConstraints().values()) {
 					if(!constrs.getConstraintType().equalsIgnoreCase("P")) {				
 						//String tblName = schema+"."+restoreTable.getTable().getName();
@@ -328,7 +346,7 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 			if (obj instanceof MetaTable) {
 				MetaTable table = (MetaTable)obj;
 				String schema = getPhisicalSchema(table.getTable().getSchema());
-				
+				schema = (SchemaSynonym.getInstance().getSchema(schema) == null) ? schema : SchemaSynonym.getInstance().getSchema(schema);
 				Map<String, DBConstraint> constraints = table.getConstraints();
 				for(DBConstraint constrs :constraints.values()) {
 				st.execute("alter table " + table.getTable().getName() + " drop constraint " + constrs.getName());

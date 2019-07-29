@@ -20,7 +20,7 @@ public class CmdLink implements IDBGitCommand {
 	private Options opts = new Options();
 	
 	public CmdLink() {
-		
+		opts.addOption("d", false, getLang().getValue("help", "link-d").toString());
 	}
 	
 	public String getCommandName() {
@@ -54,8 +54,8 @@ public class CmdLink implements IDBGitCommand {
 		DBConnection conn = DBConnection.getInctance(false);
 		
 		if(conn.testingConnection(url, props)) {
-			DBConnection.createFileDBLink(url, props);	
-			DBGitPath.createDefaultDbignore(DBGitPath.getFullPath(), props.getProperty("user").toUpperCase());
+			DBConnection.createFileDBLink(url, props, cmdLine.hasOption("d"));	
+			DBGitPath.createDefaultDbignore(DBGitPath.getFullPath(), url, props);
 		}			
 	}
 	

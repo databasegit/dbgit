@@ -145,6 +145,8 @@ public interface IDBAdapter {
 	public void createRoleIfNeed(String roleName) throws ExceptionDBGit;
 	
 	public String getDefaultScheme() throws ExceptionDBGit;
+
+	boolean isReservedWord(String word);
 	
 	/*Если будет нужно - сюда можно добавить подписчиков на события*/
 }

@@ -27,27 +27,26 @@ public class MapFileData implements ICellData {
 	@Override
 	public boolean loadFromDB(ResultSet rs, String fieldname) throws Exception {
 		InputStream stream = getBlobData(rs, fieldname);		
-		tmpFile = new File(DBGitPath.getTempDirectory()+"/"+Convertor.getGUID());
 		
 		if (stream != null) {
+			tmpFile = new File(DBGitPath.getTempDirectory()+"/"+Convertor.getGUID());
 			Files.copy(stream, tmpFile.toPath(), StandardCopyOption.REPLACE_EXISTING);	    
-			return true;
-		} else {
-			return false;
 		}
+		return true;
 	}
 	
 	@Override
 	public String serialize(DBTable tbl) throws Exception {
-		srcFile = tbl.getSchema()+"/"+tbl.getName()+"/"+getHash()+".data";
-		
-		File wrtFile = new File(DBGitPath.getFullPath()+"/"+srcFile);
-		DBGitPath.createDir(wrtFile.getAbsolutePath());
-		
-		Files.move(tmpFile.toPath(), wrtFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-		ConsoleWriter.println(DBGitLang.getInstance().getValue("general", "dataTable", "errorCellData").withParams(srcFile));
-		tmpFile = null;
-		
+		if (tmpFile != null) {
+			srcFile = tbl.getSchema()+"/"+tbl.getName()+"/"+getHash()+".data";
+			
+			File wrtFile = new File(DBGitPath.getFullPath()+"/"+srcFile);
+			DBGitPath.createDir(wrtFile.getAbsolutePath());
+			
+			Files.move(tmpFile.toPath(), wrtFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+			ConsoleWriter.println(DBGitLang.getInstance().getValue("general", "dataTable", "writeData").withParams(srcFile));
+			tmpFile = null;
+		}
 		return srcFile;
 	}
 	

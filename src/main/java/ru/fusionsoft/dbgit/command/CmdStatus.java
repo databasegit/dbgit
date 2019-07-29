@@ -63,7 +63,7 @@ public class CmdStatus implements IDBGitCommand {
 			ConsoleWriter.println(getLang().getValue("general", "status", "conflicts"));
 		}
 		
-		SchemaSynonym ss = SchemaSynonym.getInctance();
+		SchemaSynonym ss = SchemaSynonym.getInstance();
 				
 		if (ss.getCountSynonym() > 0) {
 			ConsoleWriter.printlnGreen(getLang().getValue("general", "status", "usedSynonyms"));

@@ -33,7 +33,7 @@ public class DBAdapterProxy implements IDBAdapter {
 		super();
 		this.adapter = adapter;
 		
-		ss = SchemaSynonym.getInctance();
+		ss = SchemaSynonym.getInstance();
 	}
 
 	public void setConnection(Connection conn) {
@@ -236,5 +236,10 @@ public class DBAdapterProxy implements IDBAdapter {
 	@Override
 	public String getDefaultScheme() throws ExceptionDBGit {
 		return adapter.getDefaultScheme();
+	}
+
+	@Override
+	public boolean isReservedWord(String word) {
+		return adapter.isReservedWord(word);
 	}
 }

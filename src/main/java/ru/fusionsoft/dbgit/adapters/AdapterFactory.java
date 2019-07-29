@@ -1,5 +1,7 @@
 package ru.fusionsoft.dbgit.adapters;
 
+import java.sql.Connection;
+
 import ru.fusionsoft.dbgit.core.DBConnection;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.SchemaSynonym;
@@ -23,29 +25,29 @@ import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 public class AdapterFactory {
 	private static IDBAdapter adapter = null;
 	
-	public static IDBAdapter createAdapter() throws ExceptionDBGit {
+	public static IDBAdapter createAdapter(Connection conn) throws ExceptionDBGit {
 		if (adapter == null) {
-			SchemaSynonym ss = SchemaSynonym.getInctance();
-			DBConnection conn = DBConnection.getInctance();
-			//TODO
-			//if conn params - create adapter
-			if (conn.getConnect().getClass().getName().equals("oracle.jdbc.driver.T4CConnection")) {
+			SchemaSynonym ss = SchemaSynonym.getInstance();
+			
+			if (conn.getClass().getName().equals("oracle.jdbc.driver.T4CConnection")) {
 				adapter = new DBAdapterOracle();
-			} else if (conn.getConnect().getClass().getName().equals("org.postgresql.jdbc.PgConnection")) {
+			} else if (conn.getClass().getName().equals("org.postgresql.jdbc.PgConnection")) {
 				adapter = new DBAdapterPostgres();
 			} else {
 				adapter = new DBAdapterMySql();
-			}
+			}	
 			
-			
-			adapter.setConnection(conn.getConnect());
+			adapter.setConnection(conn);
 			adapter.registryMappingTypes();
 			
 			if (ss.getCountSynonym() > 0) {
 				adapter = new DBAdapterProxy(adapter);
 			}
 		}
-		
 		return adapter;
+	}
+	
+	public static IDBAdapter createAdapter() throws ExceptionDBGit {
+		return createAdapter(DBConnection.getInctance().getConnect());
 	}
 }

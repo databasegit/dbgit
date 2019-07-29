@@ -266,6 +266,7 @@ public class GitMetaDataManager {
 		    		} catch (Exception e) {
 		    			isSuccessful = false;
 		    			ConsoleWriter.detailsPrintlnRed(DBGitLang.getInstance().getValue("errors", "meta", "fail"));
+		    			e.printStackTrace();
 		    			ConsoleWriter.detailsPrintLn(e.getMessage());
 		    			
 		    			IMetaObject obj = MetaObjectFactory.createMetaObject(filename);

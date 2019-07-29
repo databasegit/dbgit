@@ -542,9 +542,15 @@ public class DBAdapterMySql extends DBAdapter {
 	@Override
 	public String getDefaultScheme() throws ExceptionDBGit {
 		try {
-			return getConnection().getSchema();
+			return getConnection().getCatalog();
 		} catch (SQLException e) {
 			throw new ExceptionDBGit(lang.getValue("errors", "adapter", "getSchema") + ": " + e.getLocalizedMessage());
 		}
+	}
+
+	@Override
+	public boolean isReservedWord(String word) {
+		// TODO Auto-generated method stub
+		return false;
 	}
 }

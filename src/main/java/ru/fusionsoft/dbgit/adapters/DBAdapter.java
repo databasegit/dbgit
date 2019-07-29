@@ -5,7 +5,9 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import com.axiomalaska.jdbc.NamedParameterPreparedStatement;
 
@@ -15,11 +17,13 @@ import ru.fusionsoft.dbgit.core.ExceptionDBGitRestore;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
 import ru.fusionsoft.dbgit.dbobjects.DBSequence;
 import ru.fusionsoft.dbgit.dbobjects.DBTableField;
+import ru.fusionsoft.dbgit.meta.DBGitMetaType;
 import ru.fusionsoft.dbgit.meta.IMapMetaObject;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
 import ru.fusionsoft.dbgit.meta.MetaSequence;
 import ru.fusionsoft.dbgit.meta.MetaSql;
 import ru.fusionsoft.dbgit.meta.MetaTable;
+import ru.fusionsoft.dbgit.meta.MetaTableData;
 import ru.fusionsoft.dbgit.meta.TreeMapMetaObject;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 import ru.fusionsoft.dbgit.utils.StringProperties;
@@ -71,12 +75,27 @@ public abstract class DBAdapter implements IDBAdapter {
 		DBGitLang lang = DBGitLang.getInstance();
 		
 		try {
+			List<MetaTable> tables = new ArrayList<MetaTable>();			
+			List<MetaTableData> tablesData = new ArrayList<MetaTableData>();
+			
 			List<String> createdSchemas = new ArrayList<String>();
 			List<String> createdRoles = new ArrayList<String>();
-
-			for (IMetaObject obj : updateObjs.values()) {
+			
+			Comparator<IMetaObject> comparator = new Comparator<IMetaObject>() {
+				public int compare(IMetaObject o1, IMetaObject o2) {
+				    if (o1 instanceof MetaTable) 
+				    	return -1;
+				    else if (o1 instanceof MetaTableData)
+				    	return 1;
+				    else
+				    	return 0;
+				}
+			};
+			
+			for (IMetaObject obj : updateObjs.values().stream().sorted(comparator).collect(Collectors.toList())) {
 				Integer step = 0;
-
+				String schemaName = getSchemaName(obj);
+				
 				boolean res = false;
 				Timestamp timestampBefore = new Timestamp(System.currentTimeMillis());
 				
@@ -88,8 +107,31 @@ public abstract class DBAdapter implements IDBAdapter {
 					
 					if (getFactoryRestore().getAdapterRestore(obj.getType(), this) == null ||
 							!obj.getDbType().equals(getDbType()))
-						break;
-						
+						break;					
+					
+					if (!createdSchemas.contains(schemaName) && schemaName != null) {
+						createSchemaIfNeed(schemaName);
+						createdSchemas.add(schemaName);
+					}
+					
+					String ownerName = getOwnerName(obj);
+					if (!getRoles().containsKey(ownerName) && !createdRoles.contains(ownerName) && ownerName != null) {
+						createRoleIfNeed(ownerName);
+						createdRoles.add(ownerName);
+					}	
+					
+					if (obj instanceof MetaTable) {
+						MetaTable table = (MetaTable) obj;
+						if (!tables.contains(table))
+							tables.add(table);
+					}
+					
+					if (obj instanceof MetaTableData) {
+						MetaTableData tableData = (MetaTableData) obj;
+						if (!tables.contains(tableData))
+							tablesData.add(tableData);
+					}
+					
 					res = getFactoryRestore().getAdapterRestore(obj.getType(), this).restoreMetaObject(obj, step);
 					step++;
 
@@ -101,7 +143,15 @@ public abstract class DBAdapter implements IDBAdapter {
     			Long diff = timestampAfter.getTime() - timestampBefore.getTime();
     			ConsoleWriter.println("(" + diff + " " + lang.getValue("general", "ms") +")");
 			}
-
+			
+			for (MetaTable table : tables) {
+				getFactoryRestore().getAdapterRestore(DBGitMetaType.DBGitTable, this).restoreMetaObject(table, -1);
+			}
+/*
+			for (MetaTableData tableData : tablesData) {
+				getFactoryRestore().getAdapterRestore(DBGitMetaType.DbGitTableData, this).restoreMetaObject(tableData, -2);
+			}
+*/
 			connect.commit();
 		} catch (Exception e) {
 			connect.rollback();

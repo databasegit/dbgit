@@ -22,7 +22,7 @@ public class SchemaSynonym {
 	private Map<String, String> mapSynonym = new HashMap<>();
 	DBGitLang lang = DBGitLang.getInstance();
 	
-	public static SchemaSynonym getInctance() throws ExceptionDBGit {
+	public static SchemaSynonym getInstance() throws ExceptionDBGit {
 		if (ss == null) {
 			ss = new SchemaSynonym();
 		}
@@ -90,26 +90,26 @@ public class SchemaSynonym {
 	} 
 	
 	public String getSynonym(String schema) {
-		return mapSynonym.get(schema);
+		return mapSynonym.get(schema.toLowerCase());
 	}
 	
 	public String getSchema(String synonym) {
-		return mapSchema.get(synonym);
+		return mapSchema.get(synonym.toLowerCase());
 	}
 	
 	public String getSynonymNvl(String schema) {
-		return Util.nvl(mapSynonym.get(schema), schema);
+		return Util.nvl(mapSynonym.get(schema.toLowerCase()), schema.toLowerCase());
 	}
 	
 	public String getSchemaNvl(String synonym) {
-		return Util.nvl(mapSchema.get(synonym), synonym);
+		return Util.nvl(mapSchema.get(synonym.toLowerCase()), synonym.toLowerCase());
 	}
 	
 	public void addSchemaSynonym(String schema, String synonym) throws ExceptionDBGit {
-		if (mapSchema.containsKey(synonym)) {
+		if (mapSchema.containsKey(synonym.toLowerCase())) {
 			throw new ExceptionDBGit(lang.getValue("errors", "synonym", "synonymExists").withParams(synonym));
 		}
-		if (mapSynonym.containsKey(schema)) {
+		if (mapSynonym.containsKey(schema.toLowerCase())) {
 			throw new ExceptionDBGit(lang.getValue("errors", "synonym", "schemeExists").withParams(schema));
 		}
 
@@ -118,20 +118,20 @@ public class SchemaSynonym {
 		if (!schemes.containsKey(schema))
 			throw new ExceptionDBGit(lang.getValue("errors", "synonym", "schemeDoesntExist").withParams(schema));
 		
-		mapSchema.put(synonym, schema);
-		mapSynonym.put(schema, synonym);
+		mapSchema.put(synonym.toLowerCase(), schema.toLowerCase());
+		mapSynonym.put(schema.toLowerCase(), synonym.toLowerCase());
 	}
 	
 	public void deleteBySynonym(String synonym) {
-		String schema = mapSchema.get(synonym);
-		mapSynonym.remove(schema);
-		mapSchema.remove(synonym);
+		String schema = mapSchema.get(synonym.toLowerCase());
+		mapSynonym.remove(schema.toLowerCase());
+		mapSchema.remove(synonym.toLowerCase());
 	}
 	
 	public void deleteBySchema(String schema) {
-		String synonym = mapSchema.get(schema);
-		mapSchema.remove(synonym);
-		mapSynonym.remove(schema);
+		String synonym = mapSchema.get(schema.toLowerCase());
+		mapSchema.remove(synonym.toLowerCase());
+		mapSynonym.remove(schema.toLowerCase());
 	}
 	
 

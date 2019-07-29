@@ -47,6 +47,10 @@ public class BooleanData implements ICellData {
 	public Object getWriterForRapair() {
 		return null;
 	}
+	
+	public Boolean getValue() {
+		return (value == null) ? false : value;
+	}
 
 	@Override
 	public String getSQLData() {

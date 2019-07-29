@@ -71,9 +71,15 @@ public class DBConnection {
 		}	
 	}
 	
-	public static void createFileDBLink(String url, Properties props) throws ExceptionDBGit {
+	public static void createFileDBLink(String url, Properties props, boolean isDefault) throws ExceptionDBGit {
 		try{	
-			File file = new File(DBGitPath.getFullPath(DBGitPath.DB_LINK_FILE));				
+			File file;
+			
+			if (isDefault)
+				file = new File(DBGitPath.getFullPath(DBGitPath.DB_LINK_DEF_FILE));
+			else
+				file = new File(DBGitPath.getFullPath(DBGitPath.DB_LINK_FILE));				
+			
 			DBGitPath.createDir(file.getParent());			
 			
 			DBGitPath.createDefaultDbgitConfig(DBGitPath.getFullPath());
@@ -96,17 +102,15 @@ public class DBConnection {
 	}
 	
 	public static String loadFileDBLink(Properties props) throws ExceptionDBGit {
-		try{			
+		try{									
+			File file = new File(DBGitPath.getFullPath(DBGitPath.DB_LINK_FILE));						
+			File fileDef = new File(DBGitPath.getFullPath(DBGitPath.DB_LINK_DEF_FILE));
 			
-			String filename = DBGitPath.getFullPath(DBGitPath.DB_LINK_FILE);	
-						
-			File file = new File(filename);						
-			
-			if (!file.exists()) {
+			if (!file.exists() && !fileDef.exists()) {
 				return null;
 			}
 			
-			FileInputStream fis = new FileInputStream(file);
+			FileInputStream fis = new FileInputStream(file.exists() ? file : fileDef);
 			props.load(fis);
 			fis.close();
 			

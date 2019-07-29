@@ -34,7 +34,7 @@ public class CmdSynonymSchema implements IDBGitCommand {
 	}
 	
 	public void execute(CommandLine cmdLine)  throws Exception {
-		SchemaSynonym ss = SchemaSynonym.getInctance();
+		SchemaSynonym ss = SchemaSynonym.getInstance();
 		
 		Boolean isShow = cmdLine.hasOption('s');
 		

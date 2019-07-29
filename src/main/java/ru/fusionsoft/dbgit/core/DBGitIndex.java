@@ -6,6 +6,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 
 import ru.fusionsoft.dbgit.meta.IMetaObject;
+import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
 public class DBGitIndex {
 	public static final String VERSION = "0.2.2";
@@ -84,8 +85,10 @@ public class DBGitIndex {
 		try{				
 			File file = new File(DBGitPath.getFullPath(DBGitPath.INDEX_FILE));
 			
-			if (!file.exists()) return ;
-			
+			if (!file.exists()) {
+				version = "new";
+				return ;
+			}
 			BufferedReader br = new BufferedReader(new FileReader(file));			
 			for(String line; (line = br.readLine()) != null; ) {
 				
@@ -115,7 +118,9 @@ public class DBGitIndex {
 	}
 	
 	public void addLinkToGit() throws ExceptionDBGit {
-		DBGit.getInstance().addFileToIndexGit(DBGitPath.DB_GIT_PATH+"/"+DBGitPath.DB_LINK_FILE);
+		File file = new File(DBGitPath.DB_GIT_PATH+"/"+DBGitPath.DB_LINK_DEF_FILE);
+		if (file.exists())
+			DBGit.getInstance().addFileToIndexGit(DBGitPath.DB_GIT_PATH+"/"+DBGitPath.DB_LINK_DEF_FILE);
 	}
 	
 	public void addIgnoreToGit() throws ExceptionDBGit {
@@ -127,6 +132,8 @@ public class DBGitIndex {
 	}
 	
 	public boolean isCorrectVersion() {
+		if (version.equals("new"))
+			return true;
 		if (version == null || version.equals(""))
 			return false;
 		else

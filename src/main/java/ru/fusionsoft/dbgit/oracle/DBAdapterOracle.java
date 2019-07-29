@@ -6,8 +6,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import ru.fusionsoft.dbgit.adapters.DBAdapter;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
@@ -18,11 +20,13 @@ import ru.fusionsoft.dbgit.core.DBGitConfig;
 import ru.fusionsoft.dbgit.core.DBGitLang;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
+import ru.fusionsoft.dbgit.data_table.BooleanData;
 import ru.fusionsoft.dbgit.data_table.DateData;
 import ru.fusionsoft.dbgit.data_table.FactoryCellData;
 import ru.fusionsoft.dbgit.data_table.LongData;
 import ru.fusionsoft.dbgit.data_table.MapFileData;
 import ru.fusionsoft.dbgit.data_table.StringData;
+import ru.fusionsoft.dbgit.data_table.TextFileData;
 import ru.fusionsoft.dbgit.dbobjects.DBConstraint;
 import ru.fusionsoft.dbgit.dbobjects.DBFunction;
 import ru.fusionsoft.dbgit.dbobjects.DBIndex;
@@ -62,7 +66,9 @@ public class DBAdapterOracle extends DBAdapter {
 		FactoryCellData.regMappingTypes("date", DateData.class);
 		FactoryCellData.regMappingTypes("string", StringData.class);
 		FactoryCellData.regMappingTypes("binary", MapFileData.class);
+		FactoryCellData.regMappingTypes("text", TextFileData.class);
 		FactoryCellData.regMappingTypes("native", StringData.class);
+		FactoryCellData.regMappingTypes("boolean", BooleanData.class);
 	}
 	
 	@Override
@@ -215,7 +221,7 @@ public class DBAdapterOracle extends DBAdapter {
 		Map<String, DBTable> listTable = new HashMap<String, DBTable>();
 		try {
 			String query = "SELECT T.TABLE_NAME, T.OWNER, (SELECT dbms_metadata.get_ddl('TABLE', T.TABLE_NAME) from dual) AS DDL\n" + 
-					"FROM DBA_TABLES T WHERE OWNER = '" + schema + "'";
+					"FROM DBA_TABLES T WHERE upper(OWNER) = upper('" + schema + "')";
 			Connection connect = getConnection();
 			
 			Statement stmt = connect.createStatement();
@@ -240,7 +246,7 @@ public class DBAdapterOracle extends DBAdapter {
 	public DBTable getTable(String schema, String name) {
 		try {
 			String query = "SELECT T.TABLE_NAME, T.OWNER, (SELECT dbms_metadata.get_ddl('TABLE', T.TABLE_NAME) from dual) AS DDL\n" + 
-							"FROM DBA_TABLES T WHERE T.OWNER = '" + schema + "' AND T.TABLE_NAME = '" + name + "'";
+							"FROM DBA_TABLES T WHERE upper(T.OWNER) = upper('" + schema + "') AND upper(T.TABLE_NAME) = upper('" + name + "')";
 			Connection connect = getConnection();
 			
 			Statement stmt = connect.createStatement();
@@ -271,7 +277,7 @@ public class DBAdapterOracle extends DBAdapter {
 			
 			String query1 = 
 					"SELECT column_name FROM all_constraints cons, all_cons_columns cols\n"+
-					"WHERE cols.table_name = '" + nameTable + "'\n"+
+					"WHERE upper(cols.table_name) = upper('" + nameTable + "')\n"+
 					"AND cons.constraint_type = 'P'\n" + 
 					"AND cons.constraint_name = cols.constraint_name\n" +
 					"AND cons.owner = cols.owner";			
@@ -291,12 +297,13 @@ public class DBAdapterOracle extends DBAdapter {
 					"    when lower(data_type) in ('varchar2', 'varchar', 'char', 'nchar', 'nvarchar2') then 'string'\r\n" + 
 					"    when substr(lower(data_type), 1, instr(data_type, '(') - 1) in ('date', 'timestamp') then 'date'\r\n" +
 					"    when lower(data_type) in ('date', 'timestamp') then 'date'\r\n" +
+					"    when lower(data_type) in ('clob') then 'text'\r\n" +
 					"    when lower(data_type) in ('blob') then 'binary'" +
 					"    else 'native'\r\n" + 
 					"    end type, " +
 					"    case when lower(data_type) in ('char', 'nchar') then 1 else 0 end fixed, " +
 					"    ROWNUM AS NUM, TC.* FROM DBA_TAB_COLS TC \n" + 
-					"WHERE table_name = '" + nameTable + "' AND OWNER = '" + schema + "' ORDER BY column_id";
+					"WHERE lower(table_name) = lower('" + nameTable + "') AND lower(OWNER) = lower('" + schema + "') ORDER BY column_id";
 			
 			ResultSet rs = stmt.executeQuery(query);
 			while(rs.next()){				
@@ -312,6 +319,7 @@ public class DBAdapterOracle extends DBAdapter {
 				field.setScale(rs.getInt("DATA_SCALE"));
 				field.setPrecision(rs.getInt("DATA_PRECISION"));
 				field.setFixed(rs.getBoolean("fixed"));
+				field.setOrder(rs.getInt("column_id"));
 				listField.put(field.getName(), field);
 			}
 			
@@ -360,7 +368,7 @@ public class DBAdapterOracle extends DBAdapter {
 		try {
 			String query = "SELECT  ind.index_name, (select dbms_metadata.get_ddl('INDEX', ind.INDEX_NAME) AS DDL from dual) AS DDL\n" + 
 					"FROM all_indexes ind\n" + 
-					"WHERE table_name = '" + nameTable + "' AND owner = '" + schema + "'";
+					"WHERE upper(table_name) = upper('" + nameTable + "') AND upper(owner) = upper('" + schema + "')";
 			
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
@@ -388,7 +396,7 @@ public class DBAdapterOracle extends DBAdapter {
 		try {
 			String query = "SELECT cons.constraint_type, cons.CONSTRAINT_NAME, (select dbms_metadata.get_ddl('CONSTRAINT', cons.constraint_name) AS DDL from dual) AS DDL\n" + 
 					"FROM all_constraints cons\n" + 
-					"WHERE owner = '" + schema + "' and table_name = '" + nameTable + "' and constraint_name not like 'SYS%' and cons.constraint_type = 'P'";
+					"WHERE upper(owner) = upper('" + schema + "') and upper(table_name) = upper('" + nameTable + "') and constraint_name not like 'SYS%' and cons.constraint_type = 'P'";
 
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
@@ -701,15 +709,12 @@ public class DBAdapterOracle extends DBAdapter {
 					data.setErrorFlag(DBTableData.ERROR_LIMIT_ROWS);
 					return data;
 				}
-				
-				rs = st.executeQuery("select * from " + tableName);
-				data.setResultSet(rs);
-				return data;
-			}
-			
-			//TODO other state
-			
+			}	
+			Statement st = getConnection().createStatement();
+			ResultSet rs = st.executeQuery("select * from "+tableName);
+			data.setResultSet(rs);	
 			return data;
+			
 		} catch(Exception e) {
 			logger.error(lang.getValue("errors", "adapter", "tableData").toString(), e);
 			try {
@@ -854,6 +859,123 @@ public class DBAdapterOracle extends DBAdapter {
 			throw new ExceptionDBGit(lang.getValue("errors", "adapter", "createSchema") + ": " + e.getLocalizedMessage());
 		}
 		
+	}
+
+	@Override
+	public boolean isReservedWord(String word) {
+		Set<String> reservedWords = new HashSet<>();
+
+		reservedWords.add("ACCESS");
+		reservedWords.add("ADD");
+		reservedWords.add("ALL");
+		reservedWords.add("ALTER");
+		reservedWords.add("AND");
+		reservedWords.add("ANY");
+		reservedWords.add("AS");
+		reservedWords.add("ASC");
+		reservedWords.add("AUDIT");
+		reservedWords.add("BETWEEN");
+		reservedWords.add("BY");
+		reservedWords.add("CHAR");
+		reservedWords.add("CHECK");
+		reservedWords.add("CLUSTER");
+		reservedWords.add("COLUMN");
+		reservedWords.add("COMMENT");
+		reservedWords.add("COMPRESS");
+		reservedWords.add("CONNECT");
+		reservedWords.add("CREATE");
+		reservedWords.add("CURRENT");
+		reservedWords.add("DATE");
+		reservedWords.add("DECIMAL");
+		reservedWords.add("DEFAULT");
+		reservedWords.add("DELETE");
+		reservedWords.add("DESC");
+		reservedWords.add("DISTINCT");
+		reservedWords.add("DROP");
+		reservedWords.add("ELSE");
+		reservedWords.add("EXCLUSIVE");
+		reservedWords.add("EXISTS");
+		reservedWords.add("FILE");
+		reservedWords.add("FLOAT");
+		reservedWords.add("FOR");
+		reservedWords.add("FROM");
+		reservedWords.add("GRANT");
+		reservedWords.add("GROUP");
+		reservedWords.add("HAVING");
+		reservedWords.add("IDENTIFIED");
+		reservedWords.add("IMMEDIATE");
+		reservedWords.add("IN");
+		reservedWords.add("INCREMENT");
+		reservedWords.add("INDEX");
+		reservedWords.add("INITIAL");
+		reservedWords.add("INSERT");
+		reservedWords.add("INTEGER");
+		reservedWords.add("INTERSECT");
+		reservedWords.add("INTO");
+		reservedWords.add("IS");
+		reservedWords.add("LEVEL");
+		reservedWords.add("LIKE");
+		reservedWords.add("LOCK");
+		reservedWords.add("LONG");
+		reservedWords.add("MAXEXTENTS");
+		reservedWords.add("MINUS");
+		reservedWords.add("MLSLABEL");
+		reservedWords.add("MODE");
+		reservedWords.add("MODIFY");
+		reservedWords.add("NOAUDIT");
+		reservedWords.add("NOCOMPRESS");
+		reservedWords.add("NOT");
+		reservedWords.add("NOWAIT");
+		reservedWords.add("NULL");
+		reservedWords.add("NUMBER");
+		reservedWords.add("OF");
+		reservedWords.add("OFFLINE");
+		reservedWords.add("ON");
+		reservedWords.add("ONLINE");
+		reservedWords.add("OPTION");
+		reservedWords.add("OR");
+		reservedWords.add("ORDER");
+		reservedWords.add("PCTFREE");
+		reservedWords.add("PRIOR");
+		reservedWords.add("PRIVILEGES");
+		reservedWords.add("PUBLIC");
+		reservedWords.add("RAW");
+		reservedWords.add("RENAME");
+		reservedWords.add("RESOURCE");
+		reservedWords.add("REVOKE");
+		reservedWords.add("ROW");
+		reservedWords.add("ROWID");
+		reservedWords.add("ROWNUM");
+		reservedWords.add("ROWS");
+		reservedWords.add("SELECT");
+		reservedWords.add("SESSION");
+		reservedWords.add("SET");
+		reservedWords.add("SHARE");
+		reservedWords.add("SIZE");
+		reservedWords.add("SMALLINT");
+		reservedWords.add("START");
+		reservedWords.add("SUCCESSFUL");
+		reservedWords.add("SYNONYM");
+		reservedWords.add("SYSDATE");
+		reservedWords.add("TABLE");
+		reservedWords.add("THEN");
+		reservedWords.add("TO");
+		reservedWords.add("TRIGGER");
+		reservedWords.add("UID");
+		reservedWords.add("UNION");
+		reservedWords.add("UNIQUE");
+		reservedWords.add("UPDATE");
+		reservedWords.add("USER");
+		reservedWords.add("VALIDATE");
+		reservedWords.add("VALUES");
+		reservedWords.add("VARCHAR");
+		reservedWords.add("VARCHAR2");
+		reservedWords.add("VIEW");
+		reservedWords.add("WHENEVER");
+		reservedWords.add("WHERE");
+		reservedWords.add("WITH");
+		
+		return reservedWords.contains(word.toUpperCase());
 	}
 
 	@Override

@@ -42,8 +42,12 @@ general:
     fetching: Fetching...
   restore:
     scriptWillSaveTo: Script will be saved to {0}
-    toRestore: Objects to restore
-    toRemove: Objects to remove
+    seekingToRemove: Seeking objects to remove...
+    seekingToRestore: Seeking objects to restore...
+    toRestore: "Objects to restore:"
+    toRemove: "Objects to remove:"
+    nothingToRemove: No objects to remove
+    nothingToRestore: No objects to restore
     restoring: Restoring...
     removing: Removing...
     created: Created file {0}
@@ -224,6 +228,7 @@ help:
   link: |
     Example:
       dbgit link jdbc:oracle:thin:@<SERVER_NAME>:<PORT>:<SID> user=<USER> password=<PASSWORD>
+  link-d: Creates default dblink file
   add: |
     Examples:
       dbgit add <SCHEME>/TEST_TABLE*

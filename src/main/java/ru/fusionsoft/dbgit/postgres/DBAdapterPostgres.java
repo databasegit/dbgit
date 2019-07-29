@@ -23,6 +23,7 @@ import ru.fusionsoft.dbgit.data_table.DateData;
 import ru.fusionsoft.dbgit.data_table.FactoryCellData;
 import ru.fusionsoft.dbgit.data_table.LongData;
 import ru.fusionsoft.dbgit.data_table.StringData;
+import ru.fusionsoft.dbgit.data_table.TextFileData;
 import ru.fusionsoft.dbgit.dbobjects.DBConstraint;
 import ru.fusionsoft.dbgit.dbobjects.DBFunction;
 import ru.fusionsoft.dbgit.dbobjects.DBIndex;
@@ -54,12 +55,13 @@ public class DBAdapterPostgres extends DBAdapter {
 
 	private Logger logger = LoggerUtil.getLogger(this.getClass());
 	private FactoryDBAdapterRestorePostgres restoreFactory = new FactoryDBAdapterRestorePostgres();
-	
+
 	public void registryMappingTypes() {
 		FactoryCellData.regMappingTypes(DEFAULT_MAPPING_TYPE, StringData.class);		
 		FactoryCellData.regMappingTypes("string", StringData.class);
 		FactoryCellData.regMappingTypes("number", LongData.class);
 		FactoryCellData.regMappingTypes("binary", MapFileData.class);
+		FactoryCellData.regMappingTypes("text", TextFileData.class);
 		FactoryCellData.regMappingTypes("date", DateData.class);
 		FactoryCellData.regMappingTypes("native", StringData.class);
 		FactoryCellData.regMappingTypes("boolean", BooleanData.class);
@@ -218,7 +220,7 @@ public class DBAdapterPostgres extends DBAdapter {
 			String query = 
 					"select tablename as table_name,tableowner as owner,tablespace,hasindexes,hasrules,hastriggers "
 					+ "from pg_tables where schemaname not in ('information_schema', 'pg_catalog') "
-					+ "and schemaname not like 'pg_toast%' and schemaname = :schema ";
+					+ "and schemaname not like 'pg_toast%' and upper(schemaname) = upper(:schema) ";
 			Connection connect = getConnection();
 			
 			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);			
@@ -245,7 +247,7 @@ public class DBAdapterPostgres extends DBAdapter {
 		try {
 			String query = 
 					"select tablename as table_name,tableowner as owner,tablespace,hasindexes,hasrules,hastriggers from pg_tables where schemaname not in ('information_schema', 'pg_catalog') "
-					+ "and schemaname not like 'pg_toast%' and schemaname = \'"+schema+"\' and tablename = \'"+name+"\' ";
+					+ "and schemaname not like 'pg_toast%' and upper(schemaname) = upper(\'"+schema+"\') and upper(tablename) = upper(\'"+name+"\') ";
 			Connection connect = getConnection();
 			
 			Statement stmt = connect.createStatement();
@@ -279,9 +281,10 @@ public class DBAdapterPostgres extends DBAdapter {
 					"SELECT distinct col.column_name,col.is_nullable,col.data_type,col.character_maximum_length, tc.constraint_name, " +
 					"case\r\n" + 
 					"	when lower(data_type) in ('integer', 'numeric', 'smallint', 'double precision', 'bigint') then 'number' \r\n" + 
-					"	when lower(data_type) in ('character varying', 'text', 'char', 'character', 'varchar') then 'string'\r\n" + 
+					"	when lower(data_type) in ('character varying', 'char', 'character', 'varchar') then 'string'\r\n" + 
 					"	when lower(data_type) in ('timestamp without time zone', 'timestamp with time zone', 'date') then 'date'\r\n" + 
 					"	when lower(data_type) in ('boolean') then 'boolean'\r\n" + 
+					"	when lower(data_type) in ('text') then 'text'\r\n" + 
 					"   when lower(data_type) in ('bytea') then 'binary'" +
 					"	else 'native'\r\n" + 
 					"	end tp, " +
@@ -290,7 +293,7 @@ public class DBAdapterPostgres extends DBAdapter {
 					"information_schema.columns col  " + 
 					"left join information_schema.key_column_usage kc on col.table_schema = kc.table_schema and col.table_name = kc.table_name and col.column_name=kc.column_name " + 
 					"left join information_schema.table_constraints tc on col.table_schema = kc.table_schema and col.table_name = kc.table_name and kc.constraint_name = tc.constraint_name and tc.constraint_type = 'PRIMARY KEY' " + 
-					"where col.table_schema = :schema and col.table_name = :table " + 
+					"where upper(col.table_schema) = upper(:schema) and upper(col.table_name) = upper(:table) " + 
 					"order by col.column_name ";
 			Connection connect = getConnection();			
 			
@@ -313,6 +316,7 @@ public class DBAdapterPostgres extends DBAdapter {
 				field.setPrecision(rs.getInt("numeric_precision"));
 				field.setScale(rs.getInt("numeric_scale"));
 				field.setFixed(rs.getBoolean("fixed"));
+				field.setOrder(rs.getInt("ordinal_position"));
 				listField.put(field.getName(), field);
 			}
 			stmt.close();
@@ -344,8 +348,7 @@ public class DBAdapterPostgres extends DBAdapter {
 			}
 			if (rs.getString("is_nullable").equals("NO")){
 				type.append(" NOT NULL");
-			}
-			
+			}			
 			
 			return type.toString();
 		}catch(Exception e) {
@@ -657,11 +660,10 @@ public class DBAdapterPostgres extends DBAdapter {
 					data.setErrorFlag(DBTableData.ERROR_LIMIT_ROWS);
 					return data;
 				}
-				
-				rs = st.executeQuery("select * from "+tableName);
-				data.setResultSet(rs);
-				return data;
-			}
+			}	
+			Statement st = getConnection().createStatement();
+			ResultSet rs = st.executeQuery("select * from "+tableName);
+			data.setResultSet(rs);			
 			
 			//TODO other state
 			
@@ -761,7 +763,7 @@ public class DBAdapterPostgres extends DBAdapter {
 			return "";
 		}
 	}
-
+	
 	@Override
 	public void createSchemaIfNeed(String schemaName) throws ExceptionDBGit {
 		try {
@@ -811,6 +813,12 @@ public class DBAdapterPostgres extends DBAdapter {
 	@Override
 	public String getDefaultScheme() throws ExceptionDBGit {
 		return "public";
+	}
+
+	@Override
+	public boolean isReservedWord(String word) {
+		// TODO Auto-generated method stub
+		return false;
 	}	
 
 }

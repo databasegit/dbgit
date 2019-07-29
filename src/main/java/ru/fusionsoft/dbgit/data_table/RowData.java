@@ -60,7 +60,7 @@ public class RowData {
 		for (int i = 0; i < record.size(); i++) {	
 			String columnName = titleColumns.get(i);
 			if (metaTable.getFieldsMap().get(columnName) == null) {
-				throw new ExceptionDBGitRunTime(DBGitLang.getInstance().getValue("errors", "tableData", "fieldNotFound").withParams(columnName)); 
+				throw new ExceptionDBGitRunTime(DBGitLang.getInstance().getValue("errors", "dataTable", "fieldNotFound").withParams(columnName)); 
 			}
 			
 			ICellData cd = FactoryCellData.createCellData(metaTable.getFieldsMap().get(columnName).getTypeUniversal());

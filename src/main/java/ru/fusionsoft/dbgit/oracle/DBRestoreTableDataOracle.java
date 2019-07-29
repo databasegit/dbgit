@@ -1,7 +1,9 @@
 package ru.fusionsoft.dbgit.oracle;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.InputStreamReader;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.util.Collection;
@@ -22,12 +24,14 @@ import ru.fusionsoft.dbgit.adapters.DBRestoreAdapter;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRestore;
 import ru.fusionsoft.dbgit.core.GitMetaDataManager;
+import ru.fusionsoft.dbgit.core.SchemaSynonym;
 import ru.fusionsoft.dbgit.data_table.DateData;
 import ru.fusionsoft.dbgit.data_table.ICellData;
 import ru.fusionsoft.dbgit.data_table.LongData;
 import ru.fusionsoft.dbgit.data_table.MapFileData;
 import ru.fusionsoft.dbgit.data_table.RowData;
 import ru.fusionsoft.dbgit.data_table.StringData;
+import ru.fusionsoft.dbgit.data_table.TextFileData;
 import ru.fusionsoft.dbgit.data_table.TreeMapRowData;
 import ru.fusionsoft.dbgit.dbobjects.DBConstraint;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
@@ -107,17 +111,49 @@ public class DBRestoreTableDataOracle extends DBRestoreAdapter {
 					for (ICellData data : rowData.getData().values()) {
 						i++;
 						ConsoleWriter.detailsPrintLn(data.getSQLData());
-						if (data instanceof MapFileData) {
+						if (data instanceof TextFileData) {
+							File file = ((TextFileData) data).getFile();
+							if (file.exists()) {
+								FileInputStream fis = new FileInputStream(file);
+								BufferedReader br = new BufferedReader(new InputStreamReader(fis));
+								
+								StringBuilder sb = new StringBuilder();
+							    String line;
+							    while(( line = br.readLine()) != null ) {
+							    	sb.append( line );
+							    	sb.append( '\n' );
+							    }
+								ps.setString(i, sb.toString());
+								br.close();
+							} else {
+								ps.setNull(i, java.sql.Types.NULL);
+							}
+						} else 	if (data instanceof MapFileData) {
 							File file = ((MapFileData) data).getFile();
-							FileInputStream fis = new FileInputStream(file);
-							ps.setBinaryStream(i, fis, file.length());
+							if (file.exists()) {
+								FileInputStream fis = new FileInputStream(file);						
+								ps.setBinaryStream(i, fis, file.length());
+							} else {
+								ps.setNull(i, java.sql.Types.NULL);
+							}
 						} else if (data instanceof LongData) {
-							ps.setDouble(i, Double.parseDouble(data.getSQLData().replace("'", "")));
+							String dt = data.getSQLData().replace("'", "");
+							if (dt.equals("")) 
+								ps.setDouble(i, dt.equals("") ? 0 : Double.parseDouble(dt));
+							else
+								ps.setNull(i, java.sql.Types.DOUBLE);
 						} else if (data instanceof DateData) {
-							ps.setDate(i, ((DateData) data).getDate());
+							if (((DateData) data).getDate() != null)								
+								ps.setDate(i, ((DateData) data).getDate());
+							else
+								ps.setNull(i, java.sql.Types.DATE);		
 						} else {
-							ps.setString(i, ((StringData) data).getValue());
+							if (((StringData) data).getValue() != null)								
+								ps.setString(i, ((StringData) data).getValue());
+							else
+								ps.setNull(i, java.sql.Types.VARCHAR);		
 						}						
+					
 					}
 					
 					if (adapter.isExecSql())
@@ -227,6 +263,7 @@ public class DBRestoreTableDataOracle extends DBRestoreAdapter {
 		Connection connect = adapter.getConnection();
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
 		String schema = getPhisicalSchema(table.getTable().getSchema());
+		schema = (SchemaSynonym.getInstance().getSchema(schema) == null) ? schema : SchemaSynonym.getInstance().getSchema(schema);
 		try {	
 			for(DBConstraint constraint : table.getConstraints().values()) {
 				if(!constraint.getConstraintType().equalsIgnoreCase("p")) {				
@@ -250,6 +287,7 @@ public class DBRestoreTableDataOracle extends DBRestoreAdapter {
 		IDBAdapter adapter = getAdapter();
 		StatementLogging st = new StatementLogging(adapter.getConnection(), adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
 		String schema = getPhisicalSchema(table.getTable().getSchema());
+		schema = (SchemaSynonym.getInstance().getSchema(schema) == null) ? schema : SchemaSynonym.getInstance().getSchema(schema);
 		try {		
 			for (DBConstraint constraint : adapter.getConstraints(schema, table.getTable().getName()).values()) {
 				if(!constraint.getConstraintType().equalsIgnoreCase("p")) {

@@ -42,7 +42,11 @@ public class DBRestoreViewPostgres extends DBRestoreAdapter {
 					}
 				}
 				if(!exist){
-					String query = restoreView.getSqlObject().getName() +" AS\n"+restoreView.getSqlObject().getSql()+";\n";
+					String query = restoreView.getSqlObject().getSql();
+					
+					if (!query.endsWith(";")) query = query + ";";
+					query = query + "\n";
+					
 					query+= "ALTER VIEW "+restoreView.getSqlObject().getName() +" OWNER TO "+restoreView.getSqlObject().getOwner()+";\n";
 					st.execute(query); 
 					//TODO Восстановление привилегий	

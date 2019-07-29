@@ -7,7 +7,13 @@ public class MaskFilter {
 	public MaskFilter(String mask) {
 		this.mask = mask;
 		
-		regex = mask.replace("/", "\\/").replace(".", "\\.").replace("?", ".?").replace("*", ".*"); 
+		regex = "(?i)" + mask.replace("/", "\\/")
+				.replace(".", "\\.")
+				.replace("?", ".?")
+				.replace("*", ".*")
+				.replaceFirst("\"", "(?-i)")
+				.replaceFirst("\"", "(?i)")
+		; 
 	}
 	
 	public boolean match(String exp) {

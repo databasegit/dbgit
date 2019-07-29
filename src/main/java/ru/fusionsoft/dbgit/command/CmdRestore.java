@@ -96,30 +96,36 @@ public class CmdRestore implements IDBGitCommand {
 		}
 		try {
 			//delete obj
-			DBGitIndex index = DBGitIndex.getInctance();
-			ConsoleWriter.println(getLang().getValue("general", "restore", "toRemove"));
+			DBGitIndex index = DBGitIndex.getInctance();			
+			
+			ConsoleWriter.println(getLang().getValue("general", "restore", "seekingToRemove"));
+			
 			for (ItemIndex item : index.getTreeItems().values()) {
 				//TODO db ignore
 				if (item.getIsDelete()) {
 					try {
 						IMetaObject obj = MetaObjectFactory.createMetaObject(item.getName());
 						gmdm.loadFromDB(obj);					
-						if (item.getHash().equals(obj.getHash())) {
-							ConsoleWriter.println("    " + obj.getName());
+						if (item.getHash().equals(obj.getHash())) {							
 							deleteObjs.put(obj);
+							if (deleteObjs.size() == 1)
+								ConsoleWriter.println(getLang().getValue("general", "restore", "toRemove"));
+							ConsoleWriter.println("    " + obj.getName());
 						}
 					} catch(ExceptionDBGit e) {
 						LoggerUtil.getGlobalLogger().error(getLang().getValue("errors", "restore", "cantConnect") + ": " + item.getName(), e);
 					}
 				}
 			}
+			if (deleteObjs.size() == 0)
+				ConsoleWriter.println(getLang().getValue("general", "restore", "nothingToRemove"));
 			
 			if (cmdLine.hasOption("r")) {
 				ConsoleWriter.println(getLang().getValue("general", "restore", "removing"));
 			}
 			gmdm.deleteDataBase(deleteObjs);
 			
-			ConsoleWriter.println(getLang().getValue("general", "restore", "toRestore"));
+			ConsoleWriter.println(getLang().getValue("general", "restore", "seekingToRestore"));
 
 			for (IMetaObject obj : fileObjs.values()) {
 				Boolean isRestore = false;
@@ -137,11 +143,17 @@ public class CmdRestore implements IDBGitCommand {
 					e.printStackTrace();
 				}
 				if (isRestore) {
-					//запомнили файл если хеш разный или объекта нет				
-					ConsoleWriter.println("    " + obj.getName());
+					//запомнили файл если хеш разный или объекта нет					
 					updateObjs.put(obj);
+					
+					if (updateObjs.size() == 1)
+						ConsoleWriter.println(getLang().getValue("general", "restore", "toRestore"));
+					ConsoleWriter.println("    " + obj.getName());
 				}
 			}
+			
+			if (updateObjs.size() == 0)
+				ConsoleWriter.println(getLang().getValue("general", "restore", "nothingToRestore"));
 			
 			if (cmdLine.hasOption("r")) {
 				ConsoleWriter.println(getLang().getValue("general", "restore", "restoring"));

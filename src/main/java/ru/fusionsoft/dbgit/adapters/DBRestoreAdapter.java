@@ -32,7 +32,7 @@ public abstract class DBRestoreAdapter implements IDBAdapterRestoreMetaData {
 	}
 	
 	public String getPhisicalSchema(String schema) throws ExceptionDBGit {
-		SchemaSynonym ss = SchemaSynonym.getInctance();
+		SchemaSynonym ss = SchemaSynonym.getInstance();
 		
 		return ss.getSchemaNvl(schema);
 	}

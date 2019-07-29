@@ -12,6 +12,7 @@ public class DBTableField implements IDBObject, Comparable<DBTableField> {
 	private int scale;
 	private int precision;
 	private boolean fixed;
+	private Integer order = 0;
 	
 	private Boolean isPrimaryKey = false;
 
@@ -95,6 +96,14 @@ public class DBTableField implements IDBObject, Comparable<DBTableField> {
 
 	public void setTypeMapping(String typeMapping) {
 		this.typeMapping = typeMapping;
+	}
+	
+	public void setOrder(Integer order) {
+		this.order = order;
+	}
+	
+	public Integer getOrder() {
+		return order;
 	}
 
 	@Override
