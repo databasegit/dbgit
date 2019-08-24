@@ -9,6 +9,7 @@ import java.sql.Statement;
 import ru.fusionsoft.dbgit.adapters.DBBackupAdapter;
 import ru.fusionsoft.dbgit.core.DBGitPath;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRestore;
+import ru.fusionsoft.dbgit.core.SchemaSynonym;
 import ru.fusionsoft.dbgit.dbobjects.DBConstraint;
 import ru.fusionsoft.dbgit.dbobjects.DBIndex;
 import ru.fusionsoft.dbgit.dbobjects.DBTableField;
@@ -28,7 +29,6 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 		StatementLogging stLog = new StatementLogging(connection, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
 		
 		try { 		
-						
 			if (obj instanceof MetaSql) {
 				MetaSql metaSql = (MetaSql) obj;
 				String objectName = metaSql.getSqlObject().getName();
@@ -41,7 +41,7 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 					createSchema(stLog, schema);
 				}
 
-				ConsoleWriter.detailsPrint("Trying to copy " + objectName + " to " + getFullDbName(schema, objectName) + "...", 1);
+				ConsoleWriter.detailsPrint(lang.getValue("general", "backup", "tryingToCopy").withParams(objectName, getFullDbName(schema, objectName)), 1);
 				
 				//dropIfExists(isSaveToSchema() ? PREFIX + schema : schema, 
 				//		isSaveToSchema() ? objectName : PREFIX + objectName, stLog);
@@ -56,20 +56,28 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 				if (file.exists())
 					obj = metaSql.loadFromFile();
 		
-				ConsoleWriter.detailsPrintlnGreen("OK");
+				ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
 			} else if (obj instanceof MetaTable) {
 				
 				MetaTable metaTable = (MetaTable) obj;
 				metaTable.loadFromDB();
 				String objectName = metaTable.getTable().getName();
 				String schema = metaTable.getTable().getSchema();
+				schema = (SchemaSynonym.getInstance().getSchema(schema) == null) ? schema : SchemaSynonym.getInstance().getSchema(schema);
 				String tableName = getFullDbName(schema, objectName);
-
+				
+				if(!isExists(schema, objectName)) {
+					File file = new File(DBGitPath.getFullPath() + metaTable.getFileName());	
+					if (file.exists())
+						obj = metaTable.loadFromFile();
+					return obj;
+				}
+				
 				if (isSaveToSchema()) {
 					createSchema(stLog, schema);
 				}
 
-				ConsoleWriter.detailsPrint("Trying to copy " + objectName + " to " + tableName + "...", 1);
+				ConsoleWriter.detailsPrint(lang.getValue("general", "backup", "tryingToCopy").withParams(objectName, getFullDbName(schema, objectName)), 1);
 				
 				dropIfExists(isSaveToSchema() ? PREFIX + schema : schema, 
 						isSaveToSchema() ? objectName : PREFIX + objectName, stLog);
@@ -92,7 +100,7 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 						ddl += "alter table " + tableName + " add " + field.getName() + " " + field.getTypeSQL() + ";\n";
 					}					
 					
-				}
+				}				
 				
 				for (DBConstraint constraint : metaTable.getConstraints().values()) {
 					ddl += "alter table "+ tableName +" add constraint " + PREFIX + constraint.getName() + " " + constraint.getSql() + ";\n";
@@ -102,15 +110,15 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 					String indexDdl = index.getSql() + (metaTable.getTable().getOptions().getChildren().containsKey("tablespace") ? 
 							" tablespace "+index.getOptions().get("tablespace").getData() : "") + ";\n";
 					indexDdl = indexDdl.replace(index.getName(), PREFIX + index.getName());
-					ddl += indexDdl;
+					if (indexDdl.length() > 3)
+						ddl += indexDdl;
 				}
-				
 				stLog.execute(ddl);
 				
 				File file = new File(DBGitPath.getFullPath() + metaTable.getFileName());				
 				if (file.exists())
 					obj = metaTable.loadFromFile();
-				ConsoleWriter.detailsPrintlnGreen("OK");
+				ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
 			} else if (obj instanceof MetaSequence) {
 				MetaSequence metaSequence = (MetaSequence) obj;
 				metaSequence.loadFromDB();
@@ -124,7 +132,7 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 
 				String sequenceName = getFullDbName(schema, objectName);
 				
-				ConsoleWriter.detailsPrint("Trying to copy " + objectName + " to " + sequenceName + "...", 1);
+				ConsoleWriter.detailsPrint(lang.getValue("general", "backup", "tryingToCopy").withParams(objectName, getFullDbName(schema, objectName)), 1);
 				
 				String ddl = "create sequence " + sequenceName + "\n"
 						+ (metaSequence.getSequence().getOptions().get("cycle_option").toString().equals("YES") ? "CYCLE\n" : "")
@@ -143,13 +151,16 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 				File file = new File(DBGitPath.getFullPath() + metaSequence.getFileName());				
 				if (file.exists())
 					obj = metaSequence.loadFromFile();
-				ConsoleWriter.detailsPrintlnGreen("OK");
+				ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
 			}			
 			
+		} catch (SQLException e1) {
+			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").
+					withParams(obj.getName() + ": " + e1.getLocalizedMessage()));
 		} catch (Exception e) {
-			ConsoleWriter.detailsPrintlnRed("FAIL");
+			ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
 			connection.rollback();
-			throw new ExceptionDBGitRestore("Error on backup " + obj.getName(), e);
+			throw new ExceptionDBGitRestore(lang.getValue("errors", "backup", "backupError").withParams(obj.getName()), e);
 		} finally {
 			connection.commit();
 			stLog.close();
@@ -189,6 +200,21 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 		st.close();
 	}
 
+	@Override
+	public boolean isExists(String owner, String objectName) throws Exception {		
+		Statement st = 	adapter.getConnection().createStatement();
+		ResultSet rs = st.executeQuery("select count(*) cnt from (\r\n" + 
+				"	SELECT 'TABLE' tp, table_name obj_name, table_schema sch FROM information_schema.tables \r\n" + 
+				"	union select 'VIEW' tp, table_name obj_name, table_schema sch from information_schema.views\r\n" + 
+				"	union select 'SEQUENCE' tp, sequence_name obj_name, sequence_schema sch from information_schema.sequences\r\n" + 
+				"	union select 'TRIGGER' tp, trigger_name obj_name, trigger_schema sch from information_schema.triggers\r\n" + 
+				"	union select 'FUNCTION' tp, routine_name obj_name, routine_schema sch from information_schema.routines\r\n" + 
+				") all_objects\r\n" + 
+				"where lower(sch) = '" + owner.toLowerCase() + "' and lower(obj_name) = '" + objectName.toLowerCase() + "'");
+		
+		rs.next();
+		return rs.getInt("cnt") > 0;
+	}
 
 	@Override
 	public boolean createSchema(StatementLogging stLog, String schema) {
@@ -199,7 +225,7 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 			
 			rs.next();
 			if (rs.getInt("cnt") == 0) {
-				ConsoleWriter.detailsPrintLn("Creating schema " + PREFIX + schema);
+				ConsoleWriter.detailsPrintLn(lang.getValue("general", "backup", "creatingSchema").withParams(PREFIX + schema));
 				stLog.execute("create schema " + PREFIX + schema);
 			}
 			
@@ -208,7 +234,7 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 			
 			return true;
 		} catch (SQLException e) {
-			ConsoleWriter.println("Cannot create schema: " + e.getLocalizedMessage());
+			ConsoleWriter.println(lang.getValue("errors", "backup", "cannotCreateSchema").withParams(e.getLocalizedMessage()));
 			return false;
 		}
 	}

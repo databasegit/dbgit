@@ -21,7 +21,7 @@ import ru.fusionsoft.dbgit.utils.CalcHash;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
 public class RowData {
-	protected Map<String, ICellData> data = new TreeMap<>();
+	protected Map<String, ICellData> data = new LinkedHashMap<>();
 	protected String hashRow;
 	protected String key;
 	protected MetaTable metaTable;

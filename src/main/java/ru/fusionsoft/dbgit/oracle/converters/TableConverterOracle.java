@@ -63,12 +63,17 @@ public class TableConverterOracle implements IDBConvertAdapter {
 	private String constraintFromPostgres(MetaTable table, DBConstraint constraint) {
 		ConsoleWriter.println("Converting table constraint " + constraint.getName() + " from postgresql to oracle...");
 		
-		return "alter table " + table.getTable().getSchema() + "." + table.getTable().getName() + 
-				" add constraint " + constraint.getName() + " " + constraint.getOptions().get("ddl")
+		String ddl = constraint.getOptions().get("ddl")
 				.toString()
 				.replace("ON UPDATE CASCADE", "")
 				.replace("ON DELETE CASCADE", "")
 				.replace("MATCH FULL", "");
+		
+		if (!ddl.contains("."))
+			ddl = ddl.replace("REFERENCES ", "REFERENCES " + table.getTable().getSchema() + ".");
+		
+		return "alter table " + table.getTable().getSchema() + "." + table.getTable().getName() + 
+				" add constraint " + constraint.getName() + " " + ddl;
 	}
 	
 	private String typeFromPostgres(DBTableField field) {

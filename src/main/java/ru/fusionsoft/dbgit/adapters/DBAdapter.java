@@ -96,10 +96,6 @@ public abstract class DBAdapter implements IDBAdapter {
 			for (IMetaObject obj : updateObjs.values().stream().sorted(comparator).collect(Collectors.toList())) {
 				Integer step = 0;
 				
-				if (step == 0 && DBGitConfig.getInstance().getBoolean("core", "TO_MAKE_BACKUP", true)) {
-					obj = getBackupAdapterFactory().getBackupAdapter(this).backupDBObject(obj);
-				}
-				
 				String schemaName = getSchemaName(obj);
 				if (schemaName != null)
 					schemaName = (SchemaSynonym.getInstance().getSchema(schemaName) == null) ? schemaName : SchemaSynonym.getInstance().getSchema(schemaName);
@@ -123,7 +119,7 @@ public abstract class DBAdapter implements IDBAdapter {
 					}
 					
 					if (isContainsNative) {
-						ConsoleWriter.println("Table " + obj.getName() + " contains unsupported types, it will be skipped");
+						ConsoleWriter.println(DBGitLang.getInstance().getValue("general", "restore", "unsupportedTypes").withParams(obj.getName()));
 						continue;
 					}
 					
@@ -140,6 +136,12 @@ public abstract class DBAdapter implements IDBAdapter {
 						}					
 
 						obj = convertAdapter.convert(getDbType(), getDbVersion(), obj);							
+					}
+
+					if (step == 0 && DBGitConfig.getInstance().getBoolean("core", "TO_MAKE_BACKUP", true) && schemaName != null &&
+							getBackupAdapterFactory().getBackupAdapter(this).isExists
+								(schemaName, obj.getName().substring(obj.getName().indexOf("/") + 1, obj.getName().indexOf(".")))) {
+						obj = getBackupAdapterFactory().getBackupAdapter(this).backupDBObject(obj);
 					}
 				}
 				

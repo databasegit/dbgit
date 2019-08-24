@@ -37,7 +37,7 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 			restoreTableFieldsOracle(obj);
 			return false;
 		}*/
-		if(Integer.valueOf(step).equals(1)) {
+		if(Integer.valueOf(step).equals(-21)) {
 			restoreTableIndexesOracle(obj);
 			return false;
 		}
@@ -76,7 +76,8 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 					ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "createTable"), 2);
 					String ddl = "";
 					if (restoreTable.getTable().getOptions().get("ddl") != null)
-						ddl = restoreTable.getTable().getOptions().get("ddl").getData();
+						ddl = restoreTable.getTable().getOptions().get("ddl").getData()
+							.replace("\"" + restoreTable.getTable().getSchema().toUpperCase() + "\"", "\"" + schema.toUpperCase() + "\"");
 					else {
 						DBTable table = restoreTable.getTable();
 						
@@ -201,8 +202,7 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 				if(!(tables.isEmpty() || tables == null)) {
 					for(DBTable table:tables.values()) {
 						if(restoreTable.getTable().getName().equals(table.getName())){
-							exist = true;
-																									
+							exist = true;																									
 						}						
 					}
 				}
@@ -290,7 +290,9 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 							MapDifference<String, DBIndex> diffInd = Maps.difference(restoreTable.getIndexes(), currentIndexes);
 							if(!diffInd.entriesOnlyOnLeft().isEmpty()) {
 								for(DBIndex ind:diffInd.entriesOnlyOnLeft().values()) {
-									st.execute(ind.getSql());
+									ConsoleWriter.println(ind.getSql());
+									if (ind.getSql().length() > 5 )
+										st.execute(ind.getSql());
 								}								
 							}
 							if(!diffInd.entriesOnlyOnRight().isEmpty()) {
@@ -382,7 +384,7 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 							"end;";	
 
 					
-					st.execute(dropQuery);
+					st.execute(dropQuery, "/");
 				}
 				//}	
 			}

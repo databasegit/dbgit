@@ -21,12 +21,12 @@ public class DateData implements ICellData {
 
 	@Override
 	public String serialize(DBTable tbl) throws Exception {
-		return format.format(value);
+		return value == null ? null : format.format(value);
 	}
 
 	@Override
 	public void deserialize(String data) throws Exception {
-		value = new Date(format.parse(data).getTime());
+		value = (data == null) ? null :new Date(format.parse(data).getTime());
 	}
 
 	public void setValue(Date value) {
@@ -45,7 +45,7 @@ public class DateData implements ICellData {
 
 	@Override
 	public String convertToString() throws Exception {
-		return (value == null) ? "" : format.format(value);
+		return (value == null) ? null : format.format(value);
 	}
 
 	@Override

@@ -772,7 +772,6 @@ public class DBAdapterOracle extends DBAdapter {
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
 			while(rs.next()){
-				//String name = rs.getString("GRANTEE") + "_" + rs.getString("GRANTED_ROLE");
 				String name = rs.getString("GRANTED_ROLE");
 				DBRole role = new DBRole(name);
 				rowToProperties(rs, role.getOptions());

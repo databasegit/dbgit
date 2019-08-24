@@ -84,8 +84,8 @@ public class TableConverterPostgresql implements IDBConvertAdapter {
 					result = "character";
 				else
 					result = "character varying";
-				
-				result += "(" + field.getLength() + ")";
+				if (field.getLength() > 0)
+					result += "(" + field.getLength() + ")";
 				
 				break;
 			}
@@ -112,6 +112,11 @@ public class TableConverterPostgresql implements IDBConvertAdapter {
 			
 			case ("unknown"): {
 				result = "native";
+				break;
+			}
+			
+			default: {
+				result = "def_" + field.getTypeUniversal();
 				break;
 			}
 

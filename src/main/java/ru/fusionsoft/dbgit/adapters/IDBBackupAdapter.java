@@ -24,4 +24,6 @@ public interface IDBBackupAdapter {
 	public void saveToSchema(boolean saveToSchema);
 	
 	public boolean isSaveToSchema();
+	
+	public boolean isExists(String owner, String objectName) throws Exception;
 }

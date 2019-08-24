@@ -1,13 +1,21 @@
 package ru.fusionsoft.dbgit.postgres;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -15,6 +23,7 @@ import java.util.StringJoiner;
 
 import ru.fusionsoft.dbgit.adapters.DBRestoreAdapter;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
+import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRestore;
 import ru.fusionsoft.dbgit.core.GitMetaDataManager;
 import ru.fusionsoft.dbgit.core.SchemaSynonym;
@@ -83,13 +92,20 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 						MetaTable metaTable = new MetaTable(currentTableData.getTable());
 						metaTable.loadFromDB(currentTableData.getTable());
 
-						while(rs.next()) {
-							RowData rd = new RowData(rs, metaTable);
-							mapRows.put(rd.calcRowHash(), rd);
+						if (rs != null) {
+							while(rs.next()) {
+								RowData rd = new RowData(rs, metaTable);
+								mapRows.put(rd.calcRowKey(metaTable.getIdColumns()), rd);
+							}
 						}
 						currentTableData.setMapRows(mapRows);
 					}
-					
+					/*
+					ConsoleWriter.println("curr:");
+					currentTableData.getmapRows().keySet().forEach(key -> ConsoleWriter.println("hash: " + key));
+					ConsoleWriter.println("rest:");
+					restoreTableData.getmapRows().keySet().forEach(key -> ConsoleWriter.println("hash: " + key));
+					*/
 					restoreTableDataPostgres(restoreTableData,currentTableData);
 					return false;
 				}
@@ -131,72 +147,52 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 			
 			ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "tableData").withParams(tblName) + "\n", 1);
 			
+			ResultSet rsTypes = st.executeQuery("select column_name, data_type from information_schema.columns \r\n" + 
+					"where lower(table_schema||'.'||table_name) = lower('" + tblName + "')");
+
+			HashMap<String, String> colTypes = new HashMap<String, String>();
+			while (rsTypes.next()) {
+				colTypes.put(rsTypes.getString("column_name"), rsTypes.getString("data_type"));
+			}
+			
+			
 			if(!diffTableData.entriesOnlyOnLeft().isEmpty()) {
 				
 				ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "inserting"), 2);
 				
 				for(RowData rowData:diffTableData.entriesOnlyOnLeft().values()) {
+					ArrayList<String> fieldsList = new ArrayList<String>(rowData.getData().keySet());
+
 					String insertQuery = "insert into "+tblName +
-							fields+valuesToString(rowData.getData().values()) + ";\n";
+							fields+valuesToString(rowData.getData().values(), colTypes, fieldsList) + ";\n";
 					
 					ConsoleWriter.detailsPrintLn(insertQuery);
+					
 					PrepareStatementLogging ps = new PrepareStatementLogging(connect, insertQuery, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
 					int i = 0;
+										
 					for (ICellData data : rowData.getData().values()) {
 						i++;
-						ConsoleWriter.detailsPrintLn(data.getSQLData());
-						if (data instanceof TextFileData) {
-							File file = ((TextFileData) data).getFile();
-							if (file.exists()) {
-								FileInputStream fis = new FileInputStream(file);
-								BufferedReader br = new BufferedReader(new InputStreamReader(fis));
-								
-								StringBuilder sb = new StringBuilder();
-							    String line;
-							    while(( line = br.readLine()) != null ) {
-							    	sb.append( line );
-							    	sb.append( '\n' );
-							    }
-								ps.setString(i, sb.toString());
-								br.close();
-							} else {
-								ps.setNull(i, java.sql.Types.NULL);
+						ConsoleWriter.detailsPrintLn(data.getSQLData());						
+						
+						ResultSet rs = st.executeQuery("select data_type from information_schema.columns \r\n" + 
+								"where lower(table_schema||'.'||table_name) = lower('" + tblName + "') and lower(column_name) = '" + fieldsList.get(i - 1) + "'");
+						
+						boolean isBoolean = false;
+						while (rs.next()) {							
+							if (rs.getString("data_type").contains("boolean")) {
+								isBoolean = true;
 							}
-						} else 	if (data instanceof MapFileData) {
-							File file = ((MapFileData) data).getFile();
-							if (file.exists()) {
-								FileInputStream fis = new FileInputStream(file);						
-								ps.setBinaryStream(i, fis, file.length());
-							} else {
-								ps.setNull(i, java.sql.Types.NULL);
-							}
-						} else if (data instanceof LongData) {
-							String dt = data.getSQLData().replace("'", "");
-							if (!dt.equals("")) 
-								ps.setDouble(i, Double.parseDouble(dt));
-							else
-								ps.setNull(i, java.sql.Types.NULL);
-						} else if (data instanceof DateData) {
-							if (((DateData) data).getDate() != null)								
-								ps.setDate(i, ((DateData) data).getDate());
-							else
-								ps.setNull(i, java.sql.Types.NULL);								
-						} else if (data instanceof BooleanData) {
-							if (((BooleanData) data).getValue() != null)								
-								ps.setBoolean(i, ((BooleanData) data).getValue());
-							else
-								ps.setNull(i, java.sql.Types.NULL);
-						} else {
-							if (((StringData) data).getValue() != null)								
-								ps.setString(i, ((StringData) data).getValue());
-							else
-								ps.setNull(i, java.sql.Types.NULL);							
-						}								
+						}
+
+						//ps = setValues(data, i, ps, isBoolean);
 					}
 					
-					if (adapter.isExecSql())
-						ps.execute();
-					ps.close();
+					//if (adapter.isExecSql())
+					//	ps.execute();
+					//ps.close();
+					
+					st.execute(insertQuery);
 				}
 				ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
 			}
@@ -210,6 +206,7 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 					String[] keysArray = rowData.getKey().split("_");
 					for(String key:keysArray) {
 						for (String o : tempcols.keySet()) {
+							if (tempcols.get(o) == null || tempcols.get(o).convertToString() == null) continue;
 							if (tempcols.get(o).convertToString().equals(key)) {
 						       primarykeys.put(o, tempcols.get(o).convertToString());
 						       tempcols.remove(o);
@@ -228,7 +225,8 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 					delFields+=fieldJoiner.toString()+")";
 					delValues+=valuejoiner.toString()+")";
 					primarykeys.clear();
-					deleteQuery+="delete from " + tblName+
+					if (delValues.length() > 3)
+						deleteQuery+="delete from " + tblName+
 							" where " + delFields + " = " + delValues + ";\n";
 					if(deleteQuery.length() > 50000 ){
 						st.execute(deleteQuery);
@@ -245,12 +243,13 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 				ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "updating"), 2);
 				String updateQuery="";
 				Map<String,String> primarykeys = new HashMap();
-				for(ValueDifference<RowData> diffRowData:diffTableData.entriesDiffering().values()) {
+				for(ValueDifference<RowData> diffRowData:diffTableData.entriesDiffering().values()) {	
 					if(!diffRowData.leftValue().getHashRow().equals(diffRowData.rightValue().getHashRow())) {
 						Map<String, ICellData> tempCols = diffRowData.leftValue().getData();
 						String[] keysArray = diffRowData.leftValue().getKey().split("_");
 						for(String key:keysArray) {
 							for (String o : tempCols.keySet()) {
+								if (tempCols.get(o) == null || tempCols.get(o).convertToString() == null) continue;
 								if (tempCols.get(o).convertToString().equals(key)) {
 									primarykeys.put(o, tempCols.get(o).convertToString());
 									tempCols.remove(o);
@@ -278,16 +277,52 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 							
 							for (Map.Entry<String, ICellData> entry : tempCols.entrySet()) {																	
 								updfieldJoiner.add("\""+entry.getKey()+"\"");
-								updvaluejoiner.add("\'"+entry.getValue().convertToString()+"\'");												
+								//updvaluejoiner.add("\'"+entry.getValue().convertToString()+"\'");
+								//updvaluejoiner.add("?");
 							}
+							
+							ArrayList<String> fieldsList = new ArrayList<String>(diffRowData.leftValue().getData().keySet());
+							
 							updFields+=updfieldJoiner.toString()+")";
-							updValues+=updvaluejoiner.toString()+")";
-							updateQuery+="update "+tblName+
-									" set "+updFields + " = " + updValues + " where " + keyFields+ "=" +keyValues+";\n";
-							if(updateQuery.length() > 50000 ){
+							updValues+=updvaluejoiner.toString()+")";							
+							
+							updateQuery="update "+tblName+
+									" set "+updFields + " = " + valuesToString(tempCols.values(), colTypes, fieldsList) + " where " + keyFields+ "=" +keyValues+";\n";							
+							
+							ConsoleWriter.detailsPrintLn(updateQuery);
+							
+							PrepareStatementLogging ps = new PrepareStatementLogging(connect, updateQuery, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
+							int i = 0;
+							
+							ConsoleWriter.detailsPrintLn("vals for " + keyValues + ":" + diffRowData.leftValue().getData().values());
+							for (ICellData data : diffRowData.leftValue().getData().values()) {
+								i++;
+								ConsoleWriter.detailsPrintLn(data.getSQLData());						
+								
+								ResultSet rs = st.executeQuery("select data_type from information_schema.columns \r\n" + 
+										"where lower(table_schema||'.'||table_name) = lower('" + tblName + "') and lower(column_name) = '" + fieldsList.get(i - 1) + "'");
+								
+								boolean isBoolean = false;
+								while (rs.next()) {							
+									if (rs.getString("data_type").toLowerCase().contains("boolean")) {
+										isBoolean = true;
+									}
+								}
+								//ps = setValues(data, i, ps, isBoolean);
+							}
+							/*
+							if (adapter.isExecSql())
+								ps.execute();
+							ps.close();
+							updateQuery = "";
+							*/
+							
+							
+							
+							//if(updateQuery.length() > 50000 ){
 								st.execute(updateQuery);
 								updateQuery = "";
-							}
+							//}
 							
 						}
 						
@@ -295,27 +330,124 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 				}
 				ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
 				if(updateQuery.length()>1) {
+					ConsoleWriter.println(updateQuery);
 					st.execute(updateQuery);
 				}
-			}
+			}			
 			
-			
-			
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
+			ConsoleWriter.println(lang.getValue("errors", "restore", "objectRestoreError").withParams(e.getLocalizedMessage()));
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(restoreTableData.getTable().getSchema() + "." + restoreTableData.getTable().getName()), e);
 		} finally {
 			st.close();
 		}
 	}
 	
-	public String valuesToString(Collection<ICellData> datas) {
+	public String valuesToString(Collection<ICellData> datas, HashMap<String, String> colTypes, ArrayList<String> fieldsList) throws ExceptionDBGit, IOException {
 		String values="(";
 		StringJoiner joiner = new StringJoiner(",");
-		for (ICellData data : datas) {			
-			//joiner.add(data.getSQLData());
-			joiner.add("?");
+		int i = 0;
+		for (ICellData data : datas) {		
+			boolean isBoolean = ((colTypes.get(fieldsList.get(i)) != null) && (colTypes.get(fieldsList.get(i)).toLowerCase().contains("boolean")));
+			if (data instanceof MapFileData) {
+				if (((MapFileData) data).getFile() == null || ((MapFileData) data).getFile().getName().contains("null")) {
+					joiner.add("null");
+				} else {
+			
+					FileInputStream fis = new FileInputStream(((MapFileData) data).getFile());	
+					
+					int byteRead;
+					StringBuilder sb = new StringBuilder();
+				    
+		            while ((byteRead = fis.read()) != -1) {
+		            	String hex = Integer.toHexString(byteRead);
+		            	if (hex.length() == 1) hex = "0" + hex;
+		            	
+		            	sb.append(hex);
+		            }
+		            fis.close();
+		            joiner.add("decode('" + sb.toString() + "', 'hex')");
+		            
+		            /*
+					joiner1.add("decode('" + sb.toString().replace("'", "''")
+							.replace("\\", "\\\\")
+							.replace("\n", "' || chr(10) || '")
+							.replace("\0", "' || '\\000' || '")
+							+ "', 'escape')");*/
+				}
+			} else if (data instanceof TextFileData) {
+				if (((TextFileData) data).getFile() == null || ((TextFileData) data).getFile().getName().contains("null")) {
+					joiner.add("null");
+				} else {				
+					FileInputStream fis = new FileInputStream(((MapFileData) data).getFile());	
+					BufferedReader br = new BufferedReader(new InputStreamReader(fis));
+					
+					StringBuilder sb = new StringBuilder();
+				    String line;
+				    while(( line = br.readLine()) != null ) {
+				    	sb.append( line );
+				    	sb.append( '\n' );
+				    }
+					br.close();
+					
+					fis.close();
+					joiner.add("'" + sb.toString().replace("'", "''")
+							.replace("\\", "\\\\")
+							.replace("\n", "' || chr(10) || '")
+							.replace("\0", "' || '\\000' || '")
+							+ "'");
+				}
+			} else if (data instanceof DateData) { 
+				Date date = ((DateData) data).getDate();
+				SimpleDateFormat format = new SimpleDateFormat("yyyyMMddHHmmss");
+				if (date != null) 
+					joiner.add("TO_TIMESTAMP('" + format.format(date) + "', 'YYYYMMDDHH24MISS')");
+				else
+					joiner.add("null");
+			} else if (data instanceof BooleanData) {
+				if (((BooleanData) data).getValue() != null)								
+					joiner.add(((BooleanData) data).getValue().toString());
+				else
+					joiner.add("null");
+			} else if (data instanceof LongData) {
+				String dt = data.getSQLData().replace("'", "");
+				
+				if (isBoolean) {
+					if (dt == null || dt.equals(""))
+						joiner.add("null");
+					else if (dt.equals("1"))
+						joiner.add("true");
+					else
+						joiner.add("false");
+				} else {							
+					if (!dt.equals("")) 
+						joiner.add(dt);
+					else
+						joiner.add("null");
+				}
+			} else {
+				String dt = ((StringData) data).getValue();
+				if (isBoolean) {
+					if (dt == null || dt.equals(""))
+						joiner.add("null");
+					else if (dt.startsWith("t") || dt.startsWith("T") || dt.equals("1") || dt.startsWith("y") || dt.startsWith("Y"))
+						joiner.add("true");								
+					else
+						joiner.add("false");
+				} else {							
+					if (dt != null)								
+						joiner.add("'" + dt + "'");
+					else
+						joiner.add("null");
+				}	
+				joiner.add(data.getSQLData());
+				
+			}			
+			
+			//joiner.add("?");
+			i++;
 		}
+		//ConsoleWriter.println("joiner: " + joiner1);
 		values+=joiner.toString()+")";
 		return values;		
 	}
@@ -350,9 +482,9 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 					st.execute("alter table "+schema+"."+ table.getTable().getName() +" add constraint "+ constrs.getName() + " "+constrs.getOptions().get("ddl").toString());
 					}
 				}						
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
+			ConsoleWriter.println(lang.getValue("errors", "restore", "objectRestoreError").withParams(e.getLocalizedMessage()));
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(schema + "." + table.getTable().getName()), e);
 		} finally {
 			ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
@@ -397,11 +529,84 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 				}
 			//}	
 			ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
-		}
-		catch(Exception e) {
+
+		} catch (Exception e) {
 			ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
+			ConsoleWriter.println(lang.getValue("errors", "restore", "objectRestoreError").withParams(e.getLocalizedMessage()));
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "cannotRestore").withParams(schema + "." + table.getTable().getName()), e);
 		}		
+	}
+	
+	private PrepareStatementLogging setValues(ICellData data, int i, PrepareStatementLogging ps, boolean isBoolean) throws Exception {
+		if (data instanceof TextFileData) {
+			File file = ((TextFileData) data).getFile();
+			if (file.exists()) {
+				FileInputStream fis = new FileInputStream(file);
+				BufferedReader br = new BufferedReader(new InputStreamReader(fis));
+				
+				StringBuilder sb = new StringBuilder();
+			    String line;
+			    while(( line = br.readLine()) != null ) {
+			    	sb.append( line );
+			    	sb.append( '\n' );
+			    }
+				ps.setString(i, sb.toString());
+				br.close();
+			} else {
+				ps.setNull(i, java.sql.Types.NULL);
+			}
+		} else 	if (data instanceof MapFileData) {
+			File file = ((MapFileData) data).getFile();
+			if (file.exists()) {
+				FileInputStream fis = new FileInputStream(file);						
+				ps.setBinaryStream(i, fis, file.length());
+			} else {
+				ps.setNull(i, java.sql.Types.NULL);
+			}
+		} else if (data instanceof LongData) {
+			String dt = data.getSQLData().replace("'", "");
+			
+			if (isBoolean) {
+				if (dt == null || dt.equals(""))
+					ps.setNull(i, java.sql.Types.NULL);
+				else if (dt.equals("1"))
+					ps.setBoolean(i, true);
+				else
+					ps.setBoolean(i, false);
+			} else {							
+				if (!dt.equals("")) 
+					ps.setDouble(i, Double.parseDouble(dt));
+				else
+					ps.setNull(i, java.sql.Types.NULL);
+			}
+		} else if (data instanceof DateData) {
+			if (((DateData) data).getDate() != null)								
+				ps.setDate(i, ((DateData) data).getDate());
+			else
+				ps.setNull(i, java.sql.Types.NULL);								
+		} else if (data instanceof BooleanData) {
+			if (((BooleanData) data).getValue() != null)								
+				ps.setBoolean(i, ((BooleanData) data).getValue());
+			else
+				ps.setNull(i, java.sql.Types.NULL);
+		} else {
+			String dt = ((StringData) data).getValue();
+			if (isBoolean) {
+				if (dt == null || dt.equals(""))
+					ps.setNull(i, java.sql.Types.NULL);
+				else if (dt.startsWith("t") || dt.startsWith("T") || dt.equals("1") || dt.startsWith("y") || dt.startsWith("Y"))
+					ps.setBoolean(i, true);									
+				else
+					ps.setBoolean(i, false);
+			} else {							
+				if (dt != null)								
+					ps.setString(i, dt);
+				else
+					ps.setNull(i, java.sql.Types.NULL);
+			}
+		}
+		
+		return ps;
 	}
 	
 	@Override

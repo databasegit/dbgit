@@ -118,8 +118,13 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 								values.sort(comparator);
 								
 								for(DBTableField tblField : values) {
-										String as = "alter table "+ tblName +" add column " + tblField.getName()  + " " + tblField.getTypeSQL();
-										st.execute("alter table "+ tblName +" add column " + tblField.getName()  + " " + tblField.getTypeSQL());
+										String as = "alter table "+ tblName +" add column " + tblField.getName()  + " " + tblField.getTypeSQL().replace("NOT NULL", "");
+										st.execute("alter table "+ tblName +" add column " + tblField.getName()  + " " + tblField.getTypeSQL().replace("NOT NULL", ""));
+								
+										if (tblField.getTypeSQL().contains("NOT NULL")) {
+											st.execute("alter table " + tblName + " alter column " + tblField.getName() + " set not null");
+										}
+
 								}	
 								ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
 							}
@@ -139,8 +144,12 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 										st.execute("alter table "+ tblName +" rename column "+ tblField.rightValue().getName() +" to "+ tblField.leftValue().getName());
 									}
 																	
-									if(!tblField.leftValue().getTypeSQL().equals(tblField.rightValue().getTypeSQL())) {
-										st.execute("alter table "+ tblName +" alter column "+ tblField.leftValue().getName() +" type "+ tblField.leftValue().getTypeSQL());
+									if(!tblField.leftValue().getTypeSQL().equals(tblField.rightValue().getTypeSQL())
+											&& !tblField.rightValue().getTypeUniversal().contains("boolean")) {
+										st.execute("alter table "+ tblName +" alter column "+ tblField.leftValue().getName() +" type "+ tblField.leftValue().getTypeSQL().replace("NOT NULL", ""));
+										if (tblField.leftValue().getTypeSQL().contains("NOT NULL")) {
+											st.execute("alter table " + tblName + " alter column " + tblField.leftValue().getName() + " set not null");
+										}
 									}
 								}		
 								ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
@@ -152,7 +161,7 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 									"                       ON rel.oid = con.conrelid\r\n" + 
 									"            INNER JOIN pg_catalog.pg_namespace nsp\r\n" + 
 									"                       ON nsp.oid = connamespace\r\n" + 
-									"       WHERE upper(nsp.nspname) = upper('" + schema + "')\r\n" + 
+									"       WHERE lower(contype) <> 'p' and upper(nsp.nspname) = upper('" + schema + "')\r\n" + 
 									"             AND upper(rel.relname) = upper('" + restoreTable.getTable().getName() + "')");
 				rs.next();
 				Integer constraintsCount = Integer.valueOf(rs.getString("constraints_count"));
@@ -176,7 +185,8 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 					for(DBConstraint tableconst: restoreTable.getConstraints().values()) {
 						if(tableconst.getConstraintType().equals("p")) {
 							ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "addPk"), 2);
-							st.execute("alter table "+ tblName +" add constraint "+ tableconst.getName() + " "+tableconst.getSql().replace(" " +tableconst.getSchema() + ".", " " + schema + "."));
+							st.execute("alter table "+ tblName +" add constraint "+ tableconst.getName() + " "+tableconst.getSql()
+								.replace(" " +tableconst.getSchema() + ".", " " + schema + "."));
 							ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
 							flagPkCreated = true;
 							break;
@@ -199,8 +209,8 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 			{
 				throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()));
 			}						
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
+			ConsoleWriter.println(lang.getValue("errors", "restore", "objectRestoreError").withParams(e.getLocalizedMessage()));
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()), e);
 		} finally {
 			st.close();
@@ -277,8 +287,8 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 			{
 				throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()));
 			}						
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
+			ConsoleWriter.println(lang.getValue("errors", "restore", "objectRestoreError").withParams(e.getLocalizedMessage()));
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()), e);
 		} finally {
 			st.close();
@@ -352,9 +362,9 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 				ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
 				throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()));
 			}						
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
+			ConsoleWriter.println(lang.getValue("errors", "restore", "objectRestoreError").withParams(e.getLocalizedMessage()));
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()), e);
 		} finally {
 			ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
@@ -373,7 +383,9 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 				schema = (SchemaSynonym.getInstance().getSchema(schema) == null) ? schema : SchemaSynonym.getInstance().getSchema(schema);
 				for(DBConstraint constrs :restoreTable.getConstraints().values()) {
 					if(!constrs.getConstraintType().equalsIgnoreCase("p")) {				
-					st.execute("alter table "+ schema+"."+restoreTable.getTable().getName() +" add constraint "+ constrs.getName() + " "+constrs.getSql().replace(" " + constrs.getSchema() + ".", " " + schema + "."));
+					st.execute("alter table "+ schema+"."+restoreTable.getTable().getName() +" add constraint "+ constrs.getName() + " "+constrs.getSql()
+						.replace(" " + constrs.getSchema() + ".", " " + schema + ".")
+						.replace("REFERENCES ", "REFERENCES " + schema + "."));
 					}
 				}
 			}
@@ -382,9 +394,9 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 				ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
 				throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()));
 			}						
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
+			ConsoleWriter.println(lang.getValue("errors", "restore", "objectRestoreError").withParams(e.getLocalizedMessage()));
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()), e);
 		} finally {
 			ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
@@ -407,7 +419,8 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 				//if(constraintsCount.intValue()>0) {
 				Map<String, DBConstraint> constraints = table.getConstraints();
 				for(DBConstraint constrs :constraints.values()) {
-				st.execute("alter table "+ schema+"."+table.getTable().getName() +" drop constraint IF EXISTS "+constrs.getName());
+					if (!constrs.getConstraintType().equalsIgnoreCase("p"))
+						st.execute("alter table "+ schema+"."+table.getTable().getName() +" drop constraint IF EXISTS "+constrs.getName());
 				}
 				//}	
 			}
@@ -415,8 +428,8 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 			{
 				throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()));
 			}	
-		}
-		catch(Exception e) {
+		} catch (Exception e) {
+			ConsoleWriter.println(lang.getValue("errors", "restore", "objectRestoreError").withParams(e.getLocalizedMessage()));
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()), e);
 		}		
 	}
@@ -460,6 +473,7 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 		
 			// TODO Auto-generated method stub
 		} catch (Exception e) {
+			ConsoleWriter.println(lang.getValue("errors", "restore", "objectRestoreError").withParams(e.getLocalizedMessage()));
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRemoveError").withParams(obj.getName()), e);
 		} finally {
 			st.close();

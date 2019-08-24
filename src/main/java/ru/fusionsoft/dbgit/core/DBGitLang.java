@@ -52,7 +52,7 @@ public class DBGitLang {
 		int i = 0;
 		String newValue = value;
 		for (String arg : args) {
-			newValue = newValue.replace("{" + i + "}", arg);			
+			newValue = newValue.replace("{" + i + "}", arg == null ? "" : arg);			
 			i++;
 		}
 		

@@ -3,12 +3,17 @@ package ru.fusionsoft.dbgit.oracle;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -24,6 +29,7 @@ import com.google.common.collect.MapDifference.ValueDifference;
 
 import ru.fusionsoft.dbgit.adapters.DBRestoreAdapter;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
+import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRestore;
 import ru.fusionsoft.dbgit.core.GitMetaDataManager;
 import ru.fusionsoft.dbgit.core.SchemaSynonym;
@@ -87,9 +93,11 @@ public class DBRestoreTableDataOracle extends DBRestoreAdapter {
 
 					ConsoleWriter.println("ids: " + metaTable.getIdColumns());
 					
-					while(rs.next()) {
-						RowData rd = new RowData(rs, metaTable);
-						mapRows.put(rd.calcRowKey(metaTable.getIdColumns()), rd);
+					if (rs != null) {
+						while(rs.next()) {
+							RowData rd = new RowData(rs, metaTable);
+							mapRows.put(rd.calcRowKey(metaTable.getIdColumns()), rd);
+						}
 					}
 					currentTableData.setMapRows(mapRows);
 				}
@@ -124,86 +132,45 @@ public class DBRestoreTableDataOracle extends DBRestoreAdapter {
 			
 			String fields = "";
 			if (restoreTableData.getmapRows().size() > 0)
-				fields = "(" + restoreTableData.getmapRows().firstEntry().getValue().getData().keySet().stream().map(d -> d.toString()).collect(Collectors.joining(",")) + ")";
+				fields = "(" + restoreTableData.getmapRows().firstEntry().getValue().getData().keySet().stream()
+					.map(d -> adapter.isReservedWord(d.toString()) ? "\"" + d.toString() + "\"" : d.toString())
+					.collect(Collectors.joining(",")) + ")";
 			MapDifference<String, RowData> diffTableData = Maps.difference(restoreTableData.getmapRows(), currentTableData == null ? new TreeMap<String, RowData>() : currentTableData.getmapRows());
 
+			ResultSet rsTypes = st.executeQuery("select column_name, data_type from ALL_TAB_COLUMNS \r\n" + 
+					"where lower(owner||'.'||table_name) = lower('" + tblName + "')");
+
+			HashMap<String, String> colTypes = new HashMap<String, String>();
+			while (rsTypes.next()) {
+				colTypes.put(rsTypes.getString("column_name"), rsTypes.getString("data_type"));
+			}
+			
 			if(!diffTableData.entriesOnlyOnLeft().isEmpty()) {
 				ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "inserting"), 2);
 				for(RowData rowData:diffTableData.entriesOnlyOnLeft().values()) {
+					ArrayList<String> fieldsList = new ArrayList<String>(rowData.getData().keySet());
+					
 					String values = 
 							rowData.getData().values().stream()
 							//.map(d -> d.getSQLData())
 							.map(d -> "?")
 							.collect(Collectors.joining(","));				
 					insertQuery = "insert into "+tblName +
-							fields + " values (" + values + ")";
-					
-					ConsoleWriter.detailsPrintLn(insertQuery);
-					
-					PrepareStatementLogging ps = new PrepareStatementLogging(connect, insertQuery, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
-					int i = 0;
+							fields + " values " + valuesToString(rowData.getData().values(), colTypes, fieldsList, true);
+					boolean needSeparator = false;
 					for (ICellData data : rowData.getData().values()) {
-						i++;
-						ConsoleWriter.detailsPrintLn(data.getSQLData());
-						if (data instanceof TextFileData) {
-							File file = ((TextFileData) data).getFile();
-							if (file.exists()) {
-								FileInputStream fis = new FileInputStream(file);
-								BufferedReader br = new BufferedReader(new InputStreamReader(fis));
-								
-								StringBuilder sb = new StringBuilder();
-							    String line;
-							    while(( line = br.readLine()) != null ) {
-							    	sb.append( line );
-							    	sb.append( '\n' );
-							    }
-								ps.setString(i, sb.toString());
-								br.close();
-							} else {
-								ps.setNull(i, java.sql.Types.NULL);
-							}
-						} else 	if (data instanceof MapFileData) {
-							File file = ((MapFileData) data).getFile();
-							if (file.exists()) {
-								FileInputStream fis = new FileInputStream(file);						
-								ps.setBinaryStream(i, fis, file.length());
-							} else {
-								ps.setNull(i, java.sql.Types.NULL);
-							}
-						} else if (data instanceof LongData) {
-							String dt = data.getSQLData().replace("'", "");
-							if (!dt.equals("")) 
-								ps.setDouble(i, Double.parseDouble(dt));
-							else
-								ps.setNull(i, java.sql.Types.DOUBLE);
-						} else if (data instanceof DateData) {
-							if (((DateData) data).getDate() != null)								
-								ps.setDate(i, ((DateData) data).getDate());
-							else
-								ps.setNull(i, java.sql.Types.DATE);		
-						} else if (data instanceof BooleanData) {
-							Boolean value = ((BooleanData) data).getValue();
-							if (value != null)			
-								if (value)
-									ps.setInt(i, 1);
-								else
-									ps.setInt(i, 0);
-							else
-								ps.setNull(i, java.sql.Types.NULL);
-						} else {
-							if (((StringData) data).getValue() != null)								
-								ps.setString(i, ((StringData) data).getValue());
-							else
-								ps.setNull(i, java.sql.Types.NULL);		
-						}						
+						if (data instanceof MapFileData) {
+							needSeparator = true;
+							insertQuery = getBlobQuery(rowData.getData().values(), insertQuery);
+							break;
+						}
 					}
 					
-					if (adapter.isExecSql())
-						ps.execute();
-					ps.close();
-
-					
-					//st.execute(insertQuery);
+					ConsoleWriter.detailsPrintLn(insertQuery);
+					if (needSeparator)
+						st.execute(insertQuery, "/");
+					else
+						st.execute(insertQuery);
 
 				}
 				ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
@@ -258,20 +225,34 @@ public class DBRestoreTableDataOracle extends DBRestoreAdapter {
 								.map(entry -> entry.getKey() + " = " + entry.getValue().getSQLData())
 								.collect(Collectors.joining(", "));						
 						
+						ArrayList<String> fieldsList = new ArrayList<String>(diffRowData.leftValue().getData().keySet());
 						
 						if (updValues.length() > 0) {
-							String updateQuery = "update " + tblName + " set " + updValues + " where " + updParams;
-							st.executeQuery(updateQuery);
+							String updateQuery = "update " + tblName + " set " + valuesToString(diffRowData.leftValue().getData().values(), colTypes, fieldsList, false) + " where " + updParams;
+							
+							boolean needSeparator = false;
+							for (ICellData data : diffRowData.leftValue().getData().values()) {
+								if (data instanceof MapFileData) {
+									needSeparator = true;
+									updateQuery = getBlobQuery(diffRowData.leftValue().getData().values(), updateQuery);
+									break;
+								}
+							}
+							
+							if (needSeparator)
+								st.execute(updateQuery, "/");
+							else
+								st.execute(updateQuery);
 						}
+						
 												
 					}
 				}		
 				if (isSuccessful) ConsoleWriter.detailsPrintlnGreen("OK");
 			}			
 
-		} catch (SQLException e1) {
-			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(restoreTableData.getTable().getSchema() + "." + restoreTableData.getTable().getName()));
 		} catch (Exception e) {
+			ConsoleWriter.println(lang.getValue("errors", "restore", "objectRestoreError").withParams(e.getLocalizedMessage()));
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(restoreTableData.getTable().getSchema() + "." + restoreTableData.getTable().getName()), e);
 		} finally {
 			st.close();
@@ -317,11 +298,9 @@ public class DBRestoreTableDataOracle extends DBRestoreAdapter {
 				}
 			}					
 			ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
-		} catch (SQLException e1) {
-			ConsoleWriter.detailsPrintlnRed(lang.getValue(lang.getValue("errors", "restore", "objectRestoreError").withParams( table.getTable().getName()) + "\n"+ e1.getLocalizedMessage()));
-			//throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()) + "\n"+ e1.getLocalizedMessage());
 		} catch (Exception e) {
 			ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
+			ConsoleWriter.println(lang.getValue("errors", "restore", "objectRestoreError").withParams(e.getLocalizedMessage()));
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(table.getTable().getName()), e);
 		} finally {
 			st.close();
@@ -349,20 +328,160 @@ public class DBRestoreTableDataOracle extends DBRestoreAdapter {
 					//String query = "if (OBJECT_ID(" + schema + "." + constraint.getName() + ")) then begin alter table " + schema + "." + table.getTable().getName() 
 					//		+ " drop constraint " + constraint.getName() + "; end";
 					ConsoleWriter.println(dropQuery);
-					st.execute(dropQuery);
+					st.execute(dropQuery, "/");
 				}					
 			}
 			ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
-		} catch (SQLException e1) {
-			ConsoleWriter.detailsPrintlnRed(lang.getValue(lang.getValue("errors", "restore", "objectRestoreError").withParams( table.getTable().getName()) + "\n"+ e1.getLocalizedMessage()));
-			//throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()) + "\n"+ e1.getLocalizedMessage());
 		} catch (Exception e) {
 			ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
+			ConsoleWriter.println(lang.getValue("errors", "restore", "objectRestoreError").withParams(e.getLocalizedMessage()));
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "cannotRestore").withParams(schema + "." + table.getTable().getName()), e);
 		} finally {
 			st.close();
 		}		
 		
+	}
+	
+	private String getBlobQuery(Collection<ICellData> datas, String query) throws Exception {
+		String res = "declare\n";
+		
+		for (ICellData data : datas) {
+			if (data instanceof TextFileData)
+				res += "    b_" + data.hashCode() + " CLOB;\n";
+			else if (data instanceof MapFileData)
+				res += "    b_" + data.hashCode() + " BLOB;\n";
+		}
+		
+		res += "begin\n";
+		int i = 0;
+		for (ICellData data : datas) {
+			if (data instanceof TextFileData) {
+				if (((TextFileData) data).getFile() != null && !((TextFileData) data).getFile().getName().contains("null")) {
+					res += "    DBMS_LOB.CREATETEMPORARY(b_" + data.hashCode() + ",TRUE);\n";
+					
+					FileInputStream fis = new FileInputStream(((MapFileData) data).getFile());	
+					
+					int byteRead;
+					StringBuilder sb = new StringBuilder();
+				    
+		            while ((byteRead = fis.read()) != -1) {
+		            	String hex = Integer.toHexString(byteRead);
+		            	if (hex.length() == 1) hex = "0" + hex;
+		            	
+		            	sb.append(hex);
+		            	
+		            	if (sb.length() == 2000) {
+		            		res += "    dbms_lob.WRITEAPPEND (b_" + data.hashCode() + ", 1000, utl_raw.cast_to_varchar2(hextoraw('" + sb.toString() + "')));\n";
+		            		sb.setLength(0);
+		            	}
+		            }
+		            if (sb.length() > 0)
+		            	res += "    dbms_lob.WRITEAPPEND (b_" + data.hashCode() + ", " + sb.length()/2 + ", utl_raw.cast_to_varchar2(hextoraw('" + sb.toString() + "')));\n";
+		            fis.close();
+				}
+			} else if (data instanceof MapFileData) {
+				if (((MapFileData) data).getFile() != null && !((MapFileData) data).getFile().getName().contains("null")) {
+					res += "    DBMS_LOB.CREATETEMPORARY(b_" + data.hashCode() + ",TRUE);\n";
+					
+					FileInputStream fis = new FileInputStream(((MapFileData) data).getFile());	
+					
+					int byteRead;
+					StringBuilder sb = new StringBuilder();
+				    
+		            while ((byteRead = fis.read()) != -1) {
+		            	String hex = Integer.toHexString(byteRead);
+		            	if (hex.length() == 1) hex = "0" + hex;
+		            	
+		            	sb.append(hex);
+		            	
+		            	if (sb.length() == 2000) {
+		            		res += "    dbms_lob.WRITEAPPEND (b_" + data.hashCode() + ", 1000, hextoraw('" + sb.toString() + "'));\n";
+		            		sb.setLength(0);
+		            	}
+		            }
+		            if (sb.length() > 0)
+		            	res += "    dbms_lob.WRITEAPPEND (b_" + data.hashCode() + ", " + sb.length()/2 + ", hextoraw('" + sb.toString() + "'));\n";
+		            fis.close();
+				}
+
+			}
+			i++;
+		}
+		
+		
+		res += "    " + query + ";\n";
+		res += "end;\n";
+		
+		return res;
+	}
+	
+	public String valuesToString(Collection<ICellData> datas, HashMap<String, String> colTypes, ArrayList<String> fieldsList, boolean isInsert) throws ExceptionDBGit, IOException {
+		String values="";
+		StringJoiner joiner = new StringJoiner(",");
+		int i = 0;
+		String val = "null";
+		for (ICellData data : datas) {		
+			boolean isBoolean = ((colTypes.get(fieldsList.get(i)) != null) && (colTypes.get(fieldsList.get(i)).toLowerCase().contains("boolean")));
+			if (data instanceof MapFileData || data instanceof TextFileData) {
+				if (((MapFileData) data).getFile() == null || ((MapFileData) data).getFile().getName().contains("null")) {
+					val = "null";
+				} else {					
+		            val = "b_" + data.hashCode();
+				}
+			} else if (data instanceof DateData) { 
+				Date date = ((DateData) data).getDate();
+				SimpleDateFormat format = new SimpleDateFormat("yyyyMMddHHmmss");
+				if (date != null) 
+					val = "TO_TIMESTAMP('" + format.format(date) + "', 'YYYYMMDDHH24MISS')";
+				else
+					val = "null";
+			} else if (data instanceof BooleanData) {
+				if (((BooleanData) data).getValue() != null)								
+					val = ((BooleanData) data).getValue() ? "1" : "0";
+				else
+					val = "null";
+			} else if (data instanceof LongData) {
+				String dt = data.getSQLData().replace("'", "");
+				
+				if (isBoolean) {
+					if (dt == null || dt.equals(""))
+						val = "null";
+					else if (!dt.equals("1"))
+						val = "0";
+					else
+						val = "1";
+				} else {							
+					if (!dt.equals("")) 
+						val = dt;
+					else
+						val = "null";
+				}
+			} else {
+				String dt = ((StringData) data).getValue();
+				if (isBoolean) {
+					if (dt == null || dt.equals(""))
+						val = "null";
+					else if (dt.startsWith("t") || dt.startsWith("T") || dt.equals("1") || dt.startsWith("y") || dt.startsWith("Y"))
+						val = "1";								
+					else
+						val = "0";
+				} else {							
+					if (dt != null)								
+						val = "'" + dt.replace("'", "''") + "'";
+					else
+						val = "null";
+				}				
+			}			
+			if (!isInsert)
+				val = (adapter.isReservedWord(fieldsList.get(i)) ? "\"" + fieldsList.get(i) + "\"" : fieldsList.get(i))  + " = " + val;
+				
+			joiner.add(val);
+			i++;
+		}
+		
+		values+=joiner.toString();
+		if (isInsert) values = "(" + values + ")";
+		return values;		
 	}
 
 	@Override

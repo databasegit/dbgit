@@ -24,8 +24,8 @@ public class CmdBackup implements IDBGitCommand {
 	private Options opts = new Options();
 	
 	public CmdBackup() {
-		opts.addOption("d", false, "Saves tabledata while backups");
-		opts.addOption("s", false, "Saves backup to the specific schema, otherwise - to the current schema");
+		opts.addOption("d", false, getLang().getValue("help", "backup-d").toString());
+		opts.addOption("s", false, getLang().getValue("help", "backup-s").toString());
 	}
 	
 	@Override
@@ -40,9 +40,7 @@ public class CmdBackup implements IDBGitCommand {
 
 	@Override
 	public String getHelperInfo() {
-		return "Examples:\n"
-				+ "    dbgit backup <SCHEME>/<DB_OBJECT_NAME> -d -s\n"
-				+ "    dbgit backup <SCHEME>/* -s";
+		return getLang().getValue("help", "backup").toString();
 	}
 
 	@Override
@@ -55,7 +53,7 @@ public class CmdBackup implements IDBGitCommand {
 		ConsoleWriter.setDetailedLog(cmdLine.hasOption("v"));	
 		
 		if (cmdLine.getArgs().length != 1) {
-			throw new ExceptionDBGit("Bad command. Object to backup doesn't specified!");
+			throw new ExceptionDBGit(getLang().getValue("errors", "backup", "badCommand").toString());
 		}
 		
 		String nameObj = cmdLine.getArgs()[0];

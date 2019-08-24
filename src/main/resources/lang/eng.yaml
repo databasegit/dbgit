@@ -74,6 +74,7 @@ general:
     inserting: Deleteng...
     deleting: Deleteng...
     updating: Updating...
+    unsupportedTypes: Table {0} contains unsupported types, it will be skipped
   rm:
     checking: Checking files
     deleteng: Deleting
@@ -103,6 +104,9 @@ general:
     diffSize1: MetaTableData diff size!!! {0} {1}
     diffSize2: MetaTableData diff size row {0}!!!
     diffDataRow: MetaTableData diff data row {0} {1}  {2}  {3}
+  backup:
+    tryingToCopy: Trying to copy {0} to {1}...
+    creatingSchema: Creating schema {0}
 errors:
   commandNotFound: Command {0} not found!
   executionError: Error execute dbgit
@@ -137,6 +141,8 @@ errors:
     objectRemoveError: Error remove {0}
     cannotRestore: Cannot restore {0}!
     pkNotFound: PK not found for table {0}, cannot process row!
+    cantConnect: Can't connect to db!
+    errorLoadDelete: Error load and delete object
   add: 
     badCommand: Bad command. Not found object to add!
     cantFindObjectInDb: Can't find object {0} in database
@@ -144,9 +150,6 @@ errors:
     badCommand: Bad command. Please specify branch
   commit:
     cantFindObject: Can't find {0}, it will be removed from index
-  restore:
-    cantConnect: Can't connect to db!
-    errorLoadDelete: Error load and delete object
   rm:
     badCommand: Bad command. Not found object to remove!
     cantFindFile: Can't find file {0} in index
@@ -190,6 +193,10 @@ errors:
     roles: Error load roles!    
     rollback: Error while rollback!
     createSchema: Cannot create schema
+  backup:
+    badCommand: Bad command. Object to backup doesn't specified!
+    backupError: Error on backup {0}
+    cannotCreateSchema: Cannot create schema {0}
 help:
   h: Shows this help
   v: Outputs full log of command execution
@@ -229,6 +236,12 @@ help:
     Example:
       dbgit link jdbc:oracle:thin:@<SERVER_NAME>:<PORT>:<SID> user=<USER> password=<PASSWORD>
   link-d: Creates default dblink file
+  backup: |
+    Examples:
+      dbgit backup <SCHEME>/<DB_OBJECT_NAME> -d -s
+      dbgit backup <SCHEME>/* -s
+  backup-d: Saves tabledata while backups
+  backup-s: Saves backup to the specific schema, otherwise - to the current schema
   add: |
     Examples:
       dbgit add <SCHEME>/TEST_TABLE*
