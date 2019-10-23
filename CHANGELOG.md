@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.0.8b29a05] - 2019-08-24
+### Added
+ - Inserts and updates show in generated sql scripts with BLOB data
+ - Improved output error messages
+ 
+ ### fixes
+ -- Fixed some restore and converting bugs
+ 
 ## [0.3.0.4b85c2d] - 2019-07-29
 ### Added
  - You can backup db object before change manually or automatically now
