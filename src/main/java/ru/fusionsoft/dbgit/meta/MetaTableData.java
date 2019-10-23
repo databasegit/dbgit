@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.csv.CSVFormat;
@@ -25,9 +26,11 @@ import com.diogonunes.jcdp.color.api.Ansi.FColor;
 import ru.fusionsoft.dbgit.adapters.AdapterFactory;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
 import ru.fusionsoft.dbgit.core.DBGit;
+import ru.fusionsoft.dbgit.core.DBGitConfig;
 import ru.fusionsoft.dbgit.core.DBGitLang;
 import ru.fusionsoft.dbgit.core.DBGitPath;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
+import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
 import ru.fusionsoft.dbgit.core.GitMetaDataManager;
 import ru.fusionsoft.dbgit.data_table.ICellData;
 import ru.fusionsoft.dbgit.data_table.RowData;
@@ -189,8 +192,52 @@ public class MetaTableData extends MetaBase {
 		
 		return this;
 	}
+
+	public boolean loadPortionFromDB(int currentPortionIndex) throws ExceptionDBGit {
+		return loadPortionFromDB(currentPortionIndex, 0);
+	}
 	
-	
+	public boolean loadPortionFromDB(int currentPortionIndex, int tryNumber) throws ExceptionDBGit {
+		try {
+			IDBAdapter adapter = AdapterFactory.createAdapter();
+			MetaTable metaTable = getMetaTable();
+			if (metaTable.getFields().size() == 0)
+				return false;
+			
+			dataTable = adapter.getTableDataPortion(table.getSchema(), table.getName(), currentPortionIndex, 0);
+			
+			ResultSet rs = dataTable.getResultSet();
+			
+			mapRows = new TreeMapRowData(); 
+			
+			while(rs.next()){
+				RowData rd = new RowData(rs, metaTable);
+				mapRows.put(rd);
+			}
+			return true;
+		} catch (Exception e) {
+			ConsoleWriter.println(e.getLocalizedMessage());
+			
+			try {
+				if (tryNumber <= DBGitConfig.getInstance().getInteger("core", "TRY_COUNT", DBGitConfig.getInstance().getIntegerGlobal("core", "TRY_COUNT", 1000))) {
+					try {
+						TimeUnit.SECONDS.sleep(DBGitConfig.getInstance().getInteger("core", "TRY_DELAY", DBGitConfig.getInstance().getIntegerGlobal("core", "TRY_DELAY", 1000)));
+					} catch (InterruptedException e1) {
+						throw new ExceptionDBGitRunTime(e1.getMessage());
+					}
+					ConsoleWriter.println("Error while getting portion of data, try " + tryNumber);
+					return loadPortionFromDB(currentPortionIndex, tryNumber++);
+				}
+			} catch (Exception e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}			
+			
+			if (e instanceof ExceptionDBGit) 
+				throw (ExceptionDBGit)e;
+			throw new ExceptionDBGit(e);
+		}
+	}
 
 	@Override
 	public boolean loadFromDB() throws ExceptionDBGit {	
@@ -289,6 +336,8 @@ public class MetaTableData extends MetaBase {
 	public int addToGit() throws ExceptionDBGit {		
 		int count = super.addToGit(); 
 				
+		if (mapRows == null) return count;
+		
 		for (RowData rd : mapRows.values()) {
 			for (ICellData cd : rd.getData().values()) {
 				count += cd.addToGit();

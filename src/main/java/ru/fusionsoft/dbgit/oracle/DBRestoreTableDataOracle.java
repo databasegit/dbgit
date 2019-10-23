@@ -403,11 +403,9 @@ public class DBRestoreTableDataOracle extends DBRestoreAdapter {
 		            	res += "    dbms_lob.WRITEAPPEND (b_" + data.hashCode() + ", " + sb.length()/2 + ", hextoraw('" + sb.toString() + "'));\n";
 		            fis.close();
 				}
-
 			}
 			i++;
-		}
-		
+		}		
 		
 		res += "    " + query + ";\n";
 		res += "end;\n";

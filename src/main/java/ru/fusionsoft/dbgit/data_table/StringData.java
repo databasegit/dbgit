@@ -9,8 +9,12 @@ public class StringData implements ICellData {
 	private String value;
 	
 	@Override
-	public boolean loadFromDB(ResultSet rs, String fieldname) throws Exception {
-		value = rs.getString(fieldname);
+	public boolean loadFromDB(ResultSet rs, String fieldname) {
+		try {
+			value = rs.getString(fieldname);
+		} catch (Exception e) {
+			value = null;
+		}
 		return true;
 	}
 	

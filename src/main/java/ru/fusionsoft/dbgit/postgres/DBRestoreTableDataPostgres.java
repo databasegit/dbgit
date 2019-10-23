@@ -436,11 +436,11 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 						joiner.add("false");
 				} else {							
 					if (dt != null)								
-						joiner.add("'" + dt + "'");
+						joiner.add("'" + dt.replace("'", "''") + "'");
 					else
 						joiner.add("null");
 				}	
-				joiner.add(data.getSQLData());
+				//joiner.add(data.getSQLData());
 				
 			}			
 			

@@ -7,6 +7,9 @@ general:
     processingObject: Processing object
     savingToFile: Saving to file...
     ms: ms
+    writing: Writing portion...
+    size: portion size
+    loading: Loading portion index
   link:
     connectionEstablished: Connection established
     dblinkCreated: File {0} has been created
@@ -246,6 +249,7 @@ help:
     Examples:
       dbgit add <SCHEME>/TEST_TABLE*
       dbgit add <SCHEME>/TEST_VIEW.vw
+  add-c: Let you continue adding from last place if it was broken
   checkout: |
     Example:
       dbgit checkout master

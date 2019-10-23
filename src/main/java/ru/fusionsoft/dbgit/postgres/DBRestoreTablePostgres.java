@@ -118,8 +118,8 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 								values.sort(comparator);
 								
 								for(DBTableField tblField : values) {
-										String as = "alter table "+ tblName +" add column " + tblField.getName()  + " " + tblField.getTypeSQL().replace("NOT NULL", "");
-										st.execute("alter table "+ tblName +" add column " + tblField.getName()  + " " + tblField.getTypeSQL().replace("NOT NULL", ""));
+										String as = "alter table "+ tblName +" add column " + (adapter.isReservedWord(tblField.getName()) ? "\"" + tblField.getName() + "\" " : tblField.getName())  + " " + tblField.getTypeSQL().replace("NOT NULL", "");
+										st.execute("alter table "+ tblName +" add column " + (adapter.isReservedWord(tblField.getName()) ? "\"" + tblField.getName() + "\" " : tblField.getName())  + " " + tblField.getTypeSQL().replace("NOT NULL", ""));
 								
 										if (tblField.getTypeSQL().contains("NOT NULL")) {
 											st.execute("alter table " + tblName + " alter column " + tblField.getName() + " set not null");

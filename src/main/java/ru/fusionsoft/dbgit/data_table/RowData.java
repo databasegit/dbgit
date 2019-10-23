@@ -39,6 +39,10 @@ public class RowData {
 	public void loadDataFromRS(ResultSet rs) throws Exception {
 		for (int i = 0; i < rs.getMetaData().getColumnCount(); i++) {	
 			String columnName = rs.getMetaData().getColumnName(i+1).toLowerCase();
+
+			if (columnName.equalsIgnoreCase("DBGIT_ROW_NUM"))
+				continue;
+			
 			ICellData cd = FactoryCellData.createCellData(metaTable.getFieldsMap().get(columnName).getTypeUniversal());
 			
 			if (cd.loadFromDB(rs, rs.getMetaData().getColumnName(i+1)))

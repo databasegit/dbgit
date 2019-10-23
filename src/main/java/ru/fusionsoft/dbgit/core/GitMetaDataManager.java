@@ -3,6 +3,9 @@ package ru.fusionsoft.dbgit.core;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +41,9 @@ public class GitMetaDataManager {
 	
 	protected IMapMetaObject dbObjs; 	
 	protected IMapMetaObject fileObjs; 
+	
+	private MetaTableData currentPortion = null;
+	private int currentPortionIndex = 0;
 	
 	protected GitMetaDataManager() {
 		dbObjs = new TreeMapMetaObject();
@@ -116,6 +122,37 @@ public class GitMetaDataManager {
 		return fileObjs;
 	}
 	
+	public boolean loadNextPortion(MetaTable tbl) throws ExceptionDBGit {
+		if (currentPortion == null || !tbl.getName().replace(".tbl", ".csv") .equalsIgnoreCase(currentPortion.getName()))
+			currentPortionIndex = 0;
+		
+		ConsoleWriter.println(DBGitLang.getInstance().getValue("add", "loading") + " " + currentPortionIndex, 2);
+		currentPortion = new MetaTableData(tbl.getTable());
+		
+		if (currentPortion != null && currentPortion.getmapRows() != null)
+			currentPortion.getmapRows().clear();
+				
+		currentPortion.loadPortionFromDB(currentPortionIndex); 
+		ConsoleWriter.println(DBGitLang.getInstance().getValue("add", "size") + " " + currentPortion.getmapRows().size(), 2);
+
+		currentPortionIndex++;
+		try {
+			DBGitConfig.getInstance().setValue("CURRENT_PORTION", String.valueOf(currentPortionIndex));
+		} catch (Exception e) {
+			throw new ExceptionDBGit(e);
+		}
+		
+		return currentPortion.getmapRows().size() > 0 ? true : false;
+	}
+	
+	public MetaTableData getCurrent() {
+		return currentPortion;
+	}
+	
+	public void setCurrentPortion(int currentPortionIndex) {
+		this.currentPortionIndex = currentPortionIndex;
+	}
+	
 	/**
 	 * Load meta data from DB
 	 * @return
@@ -149,6 +186,7 @@ public class GitMetaDataManager {
 		
 		//load sequence
 		for (DBSchema schema : schemes.values()) {
+			if (ignore.matchSchema(schema.getName())) continue;
 			for (DBSequence seq : adapter.getSequences(schema.getName()).values()) {
 				MetaSequence metaSeq = new MetaSequence();
 				metaSeq.setSequence(seq);
@@ -160,9 +198,12 @@ public class GitMetaDataManager {
 			
 		//load tables
 		for (DBSchema sch : schemes.values()) {
+			if (ignore.matchSchema(sch.getName())) continue;
 			for (DBTable tbl : adapter.getTables(sch.getName()).values()) {
 				MetaTable tblMeta = new MetaTable(tbl);
-				if (ignore.matchOne(tblMeta.getName())) continue ;
+				if (ignore.matchOne(tblMeta.getName())) {
+					continue ;
+				}
 				if ( tblMeta.loadFromDB(tbl) ) {
 					dbObjs.put(tblMeta);
 					tbls.put(tblMeta.getName(), tblMeta);
@@ -172,30 +213,36 @@ public class GitMetaDataManager {
 		
 		//triggers
 		for (DBSchema schema : schemes.values()) {
+			if (ignore.matchSchema(schema.getName())) continue;
 			addToMapSqlObject(dbObjs, adapter.getTriggers(schema.getName()), DBGitMetaType.DbGitTrigger);
 		}
 		
 		//packages
 		for (DBSchema schema : schemes.values()) {
+			if (ignore.matchSchema(schema.getName())) continue;
 			addToMapSqlObject(dbObjs, adapter.getPackages(schema.getName()), DBGitMetaType.DbGitPackage);
 		}
 		
 		//functions
 		for (DBSchema schema : schemes.values()) {
+			if (ignore.matchSchema(schema.getName())) continue;
 			addToMapSqlObject(dbObjs, adapter.getFunctions(schema.getName()), DBGitMetaType.DbGitFunction);
 		}
 		
 		//procedures
 		for (DBSchema schema : schemes.values()) {
+			if (ignore.matchSchema(schema.getName())) continue;
 			addToMapSqlObject(dbObjs, adapter.getProcedures(schema.getName()), DBGitMetaType.DbGitProcedure);
 		}
 		
 		//views
 		for (DBSchema schema : schemes.values()) {
+			if (ignore.matchSchema(schema.getName())) continue;
 			addToMapSqlObject(dbObjs, adapter.getViews(schema.getName()), DBGitMetaType.DbGitView);
 		}
 				
 		//data tables
+		/*
 		for (MetaTable tbl : tbls.values()) {
 			MetaTableData data = new MetaTableData(tbl.getTable());
 			
@@ -204,7 +251,7 @@ public class GitMetaDataManager {
 			if (data.loadFromDB()) 
 				dbObjs.put(data);
 		}
-		
+		*/
 		IMapMetaObject customObjs = adapter.loadCustomMetaObjects();
 		if (customObjs != null) {
 			IMapMetaObject customObjsNoIgnore = new TreeMapMetaObject();

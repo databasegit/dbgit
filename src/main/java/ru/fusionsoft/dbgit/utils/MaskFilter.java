@@ -11,6 +11,7 @@ public class MaskFilter {
 				.replace(".", "\\.")
 				.replace("?", ".?")
 				.replace("*", ".*")
+				.replace("$", "\\$")
 				.replaceFirst("\"", "(?-i)")
 				.replaceFirst("\"", "(?i)")
 		; 

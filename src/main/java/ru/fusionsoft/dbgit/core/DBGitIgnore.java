@@ -6,6 +6,7 @@ import java.io.FileReader;
 import java.util.HashMap;
 import java.util.Map;
 
+import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 import ru.fusionsoft.dbgit.utils.MaskFilter;
 
 /**
@@ -60,13 +61,31 @@ public class DBGitIgnore {
 	}
 	
 	public boolean matchOne(String exp) {
-		
 		for (MaskFilter mask : exclusions.values()) {
-			if (mask.match(exp)) return false;
+			if (mask.match(exp)) {
+				return false;
+			}
 		}
 
 		for (MaskFilter mask : filters.values()) {
-			if (mask.match(exp)) return true;
+			if (mask.match(exp)) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	public boolean matchSchema(String schemaName) {
+		for (MaskFilter mask : exclusions.values()) {
+			if (mask.getMask().toUpperCase().substring(0, mask.getMask().indexOf("/")).equals(schemaName.toUpperCase())) {
+				return false;
+			}
+		}
+
+		for (MaskFilter mask : filters.values()) {
+			if (mask.match(schemaName) || mask.getMask().toUpperCase().substring(0, mask.getMask().indexOf("/")).equals(schemaName.toUpperCase())) {
+				return true;
+			}
 		}
 		return false;
 	}

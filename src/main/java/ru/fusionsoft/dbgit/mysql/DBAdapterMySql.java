@@ -560,4 +560,10 @@ public class DBAdapterMySql extends DBAdapter {
 		// TODO Auto-generated method stub
 		return false;
 	}
+
+	@Override
+	public DBTableData getTableDataPortion(String schema, String nameTable, int portionIndex, int tryNumber) {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

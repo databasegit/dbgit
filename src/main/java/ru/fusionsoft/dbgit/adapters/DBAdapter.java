@@ -3,16 +3,20 @@ package ru.fusionsoft.dbgit.adapters;
 import java.io.OutputStream;
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import com.axiomalaska.jdbc.NamedParameterPreparedStatement;
 
+import ru.fusionsoft.dbgit.core.DBConnection;
 import ru.fusionsoft.dbgit.core.DBGitConfig;
 import ru.fusionsoft.dbgit.core.DBGitLang;
+import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRestore;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
 import ru.fusionsoft.dbgit.core.SchemaSynonym;
@@ -48,8 +52,37 @@ public abstract class DBAdapter implements IDBAdapter {
 	}
 	
 	@Override
-	public Connection getConnection() {
-		return connect;
+	public Connection getConnection() {		
+		try {
+			int maxTriesCount = DBGitConfig.getInstance().getInteger("core", "TRY_COUNT", DBGitConfig.getInstance().getIntegerGlobal("core", "TRY_COUNT", 1000));
+			int pauseTimeSeconds = DBGitConfig.getInstance().getInteger("core", "TRY_DELAY", DBGitConfig.getInstance().getIntegerGlobal("core", "TRY_DELAY", 1000));
+			int currentTry = 0;
+
+			if (connect.isValid(0))			
+				return connect;
+			
+			else {
+				ConsoleWriter.println("Connection lost, trying to reconnect...");
+				while (currentTry <= maxTriesCount) {
+					TimeUnit.SECONDS.sleep(pauseTimeSeconds);
+					currentTry++;
+					ConsoleWriter.println("Try " + currentTry);
+					DBConnection conn = DBConnection.getInctance(false);
+					if (conn.testingConnection()) {
+						conn.flushConnection();
+						conn = DBConnection.getInctance(true);
+						ConsoleWriter.println("Successful reconnect");
+						connect = conn.getConnect();
+						return connect;
+					}
+				} 
+				throw new ExceptionDBGit(lang.getValue("errors", "connectionError").toString());
+				
+				
+			}
+		} catch (Exception e) {
+			throw new ExceptionDBGitRunTime(e);
+		}
 	} 
 	
 	@Override

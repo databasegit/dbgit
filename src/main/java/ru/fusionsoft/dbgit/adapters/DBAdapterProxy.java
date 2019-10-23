@@ -247,4 +247,9 @@ public class DBAdapterProxy implements IDBAdapter {
 	public boolean isReservedWord(String word) {
 		return adapter.isReservedWord(word);
 	}
+
+	@Override
+	public DBTableData getTableDataPortion(String schema, String nameTable, int portionIndex, int tryNumber) {
+		return adapter.getTableDataPortion(schema, nameTable, portionIndex, tryNumber);
+	}
 }

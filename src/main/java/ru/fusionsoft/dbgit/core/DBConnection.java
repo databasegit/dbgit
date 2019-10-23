@@ -43,6 +43,11 @@ public class DBConnection {
 		}		
 		 
 	}
+	
+	public void flushConnection() {
+		dbGitConnection = null;
+	}
+	
 	public static DBConnection getInctance()  throws ExceptionDBGit {
 		return getInctance(true);
 	}
@@ -56,6 +61,22 @@ public class DBConnection {
 	
 	public Connection getConnect() throws ExceptionDBGit {
 		return connect;
+	}
+	
+	public boolean testingConnection() {
+		try {
+			Properties props = new Properties();
+			String url = loadFileDBLink(props);
+			
+			Connection conTest = DriverManager.getConnection(url, props);
+			ConsoleWriter.printlnGreen(lang.getValue("general", "link", "connectionEstablished"));
+			conTest.close();
+			conTest = null;
+			return true;
+		} catch(Exception e) {
+			ConsoleWriter.printlnRed(lang.getValue("errors", "link", "cantConnect") + ": " + e.getMessage());
+			return false;
+		}	
 	}
 	
 	public boolean testingConnection(String url, Properties props) {
