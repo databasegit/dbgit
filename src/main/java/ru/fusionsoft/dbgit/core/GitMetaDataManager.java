@@ -126,14 +126,14 @@ public class GitMetaDataManager {
 		if (currentPortion == null || !tbl.getName().replace(".tbl", ".csv") .equalsIgnoreCase(currentPortion.getName()))
 			currentPortionIndex = 0;
 		
-		ConsoleWriter.println(DBGitLang.getInstance().getValue("add", "loading") + " " + currentPortionIndex, 2);
+		ConsoleWriter.println(DBGitLang.getInstance().getValue("general", "add", "loading") + " " + currentPortionIndex, 2);
 		currentPortion = new MetaTableData(tbl.getTable());
 		
 		if (currentPortion != null && currentPortion.getmapRows() != null)
 			currentPortion.getmapRows().clear();
 				
 		currentPortion.loadPortionFromDB(currentPortionIndex); 
-		ConsoleWriter.println(DBGitLang.getInstance().getValue("add", "size") + " " + currentPortion.getmapRows().size(), 2);
+		ConsoleWriter.println(DBGitLang.getInstance().getValue("general", "add", "size") + " " + currentPortion.getmapRows().size(), 2);
 
 		currentPortionIndex++;
 		try {

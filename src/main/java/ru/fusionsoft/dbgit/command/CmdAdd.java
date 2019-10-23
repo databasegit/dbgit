@@ -110,7 +110,7 @@ public class CmdAdd implements IDBGitCommand {
 						isFirstPortion = (DBGitConfig.getInstance().getInteger("core", "CURRENT_PORTION", 0) == 0);
 					
 					while (gmdm.loadNextPortion((MetaTable) obj)) {
-						ConsoleWriter.println(getLang().getValue("add", "writing").toString(), 2);
+						ConsoleWriter.println(getLang().getValue("general", "add", "writing").toString(), 2);
 						try {
 							//gmdm.getCurrent().serialize(out);
 							Integer count = 0;
