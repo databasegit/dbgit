@@ -459,6 +459,20 @@ public class DBAdapterMySql extends DBAdapter {
 	@Override
 	public Map<String, DBUser> getUsers() {
 		Map<String, DBUser> users = new HashMap<String, DBUser>();
+		try {
+			String query = "select User from mysql.user";
+			Statement stmt = getConnection().createStatement();
+			ResultSet rs = stmt.executeQuery(query);
+			while(rs.next()) {
+				String name = rs.getString(1);
+				DBUser user = new DBUser(name);
+				users.put(name, user);
+			}
+			stmt.close();
+		}catch(Exception e) {
+			logger.error(e.getMessage());
+			throw new ExceptionDBGitRunTime(e.getMessage());
+		}
 		return users;
 	}
 
