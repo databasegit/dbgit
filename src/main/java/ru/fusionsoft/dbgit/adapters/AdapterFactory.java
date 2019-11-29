@@ -34,7 +34,7 @@ public class AdapterFactory {
 				adapter = new DBAdapterOracle();
 			} else if (conn.getClass().getName().equals("org.postgresql.jdbc.PgConnection")) {
 				adapter = new DBAdapterPostgres();
-			} else if (conn.getClass().getName().equals("com.microsoft.sqlserver.jdbc.SQLServerDriver")) {
+			} else if (conn.getClass().getName().equals("com.microsoft.sqlserver.jdbc.SQLServerConnection")) {
 				adapter = new DBAdapterMssql();
 			} else {
 				adapter = new DBAdapterMySql();

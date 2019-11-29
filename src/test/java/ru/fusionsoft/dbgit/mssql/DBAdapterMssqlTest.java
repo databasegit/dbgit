@@ -16,14 +16,28 @@ import java.util.Properties;
 public class DBAdapterMssqlTest {
 
     public static Properties testProps;
+
+    /*
+    *  Using SQL EXPRESS 2012\Win 10 Home forced me to:
+    *  - via CLICONFG.EXE -> Aliases: move TCP/IP protocol from disabled to enabled list
+    *  - via CLICONFG.EXE -> Common : create alias  with localhost -> localhost:1433 (port 1433 in connString is fake)
+    *
+    *  Setup of ip an ports via SQLServerManager11.msc also needed, mine was:
+    *  Protocols -> SQL EXPRESS protocols -> Protocol -> Listen all to true and
+    *  Protocols -> SQL EXPRESS protocols -> Protocol -> IP adresses -> IPAll -> TCP Port to 1433 and Dynamic TCP Port to blank
+    * */
+    public static String TEST_CONN_STRING = "jdbc:sqlserver://localhost:1433;databaseName=master;integratedSecurity=false;";
+    public static String TEST_CONN_USER = "test";
+    public static String TEST_CONN_PASS = "test";
+
     private DBAdapterMssql testAdapter;
     private Connection testConnection;
 
     static{
         testProps = new Properties();
-        testProps.setProperty("url", "jdbc:sqlserver://localhost:1433;databaseName=master;integratedSecurity=false;");
-        testProps.setProperty("user", "test");
-        testProps.setProperty("password", "test");
+        testProps.setProperty("url", TEST_CONN_STRING);
+        testProps.setProperty("user", TEST_CONN_USER);
+        testProps.setProperty("password", TEST_CONN_PASS);
         testProps.put("characterEncoding", "UTF-8");
     }
 
