@@ -28,14 +28,21 @@ public class DBAdapterMssql extends DBAdapter {
 	private FactoryDBBackupAdapterMssql backupFactory = new FactoryDBBackupAdapterMssql();
 
 	@Override
+    @SuppressWarnings("Duplicates")
 	public void registryMappingTypes() {
-		// TODO Auto-generated method stub
+		FactoryCellData.regMappingTypes(DEFAULT_MAPPING_TYPE, StringData.class);
+		FactoryCellData.regMappingTypes("number", LongData.class);
+		FactoryCellData.regMappingTypes("date", DateData.class);
+		FactoryCellData.regMappingTypes("string", StringData.class);
+		FactoryCellData.regMappingTypes("binary", MapFileData.class);
+		FactoryCellData.regMappingTypes("text", TextFileData.class);
+		FactoryCellData.regMappingTypes("native", StringData.class);
+		FactoryCellData.regMappingTypes("boolean", BooleanData.class);
 	}
 
 	@Override
 	public IFactoryDBAdapterRestoteMetaData getFactoryRestore() {
-		// TODO Auto-generated method stub
-		return null;
+		return restoreFactory;
 	}
 
 	@Override
