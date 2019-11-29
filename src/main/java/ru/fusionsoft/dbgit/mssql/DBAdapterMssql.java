@@ -6,18 +6,34 @@ import ru.fusionsoft.dbgit.adapters.IFactoryDBAdapterRestoteMetaData;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBBackupAdapter;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBConvertAdapter;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
+import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
 import ru.fusionsoft.dbgit.data_table.*;
 import ru.fusionsoft.dbgit.dbobjects.*;
 import ru.fusionsoft.dbgit.meta.IMapMetaObject;
 import ru.fusionsoft.dbgit.utils.LoggerUtil;
 
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
+import java.sql.Statement;
+import java.util.*;
 
 
 public class DBAdapterMssql extends DBAdapter {
 	public static final String DEFAULT_MAPPING_TYPE = "VARCHAR2";
+	private static final HashSet<String> systemSchemas = new HashSet<>(Arrays.asList(
+			"db_denydatawriter",
+			"db_datawriter",
+			"db_accessadmin",
+			"db_ddladmin",
+			"db_securityadmin",
+			"db_denydatareader",
+			"db_backupoperator",
+			"db_datareader",
+			"db_owner",
+			"sys",
+			"INFORMATION_SCHEMA"
+		));
 
 	//Stubs for MSSQL adapter, marked as "TODO Auto-generated method stub"
 	//And some unfinished implementations marked as "TODO MSSQL *"
@@ -63,8 +79,31 @@ public class DBAdapterMssql extends DBAdapter {
 
 	@Override
 	public Map<String, DBSchema> getSchemes() {
-		// TODO Auto-generated method stub
-		return null;
+		Map<String, DBSchema> listScheme = new HashMap<String, DBSchema>();
+		try {
+
+			Connection connect = getConnection();
+			DatabaseMetaData meta = connect.getMetaData();
+			ResultSet rs = meta.getSchemas();
+			// made without query
+			// Statement stmt = connect.createStatement();
+			// ResultSet rs = stmt.executeQuery(query);
+			while(rs.next()){
+				// May also get catalog names that belong to scheme as "TABLE_CATALOG"
+				String name = rs.getString("TABLE_SCHEM");
+				if(!systemSchemas.contains(name)) {
+					DBSchema scheme = new DBSchema(name);
+					rowToProperties(rs, scheme.getOptions());
+					listScheme.put(name, scheme);
+				}
+			}
+			//stmt.close();
+		}catch(Exception e) {
+			logger.error(lang.getValue("errors", "adapter", "schemes").toString(), e);
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "schemes").toString(), e);
+		}
+
+		return listScheme;
 	}
 
 	@Override

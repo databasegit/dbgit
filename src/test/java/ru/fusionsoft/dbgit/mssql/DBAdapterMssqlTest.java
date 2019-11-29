@@ -7,10 +7,14 @@ import org.junit.Before;
 import org.junit.Test;
 
 import ru.fusionsoft.dbgit.adapters.AdapterFactory;
+import ru.fusionsoft.dbgit.dbobjects.DBSchema;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.util.Map;
 import java.util.Properties;
+
+import static org.junit.Assert.*;
 
 
 public class DBAdapterMssqlTest {
@@ -56,6 +60,8 @@ public class DBAdapterMssqlTest {
 
     @Test
     public void getSchemes() {
-        testAdapter.getSchemes();
+        Map<String, DBSchema> schemes = testAdapter.getSchemes();
+        assertTrue(schemes.containsKey("guest"));
+        assertTrue(schemes.containsKey("dbo"));
     }
 }
