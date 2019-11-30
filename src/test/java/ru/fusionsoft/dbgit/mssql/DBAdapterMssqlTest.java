@@ -8,6 +8,7 @@ import org.junit.Test;
 
 import ru.fusionsoft.dbgit.adapters.AdapterFactory;
 import ru.fusionsoft.dbgit.dbobjects.DBSchema;
+import ru.fusionsoft.dbgit.dbobjects.DBSequence;
 import ru.fusionsoft.dbgit.dbobjects.DBTableSpace;
 
 import java.sql.Connection;
@@ -70,5 +71,26 @@ public class DBAdapterMssqlTest {
     public void getTableSpaces() {
         Map<String, DBTableSpace> tablespaces = testAdapter.getTableSpaces();
         assertEquals("ROWS_FILEGROUP", tablespaces.get("PRIMARY").getOptions().getChildren().get("type_desc").getData());
+    }
+
+    @Test
+    public void getSequences() {
+        try{
+            testConnection.createStatement().execute(
+                "IF EXISTS (SELECT * FROM sys.sequences WHERE NAME = N'TEST_SEQUENCE' AND TYPE='SO')\n" +
+                "DROP Sequence TEST_SEQUENCE\n" +
+                "CREATE SEQUENCE TEST_SEQUENCE\n" +
+                "START WITH 1\n" +
+                "INCREMENT BY 1;\n"
+            );
+
+            Map<String, DBSequence> sequences = testAdapter.getSequences("dbo");
+            assertEquals("dbo", sequences.get("TEST_SEQUENCE").getOptions().get("owner").getData());
+            testConnection.createStatement().execute("DROP Sequence TEST_SEQUENCE\n");
+        }
+        catch (Exception ex) {
+            fail(ex.toString());
+        }
+
     }
 }

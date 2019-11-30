@@ -188,8 +188,33 @@ public class DBAdapterMssql extends DBAdapter {
 
 	@Override
 	public Map<String, DBSequence> getSequences(String schema) {
-		// TODO Auto-generated method stub
-		return null;
+        Map<String, DBSequence> listSequence = new HashMap<String, DBSequence>();
+        try {
+            Connection connect = getConnection();
+            String query =
+                "select user_name(objectproperty(sys.sequences.object_id,'OwnerId')) as owner, sys.sequences.* " +
+                "from sys.objects, sys.SEQUENCES\n" +
+                "where sys.objects.object_id = sys.sequences.object_id\n" +
+                "AND user_name(objectproperty(sys.sequences.object_id,'OwnerId')) = '" + schema + "'";
+
+            Statement stmt = connect.createStatement();
+            ResultSet rs = stmt.executeQuery(query);
+            while(rs.next()){
+                String nameSeq = rs.getString("name");
+                Long valueSeq = rs.getLong("current_value");
+                DBSequence sequence = new DBSequence();
+                sequence.setName(nameSeq);
+                sequence.setSchema(schema);
+                sequence.setValue(valueSeq);
+                rowToProperties(rs, sequence.getOptions());
+                listSequence.put(nameSeq, sequence);
+            }
+            stmt.close();
+        }catch(Exception e) {
+            logger.error(e.getMessage(), e);
+            throw new ExceptionDBGitRunTime(e.getMessage(), e);
+        }
+        return listSequence;
 	}
 
 	@Override
