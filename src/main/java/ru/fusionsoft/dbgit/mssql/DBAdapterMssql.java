@@ -81,7 +81,6 @@ public class DBAdapterMssql extends DBAdapter {
 	public Map<String, DBSchema> getSchemes() {
 		Map<String, DBSchema> listScheme = new HashMap<String, DBSchema>();
 		try {
-
 			Connection connect = getConnection();
 			DatabaseMetaData meta = connect.getMetaData();
 			ResultSet rs = meta.getSchemas();
@@ -108,8 +107,83 @@ public class DBAdapterMssql extends DBAdapter {
 
 	@Override
 	public Map<String, DBTableSpace> getTableSpaces() {
-		// TODO Auto-generated method stub
-		return null;
+		
+		String query = "SELECT           \n" +
+			"[SFG].name AS [File Group Name],\n" +
+			"[SFG].*,\n" +
+			"[SDB].name AS [Database Name],\n" +
+			"[F].name AS [File Name],\n" +
+			"[SDBF].name AS [Database File Name],\n" +
+			"[SDBF].physical_name\n" +
+			"INTO #fgroups\n" +
+			"FROM [master].sys.master_files\t\t\t\t\t\tAS [F]\n" +
+			"INNER JOIN  sys.databases\t\t\t\t\t\t\tAS [SDB]\n" +
+			"    ON [SDB].database_id = [F].database_id\n" +
+			"INNER JOIN sys.database_files\t\t\t\t\t\tAS [SDBF]\n" +
+			"    ON [SDBF].[file_id] = [F].[file_id]\n" +
+			"INNER JOIN sys.filegroups\t\t\t\t\t\t\tAS [SFG]\n" +
+			"    ON [sfg].data_space_id = [F].data_space_id\n" +
+			"SELECT \n" +
+			"  [File Group Name],\n" +
+			"  [data_space_id],\n" +
+			"  [type],\n" +
+			"  [type_desc],\n" +
+			"  [is_default],\n" +
+			"  [is_system],\n" +
+			"  [is_read_only],\n" +
+			"  [filegroup_guid],\n" +
+			"  [log_filegroup_id],\n" +
+			"  STUFF((\n" +
+			"    SELECT DISTINCT ', ' + [Database Name] \n" +
+			"    FROM #fgroups \n" +
+			"    WHERE ([File Group Name] = Results.[File Group Name]) \n" +
+			"    FOR XML PATH(''),TYPE).value('(./text())[1]','VARCHAR(MAX)')\n" +
+			"  ,1,2,'') AS DatabaseNames,  \n" +
+			"  STUFF((\n" +
+			"    SELECT DISTINCT ', ' + [Database File Name] \n" +
+			"    FROM #fgroups \n" +
+			"    WHERE ([File Group Name] = Results.[File Group Name]) \n" +
+			"    FOR XML PATH(''),TYPE).value('(./text())[1]','VARCHAR(MAX)')\n" +
+			"  ,1,2,'') AS DatabaseFileNames,\n" +
+			"  STUFF((\n" +
+			"    SELECT DISTINCT ', ' + [File Name] \n" +
+			"    FROM #fgroups \n" +
+			"    WHERE ([File Group Name] = Results.[File Group Name]) \n" +
+			"    FOR XML PATH(''),TYPE).value('(./text())[1]','VARCHAR(MAX)')\n" +
+			"  ,1,2,'') AS FileNames,\n" +
+			"  STUFF((\n" +
+			"    SELECT DISTINCT ', ' + [physical_name] \n" +
+			"    FROM #fgroups \n" +
+			"    WHERE ([File Group Name] = Results.[File Group Name]) \n" +
+			"    FOR XML PATH(''),TYPE).value('(./text())[1]','VARCHAR(MAX)')\n" +
+			"  ,1,2,'') AS PhysicalNames\n" +
+			"FROM #fgroups Results\n" +
+			"GROUP BY [File Group Name],[data_space_id],\n" +
+			"  [type],\n" +
+			"  [type_desc],\n" +
+			"  [is_default],\n" +
+			"  [is_system],\n" +
+			"  [is_read_only],\n" +
+			"  [filegroup_guid],\n" +
+			"  [log_filegroup_id]\n" +
+			"DROP TABLE #fgroups\n";
+		Map<String, DBTableSpace> listTableSpace = new HashMap<String, DBTableSpace>();
+		try {
+			Connection connect = getConnection();
+			Statement stmt = connect.createStatement();
+			ResultSet rs = stmt.executeQuery(query);
+			while(rs.next()){
+				String name = rs.getString("File Group Name");
+				DBTableSpace dbTableSpace = new DBTableSpace(name);
+				rowToProperties(rs, dbTableSpace.getOptions());
+				listTableSpace.put(name, dbTableSpace);
+			}
+			stmt.close();
+		}catch(Exception e) {
+			logger.error(e.getMessage());
+			throw new ExceptionDBGitRunTime(e.getMessage());
+		}
+		return listTableSpace;
 	}
 
 	@Override

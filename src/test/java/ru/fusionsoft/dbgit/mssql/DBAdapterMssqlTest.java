@@ -8,6 +8,7 @@ import org.junit.Test;
 
 import ru.fusionsoft.dbgit.adapters.AdapterFactory;
 import ru.fusionsoft.dbgit.dbobjects.DBSchema;
+import ru.fusionsoft.dbgit.dbobjects.DBTableSpace;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -63,5 +64,11 @@ public class DBAdapterMssqlTest {
         Map<String, DBSchema> schemes = testAdapter.getSchemes();
         assertTrue(schemes.containsKey("guest"));
         assertTrue(schemes.containsKey("dbo"));
+    }
+
+    @Test
+    public void getTableSpaces() {
+        Map<String, DBTableSpace> tablespaces = testAdapter.getTableSpaces();
+        assertEquals("ROWS_FILEGROUP", tablespaces.get("PRIMARY").getOptions().getChildren().get("type_desc").getData());
     }
 }
