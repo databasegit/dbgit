@@ -93,4 +93,26 @@ public class DBAdapterMssqlTest {
         }
 
     }
+
+    @Test
+    public void getSequence() {
+        String name = "TEST_SEQUENCE";
+        try{
+            testConnection.createStatement().execute(
+                    "IF EXISTS (SELECT * FROM sys.sequences WHERE NAME = N'" + name + "' AND TYPE='SO')\n" +
+                            "DROP Sequence " + name + "\n" +
+                            "CREATE Sequence " + name + "\n" +
+                            "START WITH 1\n" +
+                            "INCREMENT BY 1;\n"
+            );
+
+            DBSequence sequence = testAdapter.getSequence("dbo", name);
+            assertEquals(name, sequence.getOptions().get("name").getData());
+            testConnection.createStatement().execute("DROP Sequence " + name + "\n");
+        }
+        catch (Exception ex) {
+            fail(ex.toString());
+        }
+
+    }
 }

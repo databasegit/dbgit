@@ -186,6 +186,22 @@ public class DBAdapterMssql extends DBAdapter {
 		return listTableSpace;
 	}
 
+	private DBSequence sequenceFromResultSet(ResultSet rs, String schema){
+		try {
+			String nameSeq = rs.getString("name");
+			Long valueSeq = rs.getLong("current_value");
+			DBSequence sequence = new DBSequence();
+			sequence.setName(nameSeq);
+			sequence.setSchema(schema);
+			sequence.setValue(valueSeq);
+			rowToProperties(rs, sequence.getOptions());
+			return sequence;
+		} catch (Exception ex){
+			logger.error(ex.getMessage(), ex);
+			throw new ExceptionDBGitRunTime(ex.getMessage(), ex);
+		}
+	}
+
 	@Override
 	public Map<String, DBSequence> getSequences(String schema) {
         Map<String, DBSequence> listSequence = new HashMap<String, DBSequence>();
@@ -200,14 +216,8 @@ public class DBAdapterMssql extends DBAdapter {
             Statement stmt = connect.createStatement();
             ResultSet rs = stmt.executeQuery(query);
             while(rs.next()){
-                String nameSeq = rs.getString("name");
-                Long valueSeq = rs.getLong("current_value");
-                DBSequence sequence = new DBSequence();
-                sequence.setName(nameSeq);
-                sequence.setSchema(schema);
-                sequence.setValue(valueSeq);
-                rowToProperties(rs, sequence.getOptions());
-                listSequence.put(nameSeq, sequence);
+				String nameSeq = rs.getString("name");
+                listSequence.put(nameSeq, sequenceFromResultSet(rs, schema));
             }
             stmt.close();
         }catch(Exception e) {
@@ -217,11 +227,30 @@ public class DBAdapterMssql extends DBAdapter {
         return listSequence;
 	}
 
-	@Override
-	public DBSequence getSequence(String schema, String name) {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    @Override
+    public DBSequence getSequence(String schema, String name) {
+        try {
+            Connection connect = getConnection();
+            String query =
+                    "select user_name(objectproperty(sys.sequences.object_id,'OwnerId')) as owner, sys.sequences.* " +
+                            "from sys.objects, sys.SEQUENCES\n" +
+                            "where sys.objects.object_id = sys.sequences.object_id\n" +
+                            "AND user_name(objectproperty(sys.sequences.object_id,'OwnerId')) = '" + schema + "'\n" +
+                            "AND sys.sequences.name = '" + name + "'\n";
+            Statement stmt = connect.createStatement();
+            ResultSet rs = stmt.executeQuery(query);
+
+            DBSequence sequence = null;
+            while (rs.next()) {
+				sequence = sequenceFromResultSet(rs, schema);
+            }
+            stmt.close();
+            return sequence;
+        }catch(Exception e) {
+            logger.error(lang.getValue("errors", "adapter", "sequences").toString(), e);
+            throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "sequences").toString(), e);
+        }
+    }
 
 	@Override
 	public Map<String, DBTable> getTables(String schema) {
