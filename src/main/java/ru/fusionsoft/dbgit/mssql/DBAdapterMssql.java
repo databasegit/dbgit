@@ -254,14 +254,59 @@ public class DBAdapterMssql extends DBAdapter {
 
 	@Override
 	public Map<String, DBTable> getTables(String schema) {
-		// TODO Auto-generated method stub
-		return null;
+        Map<String, DBTable> listTable = new HashMap<String, DBTable>();
+        try {
+            String query =
+                "SELECT TABLE_NAME as 'name', TABLE_CATALOG as 'database', TABLE_SCHEMA as 'schema'\n" +
+                "FROM INFORMATION_SCHEMA.TABLES \n" +
+                "WHERE INFORMATION_SCHEMA.TABLES.TABLE_SCHEMA = '" + schema + "'\n" +
+                "AND INFORMATION_SCHEMA.TABLES.TABLE_TYPE = 'BASE TABLE'";
+            Connection connect = getConnection();
+
+            Statement stmt = connect.createStatement();
+            ResultSet rs = stmt.executeQuery(query);
+
+            while(rs.next()){
+                String nameTable = rs.getString("name");
+                DBTable table = new DBTable(nameTable);
+                table.setSchema(schema);
+                rowToProperties(rs, table.getOptions());
+                listTable.put(nameTable, table);
+            }
+            stmt.close();
+        }catch(Exception e) {
+            logger.error(lang.getValue("errors", "adapter", "tables").toString(), e);
+            throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "tables").toString(), e);
+        }
+        return listTable;
 	}
 
 	@Override
 	public DBTable getTable(String schema, String name) {
-		// TODO Auto-generated method stub
-		return null;
+        DBTable table = null;
+        try {
+            String query =
+                    "SELECT TABLE_NAME as 'name', TABLE_CATALOG as 'database', TABLE_SCHEMA as 'schema'\n" +
+                            "FROM INFORMATION_SCHEMA.TABLES \n" +
+                            "WHERE INFORMATION_SCHEMA.TABLES.TABLE_SCHEMA = '" + schema + "'\n" +
+                            "AND INFORMATION_SCHEMA.TABLES.TABLE_TYPE = 'BASE TABLE'\n" +
+                            "AND INFORMATION_SCHEMA.TABLES.TABLE_NAME = '" + name + "'\n";
+            Connection connect = getConnection();
+            Statement stmt = connect.createStatement();
+            ResultSet rs = stmt.executeQuery(query);
+
+            while(rs.next()){
+                String nameTable = rs.getString("name");
+                table = new DBTable(nameTable);
+                table.setSchema(schema);
+                rowToProperties(rs, table.getOptions());
+            }
+            stmt.close();
+            return table;
+        }catch(Exception e) {
+            logger.error(lang.getValue("errors", "adapter", "tables").toString(), e);
+            throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "tables").toString(), e);
+        }
 	}
 
 	@Override

@@ -9,6 +9,7 @@ import org.junit.Test;
 import ru.fusionsoft.dbgit.adapters.AdapterFactory;
 import ru.fusionsoft.dbgit.dbobjects.DBSchema;
 import ru.fusionsoft.dbgit.dbobjects.DBSequence;
+import ru.fusionsoft.dbgit.dbobjects.DBTable;
 import ru.fusionsoft.dbgit.dbobjects.DBTableSpace;
 
 import java.sql.Connection;
@@ -35,9 +36,9 @@ public class DBAdapterMssqlTest {
     public static String TEST_CONN_STRING = "jdbc:sqlserver://localhost:1433;databaseName=master;integratedSecurity=false;";
     public static String TEST_CONN_USER = "test";
     public static String TEST_CONN_PASS = "test";
-
-    private DBAdapterMssql testAdapter;
-    private Connection testConnection;
+    private static DBAdapterMssql testAdapter;
+    private static Connection testConnection;
+    private static boolean isInitialized = false;
 
     static{
         testProps = new Properties();
@@ -47,13 +48,21 @@ public class DBAdapterMssqlTest {
         testProps.put("characterEncoding", "UTF-8");
     }
 
+
     @Before
     public void setUp() throws Exception {
-        String url = testProps.getProperty("url");
-        testProps.remove("url");
-        testConnection = DriverManager.getConnection(url, testProps);
-        testConnection.setAutoCommit(false);
-        testAdapter = (DBAdapterMssql)  AdapterFactory.createAdapter(testConnection);
+        if(isInitialized) return;
+        try {
+            String url = testProps.getProperty("url");
+            testProps.remove("url");
+            testConnection = DriverManager.getConnection(url, testProps);
+            testConnection.setAutoCommit(false);
+            testAdapter = (DBAdapterMssql) AdapterFactory.createAdapter(testConnection);
+            isInitialized = true;
+        }
+        catch (Exception ex){
+            fail(ex.getMessage());
+        }
     }
 
     @After
@@ -109,6 +118,32 @@ public class DBAdapterMssqlTest {
             DBSequence sequence = testAdapter.getSequence("dbo", name);
             assertEquals(name, sequence.getOptions().get("name").getData());
             testConnection.createStatement().execute("DROP Sequence " + name + "\n");
+        }
+        catch (Exception ex) {
+            fail(ex.toString());
+        }
+
+    }
+
+    @Test
+    public void getTables() {
+        String name = "TEST_TABLE";
+        try{
+            testConnection.createStatement().execute(
+                    "IF OBJECT_ID('dbo.Scores', 'U') IS NOT NULL \n" +
+                        "DROP TABLE dbo." + name + "\n" +
+                        "CREATE TABLE " + name + "\n(" +
+                            "PersonID int,\n" +
+                            "LastName varchar(255),\n" +
+                            "FirstName varchar(255),\n" +
+                            "Address varchar(255),\n" +
+                            "City varchar(255)\n" +
+                            "); "
+            );
+
+            Map<String, DBTable> tables = testAdapter.getTables("dbo");
+            assertEquals(name, tables.get("TEST_TABLE").getOptions().get("name").getData());
+            testConnection.createStatement().execute("DROP TABLE dbo." + name + "\n" );
         }
         catch (Exception ex) {
             fail(ex.toString());

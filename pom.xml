@@ -249,7 +249,7 @@
 			<version>7.0.0.jre8</version>
 		</dependency>
 
-	</dependencies>
+    </dependencies>
 
 	<reporting>
 		<plugins>
