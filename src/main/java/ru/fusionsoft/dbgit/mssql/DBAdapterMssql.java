@@ -1,6 +1,8 @@
 package ru.fusionsoft.dbgit.mssql;
 
+import com.axiomalaska.jdbc.NamedParameterPreparedStatement;
 import org.slf4j.Logger;
+import org.sqlite.core.DB;
 import ru.fusionsoft.dbgit.adapters.DBAdapter;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBAdapterRestoteMetaData;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBBackupAdapter;
@@ -12,10 +14,7 @@ import ru.fusionsoft.dbgit.dbobjects.*;
 import ru.fusionsoft.dbgit.meta.IMapMetaObject;
 import ru.fusionsoft.dbgit.utils.LoggerUtil;
 
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.ResultSet;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.*;
 
 
@@ -116,12 +115,12 @@ public class DBAdapterMssql extends DBAdapter {
 			"[SDBF].name AS [Database File Name],\n" +
 			"[SDBF].physical_name\n" +
 			"INTO #fgroups\n" +
-			"FROM [master].sys.master_files\t\t\t\t\t\tAS [F]\n" +
-			"INNER JOIN  sys.databases\t\t\t\t\t\t\tAS [SDB]\n" +
+			"FROM [master].sys.master_files						AS [F]\n" +
+			"INNER JOIN  sys.databases							AS [SDB]\n" +
 			"    ON [SDB].database_id = [F].database_id\n" +
-			"INNER JOIN sys.database_files\t\t\t\t\t\tAS [SDBF]\n" +
+			"INNER JOIN sys.database_files						AS [SDBF]\n" +
 			"    ON [SDBF].[file_id] = [F].[file_id]\n" +
-			"INNER JOIN sys.filegroups\t\t\t\t\t\t\tAS [SFG]\n" +
+			"INNER JOIN sys.filegroups							AS [SFG]\n" +
 			"    ON [sfg].data_space_id = [F].data_space_id\n" +
 			"SELECT \n" +
 			"  [File Group Name],\n" +
@@ -311,8 +310,95 @@ public class DBAdapterMssql extends DBAdapter {
 
 	@Override
 	public Map<String, DBTableField> getTableFields(String schema, String nameTable) {
-		// TODO Auto-generated method stub
-		return null;
+		Map<String, DBTableField> listField = new HashMap<>();
+		try {
+			String query =
+				"SELECT DISTINCT\n" +
+				"	c.TABLE_SCHEMA as schemaName,\n" +
+				"	c.TABLE_NAME as tableName,\n" +
+				"	c.COLUMN_NAME as columnName,\n" +
+				"	c.ORDINAL_POSITION as columnOrder,\n" +
+				"	c.DATA_TYPE as mssqlType,\n" +
+				"	CASE WHEN lower(c.DATA_TYPE) in ('bigint', 'int', 'float', 'decimal', 'money', 'numeric', 'real', 'smallint', 'smallmoney', 'tinyint') then 'number' \n" +
+				"		when lower(c.DATA_TYPE) in ('char','varchar','xml','nchar','nvarchar', 'uniqueidentifier') then 'string'\n" +
+				"		when lower(c.DATA_TYPE) in ('bit') then 'boolean'\n" +
+				"		when lower(c.DATA_TYPE) in ('datetime', 'smalldatetime', 'time') then 'date'\n" +
+				"		when lower(c.DATA_TYPE) in ('text','ntext') then 'text'\n" +
+				"		when lower(c.DATA_TYPE) in ('timestamp', 'binary', 'varbinary', 'geometry', 'geography') then 'binary'\n" +
+				"		else 'native'\n" +
+				"		end dbgitType,\n" +
+				"	CASE WHEN ( \n" +
+				"		SELECT OBJECTPROPERTY(OBJECT_ID(CONSTRAINT_SCHEMA + '.' + QUOTENAME(CONSTRAINT_NAME)),'IsPrimaryKey')\n" +
+				"		FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE\n" +
+				"		WHERE c.COLUMN_NAME = COLUMN_NAME AND c.TABLE_NAME = TABLE_NAME\n" +
+				"	) = 1\n" +
+				"	THEN 1 ELSE 0 END isPk,\n" +
+				"	c.IS_NULLABLE as isNullable,\n" +
+				"	c.NUMERIC_SCALE as scale,\n" +
+				"	c.CHARACTER_MAXIMUM_LENGTH as length,\n" +
+				"	CASE WHEN lower(c.DATA_TYPE) in ('char', 'nchar') then '1' else '0' end isFixed," +
+				"	c.NUMERIC_PRECISION as precision\n" +
+				"FROM INFORMATION_SCHEMA.COLUMNS as c\n" +
+				"WHERE TABLE_SCHEMA = '" +  schema +  "' AND TABLE_NAME = '" + nameTable + "'";
+			Connection connect = getConnection();
+			Statement stmt = connect.createStatement();
+			ResultSet rs = stmt.executeQuery(query);
+
+			while(rs.next()){
+				DBTableField field = DBTableFieldFromRs(rs);
+				listField.put(field.getName(), field);
+			}
+			stmt.close();
+			return listField;
+		}catch(Exception e) {
+			logger.error(lang.getValue("errors", "adapter", "tables").toString(), e);
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "tables").toString(), e);
+		}
+	}
+
+	private DBTableField DBTableFieldFromRs(ResultSet rs) throws SQLException {
+		DBTableField field = new DBTableField();
+		field.setName(rs.getString("columnName").toLowerCase());
+		if (rs.getString("isPk").equals("1")) {
+			field.setIsPrimaryKey(true);
+		}
+		field.setTypeSQL(getFieldType(rs));
+		field.setTypeMapping(getTypeMapping(rs));
+		field.setTypeUniversal(rs.getString("dbgitType"));
+		field.setLength(rs.getInt("length"));
+		field.setScale(rs.getInt("scale"));
+		field.setPrecision(rs.getInt("precision"));
+		field.setFixed(rs.getBoolean("isFixed"));
+		field.setOrder(rs.getInt("columnOrder"));
+		return field;
+	}
+
+	protected String getTypeMapping(ResultSet rs) throws SQLException {
+		String tp = rs.getString("dbgitType");
+		if (FactoryCellData.contains(tp) )
+			return tp;
+
+		return DEFAULT_MAPPING_TYPE;
+	}
+
+	protected String getFieldType(ResultSet rs) {
+		try {
+			StringBuilder type = new StringBuilder();
+			type.append(rs.getString("mssqlType"));
+
+			Integer max_length = rs.getInt("length");
+			if (!rs.wasNull()) {
+				type.append("("+max_length.toString()+")");
+			}
+			if (rs.getString("isNullable").equals("NO")){
+				type.append(" NOT NULL");
+			}
+
+			return type.toString();
+		}catch(Exception e) {
+			logger.error(lang.getValue("errors", "adapter", "tables").toString(), e);
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "tables").toString(), e);
+		}
 	}
 
 	@Override

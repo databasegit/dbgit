@@ -7,10 +7,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import ru.fusionsoft.dbgit.adapters.AdapterFactory;
-import ru.fusionsoft.dbgit.dbobjects.DBSchema;
-import ru.fusionsoft.dbgit.dbobjects.DBSequence;
-import ru.fusionsoft.dbgit.dbobjects.DBTable;
-import ru.fusionsoft.dbgit.dbobjects.DBTableSpace;
+import ru.fusionsoft.dbgit.dbobjects.*;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -143,6 +140,49 @@ public class DBAdapterMssqlTest {
 
             Map<String, DBTable> tables = testAdapter.getTables("dbo");
             assertEquals(name, tables.get("TEST_TABLE").getOptions().get("name").getData());
+            testConnection.createStatement().execute("DROP TABLE dbo." + name + "\n" );
+        }
+        catch (Exception ex) {
+            fail(ex.toString());
+        }
+
+    }
+
+    @Test
+    public void getTableFields() {
+        String name = "TestTableTypes";
+        try{
+            testConnection.createStatement().execute(
+                    "IF OBJECT_ID('dbo."+ name + "', 'U') IS NOT NULL \n" +
+                            "DROP TABLE dbo." + name + "\n" +
+                            "CREATE TABLE [dbo].[TestTableTypes](\n" +
+                            "	[col1] [nchar](10) NULL,\n" +
+                            "	[col2] [ntext] NULL,\n" +
+                            "	[col3] [numeric](18, 0) NULL,\n" +
+                            "	[col4] [nvarchar](50) NULL,\n" +
+                            "	[col5] [nvarchar](max) NULL,\n" +
+                            "	[col6] [real] NULL,\n" +
+                            "	[col7] [smalldatetime] NULL,\n" +
+                            "	[col8] [smallint] NULL,\n" +
+                            "	[col9] [smallmoney] NULL,\n" +
+                            "	[col10] [sql_variant] NULL,\n" +
+                            "	[col11] [text] NULL,\n" +
+                            "	[col12] [time](7) NULL,\n" +
+                            "	[col13] [timestamp] NULL,\n" +
+                            "	[col14] [tinyint] NULL,\n" +
+                            "	[col15] [uniqueidentifier] NULL,\n" +
+                            "	[col16] [varbinary](50) NULL,\n" +
+                            "	[col17] [varbinary](max) NULL,\n" +
+                            "	[col18] [varchar](50) NULL,\n" +
+                            "	[col19] [varchar](max) NULL,\n" +
+                            "	[col20] [xml] NULL\n" +
+                            ") ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]"
+            );
+
+            Map<String, DBTableField> fields = testAdapter.getTableFields("dbo", "TestTableTypes");
+            assertEquals("sql_variant(0)", fields.get("col10").getTypeSQL());
+            assertEquals("native", fields.get("col10").getTypeUniversal());
+
             testConnection.createStatement().execute("DROP TABLE dbo." + name + "\n" );
         }
         catch (Exception ex) {
