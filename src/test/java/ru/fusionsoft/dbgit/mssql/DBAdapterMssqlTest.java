@@ -190,4 +190,31 @@ public class DBAdapterMssqlTest {
         }
 
     }
+
+    @Test
+    public void getIndexes() {
+        String indexCreateDdl = "CREATE NONCLUSTERED INDEX [IX_IdTest] ON [dbo].[AspNetRolesTest] ([Id]) ON [PRIMARY];";
+
+        try{
+            testConnection.createStatement().execute(
+            "CREATE TABLE [dbo].[AspNetRolesTest](\n" +
+                "	[Id] [nvarchar](128) NOT NULL,\n" +
+                "	[Name] [nvarchar](256) NOT NULL,\n" +
+                " CONSTRAINT [PK_dbo.AspNetRolesTest] PRIMARY KEY CLUSTERED \n" +
+                "(\n" +
+                "	[Id] ASC\n" +
+                ")WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]\n" +
+                ") ON [PRIMARY]\n" + indexCreateDdl
+            );
+
+            Map<String, DBIndex> indexes = testAdapter.getIndexes("dbo", "AspNetRolesTest");
+            assertEquals("2", indexes.get("IX_IdTest").getOptions().getChildren().get("indexid").getData());
+            assertEquals(indexCreateDdl, indexes.get("IX_IdTest").getSql());
+            testConnection.createStatement().execute("DROP TABLE dbo.AspNetRolesTest" );
+        }
+        catch (Exception ex) {
+            fail(ex.toString());
+        }
+
+    }
 }
