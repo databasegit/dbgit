@@ -1,8 +1,6 @@
 package ru.fusionsoft.dbgit.mssql;
 
-import com.axiomalaska.jdbc.NamedParameterPreparedStatement;
 import org.slf4j.Logger;
-import org.sqlite.core.DB;
 import ru.fusionsoft.dbgit.adapters.DBAdapter;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBAdapterRestoteMetaData;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBBackupAdapter;
@@ -511,7 +509,7 @@ public class DBAdapterMssql extends DBAdapter {
 					"    ORDER BY p.partition_number FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'),1,2,'')) AS page_compression_clause ( page_compression_partition_list )\n" +
 					"WHERE si.type IN (1,2) /* clustered, nonclustered */\n" +
 					"AND si.is_primary_key = 0 /* no PKs */\n" +
-					"AND si.is_hypothetical = 0 /* bugged feature, always better to delete, no need to store and reconstuct them */\n" +
+					"AND si.is_hypothetical = 0 /* bugged feature, always better to delete, no need to store and reconstruct them */\n" +
 					"AND upper(t.name) = upper('" + nameTable + "') AND upper(sc.name) = upper('" + schema + "')" +
 					"OPTION (RECOMPILE);";
 
@@ -535,11 +533,82 @@ public class DBAdapterMssql extends DBAdapter {
 		}
 	}
 
-	@Override
-	public Map<String, DBConstraint> getConstraints(String schema, String nameTable) {
-		// TODO Auto-generated method stub
-		return null;
-	}
+
+    @Override
+    public Map<String, DBConstraint> getConstraints(String schema, String nameTable) {
+        Map<String, DBConstraint> constraints = new HashMap<>();
+        ArrayList<String> queries = new ArrayList<>();
+        //TODO [] in object names
+        //check
+        queries.add("SELECT sc.name as schemaName, t.name as tableName, col.name as columnName, c.name as constraintName, c.type_desc as constraintType, \n" +
+                "'ALTER TABLE ' + sc.name + '.' + t.name + ' ADD CONSTRAINT ' + c.name + ' CHECK ' + c.definition + ';' as ddl\n" +
+                "FROM sys.check_constraints c\n" +
+                "JOIN sys.tables t ON c.parent_object_id = t.object_id \n" +
+                "LEFT OUTER JOIN sys.columns col on col.column_id = c.parent_column_id AND col.object_id = c.parent_object_id\n" +
+                "JOIN sys.schemas AS sc ON t.schema_id=sc.schema_id \n" +
+				"WHERE t.name = ? AND sc.name = ?");
+        //default
+        queries.add("SELECT sc.name AS schemaName, t.name AS tableName, col.name AS columnName, c.name AS constraintName, c.type_desc AS constraintType, \n" +
+                "'ALTER TABLE ' + sc.name + '.' + t.name + ' ADD CONSTRAINT ' + c.name+ ' DEFAULT ' \n" +
+                "	+ CASE WHEN ISNUMERIC(ic.COLUMN_DEFAULT) = 1 \n" +
+                "		THEN TRY_CONVERT(nvarchar, TRY_CONVERT(numeric, ic.COLUMN_DEFAULT))\n" +
+                "		ELSE '' + ic.COLUMN_DEFAULT + '' END\n" +
+                "	+ ' FOR [' + col.name + '];' AS ddl\n" +
+                "FROM sys.default_constraints c\n" +
+                "JOIN sys.tables t ON c.parent_object_id = t.object_id \n" +
+                "JOIN sys.columns col ON col.default_object_id = c.object_id\n" +
+                "JOIN sys.schemas AS sc ON t.schema_id=sc.schema_id \n" +
+                "JOIN INFORMATION_SCHEMA.COLUMNS ic on t.name = ic.TABLE_NAME AND col.name = ic.COLUMN_NAME \n" +
+				"WHERE t.name = ? AND sc.name = ?\n");
+        //unique
+        queries.add("SELECT TC.TABLE_SCHEMA AS schemaName, TC.TABLE_NAME AS tableName, CC.Column_Name AS columnName, TC.Constraint_Name AS constraintName, TC.CONSTRAINT_TYPE AS constraintType,\n" +
+                "'ALTER TABLE ' + TC.TABLE_SCHEMA + '.' + TC.TABLE_NAME + ' ADD CONSTRAINT ' + TC.CONSTRAINT_NAME + ' UNIQUE NONCLUSTERED ([' + CC.COLUMN_NAME + ']);' AS ddl\n" +
+                "FROM INFORMATION_SCHEMA.table_constraints TC\n" +
+                "INNER JOIN INFORMATION_SCHEMA.constraint_column_usage CC on TC.Constraint_Name = CC.Constraint_Name\n" +
+                "WHERE TC.constraint_type = 'Unique' AND TC.TABLE_NAME = ? AND TC.TABLE_SCHEMA = ? ---- PARAMETER 1,2\n");
+        //foreign
+        queries.add("SELECT ss.name as schemaName, t.name as tableName, sc.name as columnName, o.name as constraintName, o.type_desc as constraintType, refss.name as refSchemaName, refst.name as refTableName, refsc.name as refColumnName, " +
+				"'ALTER TABLE ' + ss.name + '.' + t.name + ' ADD CONSTRAINT ' + o.name + ' FOREIGN KEY ('+ sc.name + ') references ' + refss.name + '.' + refst.name + '(' + refsc.name + ');' as ddl\n" +
+                "FROM sys.foreign_key_columns c\n" +
+                "JOIN sys.objects o ON c.constraint_object_id = o.object_id\n" +
+                "LEFT OUTER JOIN sys.tables t on t.object_id = c.parent_object_id \n" +
+				"LEFT OUTER JOIN sys.schemas ss on ss.schema_id = o.schema_id \n" +
+				"LEFT OUTER JOIN sys.columns sc on sc.object_id = c.parent_object_id AND sc.column_id = c.parent_column_id\n" +
+                "LEFT OUTER JOIN sys.tables refst on refst.object_id = c.referenced_object_id\n" +
+                "LEFT OUTER JOIN sys.schemas refss on refss.schema_id = refst.schema_id\n" +
+                "LEFT OUTER JOIN sys.columns refsc on refsc.object_id = c.referenced_object_id AND refsc.column_id = c.referenced_column_id \n" +
+				"WHERE t.name = ? AND ss.name = ?\n"
+		);
+
+        Iterator<String> it = queries.iterator();
+        try {
+            while (it.hasNext()) {
+                String query = it.next();
+				PreparedStatement stmt = connect.prepareStatement(query);
+                stmt.setString(2, schema);
+                stmt.setString(1, nameTable);
+                ResultSet rs = stmt.executeQuery();
+
+
+                while (rs.next()) {
+                    DBConstraint con = new DBConstraint();
+                    con.setName(rs.getString("constraintName"));
+                    con.setConstraintType(rs.getString("constraintType"));
+                    con.setSchema(schema);
+                    rowToProperties(rs, con.getOptions());
+                    constraints.put(con.getName(), con);
+                }
+                stmt.close();
+            }
+
+            return constraints;
+
+        }catch(Exception e) {
+            logger.error(lang.getValue("errors", "adapter", "constraints").toString());
+            throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "constraints").toString(), e);
+        }
+    }
+
 
 	@Override
 	public Map<String, DBView> getViews(String schema) {

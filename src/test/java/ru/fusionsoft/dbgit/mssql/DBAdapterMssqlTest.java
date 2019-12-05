@@ -153,30 +153,30 @@ public class DBAdapterMssqlTest {
         String name = "TestTableTypes";
         try{
             testConnection.createStatement().execute(
-                    "IF OBJECT_ID('dbo."+ name + "', 'U') IS NOT NULL \n" +
-                            "DROP TABLE dbo." + name + "\n" +
-                            "CREATE TABLE [dbo].[TestTableTypes](\n" +
-                            "	[col1] [nchar](10) NULL,\n" +
-                            "	[col2] [ntext] NULL,\n" +
-                            "	[col3] [numeric](18, 0) NULL,\n" +
-                            "	[col4] [nvarchar](50) NULL,\n" +
-                            "	[col5] [nvarchar](max) NULL,\n" +
-                            "	[col6] [real] NULL,\n" +
-                            "	[col7] [smalldatetime] NULL,\n" +
-                            "	[col8] [smallint] NULL,\n" +
-                            "	[col9] [smallmoney] NULL,\n" +
-                            "	[col10] [sql_variant] NULL,\n" +
-                            "	[col11] [text] NULL,\n" +
-                            "	[col12] [time](7) NULL,\n" +
-                            "	[col13] [timestamp] NULL,\n" +
-                            "	[col14] [tinyint] NULL,\n" +
-                            "	[col15] [uniqueidentifier] NULL,\n" +
-                            "	[col16] [varbinary](50) NULL,\n" +
-                            "	[col17] [varbinary](max) NULL,\n" +
-                            "	[col18] [varchar](50) NULL,\n" +
-                            "	[col19] [varchar](max) NULL,\n" +
-                            "	[col20] [xml] NULL\n" +
-                            ") ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]"
+            "IF OBJECT_ID('dbo."+ name + "', 'U') IS NOT NULL \n" +
+                "DROP TABLE dbo." + name + "\n" +
+                "CREATE TABLE [dbo].[TestTableTypes](\n" +
+                "	[col1] [nchar](10) NULL,\n" +
+                "	[col2] [ntext] NULL,\n" +
+                "	[col3] [numeric](18, 0) NULL,\n" +
+                "	[col4] [nvarchar](50) NULL,\n" +
+                "	[col5] [nvarchar](max) NULL,\n" +
+                "	[col6] [real] NULL,\n" +
+                "	[col7] [smalldatetime] NULL,\n" +
+                "	[col8] [smallint] NULL,\n" +
+                "	[col9] [smallmoney] NULL,\n" +
+                "	[col10] [sql_variant] NULL,\n" +
+                "	[col11] [text] NULL,\n" +
+                "	[col12] [time](7) NULL,\n" +
+                "	[col13] [timestamp] NULL,\n" +
+                "	[col14] [tinyint] NULL,\n" +
+                "	[col15] [uniqueidentifier] NULL,\n" +
+                "	[col16] [varbinary](50) NULL,\n" +
+                "	[col17] [varbinary](max) NULL,\n" +
+                "	[col18] [varchar](50) NULL,\n" +
+                "	[col19] [varchar](max) NULL,\n" +
+                "	[col20] [xml] NULL\n" +
+                ") ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]"
             );
 
             Map<String, DBTableField> fields = testAdapter.getTableFields("dbo", "TestTableTypes");
@@ -211,6 +211,48 @@ public class DBAdapterMssqlTest {
             assertEquals("2", indexes.get("IX_IdTest").getOptions().getChildren().get("indexid").getData());
             assertEquals(indexCreateDdl, indexes.get("IX_IdTest").getSql());
             testConnection.createStatement().execute("DROP TABLE dbo.AspNetRolesTest" );
+        }
+        catch (Exception ex) {
+            fail(ex.toString());
+        }
+
+    }
+
+    @Test
+    public void getConstraints() {
+
+        String constrDDL1 = "ALTER TABLE dbo.ConstraintsTestTable ADD CONSTRAINT df_constraint DEFAULT ('{}') FOR [value];";
+        String constrDDL2 = "ALTER TABLE dbo.ConstraintsTestTable ADD CONSTRAINT df_constraintInt DEFAULT ((1)) FOR [valueCheck1];";
+        String constrDDL3 = "ALTER TABLE dbo.ConstraintsTestTable ADD CONSTRAINT u_constraint UNIQUE NONCLUSTERED ([valueUnique]);";
+        String constrDDL4 = "ALTER TABLE dbo.ConstraintsTestTable ADD CONSTRAINT chk_constraint CHECK ([valueCheck1]>(0) AND [valueCheck2]>(0));";
+        String constrDDL5 = "ALTER TABLE dbo.ConstraintsTestTable ADD CONSTRAINT fk_constraint FOREIGN KEY (fkInt) references dbo.FKTest(keyInt);";
+        try{
+            testConnection.createStatement().execute(
+            "IF OBJECT_ID('dbo.ConstraintsTestTable', 'U') IS NOT NULL \n" +
+                "DROP TABLE dbo.ConstraintsTestTable;\n" +
+                "CREATE TABLE dbo.ConstraintsTestTable (\n" +
+                "	[key] varchar(20) PRIMARY KEY, \n" +
+                "	[value] varchar(20) NOT NULL, \n" +
+                "	[valueCheck1] int NOT NULL, \n" +
+                "	[valueCheck2] int NOT NULL,\n" +
+                "	[valueUnique] varchar(20),\n" +
+                "	[fkInt] int\n" +
+                ") ON [PRIMARY];\n" +
+                "IF OBJECT_ID('dbo.FKTest', 'U') IS NOT NULL DROP TABLE dbo.FKTest;\n" +
+                "CREATE TABLE dbo.FKTest( keyInt int PRIMARY KEY, valueChar nvarchar(100) );\n" +
+                "SELECT valueCheck1, valueCheck2 from dbo.ConstraintsTestTable; \n" +
+                constrDDL1 + constrDDL2 + constrDDL3 + constrDDL4 + constrDDL5
+            );
+
+
+            Map<String, DBConstraint> constraints = testAdapter.getConstraints("dbo", "ConstraintsTestTable");
+            assertEquals(constrDDL1, constraints.get("df_constraint").getOptions().getChildren().get("ddl").getData());
+            assertEquals(constrDDL2, constraints.get("df_constraintInt").getOptions().getChildren().get("ddl").getData());
+            assertEquals(constrDDL3, constraints.get("u_constraint").getOptions().getChildren().get("ddl").getData());
+            assertEquals(constrDDL4, constraints.get("chk_constraint").getOptions().getChildren().get("ddl").getData());
+            assertEquals(constrDDL5, constraints.get("fk_constraint").getOptions().getChildren().get("ddl").getData());
+
+            testConnection.createStatement().execute("DROP TABLE dbo.ConstraintsTestTable;\n DROP TABLE dbo.FKTest\n" );
         }
         catch (Exception ex) {
             fail(ex.toString());
