@@ -609,12 +609,38 @@ public class DBAdapterMssql extends DBAdapter {
         }
     }
 
+    @Override
+    public Map<String, DBView> getViews(String schema) {
+        Map<String, DBView> listView = new HashMap<String, DBView>();
+        try {
+            String query =
+                "SELECT \n" +
+                "	sp.name as ownerName, sp.type_desc as ownerType, ss.name AS schemaName, sv.name AS viewName, sm.definition as ddl, \n" +
+                "	sv.type_desc as typeName, sm.uses_ansi_nulls, sm.uses_quoted_identifier, sm.is_schema_bound, \n" +
+                "	OBJECTPROPERTYEX(sv.object_id,'IsIndexable') AS IsIndexable,\n" +
+                "	OBJECTPROPERTYEX(sv.object_id,'IsIndexed') AS IsIndexed\n" +
+                "FROM sys.views sv\n" +
+                "JOIN sys.schemas ss ON sv.schema_id = ss.schema_id\n" +
+                "LEFT OUTER JOIN sys.sql_modules sm on sv.object_id = sm.object_id\n" +
+                "LEFT OUTER JOIN sys.database_principals sp on sv.principal_id = sp.principal_id";
 
-	@Override
-	public Map<String, DBView> getViews(String schema) {
-		// TODO Auto-generated method stub
-		return null;
-	}
+            Connection connect = getConnection();
+            Statement stmt = connect.createStatement();
+            ResultSet rs = stmt.executeQuery(query);
+            while(rs.next()){
+                DBView view = new DBView(rs.getString("viewName"));
+                view.setSchema(rs.getString("schemaName"));
+                view.setOwner(rs.getString("ownerName"));
+                rowToProperties(rs, view.getOptions());
+                listView.put(rs.getString("viewName"), view);
+            }
+            stmt.close();
+            return listView;
+        }catch(Exception e) {
+            logger.error(lang.getValue("errors", "adapter", "views") + ": "+ e.getMessage());
+            throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "views") + ": " + e.getMessage());
+        }
+    }
 
 	@Override
 	public DBView getView(String schema, String name) {

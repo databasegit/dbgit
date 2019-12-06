@@ -259,4 +259,34 @@ public class DBAdapterMssqlTest {
         }
 
     }
+
+    @Test
+    public void getViews() {
+
+        String viewDDl =
+            "CREATE VIEW dbo.testView AS\n" +
+            "SELECT 'THE ALLMIGHT ''' + SC.name + ''' FROM ' + SO.name  as theBigTitle\n" +
+            "FROM sys.columns SC JOIN sys.objects SO on SC.object_id = SO.object_id";
+
+        try{
+            testConnection.createStatement().execute("IF OBJECT_ID('dbo.testView', 'V') IS NOT NULL DROP VIEW dbo.testView \n");
+            testConnection.createStatement().execute(
+                "CREATE VIEW dbo.testView AS\n" +
+                "SELECT SC.name + '(' + SO.NAME + ')' as theUsualTitle\n" +
+                "FROM sys.columns SC JOIN sys.objects SO on SC.object_id = SO.object_id\n");
+            testConnection.createStatement().execute(
+                "ALTER VIEW dbo.testView AS\n" +
+                "SELECT 'THE ALLMIGHT ''' + SC.name + ''' FROM ' + SO.name  as theBigTitle\n" +
+                "FROM sys.columns SC JOIN sys.objects SO on SC.object_id = SO.object_id\n");
+
+            Map<String, DBView> views = testAdapter.getViews("dbo");
+            assertEquals(viewDDl, views.get("testView").getSql());
+
+            testConnection.createStatement().execute("DROP VIEW dbo.testView;" );
+        }
+        catch (Exception ex) {
+            fail(ex.toString());
+        }
+
+    }
 }
