@@ -642,11 +642,16 @@ public class DBAdapterMssql extends DBAdapter {
         }
     }
 
-	@Override
-	public DBView getView(String schema, String name) {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    @Override
+    public DBView getView(String schema, String name) {
+        try {
+            return getViews(schema).get(name);
+
+        }catch(Exception e) {
+            logger.error(lang.getValue("errors", "adapter", "views").toString() + ": "+ e.getMessage());
+            throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "views").toString() + ": "+ e.getMessage());
+        }
+    }
 
 	@Override
 	public Map<String, DBPackage> getPackages(String schema) {
