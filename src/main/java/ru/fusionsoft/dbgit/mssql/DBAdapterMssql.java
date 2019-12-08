@@ -655,50 +655,222 @@ public class DBAdapterMssql extends DBAdapter {
 
 	@Override
 	public Map<String, DBPackage> getPackages(String schema) {
-		// TODO Auto-generated method stub
-		return null;
+		// No such implementation in MSSQL
+		return Collections.emptyMap();
 	}
 
 	@Override
 	public DBPackage getPackage(String schema, String name) {
-		// TODO Auto-generated method stub
+		// No such implementation in MSSQL
 		return null;
 	}
 
 	@Override
 	public Map<String, DBProcedure> getProcedures(String schema) {
-		// TODO Auto-generated method stub
-		return null;
+		Map<String, DBProcedure> listProcedure = new HashMap<String, DBProcedure>();
+		try {
+			String query =
+				"SELECT s.name schemaName, o.name procedureName, o.type_desc as typeName, definition ddl, USER_NAME(so.uid) AS owner \n" +
+				"FROM sys.sql_modules m\n" +
+				"JOIN sys.procedures p ON m.object_id = p.object_id\n" +
+				"JOIN sys.objects o \n" +
+				"	ON o.object_id = p.object_id \n" +
+				"	AND Left(o.name, 3) NOT IN ('sp_', 'xp_', 'ms_') \n" +
+				"JOIN sys.schemas s ON s.schema_id = o.schema_id\n" +
+				"JOIN sysobjects so on o.object_id = so.id\n" +
+				"WHERE s.name = '" + schema + "'\n";
+			Connection connect = getConnection();
+			Statement stmt = connect.createStatement();
+			ResultSet rs = stmt.executeQuery(query);
+			while(rs.next()){
+				String name = rs.getString("procedureName");
+				String owner = rs.getString("owner");
+				DBProcedure proc = new DBProcedure(name);
+				proc.setSchema(schema);
+				proc.setOwner(owner);
+				proc.setName(name);
+				rowToProperties(rs,proc.getOptions());
+				listProcedure.put(name, proc);
+			}
+			stmt.close();
+		}catch(Exception e) {
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "prc").toString(), e);
+		}
+		return listProcedure;
 	}
 
 	@Override
 	public DBProcedure getProcedure(String schema, String name) {
-		// TODO Auto-generated method stub
-		return null;
+		try {
+			String query =
+				"SELECT s.name schemaName, o.name procedureName, o.type_desc as typeName, definition ddl, USER_NAME(so.uid) AS owner \n" +
+				"FROM sys.sql_modules m\n" +
+				"JOIN sys.procedures p ON m.object_id = p.object_id\n" +
+				"JOIN sys.objects o \n" +
+				"	ON o.object_id = p.object_id \n" +
+				"	AND Left(o.name, 3) NOT IN ('sp_', 'xp_', 'ms_') -- filter out system ones\n" +
+				"JOIN sys.schemas s ON s.schema_id = o.schema_id\n" +
+				"JOIN sysobjects so on o.object_id = so.id \n" +
+				"WHERE s.name = '" + schema + "' AND o.name = '" + name + "'";
+			Connection connect = getConnection();
+			Statement stmt = connect.createStatement();
+			ResultSet rs = stmt.executeQuery(query);
+			DBProcedure proc = null;
+
+			while (rs.next()) {
+				proc = new DBProcedure(rs.getString("procedureName"));
+				String owner = rs.getString("owner");
+				proc.setSchema(schema);
+				proc.setOwner(owner);
+				rowToProperties(rs,proc.getOptions());
+			}
+			stmt.close();
+
+			return proc;
+
+		}catch(Exception e) {
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "prc").toString(), e);
+		}
 	}
 
 	@Override
 	public Map<String, DBFunction> getFunctions(String schema) {
-		// TODO Auto-generated method stub
-		return null;
+		Map<String, DBFunction> listFunction = new HashMap<>();
+		try {
+			String query =
+				"SELECT ss.name schemaName, o.name functionName, type_desc typeName, definition ddl, USER_NAME(so.uid) owner \n" +
+				"FROM sys.sql_modules m \n" +
+				"INNER JOIN sys.objects o ON m.object_id = o.object_id\n" +
+				"INNER JOIN sysobjects so ON m.object_id = so.id\n" +
+				"INNER JOIN sys.schemas ss ON ss.schema_id = o.schema_id\n" +
+				"WHERE type_desc like '%function%' AND ss.name = '" + schema + "'\n";
+
+			Connection connect = getConnection();
+			Statement stmt = connect.createStatement();
+			ResultSet rs = stmt.executeQuery(query);
+			while(rs.next()){
+				String name = rs.getString("functionName");
+				String owner = rs.getString("owner");
+				DBFunction func = new DBFunction(name);
+				func.setSchema(schema);
+				func.setOwner(owner);
+				rowToProperties(rs,func.getOptions());
+
+				listFunction.put(name, func);
+			}
+			stmt.close();
+		}catch(Exception e) {
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "fnc").toString(), e);
+		}
+		return listFunction;
 	}
 
 	@Override
 	public DBFunction getFunction(String schema, String name) {
-		// TODO Auto-generated method stub
-		return null;
+		try {
+			String query =
+                    "SELECT ss.name schemaName, o.name functionName, type_desc typeName, definition ddl, USER_NAME(so.uid) owner \n" +
+                    "FROM sys.sql_modules m \n" +
+                    "INNER JOIN sys.objects o ON m.object_id = o.object_id\n" +
+                    "INNER JOIN sysobjects so ON m.object_id = so.id\n" +
+                    "INNER JOIN sys.schemas ss ON ss.schema_id = o.schema_id\n" +
+                    "WHERE type_desc like '%function%' AND ss.name = '" + schema + "' AND o.name = '" + name + "'\n";
+			Connection connect = getConnection();
+			Statement stmt = connect.createStatement();
+			ResultSet rs = stmt.executeQuery(query);
+			DBFunction func = null;
+
+			while (rs.next()) {
+				func = new DBFunction(rs.getString("functionName"));
+				String owner = rs.getString("owner");
+				func.setSchema(schema);
+				func.setOwner(owner);
+				rowToProperties(rs,func.getOptions());
+			}
+			stmt.close();
+
+			return func;
+
+		}catch(Exception e) {
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "fnc").toString(), e);
+		}
 	}
 
-	@Override
+	//TODO Discuss scenario when we get an encrypted TRIGGER, IMO display a warning,
+	// it is not possible to get definition of an encrypted trigger
+
 	public Map<String, DBTrigger> getTriggers(String schema) {
-		// TODO Auto-generated method stub
-		return null;
+		Map<String, DBTrigger> listTrigger = new HashMap<String, DBTrigger>();
+		try {
+			String query =
+				"SELECT \n" +
+				"   s.name schemaName, \n" +
+				"   o.name triggerName, \n" +
+				"   USER_NAME(o.uid) owner, \n" +
+				"   OBJECT_NAME(parent_obj) tableName, \n" +
+				"   m.definition as ddl, \n" +
+				"   OBJECTPROPERTY(id, 'IsEncrypted') AS encrypted \n" +
+				"FROM sysobjects o\n" +
+				"INNER JOIN sys.tables t ON o.parent_obj = t.object_id \n" +
+				"INNER JOIN sys.schemas s ON t.schema_id = s.schema_id \n" +
+				"INNER JOIN sys.sql_modules m ON m.object_id = o.id\n" +
+				"WHERE o.type = 'TR' AND s.name = '" + schema + "'\n";
+
+			Connection connect = getConnection();
+			Statement stmt = connect.createStatement();
+
+			ResultSet rs = stmt.executeQuery(query);
+			while(rs.next()){
+				String name = rs.getString("triggerName");
+				String owner = rs.getString("owner");
+				DBTrigger trigger = new DBTrigger(name);
+				trigger.setSchema(schema);
+				trigger.setOwner(owner);
+				// -- what means owner? oracle/postgres or owner like database user/schema
+				// -- IMO its a database object owner
+
+				rowToProperties(rs, trigger.getOptions());
+				listTrigger.put(name, trigger);
+			}
+			stmt.close();
+			return listTrigger;
+		}catch(Exception e) {
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "triggers").toString(), e);
+		}
 	}
 
-	@Override
 	public DBTrigger getTrigger(String schema, String name) {
-		// TODO Auto-generated method stub
-		return null;
+		DBTrigger trigger = null;
+		try {
+			String query =
+				"SELECT \n" +
+				"   s.name schemaName, \n" +
+				"   o.name triggerName, \n" +
+				"   USER_NAME(o.uid) owner, \n" +
+				"   OBJECT_NAME(parent_obj) tableName, \n" +
+				"   m.definition as ddl, \n" +
+				"   OBJECTPROPERTY(id, 'IsEncrypted') AS encrypted \n" +
+				"FROM sysobjects o\n" +
+				"INNER JOIN sys.tables t ON o.parent_obj = t.object_id \n" +
+				"INNER JOIN sys.schemas s ON t.schema_id = s.schema_id \n" +
+				"INNER JOIN sys.sql_modules m ON m.object_id = o.id\n" +
+				"WHERE o.type = 'TR' AND s.name = '" + schema + "' AND o.name = '" + name + "'\n";
+			Statement stmt = connect.createStatement();
+			ResultSet rs = stmt.executeQuery(query);
+
+			while(rs.next()){
+				String tname = rs.getString("triggerName");
+				String owner = rs.getString("owner");
+				trigger = new DBTrigger(tname);
+				trigger.setSchema(schema);
+				trigger.setOwner(owner);
+				rowToProperties(rs, trigger.getOptions());
+			}
+			stmt.close();
+			return trigger;
+		}catch(Exception e) {
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "triggers").toString(), e);
+		}
 	}
 
 	@Override
