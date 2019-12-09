@@ -1,19 +1,23 @@
 package ru.fusionsoft.dbgit.mssql;
 
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import ru.fusionsoft.dbgit.adapters.DBAdapter;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBAdapterRestoteMetaData;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBBackupAdapter;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBConvertAdapter;
+import ru.fusionsoft.dbgit.core.DBGitConfig;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
 import ru.fusionsoft.dbgit.data_table.*;
 import ru.fusionsoft.dbgit.dbobjects.*;
 import ru.fusionsoft.dbgit.meta.IMapMetaObject;
+import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 import ru.fusionsoft.dbgit.utils.LoggerUtil;
 
 import java.sql.*;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 
 public class DBAdapterMssql extends DBAdapter {
@@ -873,16 +877,126 @@ public class DBAdapterMssql extends DBAdapter {
 		}
 	}
 
-	@Override
-	public DBTableData getTableData(String schema, String nameTable) {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    @Override
+    public DBTableData getTableData(String schema, String nameTable) {
+        try {
+            DBTableData data = new DBTableData();
+
+            int maxRowsCount = DBGitConfig.getInstance().getInteger(
+                    "core",
+                    "MAX_ROW_COUNT_FETCH",
+                    DBGitConfig.getInstance().getIntegerGlobal("core", "MAX_ROW_COUNT_FETCH", MAX_ROW_COUNT_FETCH)
+            );
+
+            boolean isLimitedFetch = DBGitConfig.getInstance().getBoolean(
+                "core",
+                "LIMIT_FETCH",
+                DBGitConfig.getInstance().getBooleanGlobal("core", "LIMIT_FETCH", true)
+            );
+
+            if (isLimitedFetch)
+            {
+                Statement st = getConnection().createStatement();
+                String query =
+                    "SELECT COALESCE(SUM(PART.rows), 0) AS rowsCount\n" +
+                    "FROM sys.tables TBL\n" +
+                    "INNER JOIN sys.partitions PART ON TBL.object_id = PART.object_id\n" +
+                    "INNER JOIN sys.indexes IDX ON PART.object_id = IDX.object_id AND PART.index_id = IDX.index_id\n" +
+                    "INNER JOIN sys.schemas S ON S.schema_id = TBL.schema_id\n" +
+                    "WHERE TBL.name = '"+nameTable+"' AND S.name = '"+schema+"' AND IDX.index_id < 2\n" +
+                    "GROUP BY TBL.object_id, TBL.name";
+                ResultSet rs = st.executeQuery(query);
+                rs.next();
+                if (rs.getInt("rowsCount") > maxRowsCount) {
+                    data.setErrorFlag(DBTableData.ERROR_LIMIT_ROWS);
+                    return data;
+                }
+            }
+            Statement st = getConnection().createStatement();
+            ResultSet rs = st.executeQuery("SELECT * FROM " + schema + '.' + nameTable + '\n');
+            data.setResultSet(rs);
+            return data;
+
+        } catch(Exception e) {
+            logger.error(lang.getValue("errors", "adapter", "tableData").toString(), e);
+            try {
+                getConnection().rollback();
+            } catch (Exception e2) {
+                logger.error(lang.getValue("errors", "adapter", "rollback").toString(), e2);
+            }
+            throw new ExceptionDBGitRunTime(e.getMessage());
+        }
+    }
 
 	@Override
 	public DBTableData getTableDataPortion(String schema, String nameTable, int portionIndex, int tryNumber) {
-		// TODO Auto-generated method stub
-		return null;
+		DBTableData data = new DBTableData();
+
+		try {
+			Statement st = getConnection().createStatement();
+
+			int portionSize = DBGitConfig.getInstance().getInteger( "core", "PORTION_SIZE",
+					DBGitConfig.getInstance().getIntegerGlobal("core", "PORTION_SIZE", 1000)
+			);
+
+			/* For version <= SQL Server 2005
+
+			int begin = 1 + portionSize*portionIndex;
+			int end = portionSize + portionSize*portionIndex;
+
+			ResultSet rs = st.executeQuery(
+			"SELECT * FROM (" +
+				"   SELECT  *, ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) rownum" +
+				"   FROM dbo.Product" +
+				") t" +
+				"WHERE rownum BETWEEN " + begin + " AND "+ end
+			);
+			*/
+
+			ResultSet rs = st.executeQuery( "SELECT * " +
+				"FROM "+ schema + "." + nameTable + " " +
+				"ORDER BY (SELECT NULL) " +
+				"OFFSET " + portionSize*portionIndex + " ROWS " +
+				"FETCH NEXT " + portionSize + " ROWS ONLY "
+			);
+
+			data.setResultSet(rs);
+			return data;
+		} catch (Exception e) {
+
+			ConsoleWriter.println("Connection lost!");
+			ConsoleWriter.println("Error while getting portion of data, try " + tryNumber);
+			logger.error(lang.getValue("errors", "adapter", "tableData").toString(), e);
+
+			//try fetch again
+			try {
+
+				int retryDelay = DBGitConfig.getInstance().getInteger( "core", "TRY_DELAY",
+						DBGitConfig.getInstance().getIntegerGlobal("core", "TRY_DELAY", 1000)
+				);
+
+				int maxTryCount = DBGitConfig.getInstance().getInteger( "core", "TRY_COUNT",
+						DBGitConfig.getInstance().getIntegerGlobal("core", "TRY_COUNT", 1000)
+				);
+
+				if (tryNumber <= maxTryCount) {
+
+					try { TimeUnit.SECONDS.sleep(retryDelay); }
+					catch (InterruptedException e1) { throw new ExceptionDBGitRunTime(e1.getMessage()); }
+
+					return getTableDataPortion(schema, nameTable, portionIndex, tryNumber++);
+				}
+			} catch (Exception e1) { e1.printStackTrace(); }
+
+			//rollback, needed only when auto-commit mode has been disabled
+
+			try {
+				getConnection().rollback();
+			} catch (Exception e2) {
+				logger.error(lang.getValue("errors", "adapter", "rollback").toString(), e2);
+			}
+			throw new ExceptionDBGitRunTime(e.getMessage());
+		}
 	}
 
 	@Override

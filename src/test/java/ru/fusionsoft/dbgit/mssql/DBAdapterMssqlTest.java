@@ -1,18 +1,18 @@
 package ru.fusionsoft.dbgit.mssql;
 
 import com.google.common.collect.Lists;
-import com.microsoft.sqlserver.jdbc.SQLServerDriver;
 
+import com.microsoft.sqlserver.jdbc.SQLServerException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import ru.fusionsoft.dbgit.adapters.AdapterFactory;
+import ru.fusionsoft.dbgit.core.DBGitConfig;
 import ru.fusionsoft.dbgit.dbobjects.*;
+import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.*;
 
 import static org.junit.Assert.*;
@@ -313,12 +313,12 @@ public class DBAdapterMssqlTest {
     public void getProcedures() {
 
         try{
-            List<String> ddls = createTestExecutables();
+            List<String> ddls = createTestObjects();
 
             Map<String, DBProcedure> procedures = testAdapter.getProcedures("dbo");
             assertEquals(ddls.get(6), procedures.get("ProcedureTest").getSql());
 
-            dropTestExecutables();
+            dropTestObjects();
         }
         catch (Exception ex) {
             fail(ex.toString());
@@ -330,12 +330,12 @@ public class DBAdapterMssqlTest {
     public void getProcedure() {
 
         try{
-            List<String> ddls = createTestExecutables();
+            List<String> ddls = createTestObjects();
 
             DBProcedure procedure = testAdapter.getProcedure("dbo", "ProcedureTest");
             assertEquals(ddls.get(6), procedure.getSql());
 
-            dropTestExecutables();
+            dropTestObjects();
         }
         catch (Exception ex) {
             fail(ex.toString());
@@ -347,12 +347,12 @@ public class DBAdapterMssqlTest {
     public void getFunctions(){
 
         try{
-            List<String> ddls = createTestExecutables();
+            List<String> ddls = createTestObjects();
 
             Map<String, DBFunction> functions = testAdapter.getFunctions("dbo");
             assertEquals(ddls.get(4), functions.get("FunctionTestTable").getSql());
 
-            dropTestExecutables();
+            dropTestObjects();
         }
         catch (Exception ex) {
             fail(ex.toString());
@@ -364,12 +364,12 @@ public class DBAdapterMssqlTest {
     public void getFunction() {
 
         try{
-            List<String> ddls = createTestExecutables();
+            List<String> ddls = createTestObjects();
 
             DBFunction function = testAdapter.getFunction("dbo", "FunctionTestScalar");
             assertEquals(ddls.get(2), function.getSql());
 
-            dropTestExecutables();
+            dropTestObjects();
         }
         catch (Exception ex) {
             fail(ex.toString());
@@ -381,12 +381,12 @@ public class DBAdapterMssqlTest {
     public void getTriggers() {
 
         try{
-            List<String> ddls = createTestExecutables();
+            List<String> ddls = createTestObjects();
 
             Map<String, DBTrigger> triggers = testAdapter.getTriggers("dbo");
             assertEquals(ddls.get(7), triggers.get("TriggerTest").getSql());
 
-            dropTestExecutables();
+            dropTestObjects();
         }
         catch (Exception ex) {
             fail(ex.toString());
@@ -398,7 +398,7 @@ public class DBAdapterMssqlTest {
     public void getTrigger() {
 
         try{
-            List<String> ddls = createTestExecutables();
+            List<String> ddls = createTestObjects();
 
             //TODO Discuss scenario when we get an encrypted trigger, IMO display a warning,
             // it is not possible to get definition of an encrypred trigger
@@ -407,12 +407,92 @@ public class DBAdapterMssqlTest {
             assertEquals("1", trigger.getOptions().getChildren().get("encrypted").getData());
 
 
-            dropTestExecutables();
+            dropTestObjects();
         }
         catch (Exception ex) {
             fail(ex.toString());
         }
+    }
 
+    @Test
+    public void getTableData() {
+
+        try{
+            createTestObjects();
+
+            DBTableData data = testAdapter.getTableData("dbo", "ExecutableTest");
+            ResultSet rs = data.getResultSet();
+            ResultSetMetaData md = rs.getMetaData();
+            int cols = rs.getMetaData().getColumnCount();
+            rs.next();
+
+            assertEquals(2, cols);
+            assertEquals(1, rs.getInt(1));
+            assertEquals("Hey, I have some!", rs.getString(2));
+
+            dropTestObjects();
+        }
+        catch (Exception ex) {
+            fail(ex.toString());
+        }
+    }
+
+    @Test
+    public void getTableDataPortion() {
+
+        try{
+            createBigDummyTable();
+
+            int rowsAffected = 0;
+            int portionSize = DBGitConfig.getInstance().getInteger( "core", "PORTION_SIZE",
+                    DBGitConfig.getInstance().getIntegerGlobal("core", "PORTION_SIZE", 1000)
+            );
+
+            DBTableData data = testAdapter.getTableDataPortion("tempdb.", "#bigDummyTable", 2, 0);
+            ResultSet rs = data.getResultSet();
+            while (rs.next()) rowsAffected++;
+
+
+            assertEquals(portionSize, rowsAffected);
+
+            dropBigDummyTable();
+        }
+        catch (Exception ex) {
+            fail(ex.toString());
+        }
+    }
+
+    public void createBigDummyTable() throws Exception{
+
+        Statement stmt = testConnection.createStatement();
+        List<String> scripts = Lists.newArrayList(
+    "IF OBJECT_ID('tempdb..#bigDummyTable', 'U') IS NOT NULL DROP TABLE #bigDummyTable\n",
+
+            "WITH e1(n) AS (   \n" +
+            "   SELECT 1 UNION ALL SELECT 1 UNION ALL SELECT 1 UNION ALL \n" +
+            "    SELECT 1 UNION ALL SELECT 1 UNION ALL SELECT 1 UNION ALL \n" +
+            "    SELECT 1 UNION ALL SELECT 1 UNION ALL SELECT 1 UNION ALL SELECT 1 ), -- 10\n" +
+            "e2(n) AS (SELECT 1 FROM e1 CROSS JOIN e1 b), -- 10*10\n" +
+            "e3(n) AS (SELECT 1 FROM e1 CROSS JOIN e2), -- 10*100\n" +
+            "e4(n) AS (SELECT 1 FROM e1 CROSS JOIN e3), -- 10*1000\n" +
+            "e5(n) AS (SELECT 1 FROM e1 CROSS JOIN e4) -- 10*10000\n" +
+            "SELECT n1 = ROW_NUMBER() OVER (ORDER BY n) \n" +
+            "INTO #bigDummyTable FROM e5 ORDER BY n1"
+        );
+
+        for (String script : scripts){
+            stmt.execute(script);
+        }
+        stmt.close();
+    }
+
+    public void dropBigDummyTable() throws Exception{
+        
+        Statement stmt = testConnection.createStatement();
+        try { stmt.execute("DROP TABLE tempdb..#bigDummyTable\n"); } catch (SQLServerException ex) {
+            ConsoleWriter.println("Failed to drop #bigDummyTable");
+        }
+        stmt.close();
     }
 
     private String createTestView() throws Exception{
@@ -436,7 +516,7 @@ public class DBAdapterMssqlTest {
 
     }
 
-    private List<String> createTestExecutables() throws Exception{
+    private List<String> createTestObjects() throws Exception{
 
         Statement stmt = testConnection.createStatement();
         ArrayList<String> scripts = Lists.newArrayList(
@@ -510,7 +590,7 @@ public class DBAdapterMssqlTest {
         return scripts;
     }
 
-    private void dropTestExecutables() throws Exception{
+    private void dropTestObjects() throws Exception{
         Statement stmt = testConnection.createStatement();
         stmt.execute(
             "DROP TABLE dbo.ExecutableTest\n" +
