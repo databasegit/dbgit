@@ -121,7 +121,7 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 										String as = "alter table "+ tblName +" add column " + (adapter.isReservedWord(tblField.getName()) ? "\"" + tblField.getName() + "\" " : tblField.getName())  + " " + tblField.getTypeSQL().replace("NOT NULL", "");
 										st.execute("alter table "+ tblName +" add column " + (adapter.isReservedWord(tblField.getName()) ? "\"" + tblField.getName() + "\" " : tblField.getName())  + " " + tblField.getTypeSQL().replace("NOT NULL", ""));
 								
-										if (tblField.getTypeSQL().contains("NOT NULL")) {
+										if (!tblField.getIsNullable()) {
 											st.execute("alter table " + tblName + " alter column " + tblField.getName() + " set not null");
 										}
 
@@ -147,7 +147,7 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 									if(!tblField.leftValue().getTypeSQL().equals(tblField.rightValue().getTypeSQL())
 											&& !tblField.rightValue().getTypeUniversal().contains("boolean")) {
 										st.execute("alter table "+ tblName +" alter column "+ tblField.leftValue().getName() +" type "+ tblField.leftValue().getTypeSQL().replace("NOT NULL", ""));
-										if (tblField.leftValue().getTypeSQL().contains("NOT NULL")) {
+										if (!tblField.leftValue().getIsNullable()) {
 											st.execute("alter table " + tblName + " alter column " + tblField.leftValue().getName() + " set not null");
 										}
 									}

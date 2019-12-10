@@ -316,7 +316,9 @@ public class DBAdapterOracle extends DBAdapter {
 				if (rs.getString("COLUMN_NAME").toLowerCase().equals(s)) { 
 					field.setIsPrimaryKey(true);
 				}
-				field.setTypeSQL(getFieldType(rs));
+				String typeSQL = getFieldType(rs);
+				field.setTypeSQL(typeSQL);
+				field.setIsNullable( !typeSQL.toLowerCase().contains("not null"));
 				field.setTypeMapping(getTypeMapping(rs));
 				field.setTypeUniversal(rs.getString("TYPE"));
 				field.setLength(rs.getInt("DATA_LENGTH"));

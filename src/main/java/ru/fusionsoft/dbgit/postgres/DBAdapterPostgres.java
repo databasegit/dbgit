@@ -314,7 +314,9 @@ public class DBAdapterPostgres extends DBAdapter {
 				if (rs.getString("constraint_name") != null) { 
 					field.setIsPrimaryKey(true);
 				}
-				field.setTypeSQL(getFieldType(rs));
+				String typeSQL = getFieldType(rs);
+				field.setTypeSQL(typeSQL);
+				field.setIsNullable( !typeSQL.toLowerCase().contains("not null"));
 				field.setTypeMapping(getTypeMapping(rs));
 				field.setTypeUniversal(rs.getString("tp"));
 				field.setFixed(false);

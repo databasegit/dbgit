@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 
@@ -242,7 +243,9 @@ public class DBAdapterMySql extends DBAdapter {
 				if (rs.getString("constraint_name") != null) { 
 					field.setIsPrimaryKey(true);
 				}
-				field.setTypeSQL(getFieldType(rs));
+                String typeSQL = getFieldType(rs);
+				field.setTypeSQL(typeSQL);
+                field.setIsNullable( !typeSQL.toLowerCase().contains("not null"));
 				field.setTypeMapping(getTypeMapping(rs));
 				field.setTypeUniversal(rs.getString("tp"));
 				field.setFixed(false);
@@ -263,13 +266,13 @@ public class DBAdapterMySql extends DBAdapter {
 
 	@Override
 	public Map<String, DBIndex> getIndexes(String schema, String nameTable) {
-		Map<String, DBIndex> indexes = new HashMap<String, DBIndex>();
+		Map<String, DBIndex> indexes = new HashMap<>();
 		return indexes;
 	}
 
 	@Override
 	public Map<String, DBConstraint> getConstraints(String schema, String nameTable) {
-		Map<String, DBConstraint> constraints = new HashMap<String, DBConstraint>();
+		Map<String, DBConstraint> constraints = new HashMap<>();
 		return constraints;
 	}
 
@@ -358,14 +361,57 @@ public class DBAdapterMySql extends DBAdapter {
 
 	@Override
 	public Map<String, DBFunction> getFunctions(String schema) {
-		Map<String, DBFunction> functions = new HashMap<String, DBFunction>();
-		return functions;
+		Map<String, DBFunction> listFunction = new HashMap<String, DBFunction>();
+		try {
+			String query = "SELECT R.routine_schema as \"schema\", R.definer as \"rolname\", R.specific_name as \"name\"," +
+					"group_concat(concat(P.parameter_name, \" \", P.data_type)) as \"arguments\", R.routine_definition as \"ddl\"\r\n" +
+					"FROM information_schema.routines as R, information_schema.parameters as P\r\n" + 
+					"WHERE P.parameter_mode='IN' and P.routine_type=R.routine_type and P.specific_schema=R.routine_schema and\r\n" +
+					"P.specific_name=R.specific_name and R.routine_type='FUNCTION' and R.routine_schema='" + schema + "' GROUP BY R.specific_name ORDER BY P.ordinal_position";
+			Statement stmt = getConnection().createStatement();
+			ResultSet rs = stmt.executeQuery(query);
+			while(rs.next()) {
+				String name = rs.getString("name");
+				String owner = rs.getString("rolname");
+				String args = rs.getString("arguments");
+				DBFunction func = new DBFunction(name);
+				func.setSchema(schema);
+				func.setOwner(owner);
+				rowToProperties(rs, func.getOptions());
+				//func.setArguments(args);
+                listFunction.put(name, func);
+			}
+			stmt.close();
+		} catch(Exception e) {
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "fnc").toString(), e);
+		}
+		return listFunction;
 	}
 
 	@Override
 	public DBFunction getFunction(String schema, String name) {
-		// TODO Auto-generated method stub
-		return null;
+        DBFunction function = new DBFunction();
+        try {
+            String query = "SELECT R.routine_schema as \"schema\", R.definer as \"rolname\", R.specific_name as \"name\"," +
+                    "group_concat(concat(P.parameter_name, \" \", P.data_type)) as \"arguments\", R.routine_definition as \"ddl\"\r\n" +
+                    "FROM information_schema.routines as R, information_schema.parameters as P\r\n" +
+                    "WHERE P.parameter_mode='IN' and P.routine_type=R.routine_type and P.specific_schema=R.routine_schema and\r\n" +
+                    "P.specific_name=R.specific_name and R.routine_type='FUNCTION' and R.routine_schema='" + schema + "' and R.specific_name='" + name + "'\r\n" +
+                    "GROUP BY R.specific_name ORDER BY P.ordinal_position";
+            Statement stmt = getConnection().createStatement();
+            ResultSet rs = stmt.executeQuery(query);
+            rs.next();
+            String owner = rs.getString("rolname");
+            String args = rs.getString("arguments");
+            function.setSchema(schema);
+            function.setOwner(owner);
+            rowToProperties(rs, function.getOptions());
+            //function.setArguments(args);
+            stmt.close();
+        } catch(Exception e) {
+            throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "fnc").toString(), e);
+        }
+        return function;
 	}
 
 	@Override
@@ -1382,7 +1428,44 @@ public class DBAdapterMySql extends DBAdapter {
 
 	@Override
 	public DBTableData getTableDataPortion(String schema, String nameTable, int portionIndex, int tryNumber) {
-		// TODO Auto-generated method stub
-		return null;
+		DBTableData data = new DBTableData();
+		try {
+			int portionSize = DBGitConfig.getInstance().getInteger("core", "PORTION_SIZE", DBGitConfig.getInstance().getIntegerGlobal("core", "PORTION_SIZE", 1000));
+
+			int begin = 1 + portionSize * portionIndex;
+			int end = portionSize + portionSize * portionIndex;
+
+			Statement st = getConnection().createStatement();
+			ResultSet rs = st.executeQuery("SELECT * FROM \r\n" +
+					"(SELECT f.*, ROW_NUMBER() OVER (ORDER BY (select group_concat(column_name separator ', ') from information_schema.columns where \r\n" +
+					"table_schema='" + schema + "' and table_name='" + nameTable + "' and upper(column_key)='PRI')) DBGIT_ROW_NUM FROM " + schema + "." + nameTable + " f) s \r\n" +
+					"WHERE DBGIT_ROW_NUM BETWEEN " + begin + " and " + end);
+			data.setResultSet(rs);
+			return data;
+		} catch(Exception e) {
+			logger.error(lang.getValue("errors", "adapter", "tableData").toString(), e);
+
+			try {
+				if (tryNumber <= DBGitConfig.getInstance().getInteger("core", "TRY_COUNT", DBGitConfig.getInstance().getIntegerGlobal("core", "TRY_COUNT", 1000))) {
+					try {
+						TimeUnit.SECONDS.sleep(DBGitConfig.getInstance().getInteger("core", "TRY_DELAY", DBGitConfig.getInstance().getIntegerGlobal("core", "TRY_DELAY", 1000)));
+					} catch (InterruptedException e1) {
+						throw new ExceptionDBGitRunTime(e1.getMessage());
+					}
+					ConsoleWriter.println("Error while getting portion of data, try " + tryNumber);
+					getTableDataPortion(schema, nameTable, portionIndex, tryNumber++);
+				}
+			} catch (Exception e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+
+			try {
+				getConnection().rollback();
+			} catch (Exception e2) {
+				logger.error(lang.getValue("errors", "adapter", "rollback").toString(), e2);
+			}
+			throw new ExceptionDBGitRunTime(e.getMessage());
+		}
 	}
 }
