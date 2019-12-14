@@ -999,34 +999,188 @@ public class DBAdapterMssql extends DBAdapter {
 		}
 	}
 
-	@Override
-	public Map<String, DBUser> getUsers() {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    @Override
+    public Map<String, DBUser> getUsers() {
+        Map<String, DBUser> listUser = new HashMap<String, DBUser>();
+        try {
+
+			String query =
+				"DECLARE @crlf VARCHAR(2)\n" +
+				"SELECT \n" +
+				"	u.name userName, sp.name loginName, sp.default_database_name databaseName, dp.default_schema_name as schemaName,\n" +
+				"	CASE WHEN sp.is_disabled IS NULL THEN 1 ELSE sp.is_disabled END isDisabledLogin,\n" +
+				"	CASE WHEN sp.name IS NOT NULL THEN 'CREATE LOGIN [' + sp.name + '] WITH PASSWORD = ' \n" +
+				"	+ UPPER(master.dbo.fn_varbintohexstr (CAST(LOGINPROPERTY(sp.name,'PASSWORDHASH') as VARBINARY (256)))) + ' HASHED; ' ELSE '' END \n" +
+				"	+ CASE WHEN sp.is_disabled IS NOT NULL AND sp.is_disabled = 0 AND dr.permission_name IS NOT NULL THEN 'GRANT CONNECT SQL TO [' + sp.name + ']; ' ELSE '' END \n" +
+				"	+ 'CREATE USER [' + u.name + '] ' \n" +
+				"	+ CASE WHEN sp.name IS NOT NULL THEN 'FOR LOGIN [' + sp.name + ']' ELSE '' END\n" +
+				"	+ CASE WHEN dp.default_schema_name IS NOT NULL THEN ' WITH DEFAULT_SCHEMA = [' + dp.default_schema_name + ']' ELSE '' END + ';' \n" +
+				"	AS ddl, \n" +
+				"	UPPER(master.dbo.fn_varbintohexstr (CAST(LOGINPROPERTY(sp.name,'PASSWORDHASH') as VARBINARY (256)))) passwordHash\n" +
+				"FROM sys.sysusers u \n" +
+				"INNER JOIN sys.database_principals dp ON dp.sid = u.sid\n" +
+				"LEFT OUTER JOIN sys.server_principals sp ON sp.sid = u.sid\n" +
+				"LEFT OUTER JOIN sys.database_permissions dr ON dr.grantee_principal_id = dp.principal_id AND dr.permission_name = 'CONNECT'\n" +
+				"WHERE dp.type_desc = 'SQL_USER' AND u.name NOT IN ('dbo','guest') AND u.name NOT LIKE '##MS%'";
+
+			Statement stmt = getConnection().createStatement();
+			ResultSet rs = stmt.executeQuery(query);;
+
+            while(rs.next()){
+                String name = rs.getString(1);
+                DBUser user = new DBUser(name);
+                rowToProperties(rs, user.getOptions());
+                listUser.put(name, user);
+            }
+            stmt.close();
+        }catch(Exception e) {
+            logger.error(lang.getValue("errors", "adapter", "users") + ": " +e.getMessage());
+            throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "users") + ": " + e.getMessage());
+        }
+        return listUser;
+    }
 
 	@Override
 	public Map<String, DBRole> getRoles() {
-		// TODO Auto-generated method stub
-		return null;
+		Map<String, DBRole> listRole = new HashMap<String, DBRole>();
+		try {
+			List<String> expressions = Arrays.asList(
+				"IF OBJECT_ID(N'GetRoleDDL', N'FN') IS NOT NULL DROP FUNCTION GetRoleDDL\n" +
+				"IF OBJECT_ID(N'GetRoleMembersDDL', N'FN') IS NOT NULL DROP FUNCTION GetRoleMembersDDL\n"
+				,
+				"CREATE FUNCTION dbo.GetRoleDDL(@roleName VARCHAR(255))\n" +
+				"RETURNS VARCHAR(MAX)\n" +
+				"BEGIN\n" +
+				"	-- Script out the Role\n" +
+				"	DECLARE @roleDesc VARCHAR(MAX)\n" +
+				"	SET @roleDesc = 'CREATE ROLE [' + @roleName + '];'\n" +
+				"	DECLARE @rolePerm VARCHAR(MAX)\n" +
+				"	SET @rolePerm = ''\n" +
+				"	SELECT    @rolePerm = @rolePerm +\n" +
+				"			CASE dp.state\n" +
+				"				WHEN 'D' THEN 'DENY '\n" +
+				"				WHEN 'G' THEN 'GRANT '\n" +
+				"				WHEN 'R' THEN 'REVOKE '\n" +
+				"				WHEN 'W' THEN 'GRANT '\n" +
+				"			END + \n" +
+				"			dp.permission_name + ' ' +\n" +
+				"			CASE dp.class\n" +
+				"				WHEN 0 THEN ''\n" +
+				"				WHEN 1 THEN --table or column subset on the table\n" +
+				"					CASE WHEN dp.major_id < 0 THEN\n" +
+				"						+ 'ON [sys].[' + OBJECT_NAME(dp.major_id) + '] '\n" +
+				"					ELSE\n" +
+				"						+ 'ON [' +\n" +
+				"						(SELECT SCHEMA_NAME(schema_id) + '].[' + name FROM sys.objects WHERE object_id = dp.major_id)\n" +
+				"							+ -- optionally concatenate column names\n" +
+				"						CASE WHEN MAX(dp.minor_id) > 0 \n" +
+				"							 THEN '] ([' + REPLACE(\n" +
+				"											(SELECT name + '], [' \n" +
+				"											 FROM sys.columns \n" +
+				"											 WHERE object_id = dp.major_id \n" +
+				"												AND column_id IN (SELECT minor_id \n" +
+				"																  FROM sys.database_permissions \n" +
+				"																  WHERE major_id = dp.major_id\n" +
+				"																	AND USER_NAME(grantee_principal_id) IN (@roleName)\n" +
+				"																 )\n" +
+				"											 FOR XML PATH('')\n" +
+				"											) --replace final square bracket pair\n" +
+				"										+ '])', ', []', '')\n" +
+				"							 ELSE ']'\n" +
+				"						END + ' '\n" +
+				"					END\n" +
+				"				WHEN 3 THEN 'ON SCHEMA::[' + SCHEMA_NAME(dp.major_id) + '] '\n" +
+				"				WHEN 4 THEN 'ON ' + (SELECT RIGHT(type_desc, 4) + '::[' + name FROM sys.database_principals WHERE principal_id = dp.major_id) + '] '\n" +
+				"				WHEN 5 THEN 'ON ASSEMBLY::[' + (SELECT name FROM sys.assemblies WHERE assembly_id = dp.major_id) + '] '\n" +
+				"				WHEN 6 THEN 'ON TYPE::[' + (SELECT name FROM sys.types WHERE user_type_id = dp.major_id) + '] '\n" +
+				"				WHEN 10 THEN 'ON XML SCHEMA COLLECTION::[' + (SELECT SCHEMA_NAME(schema_id) + '.' + name FROM sys.xml_schema_collections WHERE xml_collection_id = dp.major_id) + '] '\n" +
+				"				WHEN 15 THEN 'ON MESSAGE TYPE::[' + (SELECT name FROM sys.service_message_types WHERE message_type_id = dp.major_id) + '] '\n" +
+				"				WHEN 16 THEN 'ON CONTRACT::[' + (SELECT name FROM sys.service_contracts WHERE service_contract_id = dp.major_id) + '] '\n" +
+				"				WHEN 17 THEN 'ON SERVICE::[' + (SELECT name FROM sys.services WHERE service_id = dp.major_id) + '] '\n" +
+				"				WHEN 18 THEN 'ON REMOTE SERVICE BINDING::[' + (SELECT name FROM sys.remote_service_bindings WHERE remote_service_binding_id = dp.major_id) + '] '\n" +
+				"				WHEN 19 THEN 'ON ROUTE::[' + (SELECT name FROM sys.routes WHERE route_id = dp.major_id) + '] '\n" +
+				"				WHEN 23 THEN 'ON FULLTEXT CATALOG::[' + (SELECT name FROM sys.fulltext_catalogs WHERE fulltext_catalog_id = dp.major_id) + '] '\n" +
+				"				WHEN 24 THEN 'ON SYMMETRIC KEY::[' + (SELECT name FROM sys.symmetric_keys WHERE symmetric_key_id = dp.major_id) + '] '\n" +
+				"				WHEN 25 THEN 'ON CERTIFICATE::[' + (SELECT name FROM sys.certificates WHERE certificate_id = dp.major_id) + '] '\n" +
+				"				WHEN 26 THEN 'ON ASYMMETRIC KEY::[' + (SELECT name FROM sys.asymmetric_keys WHERE asymmetric_key_id = dp.major_id) + '] '\n" +
+				"			 END COLLATE SQL_Latin1_General_CP1_CI_AS\n" +
+				"			 + 'TO [' + @roleName + ']' + \n" +
+				"			 CASE dp.state WHEN 'W' THEN ' WITH GRANT OPTION' ELSE '' END + ';'\n" +
+				"	FROM    sys.database_permissions dp\n" +
+				"	WHERE    USER_NAME(dp.grantee_principal_id) IN (@roleName)\n" +
+				"	GROUP BY dp.state, dp.major_id, dp.permission_name, dp.class\n" +
+				"	SELECT @roleDesc = @roleDesc + CASE WHEN @rolePerm IS NOT NULL THEN @rolePerm ELSE '' END\n" +
+				"	RETURN @roleDesc\n" +
+				"END \n"
+				,
+				"CREATE FUNCTION dbo.GetRoleMembersDDL(@roleName VARCHAR(255))\n" +
+				"RETURNS VARCHAR(MAX)\n" +
+				"BEGIN\n" +
+				"	-- Script out the Role\n" +
+				"	DECLARE @roleDesc VARCHAR(MAX)\n" +
+				"	SET @roleDesc = ''\n" +
+				"	-- Display users within Role.  Code stubbed by Joe Spivey\n" +
+				"	SELECT	@roleDesc = @roleDesc  + 'EXECUTE sp_AddRoleMember ''' + roles.name + ''', ''' + users.name + ''';' \n" +
+				"	FROM	sys.database_principals users\n" +
+				"	INNER JOIN sys.database_role_members link \n" +
+				"		ON link.member_principal_id = users.principal_id\n" +
+				"	INNER JOIN sys.database_principals roles \n" +
+				"		ON roles.principal_id = link.role_principal_id\n" +
+				"	WHERE roles.name = @roleName\n" +
+				"	RETURN @roleDesc\n" +
+				"END \n"
+			);
+
+			String query =
+				"SELECT \n" +
+				"	dp.name roleName, dp.is_fixed_role isFixedRole,\n" +
+				"	CASE WHEN dp.is_fixed_role = 0 THEN dbo.GetRoleDDL(dp.name) ELSE '' " +
+                "   END roleDDL,\n" +
+				"	dbo.GetRoleMembersDDL(dp.name) membersDDL,\n" +
+				"	CASE WHEN dp.is_fixed_role = 0 " +
+                "       THEN dbo.GetRoleDDL(dp.name) + dbo.GetRoleMembersDDL(dp.name) " +
+                "       ELSE dbo.GetRoleMembersDDL(dp.name) " +
+                "   END ddl\n" +
+				"FROM sys.database_principals dp\n" +
+				"WHERE dp.type = 'R'\n" +
+				"DROP FUNCTION GetRoleDDL\n" +
+				"DROP FUNCTION GetRoleMembersDDL";
+
+			Connection connect = getConnection();
+			Statement stmt = connect.createStatement();
+
+			for(String expr : expressions){
+				stmt.execute(expr);
+			}
+
+			ResultSet rs = stmt.executeQuery(query);
+			while(rs.next()){
+				String name = rs.getString("rolename");
+				DBRole role = new DBRole(name);
+				rowToProperties(rs, role.getOptions());
+				listRole.put(name, role);
+			}
+			stmt.close();
+		}catch(Exception e) {
+			logger.error(lang.getValue("errors", "adapter", "roles") + ": " + e.getMessage());
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "roles") + ": " + e.getMessage());
+		}
+		return listRole;
 	}
 
 	@Override
 	public boolean userHasRightsToGetDdlOfOtherUsers() {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
 	@Override
 	public IFactoryDBBackupAdapter getBackupAdapterFactory() {
-		// TODO Auto-generated method stub
-		return null;
+		return backupFactory;
 	}
 
 	@Override
 	public IFactoryDBConvertAdapter getConvertAdapterFactory() {
-		// TODO Auto-generated method stub
-		return null;
+		return convertFactory;
 	}
 
 	@Override
@@ -1062,7 +1216,7 @@ public class DBAdapterMssql extends DBAdapter {
 	public boolean isReservedWord(String word) {
 		Set<String> reservedWords = new HashSet<>();
 
-		reservedWords.add("DD");
+		reservedWords.add ("DD");
 		reservedWords.add("EXTERNAL");
 		reservedWords.add("PROCEDURE");
 		reservedWords.add("ALL");

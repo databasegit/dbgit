@@ -11,7 +11,6 @@ import ru.fusionsoft.dbgit.adapters.AdapterFactory;
 import ru.fusionsoft.dbgit.core.DBGitConfig;
 import ru.fusionsoft.dbgit.dbobjects.*;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
-
 import java.sql.*;
 import java.util.*;
 
@@ -34,6 +33,7 @@ public class DBAdapterMssqlTest {
     public static String TEST_CONN_STRING = "jdbc:sqlserver://localhost:1433;databaseName=master;integratedSecurity=false;";
     public static String TEST_CONN_USER = "test";
     public static String TEST_CONN_PASS = "test";
+
     private static DBAdapterMssql testAdapter;
     private static Connection testConnection;
     private static boolean isInitialized = false;
@@ -52,7 +52,6 @@ public class DBAdapterMssqlTest {
         if(isInitialized) return;
         try {
             String url = testProps.getProperty("url");
-            testProps.remove("url");
             testConnection = DriverManager.getConnection(url, testProps);
             testConnection.setAutoCommit(false);
             testAdapter = (DBAdapterMssql) AdapterFactory.createAdapter(testConnection);
@@ -301,7 +300,7 @@ public class DBAdapterMssqlTest {
             DBView view = testAdapter.getView("dbo", "testView");
             assertEquals(viewDDl, view.getSql());
 
-            testConnection.createStatement().execute("DROP VIEW dbo.testView;" );
+            testConnection.createStatement().execute("DROP VIEW dbo.testView" );
         }
         catch (Exception ex) {
             fail(ex.toString());
@@ -456,6 +455,109 @@ public class DBAdapterMssqlTest {
             assertEquals(portionSize, rowsAffected);
 
             dropBigDummyTable();
+        }
+        catch (Exception ex) {
+            fail(ex.toString());
+        }
+    }
+
+    @Test
+    public void getUsers() {
+
+        try{
+
+            Statement stmt = testConnection.createStatement();
+
+            String userName = "testUsr";
+            String loginName = "testLgn";
+            String schemaName = "public";
+            String testPassHash = "0X0200083FACBD4D7C49EAD537B1690C3E8953C504461E645D22762CED5D7CB241D87AEC312875BDB83DBD367F10C52CE7B1059056C27B8C16B083FFA97DBA2DF2F142318CCC74";
+            List<String> createUserExprs = Arrays.asList(
+                (
+                    "IF EXISTS (SELECT * FROM sys.database_principals WHERE name = N'["+userName+"]') DROP USER ["+userName+"];" +
+                    "IF EXISTS (SELECT * FROM sys.server_principals WHERE name = N'["+loginName+"]') DROP LOGIN ["+loginName+"];" +
+                    "CREATE LOGIN ["+loginName+"] WITH PASSWORD = "+testPassHash+ " HASHED;" + "GRANT CONNECT SQL TO ["+loginName+"];" +
+                    "CREATE USER ["+userName+"] FOR LOGIN ["+loginName+"] WITH DEFAULT_SCHEMA = ["+schemaName+"];"
+                ).split(";")
+            );
+            String dropUserExpr = "DROP LOGIN ["+loginName+"]; DROP USER ["+userName+"]";
+            for(String expr : createUserExprs) stmt.execute(expr);
+
+            Map<String, DBUser> users = testAdapter.getUsers();
+            assertTrue(users.containsKey(userName));
+
+            String ddl = users.get(userName).getOptions().get("ddl").getData();
+            String hash = users.get(userName).getOptions().get("passwordhash").getData();
+
+            assertTrue(ddl.contains(hash));
+            assertTrue(ddl.contains("GRANT CONNECT"));
+            assertTrue(ddl.contains("WITH DEFAULT_SCHEMA"));
+
+            //try create connection and adapter with new login
+            Properties newUserProps = (Properties) testProps.clone();
+            newUserProps.setProperty("user", loginName);
+
+            Connection conn = DriverManager.getConnection(newUserProps.getProperty("url"), testProps);
+            conn.setAutoCommit(false);
+
+            DBAdapterMssql adapter = (DBAdapterMssql) AdapterFactory.createAdapter(conn);
+            stmt.execute(dropUserExpr);
+            stmt.close();
+        }
+        catch (Exception ex) {
+            fail(ex.toString());
+        }
+    }
+
+    @Test
+    public void getRoles() {
+
+        try{
+
+            Statement stmt = testConnection.createStatement();
+
+            String roleName = "testRol";
+            String userName = "testUsr";
+
+            String createUserExpr =
+                "CREATE USER ["+userName+"] WITHOUT LOGIN;";
+
+            String createRoleExpr =
+                "CREATE ROLE [ROLENAME];" +
+                "GRANT CONTROL ON [dbo].[TestTableTypes] TO [ROLENAME];" +
+                "GRANT DELETE ON [dbo].[TestTableTypes] TO [ROLENAME];" +
+                "GRANT INSERT ON [dbo].[TestTableTypes] TO [ROLENAME];" +
+                "GRANT TAKE OWNERSHIP ON [dbo].[TestTableTypes] TO [ROLENAME];" +
+                "EXECUTE sp_AddRoleMember '"+roleName+"', '"+userName+"';";
+
+            createRoleExpr = createRoleExpr.replace("[ROLENAME]", "["+roleName+"]");
+
+            String dropRoleExpr = "IF EXISTS (SELECT * FROM sys.database_principals WHERE name = N'"+roleName+"') DROP ROLE ["+roleName+"];";
+            String dropUserExpr = "IF EXISTS (SELECT * FROM sys.database_principals WHERE name = N'"+userName+"') DROP USER ["+userName+"];";
+
+            //create script exec
+            ArrayList<String> exprs = new ArrayList<>();
+            exprs.add(dropUserExpr);
+            exprs.add(dropRoleExpr);
+            exprs.add(createUserExpr);
+            exprs.addAll(Arrays.asList(createRoleExpr.split(";")));
+
+            for(String expr : exprs) {
+                stmt.execute(expr);
+            }
+
+
+            //has role test
+            Map<String, DBRole> roles = testAdapter.getRoles();
+            assertTrue(roles.containsKey(roleName));
+
+            //correct ddl test
+            String ddl = roles.get(roleName).getOptions().get("ddl").getData();
+            assertEquals(createRoleExpr, ddl);
+
+            stmt.execute(dropUserExpr);
+            stmt.execute(dropRoleExpr);
+            stmt.close();
         }
         catch (Exception ex) {
             fail(ex.toString());
