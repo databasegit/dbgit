@@ -8,6 +8,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import ru.fusionsoft.dbgit.adapters.AdapterFactory;
+import ru.fusionsoft.dbgit.adapters.IFactoryDBConvertAdapter;
 import ru.fusionsoft.dbgit.core.DBGitConfig;
 import ru.fusionsoft.dbgit.dbobjects.*;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
@@ -584,6 +585,20 @@ public class DBAdapterMssqlTest {
 
 
     }
+
+    @Test
+    public void getDbType(){
+        String type = testAdapter.getDbType();
+        assertFalse(type.isEmpty());
+        assertEquals(IFactoryDBConvertAdapter.MSSQL, type);
+    }
+
+    @Test
+    public void getDbVersion(){
+        String version = testAdapter.getDbVersion();
+        assertFalse(version.isEmpty());
+    }
+
 
     public DBAdapterMssql createAdapterWithCredentials(String username, String password, String url) throws Exception{
         Properties props = new Properties();

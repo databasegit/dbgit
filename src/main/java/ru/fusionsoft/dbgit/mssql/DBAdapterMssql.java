@@ -1202,15 +1202,27 @@ public class DBAdapterMssql extends DBAdapter {
 
 	@Override
 	public String getDbType() {
-		// TODO Auto-generated method stub
-		return null;
+		return IFactoryDBConvertAdapter.MSSQL;
 	}
 
-	@Override
-	public String getDbVersion() {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    @Override
+    public String getDbVersion() {
+        try {
+            Statement stmt = getConnection().createStatement();
+
+            //Gives 8.00, 9.00, 10.00 and 10.50 for SQL 2000, 2005, 2008 and 2008R2 respectively.
+            String query = "SELECT left(cast(serverproperty('productversion') as varchar), 4)";
+
+            ResultSet resultSet = stmt.executeQuery(query);
+            resultSet.next();
+            String result = resultSet.getString(1);
+
+            resultSet.close();
+            stmt.close();
+            return result;
+
+        } catch (SQLException e) { return "";}
+    }
 
 	@Override
 	public void createSchemaIfNeed(String schemaName) throws ExceptionDBGit {
