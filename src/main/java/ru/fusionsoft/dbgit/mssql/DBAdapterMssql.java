@@ -1170,7 +1170,24 @@ public class DBAdapterMssql extends DBAdapter {
 
 	@Override
 	public boolean userHasRightsToGetDdlOfOtherUsers() {
-		return false;
+	    try{
+
+            Connection connect = getConnection();
+            Statement stmt = connect.createStatement();
+            ResultSet rs = stmt.executeQuery(
+            "SELECT CASE WHEN EXISTS " +
+                "(SELECT * FROM fn_my_permissions(NULL, 'DATABASE') WHERE permission_name LIKE '%DEFINITION%') " +
+                "THEN 1 ELSE 0 END hasRights;"
+            );
+            rs.next();
+            boolean hasRights = rs.getBoolean(1);
+            stmt.close();
+            return hasRights;
+
+        }catch(Exception e) {
+            logger.error(lang.getValue("errors", "adapter", "roles") + ": " + e.getMessage());
+            throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "roles") + ": " + e.getMessage());
+        }
 	}
 
 	@Override
