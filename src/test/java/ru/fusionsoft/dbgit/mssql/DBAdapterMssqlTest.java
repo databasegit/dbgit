@@ -3,6 +3,7 @@ package ru.fusionsoft.dbgit.mssql;
 import com.google.common.collect.Lists;
 
 import com.microsoft.sqlserver.jdbc.SQLServerException;
+import org.apache.commons.lang.time.StopWatch;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -12,6 +13,8 @@ import ru.fusionsoft.dbgit.adapters.IFactoryDBConvertAdapter;
 import ru.fusionsoft.dbgit.core.DBGitConfig;
 import ru.fusionsoft.dbgit.dbobjects.*;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
+import ru.fusionsoft.dbgit.utils.StringProperties;
+
 import java.sql.*;
 import java.util.*;
 
@@ -31,13 +34,16 @@ public class DBAdapterMssqlTest {
     *  Protocols -> SQL EXPRESS protocols -> Protocol -> Listen all to true and
     *  Protocols -> SQL EXPRESS protocols -> Protocol -> IP adresses -> IPAll -> TCP Port to 1433 and Dynamic TCP Port to blank
     * */
-    public static String TEST_CONN_STRING = "jdbc:sqlserver://localhost:1433;databaseName=master;integratedSecurity=false;";
+
+    public static String TEST_CONN_URL = "localhost:1433";
+    public static String TEST_CONN_STRING = "jdbc:sqlserver://"+TEST_CONN_URL+";databaseName=master;integratedSecurity=false;";
     public static String TEST_CONN_USER = "test";
     public static String TEST_CONN_PASS = "test";
 
     private static DBAdapterMssql testAdapter;
     private static Connection testConnection;
     private static boolean isInitialized = false;
+    private static boolean isMasterDatabase;
 
     static{
         testProps = new Properties();
@@ -56,6 +62,7 @@ public class DBAdapterMssqlTest {
             testConnection = DriverManager.getConnection(url, testProps);
             testConnection.setAutoCommit(false);
             testAdapter = (DBAdapterMssql) AdapterFactory.createAdapter(testConnection);
+            isMasterDatabase = testConnection.getCatalog().equalsIgnoreCase("master");
             isInitialized = true;
         }
         catch (Exception ex){
@@ -418,12 +425,15 @@ public class DBAdapterMssqlTest {
     public void getTableData() {
 
         try{
+            StopWatch watch = new StopWatch();
+            watch.start();
             createTestObjects();
+
 
             DBTableData data = testAdapter.getTableData("dbo", "ExecutableTest");
             ResultSet rs = data.getResultSet();
             ResultSetMetaData md = rs.getMetaData();
-            int cols = rs.getMetaData().getColumnCount();
+            int cols = md.getColumnCount();
             rs.next();
 
             assertEquals(2, cols);
@@ -431,6 +441,8 @@ public class DBAdapterMssqlTest {
             assertEquals("Hey, I have some!", rs.getString(2));
 
             dropTestObjects();
+
+            System.out.println(watch.toString());
         }
         catch (Exception ex) {
             fail(ex.toString());
@@ -497,6 +509,7 @@ public class DBAdapterMssqlTest {
         }
         catch (Exception ex) {
             fail(ex.toString());
+
         }
     }
 
@@ -561,28 +574,39 @@ public class DBAdapterMssqlTest {
 
     @Test
     public void userHasRightsToGetDdlOfOtherUsers() throws Exception{
-        String publicUserName = "testUsrPublic";
-        String publicLoginName = "testLgnPublic";
-        String password = "test";
-        String dboUserName = "testUsrDbo";
-        String dboLoginName = "testLgnDbo";
+        try{
 
-        createUserAndLogin(publicUserName, publicLoginName,"public", password, false);
-        createUserAndLogin(dboUserName, dboLoginName,"dbo", password, false);
-        addToRole(dboUserName, "db_owner");
+            if(trySetMasterCatalog() && getIsDbOwner()) {
+                String publicUserName = "testUsrPublic";
+                String publicLoginName = "testLgnPublic";
+                String password = "test";
+                String dboUserName = "testUsrDbo";
+                String dboLoginName = "testLgnDbo";
 
-        DBAdapterMssql publicAdapter = createAdapterWithCredentials(publicLoginName, password, TEST_CONN_STRING);
-        DBAdapterMssql dboAdapter = createAdapterWithCredentials(dboLoginName, password, TEST_CONN_STRING);
+                createUserAndLogin(publicUserName, publicLoginName, "public", password, false);
+                createUserAndLogin(dboUserName, dboLoginName, "dbo", password, false);
+                addToRole(dboUserName, "db_owner");
 
-        boolean publicHasRights = publicAdapter.userHasRightsToGetDdlOfOtherUsers();
-        boolean dboHasRights = dboAdapter.userHasRightsToGetDdlOfOtherUsers();
+                DBAdapterMssql publicAdapter = createAdapterWithCredentials(publicLoginName, password, TEST_CONN_STRING);
+                DBAdapterMssql dboAdapter = createAdapterWithCredentials(dboLoginName, password, TEST_CONN_STRING);
 
-        publicAdapter.getConnection().close();
-        dboAdapter.getConnection().close();
+                boolean publicHasRights = publicAdapter.userHasRightsToGetDdlOfOtherUsers();
+                boolean dboHasRights = dboAdapter.userHasRightsToGetDdlOfOtherUsers();
 
-        assertEquals(false, publicHasRights);
-        assertEquals(true, dboHasRights);
+                publicAdapter.getConnection().close();
+                dboAdapter.getConnection().close();
 
+                assertFalse(publicHasRights);
+                assertTrue(dboHasRights);
+            } else {
+                System.out.println("Could not create test data, just try for not throwing exception");
+            }
+            testAdapter.userHasRightsToGetDdlOfOtherUsers();
+
+        }
+        catch (Exception e){
+            System.out.println(e.getMessage());
+        }
 
     }
 
@@ -599,6 +623,87 @@ public class DBAdapterMssqlTest {
         assertFalse(version.isEmpty());
     }
 
+    @Test
+    public void createSchemaIfNeed() throws Exception{
+        String schemaName = "TESTSCHEMA";
+
+        testAdapter.createSchemaIfNeed(schemaName);
+        assertTrue(testAdapter.getSchemes().containsKey(schemaName));
+
+        dropSchema(schemaName);
+        assertFalse(testAdapter.getSchemes().containsKey(schemaName));
+
+    }
+
+    @Test
+    public void createRoleIfNeed() throws Exception{
+        String roleName = "TESTROLETEST";
+
+        testAdapter.createRoleIfNeed(roleName);
+        assertTrue(testAdapter.getRoles().containsKey(roleName));
+
+        dropRole(roleName);
+        assertFalse(testAdapter.getRoles().containsKey(roleName));
+
+    }
+
+    @Test
+    public void getDefaultScheme() throws Exception{
+        String schemaName = testAdapter.getDefaultScheme();
+        assertNotEquals("", schemaName);
+
+    }
+
+    @Test
+    public void isReservedWord(){
+        assertTrue(testAdapter.isReservedWord("NOT"));
+        assertTrue(testAdapter.isReservedWord("nOt"));
+        assertTrue(testAdapter.isReservedWord("CASE WHEN"));
+        assertTrue(testAdapter.isReservedWord("END-EXEC"));
+        assertTrue(testAdapter.isReservedWord("PERCENTILE_DISC"));
+    }
+
+
+    public boolean trySetMasterCatalog(){
+        try {
+            if (!isMasterDatabase) {
+                testConnection.setCatalog("master");
+            }
+            return true;
+        } catch (Exception e){
+            System.out.println("Could not switch to master database");
+            return false;
+        }
+    }
+
+    public boolean getIsDbOwner() throws Exception{
+        Statement stmt = testConnection.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT IS_ROLEMEMBER ('db_owner') ");
+
+        rs.next();
+        boolean isDbo = rs.getBoolean(1);
+
+        stmt.close();
+        return isDbo;
+    }
+
+    public void dropSchema(String schemaName) throws Exception{
+        Statement stmt = testConnection.createStatement();
+        stmt.execute(
+        "IF EXISTS ( SELECT  * FROM sys.schemas WHERE name = N'"+schemaName+"' )\n" +
+            "DROP SCHEMA ["+schemaName+"];"
+        );
+        stmt.close();
+    }
+
+    public void dropRole(String roleName) throws Exception{
+        Statement stmt = testConnection.createStatement();
+        stmt.execute(
+        "IF EXISTS (SELECT 1 FROM sys.database_principals WHERE name='"+roleName+"' AND Type = 'R')" +
+            "DROP ROLE ["+roleName+"];"
+        );
+        stmt.close();
+    }
 
     public DBAdapterMssql createAdapterWithCredentials(String username, String password, String url) throws Exception{
         Properties props = new Properties();
@@ -670,6 +775,8 @@ public class DBAdapterMssqlTest {
             ? "tempdb.." + san.substring(1)
             : san;
     }
+
+    //
 
     public void createBigDummyTable() throws Exception{
 

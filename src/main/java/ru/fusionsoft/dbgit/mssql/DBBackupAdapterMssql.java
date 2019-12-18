@@ -225,20 +225,11 @@ public class DBBackupAdapterMssql extends DBBackupAdapter {
 	@Override
 	public boolean createSchema(StatementLogging stLog, String schema) {
 		try {
-			Statement st = 	adapter.getConnection().createStatement();
 
-			// TODO MSSQL createSchema script
-			ResultSet rs = st.executeQuery("select count(*) cnt from information_schema.schemata where upper(schema_name) = '" +
-					PREFIX + schema.toUpperCase() + "'");
-
-			rs.next();
-			if (rs.getInt("cnt") == 0) {
+			if (!adapter.getSchemes().containsKey(schema)) {
 				ConsoleWriter.detailsPrintLn(lang.getValue("general", "backup", "creatingSchema").withParams(PREFIX + schema));
 				stLog.execute("create schema " + PREFIX + schema);
 			}
-
-			rs.close();
-			st.close();
 
 			return true;
 		} catch (SQLException e) {
