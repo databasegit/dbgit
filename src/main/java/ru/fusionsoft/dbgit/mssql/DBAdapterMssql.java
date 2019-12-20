@@ -1,6 +1,5 @@
 package ru.fusionsoft.dbgit.mssql;
 
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import ru.fusionsoft.dbgit.adapters.DBAdapter;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBAdapterRestoteMetaData;
@@ -22,7 +21,7 @@ import java.util.concurrent.TimeUnit;
 
 
 public class DBAdapterMssql extends DBAdapter {
-	public static final String DEFAULT_MAPPING_TYPE = "VARCHAR2";
+	public static final String DEFAULT_MAPPING_TYPE = "varchar";
 	private static final HashSet<String> systemSchemas = new HashSet<>(Arrays.asList(
 			"db_denydatawriter",
 			"db_datawriter",
@@ -286,15 +285,14 @@ public class DBAdapterMssql extends DBAdapter {
 	@Override
 	public DBTable getTable(String schema, String name) {
         DBTable table = null;
-        try {
+        try(Statement stmt = getConnection().createStatement()) {
             String query =
 				"SELECT TABLE_NAME as 'name', TABLE_CATALOG as 'database', TABLE_SCHEMA as 'schema'\n" +
 				"FROM INFORMATION_SCHEMA.TABLES \n" +
 				"WHERE INFORMATION_SCHEMA.TABLES.TABLE_SCHEMA = '" + schema + "'\n" +
 				"AND INFORMATION_SCHEMA.TABLES.TABLE_TYPE = 'BASE TABLE'\n" +
 				"AND INFORMATION_SCHEMA.TABLES.TABLE_NAME = '" + name + "'\n";
-            Connection connect = getConnection();
-            Statement stmt = connect.createStatement();
+
             ResultSet rs = stmt.executeQuery(query);
 
             while(rs.next()){
@@ -303,7 +301,6 @@ public class DBAdapterMssql extends DBAdapter {
                 table.setSchema(schema);
                 rowToProperties(rs, table.getOptions());
             }
-            stmt.close();
             return table;
         }catch(Exception e) {
             logger.error(lang.getValue("errors", "adapter", "tables").toString(), e);
@@ -314,7 +311,7 @@ public class DBAdapterMssql extends DBAdapter {
 	@Override
 	public Map<String, DBTableField> getTableFields(String schema, String nameTable) {
 		Map<String, DBTableField> listField = new HashMap<>();
-		try {
+		try(Statement stmt = getConnection().createStatement()) {
 			String query =
 				"SELECT DISTINCT\n" +
 				"	c.TABLE_SCHEMA as schemaName,\n" +
@@ -343,15 +340,12 @@ public class DBAdapterMssql extends DBAdapter {
 				"	c.NUMERIC_PRECISION as precision\n" +
 				"FROM INFORMATION_SCHEMA.COLUMNS as c\n" +
 				"WHERE TABLE_SCHEMA = '" +  schema +  "' AND TABLE_NAME = '" + nameTable + "'";
-			Connection connect = getConnection();
-			Statement stmt = connect.createStatement();
-			ResultSet rs = stmt.executeQuery(query);
 
+			ResultSet rs = stmt.executeQuery(query);
 			while(rs.next()){
 				DBTableField field = DBTableFieldFromRs(rs);
 				listField.put(field.getName(), field);
 			}
-			stmt.close();
 			return listField;
 		}catch(Exception e) {
 			logger.error(lang.getValue("errors", "adapter", "tables").toString(), e);
@@ -407,7 +401,7 @@ public class DBAdapterMssql extends DBAdapter {
 	@Override
 	public Map<String, DBIndex> getIndexes(String schema, String nameTable) {
 		Map<String, DBIndex> indexes = new HashMap<>();
-		try {
+		try (Statement stmt = getConnection().createStatement()){
 			String query =
 					"    SELECT DB_NAME() AS databaseName,\n" +
 					"    sc.name as schemaName, \n" +
@@ -518,9 +512,7 @@ public class DBAdapterMssql extends DBAdapter {
 					"AND upper(t.name) = upper('" + nameTable + "') AND upper(sc.name) = upper('" + schema + "')" +
 					"OPTION (RECOMPILE);";
 
-			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
-
 			while(rs.next()){
 				DBIndex index = new DBIndex();
 				index.setName(rs.getString("indexName"));
@@ -528,7 +520,6 @@ public class DBAdapterMssql extends DBAdapter {
 				rowToProperties(rs, index.getOptions());
 				indexes.put(index.getName(), index);
 			}
-			stmt.close();
 
 			return indexes;
 
@@ -617,7 +608,7 @@ public class DBAdapterMssql extends DBAdapter {
     @Override
     public Map<String, DBView> getViews(String schema) {
         Map<String, DBView> listView = new HashMap<String, DBView>();
-        try {
+        try (Statement stmt = getConnection().createStatement()){
             String query =
                 "SELECT \n" +
                 "	sp.name as ownerName, sp.type_desc as ownerType, ss.name AS schemaName, sv.name AS viewName, sm.definition as ddl, \n" +
@@ -629,8 +620,6 @@ public class DBAdapterMssql extends DBAdapter {
                 "LEFT OUTER JOIN sys.sql_modules sm on sv.object_id = sm.object_id\n" +
                 "LEFT OUTER JOIN sys.database_principals sp on sv.principal_id = sp.principal_id";
 
-            Connection connect = getConnection();
-            Statement stmt = connect.createStatement();
             ResultSet rs = stmt.executeQuery(query);
             while(rs.next()){
                 DBView view = new DBView(rs.getString("viewName"));
@@ -639,7 +628,6 @@ public class DBAdapterMssql extends DBAdapter {
                 rowToProperties(rs, view.getOptions());
                 listView.put(rs.getString("viewName"), view);
             }
-            stmt.close();
             return listView;
         }catch(Exception e) {
             logger.error(lang.getValue("errors", "adapter", "views") + ": "+ e.getMessage());
@@ -673,7 +661,7 @@ public class DBAdapterMssql extends DBAdapter {
 	@Override
 	public Map<String, DBProcedure> getProcedures(String schema) {
 		Map<String, DBProcedure> listProcedure = new HashMap<String, DBProcedure>();
-		try {
+		try (Statement stmt = getConnection().createStatement()){
 			String query =
 				"SELECT s.name schemaName, o.name procedureName, o.type_desc as typeName, definition ddl, USER_NAME(so.uid) AS owner \n" +
 				"FROM sys.sql_modules m\n" +
@@ -684,8 +672,7 @@ public class DBAdapterMssql extends DBAdapter {
 				"JOIN sys.schemas s ON s.schema_id = o.schema_id\n" +
 				"JOIN sysobjects so on o.object_id = so.id\n" +
 				"WHERE s.name = '" + schema + "'\n";
-			Connection connect = getConnection();
-			Statement stmt = connect.createStatement();
+
 			ResultSet rs = stmt.executeQuery(query);
 			while(rs.next()){
 				String name = rs.getString("procedureName");
@@ -706,7 +693,7 @@ public class DBAdapterMssql extends DBAdapter {
 
 	@Override
 	public DBProcedure getProcedure(String schema, String name) {
-		try {
+		try (Statement stmt = getConnection().createStatement()){
 			String query =
 				"SELECT s.name schemaName, o.name procedureName, o.type_desc as typeName, definition ddl, USER_NAME(so.uid) AS owner \n" +
 				"FROM sys.sql_modules m\n" +
@@ -717,8 +704,6 @@ public class DBAdapterMssql extends DBAdapter {
 				"JOIN sys.schemas s ON s.schema_id = o.schema_id\n" +
 				"JOIN sysobjects so on o.object_id = so.id \n" +
 				"WHERE s.name = '" + schema + "' AND o.name = '" + name + "'";
-			Connection connect = getConnection();
-			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
 			DBProcedure proc = null;
 
@@ -741,7 +726,7 @@ public class DBAdapterMssql extends DBAdapter {
 	@Override
 	public Map<String, DBFunction> getFunctions(String schema) {
 		Map<String, DBFunction> listFunction = new HashMap<>();
-		try {
+		try (Statement stmt = getConnection().createStatement()){
 			String query =
 				"SELECT ss.name schemaName, o.name functionName, type_desc typeName, definition ddl, USER_NAME(so.uid) owner \n" +
 				"FROM sys.sql_modules m \n" +
@@ -750,8 +735,6 @@ public class DBAdapterMssql extends DBAdapter {
 				"INNER JOIN sys.schemas ss ON ss.schema_id = o.schema_id\n" +
 				"WHERE type_desc like '%function%' AND ss.name = '" + schema + "'\n";
 
-			Connection connect = getConnection();
-			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
 			while(rs.next()){
 				String name = rs.getString("functionName");
@@ -763,7 +746,6 @@ public class DBAdapterMssql extends DBAdapter {
 
 				listFunction.put(name, func);
 			}
-			stmt.close();
 		}catch(Exception e) {
 			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "fnc").toString(), e);
 		}
@@ -772,7 +754,7 @@ public class DBAdapterMssql extends DBAdapter {
 
 	@Override
 	public DBFunction getFunction(String schema, String name) {
-		try {
+		try (Statement stmt = getConnection().createStatement()){
 			String query =
                     "SELECT ss.name schemaName, o.name functionName, type_desc typeName, definition ddl, USER_NAME(so.uid) owner \n" +
                     "FROM sys.sql_modules m \n" +
@@ -780,11 +762,9 @@ public class DBAdapterMssql extends DBAdapter {
                     "INNER JOIN sysobjects so ON m.object_id = so.id\n" +
                     "INNER JOIN sys.schemas ss ON ss.schema_id = o.schema_id\n" +
                     "WHERE type_desc like '%function%' AND ss.name = '" + schema + "' AND o.name = '" + name + "'\n";
-			Connection connect = getConnection();
-			Statement stmt = connect.createStatement();
-			ResultSet rs = stmt.executeQuery(query);
-			DBFunction func = null;
 
+			DBFunction func = null;
+			ResultSet rs = stmt.executeQuery(query);
 			while (rs.next()) {
 				func = new DBFunction(rs.getString("functionName"));
 				String owner = rs.getString("owner");
@@ -792,8 +772,6 @@ public class DBAdapterMssql extends DBAdapter {
 				func.setOwner(owner);
 				rowToProperties(rs,func.getOptions());
 			}
-			stmt.close();
-
 			return func;
 
 		}catch(Exception e) {
@@ -806,7 +784,7 @@ public class DBAdapterMssql extends DBAdapter {
 
 	public Map<String, DBTrigger> getTriggers(String schema) {
 		Map<String, DBTrigger> listTrigger = new HashMap<String, DBTrigger>();
-		try {
+		try (Statement stmt = getConnection().createStatement()){
 			String query =
 				"SELECT \n" +
 				"   s.name schemaName, \n" +
@@ -821,9 +799,6 @@ public class DBAdapterMssql extends DBAdapter {
 				"INNER JOIN sys.sql_modules m ON m.object_id = o.id\n" +
 				"WHERE o.type = 'TR' AND s.name = '" + schema + "'\n";
 
-			Connection connect = getConnection();
-			Statement stmt = connect.createStatement();
-
 			ResultSet rs = stmt.executeQuery(query);
 			while(rs.next()){
 				String name = rs.getString("triggerName");
@@ -837,7 +812,6 @@ public class DBAdapterMssql extends DBAdapter {
 				rowToProperties(rs, trigger.getOptions());
 				listTrigger.put(name, trigger);
 			}
-			stmt.close();
 			return listTrigger;
 		}catch(Exception e) {
 			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "triggers").toString(), e);
@@ -846,7 +820,7 @@ public class DBAdapterMssql extends DBAdapter {
 
 	public DBTrigger getTrigger(String schema, String name) {
 		DBTrigger trigger = null;
-		try {
+		try (Statement stmt = getConnection().createStatement()){
 			String query =
 				"SELECT \n" +
 				"   s.name schemaName, \n" +
@@ -860,9 +834,8 @@ public class DBAdapterMssql extends DBAdapter {
 				"INNER JOIN sys.schemas s ON t.schema_id = s.schema_id \n" +
 				"INNER JOIN sys.sql_modules m ON m.object_id = o.id\n" +
 				"WHERE o.type = 'TR' AND s.name = '" + schema + "' AND o.name = '" + name + "'\n";
-			Statement stmt = connect.createStatement();
-			ResultSet rs = stmt.executeQuery(query);
 
+			ResultSet rs = stmt.executeQuery(query);
 			while(rs.next()){
 				String tname = rs.getString("triggerName");
 				String owner = rs.getString("owner");
@@ -871,7 +844,6 @@ public class DBAdapterMssql extends DBAdapter {
 				trigger.setOwner(owner);
 				rowToProperties(rs, trigger.getOptions());
 			}
-			stmt.close();
 			return trigger;
 		}catch(Exception e) {
 			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "triggers").toString(), e);
@@ -881,8 +853,8 @@ public class DBAdapterMssql extends DBAdapter {
     @Override
     public DBTableData getTableData(String schema, String nameTable) {
         try {
+			Statement stmt = getConnection().createStatement();
             DBTableData data = new DBTableData();
-			Statement st = connect.createStatement();
 
 			int maxRowsCount = DBGitConfig.getInstance().getInteger(
 				"core",
@@ -907,7 +879,7 @@ public class DBAdapterMssql extends DBAdapter {
                     "WHERE TBL.name = '"+nameTable+"' AND S.name = '"+schema+"' AND IDX.index_id < 2\n" +
                     "GROUP BY TBL.object_id, TBL.name";
 
-                ResultSet rs = st.executeQuery(query);
+                ResultSet rs = stmt.executeQuery(query);
                 rs.next();
                 if (rs.getInt("rowsCount") > maxRowsCount) {
                     data.setErrorFlag(DBTableData.ERROR_LIMIT_ROWS);
@@ -915,7 +887,7 @@ public class DBAdapterMssql extends DBAdapter {
                 }
             }
 
-            ResultSet rs = st.executeQuery("SELECT * FROM [" + schema + "].[" + nameTable + "]");
+            ResultSet rs = stmt.executeQuery("SELECT * FROM [" + schema + "].[" + nameTable + "]");
             data.setResultSet(rs);
             return data;
 
@@ -935,8 +907,7 @@ public class DBAdapterMssql extends DBAdapter {
 		DBTableData data = new DBTableData();
 
 		try {
-			Statement st = getConnection().createStatement();
-
+			Statement stmt = getConnection().createStatement();
 			int portionSize = DBGitConfig.getInstance().getInteger( "core", "PORTION_SIZE",
 					DBGitConfig.getInstance().getIntegerGlobal("core", "PORTION_SIZE", 1000)
 			);
@@ -955,7 +926,7 @@ public class DBAdapterMssql extends DBAdapter {
 			);
 			*/
 
-			ResultSet rs = st.executeQuery( "SELECT * " +
+			ResultSet rs = stmt.executeQuery( "SELECT * " +
 				"FROM "+ schema + "." + nameTable + " " +
 				"ORDER BY (SELECT NULL) " +
 				"OFFSET " + portionSize*portionIndex + " ROWS " +

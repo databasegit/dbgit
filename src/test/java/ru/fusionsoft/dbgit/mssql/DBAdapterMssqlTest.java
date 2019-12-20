@@ -12,6 +12,9 @@ import ru.fusionsoft.dbgit.adapters.AdapterFactory;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBConvertAdapter;
 import ru.fusionsoft.dbgit.core.DBGitConfig;
 import ru.fusionsoft.dbgit.dbobjects.*;
+import ru.fusionsoft.dbgit.meta.IMetaObject;
+import ru.fusionsoft.dbgit.meta.MetaTable;
+import ru.fusionsoft.dbgit.oracle.DBBackupAdapterOracle;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 import ru.fusionsoft.dbgit.utils.StringProperties;
 
@@ -89,8 +92,8 @@ public class DBAdapterMssqlTest {
 
     @Test
     public void getSequences() {
-        try{
-            testConnection.createStatement().execute(
+        try(Statement stmt = testConnection.createStatement()){
+            stmt.execute(
                 "IF EXISTS (SELECT * FROM sys.sequences WHERE NAME = N'TEST_SEQUENCE' AND TYPE='SO')\n" +
                 "DROP Sequence TEST_SEQUENCE\n" +
                 "CREATE SEQUENCE TEST_SEQUENCE\n" +
@@ -111,18 +114,18 @@ public class DBAdapterMssqlTest {
     @Test
     public void getSequence() {
         String name = "TEST_SEQUENCE";
-        try{
-            testConnection.createStatement().execute(
-                    "IF EXISTS (SELECT * FROM sys.sequences WHERE NAME = N'" + name + "' AND TYPE='SO')\n" +
-                            "DROP Sequence " + name + "\n" +
-                            "CREATE Sequence " + name + "\n" +
-                            "START WITH 1\n" +
-                            "INCREMENT BY 1;\n"
+        try(Statement stmt = testConnection.createStatement()){
+            stmt.execute(
+            "IF EXISTS (SELECT * FROM sys.sequences WHERE NAME = N'" + name + "' AND TYPE='SO')\n" +
+                "DROP Sequence " + name + "\n" +
+                "CREATE Sequence " + name + "\n" +
+                "START WITH 1\n" +
+                "INCREMENT BY 1;\n"
             );
 
             DBSequence sequence = testAdapter.getSequence("dbo", name);
             assertEquals(name, sequence.getOptions().get("name").getData());
-            testConnection.createStatement().execute("DROP Sequence " + name + "\n");
+            stmt.execute("DROP Sequence " + name + "\n");
         }
         catch (Exception ex) {
             fail(ex.toString());
@@ -131,39 +134,33 @@ public class DBAdapterMssqlTest {
     }
 
     @Test
-    public void getTables() {
+    public void getTables() throws Exception{
         String name = "TEST_TABLE";
+        String schema = testConnection.getSchema();
+        String sam = schema + "." + name;
+
         try{
-            testConnection.createStatement().execute(
-                    "IF OBJECT_ID('dbo.Scores', 'U') IS NOT NULL \n" +
-                        "DROP TABLE dbo." + name + "\n" +
-                        "CREATE TABLE " + name + "\n(" +
-                            "PersonID int,\n" +
-                            "LastName varchar(255),\n" +
-                            "FirstName varchar(255),\n" +
-                            "Address varchar(255),\n" +
-                            "City varchar(255)\n" +
-                            "); "
+            createTable(sam,
+             "PersonID int, LastName varchar(255), FirstName varchar(255), Address varchar(255), City varchar(255) "
             );
 
-            Map<String, DBTable> tables = testAdapter.getTables("dbo");
-            assertEquals(name, tables.get("TEST_TABLE").getOptions().get("name").getData());
-            testConnection.createStatement().execute("DROP TABLE dbo." + name + "\n" );
-        }
-        catch (Exception ex) {
+            Map<String, DBTable> tables = testAdapter.getTables(schema);
+            assertEquals(name, tables.get(name).getOptions().get("name").getData());
+            dropTable(sam);
+        } catch (Exception ex) {
             fail(ex.toString());
+        } finally {
+            dropTable( schema + "." + name);
         }
 
     }
 
     @Test
-    public void getTableFields() {
+    public void getTableFields() throws Exception{
         String name = "TestTableTypes";
+        String schema = testConnection.getSchema();
         try{
-            testConnection.createStatement().execute(
-            "IF OBJECT_ID('dbo."+ name + "', 'U') IS NOT NULL \n" +
-                "DROP TABLE dbo." + name + "\n" +
-                "CREATE TABLE [dbo].[TestTableTypes](\n" +
+            createTable(name,
                 "	[col1] [nchar](10) NULL,\n" +
                 "	[col2] [ntext] NULL,\n" +
                 "	[col3] [numeric](18, 0) NULL,\n" +
@@ -183,20 +180,71 @@ public class DBAdapterMssqlTest {
                 "	[col17] [varbinary](max) NULL,\n" +
                 "	[col18] [varchar](50) NULL,\n" +
                 "	[col19] [varchar](max) NULL,\n" +
-                "	[col20] [xml] NULL\n" +
-                ") ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]"
+                "	[col20] [xml] NULL\n"
             );
 
-            Map<String, DBTableField> fields = testAdapter.getTableFields("dbo", "TestTableTypes");
+            Map<String, DBTableField> fields = testAdapter.getTableFields(schema, name);
             assertEquals("sql_variant(0)", fields.get("col10").getTypeSQL());
             assertEquals("native", fields.get("col10").getTypeUniversal());
 
-            testConnection.createStatement().execute("DROP TABLE dbo." + name + "\n" );
+            dropTable(schema + "." + name);
         }
         catch (Exception ex) {
             fail(ex.toString());
         }
 
+    }
+
+    @Test
+    public void getTableData() {
+
+        try{
+            StopWatch watch = new StopWatch();
+            watch.start();
+            createTestObjects();
+
+            DBTableData data = testAdapter.getTableData("dbo", "ExecutableTest");
+            ResultSet rs = data.getResultSet();
+            ResultSetMetaData md = rs.getMetaData();
+            int cols = md.getColumnCount();
+            rs.next();
+
+            assertEquals(2, cols);
+            assertEquals(1, rs.getInt(1));
+            assertEquals("Hey, I have some!", rs.getString(2));
+
+            dropTestObjects();
+
+            System.out.println(watch.toString());
+        }
+        catch (Exception ex) {
+            fail(ex.toString());
+        }
+    }
+
+    @Test
+    public void getTableDataPortion() {
+
+        try{
+            createBigDummyTable();
+
+            int rowsAffected = 0;
+            int portionSize = DBGitConfig.getInstance().getInteger( "core", "PORTION_SIZE",
+                    DBGitConfig.getInstance().getIntegerGlobal("core", "PORTION_SIZE", 1000)
+            );
+
+            DBTableData data = testAdapter.getTableDataPortion("tempdb.", "#bigDummyTable", 2, 0);
+            ResultSet rs = data.getResultSet();
+            while (rs.next()) rowsAffected++;
+
+
+            assertEquals(portionSize, rowsAffected);
+
+            dropBigDummyTable();
+        }
+        catch (Exception ex) {
+            fail(ex.toString());
+        }
     }
 
     @Test
@@ -415,59 +463,6 @@ public class DBAdapterMssqlTest {
 
 
             dropTestObjects();
-        }
-        catch (Exception ex) {
-            fail(ex.toString());
-        }
-    }
-
-    @Test
-    public void getTableData() {
-
-        try{
-            StopWatch watch = new StopWatch();
-            watch.start();
-            createTestObjects();
-
-
-            DBTableData data = testAdapter.getTableData("dbo", "ExecutableTest");
-            ResultSet rs = data.getResultSet();
-            ResultSetMetaData md = rs.getMetaData();
-            int cols = md.getColumnCount();
-            rs.next();
-
-            assertEquals(2, cols);
-            assertEquals(1, rs.getInt(1));
-            assertEquals("Hey, I have some!", rs.getString(2));
-
-            dropTestObjects();
-
-            System.out.println(watch.toString());
-        }
-        catch (Exception ex) {
-            fail(ex.toString());
-        }
-    }
-
-    @Test
-    public void getTableDataPortion() {
-
-        try{
-            createBigDummyTable();
-
-            int rowsAffected = 0;
-            int portionSize = DBGitConfig.getInstance().getInteger( "core", "PORTION_SIZE",
-                    DBGitConfig.getInstance().getIntegerGlobal("core", "PORTION_SIZE", 1000)
-            );
-
-            DBTableData data = testAdapter.getTableDataPortion("tempdb.", "#bigDummyTable", 2, 0);
-            ResultSet rs = data.getResultSet();
-            while (rs.next()) rowsAffected++;
-
-
-            assertEquals(portionSize, rowsAffected);
-
-            dropBigDummyTable();
         }
         catch (Exception ex) {
             fail(ex.toString());
@@ -755,12 +750,14 @@ public class DBAdapterMssqlTest {
     }
 
     public void createTable(String schemaAndName, String fieldsExpr) throws Exception{
-        Statement stmt = testConnection.createStatement();
-        String name = convertSchemaAndName(schemaAndName);
 
-        stmt.execute("IF OBJECT_ID('"+name+"', 'U') IS NOT NULL DROP TABLE " + name);
-        stmt.execute("CREATE TABLE "+schemaAndName+"( " +fieldsExpr+" ) ON [PRIMARY]\n");
-        stmt.close();
+        try (Statement stmt = testConnection.createStatement()){
+            String name = convertSchemaAndName(schemaAndName);
+            stmt.execute("IF OBJECT_ID('"+name+"', 'U') IS NOT NULL DROP TABLE " + name);
+            stmt.execute("CREATE TABLE "+schemaAndName+"( " +fieldsExpr+" ) ON [PRIMARY]\n");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     public void dropTable(String schemaAndName) throws Exception{
@@ -776,7 +773,7 @@ public class DBAdapterMssqlTest {
             : san;
     }
 
-    //
+    //entire sets
 
     public void createBigDummyTable() throws Exception{
 
