@@ -7,7 +7,7 @@
 Windows, macOS, Linux
 
 #### Supported databases
-Oracle, PostgreSQL
+Oracle, PostgreSQL, MSSQL (In progress)
 
 #### Release Notes
 [CHANGELOG](https://github.com/databasegit/dbgit/blob/master/CHANGELOG.md)
