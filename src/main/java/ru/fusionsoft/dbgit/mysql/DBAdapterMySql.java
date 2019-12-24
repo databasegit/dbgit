@@ -24,6 +24,8 @@ import ru.fusionsoft.dbgit.core.DBGitConfig;
 import ru.fusionsoft.dbgit.core.DBGitLang;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
+import ru.fusionsoft.dbgit.core.db.DbType;
+import ru.fusionsoft.dbgit.core.db.FieldType;
 import ru.fusionsoft.dbgit.data_table.DateData;
 import ru.fusionsoft.dbgit.data_table.FactoryCellData;
 import ru.fusionsoft.dbgit.data_table.LongData;
@@ -50,23 +52,11 @@ import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 import ru.fusionsoft.dbgit.utils.LoggerUtil;
 
 public class DBAdapterMySql extends DBAdapter {
-
 	private Logger logger = LoggerUtil.getLogger(this.getClass());
 	
-	public static final String DEFAULT_MAPPING_TYPE = "string";
 	private FactoryDBAdapterRestoreMySql restoreFactory = new FactoryDBAdapterRestoreMySql();
 	private FactoryDBConvertAdapterMySql convertFactory = new FactoryDBConvertAdapterMySql();
 	private FactoryDBBackupAdapterMySql backupFactory = new FactoryDBBackupAdapterMySql();
-	
-	public void registryMappingTypes() {
-		FactoryCellData.regMappingTypes(DEFAULT_MAPPING_TYPE, StringData.class);		
-		FactoryCellData.regMappingTypes("string", StringData.class);
-		FactoryCellData.regMappingTypes("number", LongData.class);
-		FactoryCellData.regMappingTypes("binary", MapFileData.class);
-		FactoryCellData.regMappingTypes("date", DateData.class);
-		FactoryCellData.regMappingTypes("native", StringData.class);
-
-	}
 
 	@Override
 	public IFactoryDBAdapterRestoteMetaData getFactoryRestore() {
@@ -246,8 +236,7 @@ public class DBAdapterMySql extends DBAdapter {
                 String typeSQL = getFieldType(rs);
 				field.setTypeSQL(typeSQL);
                 field.setIsNullable( !typeSQL.toLowerCase().contains("not null"));
-				field.setTypeMapping(getTypeMapping(rs));
-				field.setTypeUniversal(rs.getString("tp"));
+				field.setTypeUniversal(FieldType.fromString(rs.getString("tp")));
 				field.setFixed(false);
 				field.setLength(rs.getInt("character_maximum_length"));
 				field.setPrecision(rs.getInt("numeric_precision"));
@@ -544,8 +533,8 @@ public class DBAdapterMySql extends DBAdapter {
 	}
 
 	@Override
-	public String getDbType() {
-		return "mysql";
+	public DbType getDbType() {
+		return DbType.MYSQL;
 	}
 
 	@Override
@@ -593,14 +582,6 @@ public class DBAdapterMySql extends DBAdapter {
 
 	}
 
-	protected String getTypeMapping(ResultSet rs) throws SQLException {
-		String tp = rs.getString("tp");
-		if (FactoryCellData.contains(tp) ) 
-			return tp;
-		
-		return DEFAULT_MAPPING_TYPE;
-	}
-	
 	protected String getFieldType(ResultSet rs) {
 		try {
 			StringBuilder type = new StringBuilder(); 

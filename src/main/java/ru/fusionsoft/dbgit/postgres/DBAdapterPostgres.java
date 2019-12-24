@@ -21,6 +21,8 @@ import ru.fusionsoft.dbgit.core.DBGitConfig;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitObjectNotFound;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
+import ru.fusionsoft.dbgit.core.db.DbType;
+import ru.fusionsoft.dbgit.core.db.FieldType;
 import ru.fusionsoft.dbgit.data_table.MapFileData;
 import ru.fusionsoft.dbgit.data_table.BooleanData;
 import ru.fusionsoft.dbgit.data_table.DateData;
@@ -55,25 +57,11 @@ import com.axiomalaska.jdbc.NamedParameterPreparedStatement;
 
 
 public class DBAdapterPostgres extends DBAdapter {
-	public static final String DEFAULT_MAPPING_TYPE = "string";
-
 	private Logger logger = LoggerUtil.getLogger(this.getClass());
 	private FactoryDBAdapterRestorePostgres restoreFactory = new FactoryDBAdapterRestorePostgres();
 	private FactoryDbConvertAdapterPostgres convertFactory = new FactoryDbConvertAdapterPostgres();	
 	private FactoryDBBackupAdapterPostgres backupFactory = new FactoryDBBackupAdapterPostgres();
 
-	public void registryMappingTypes() {
-		FactoryCellData.regMappingTypes(DEFAULT_MAPPING_TYPE, StringData.class);		
-		FactoryCellData.regMappingTypes("string", StringData.class);
-		FactoryCellData.regMappingTypes("number", LongData.class);
-		FactoryCellData.regMappingTypes("binary", MapFileData.class);
-		FactoryCellData.regMappingTypes("text", TextFileData.class);
-		FactoryCellData.regMappingTypes("date", DateData.class);
-		FactoryCellData.regMappingTypes("native", StringData.class);
-		FactoryCellData.regMappingTypes("boolean", BooleanData.class);
-
-	}
-	
 	@Override
 	public IFactoryDBAdapterRestoteMetaData getFactoryRestore() {
 		return restoreFactory;
@@ -317,8 +305,7 @@ public class DBAdapterPostgres extends DBAdapter {
 				String typeSQL = getFieldType(rs);
 				field.setTypeSQL(typeSQL);
 				field.setIsNullable( !typeSQL.toLowerCase().contains("not null"));
-				field.setTypeMapping(getTypeMapping(rs));
-				field.setTypeUniversal(rs.getString("tp"));
+				field.setTypeUniversal(FieldType.valueOf(rs.getString("tp")));
 				field.setFixed(false);
 				field.setLength(rs.getInt("character_maximum_length"));
 				field.setPrecision(rs.getInt("numeric_precision"));
@@ -335,16 +322,7 @@ public class DBAdapterPostgres extends DBAdapter {
 			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "tables").toString(), e);
 		}		
 	}
-	
-	protected String getTypeMapping(ResultSet rs) throws SQLException {
-		//String tp = rs.getString("data_type");
-		String tp = rs.getString("tp");
-		if (FactoryCellData.contains(tp) ) 
-			return tp;
-		
-		return DEFAULT_MAPPING_TYPE;
-	}
-	
+
 	protected String getFieldType(ResultSet rs) {
 		try {
 			StringBuilder type = new StringBuilder(); 
@@ -794,8 +772,8 @@ public class DBAdapterPostgres extends DBAdapter {
 	}
 	
 	@Override
-	public String getDbType() {
-		return "postgresql";
+	public DbType getDbType() {
+		return DbType.POSTGRES;
 	}
 	
 	@Override

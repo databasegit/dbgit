@@ -6,6 +6,7 @@ import java.util.Map;
 
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.SchemaSynonym;
+import ru.fusionsoft.dbgit.core.db.DbType;
 import ru.fusionsoft.dbgit.dbobjects.DBConstraint;
 import ru.fusionsoft.dbgit.dbobjects.DBFunction;
 import ru.fusionsoft.dbgit.dbobjects.DBIndex;
@@ -213,7 +214,7 @@ public class DBAdapterProxy implements IDBAdapter {
 	}
 
 	@Override
-	public String getDbType() {
+	public DbType getDbType() {
 		return adapter.getDbType();
 	}
 	

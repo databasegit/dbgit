@@ -15,6 +15,7 @@ import ru.fusionsoft.dbgit.core.DBGit;
 import ru.fusionsoft.dbgit.core.DBGitPath;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
+import ru.fusionsoft.dbgit.core.db.DbType;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 import ru.fusionsoft.dbgit.yaml.DBGitYamlConstructor;
 import ru.fusionsoft.dbgit.yaml.DBGitYamlRepresenter;
@@ -31,7 +32,7 @@ public abstract class MetaBase implements IMetaObject {
 	protected String name;
 	
 	@YamlOrder(1)
-	protected String dbType;
+	protected DbType dbType;
 	
 	@YamlOrder(1)
 	protected String dbVersion;
@@ -42,12 +43,12 @@ public abstract class MetaBase implements IMetaObject {
 	}
 	
 	@Override
-	public void setDbType(String dbType) {
+	public void setDbType(DbType dbType) {
 		this.dbType = dbType;		
 	}
 	
 	@Override
-	public String getDbType() {
+	public DbType getDbType() {
 		return dbType;
 	}
 	

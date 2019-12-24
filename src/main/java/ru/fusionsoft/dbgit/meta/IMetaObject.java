@@ -9,6 +9,7 @@ import java.io.OutputStream;
 
 import ru.fusionsoft.dbgit.core.DBGitPath;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
+import ru.fusionsoft.dbgit.core.db.DbType;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
 /**
@@ -46,9 +47,9 @@ public interface IMetaObject {
 	
 	public void setName(String name) throws ExceptionDBGit;
 	
-	public String getDbType ();
+	public DbType getDbType();
 	
-	public void setDbType(String dbType);
+	public void setDbType(DbType dbType);
 	
 	public String getDbVersion();
 	

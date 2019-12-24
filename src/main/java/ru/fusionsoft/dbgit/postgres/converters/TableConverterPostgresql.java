@@ -6,6 +6,7 @@ import java.util.regex.Pattern;
 import ru.fusionsoft.dbgit.adapters.IDBConvertAdapter;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBConvertAdapter;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
+import ru.fusionsoft.dbgit.core.db.DbType;
 import ru.fusionsoft.dbgit.dbobjects.DBConstraint;
 import ru.fusionsoft.dbgit.dbobjects.DBIndex;
 import ru.fusionsoft.dbgit.dbobjects.DBTableField;
@@ -16,9 +17,9 @@ import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 public class TableConverterPostgresql implements IDBConvertAdapter {
 
 	@Override
-	public IMetaObject convert(String dbType, String dbVersion, IMetaObject obj) throws ExceptionDBGit {
-
-		if (dbType.equals(obj.getDbType()))
+	public IMetaObject convert(DbType dbType, String dbVersion, IMetaObject obj) throws ExceptionDBGit {
+		DbType objDbType = obj.getDbType();
+		if (dbType == objDbType)
 			return obj;
 		
 		if (obj instanceof MetaTable) {
@@ -28,20 +29,18 @@ public class TableConverterPostgresql implements IDBConvertAdapter {
 			ConsoleWriter.println("Processing table " + table.getName());
 					
 			//types
-			for (DBTableField field : table.getFields().values()) {
-				if (obj.getDbType().equals(IFactoryDBConvertAdapter.ORACLE))
-					field.setTypeSQL(typeFromOracle(field));
-			}
+			for (DBTableField field : table.getFields().values())
+				field.setTypeSQL(typeFromAnotherDB(objDbType, field));
 			
 			//indexes
 			for (DBIndex index : table.getIndexes().values()) {
-				if (obj.getDbType().equals(IFactoryDBConvertAdapter.ORACLE))	
+				if (objDbType == DbType.ORACLE)
 					index.getOptions().get("ddl").setData(indexFromOracle(index));				
 			}
 
 			//constraints
 			for (DBConstraint constraint : table.getConstraints().values()) {
-				if (obj.getDbType().equals(IFactoryDBConvertAdapter.ORACLE))
+				if (objDbType == DbType.ORACLE)
 					constraint.getOptions().get("ddl").setData(constraintFromOracle(constraint));
 			}
 			
@@ -49,7 +48,7 @@ public class TableConverterPostgresql implements IDBConvertAdapter {
 			throw new ExceptionDBGit("Cannot convert " + obj.getName());
 		}		
 		
-		obj.setDbType(IFactoryDBConvertAdapter.POSTGRES);
+		obj.setDbType(DbType.POSTGRES);
 		
 		return obj;
 	}
@@ -73,55 +72,35 @@ public class TableConverterPostgresql implements IDBConvertAdapter {
 			}
 	}
 	
-	private String typeFromOracle(DBTableField field) {
-		ConsoleWriter.println("Converting table field " + field.getName() + " from oracle to postgresql...");
-
+	private String typeFromAnotherDB(DbType dbType, DBTableField field) {
+		ConsoleWriter.println("Converting table field " + field.getName() + " from " + dbType.toString().toLowerCase() + " to postgresql...");
 		String result = "";
-		
 		switch (field.getTypeUniversal()) {
-			case ("string"): {				
+			case STRING:
 				if (field.getFixed())
 					result = "character";
 				else
 					result = "character varying";
+
 				if (field.getLength() > 0)
 					result += "(" + field.getLength() + ")";
-				
 				break;
-			}
-			
-			case ("number"): {
+			case NUMBER:
 				result = "numeric";
 				break;
-			}
-			
-			case ("date"): {
+			case DATE:
 				result = "timestamp without time zone";
 				break;
-			}
-			
-			case("binary"): {
+			case BINARY:
 				result = "bytea";
 				break;
-			}
-			
-			case("text"): {
+			case TEXT:
 				result = "text";
 				break;
-			}
-			
-			case ("unknown"): {
+			case NATIVE:
 				result = "native";
 				break;
-			}
-			
-			default: {
-				result = "def_" + field.getTypeUniversal();
-				break;
-			}
-
 		}
-		
 		return result;
 	}
 }
