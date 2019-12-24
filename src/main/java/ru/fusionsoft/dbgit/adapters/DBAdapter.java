@@ -20,6 +20,8 @@ import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRestore;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
 import ru.fusionsoft.dbgit.core.SchemaSynonym;
+import ru.fusionsoft.dbgit.core.db.FieldType;
+import ru.fusionsoft.dbgit.data_table.*;
 import ru.fusionsoft.dbgit.dbobjects.DBSequence;
 import ru.fusionsoft.dbgit.dbobjects.DBTableField;
 import ru.fusionsoft.dbgit.meta.DBGitMetaType;
@@ -45,7 +47,7 @@ public abstract class DBAdapter implements IDBAdapter {
 	protected Boolean isExec = true;
 	protected OutputStream streamSql = null;	
 	protected DBGitLang lang = DBGitLang.getInstance();
-	
+
 	@Override
 	public void setConnection(Connection conn) {
 		connect = conn;
@@ -300,5 +302,15 @@ public abstract class DBAdapter implements IDBAdapter {
 		else if (obj instanceof MetaSequence)
 			return ((MetaSequence) obj).getSequence().getOptions().get("owner").getData();
 		else return null;		
+	}
+
+	public void registryMappingTypes() {
+		FactoryCellData.regMappingTypes(FieldType.BINARY, MapFileData.class);
+		FactoryCellData.regMappingTypes(FieldType.BOOLEAN, BooleanData.class);
+		FactoryCellData.regMappingTypes(FieldType.DATE, DateData.class);
+		FactoryCellData.regMappingTypes(FieldType.NATIVE, StringData.class);
+		FactoryCellData.regMappingTypes(FieldType.NUMBER, LongData.class);
+		FactoryCellData.regMappingTypes(FieldType.STRING, StringData.class);
+		FactoryCellData.regMappingTypes(FieldType.TEXT, TextFileData.class);
 	}
 }

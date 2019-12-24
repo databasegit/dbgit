@@ -1,13 +1,13 @@
 package ru.fusionsoft.dbgit.dbobjects;
 
+import ru.fusionsoft.dbgit.core.db.FieldType;
 import ru.fusionsoft.dbgit.utils.CalcHash;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
 public class DBTableField implements IDBObject, Comparable<DBTableField> {
 	private String name;
 	private String typeSQL;
-	private String typeMapping;
-	private String typeUniversal;
+	private FieldType typeUniversal;
 	private int length;
 	private int scale;
 	private int precision;
@@ -34,11 +34,11 @@ public class DBTableField implements IDBObject, Comparable<DBTableField> {
 		return ch.calcHashStr();
 	}
 	
-	public void setTypeUniversal(String typeUniversal) {
+	public void setTypeUniversal(FieldType typeUniversal) {
 		this.typeUniversal = typeUniversal;
 	}
 	
-	public String getTypeUniversal() {
+	public FieldType getTypeUniversal() {
 		return typeUniversal;
 	}
 	
@@ -90,14 +90,6 @@ public class DBTableField implements IDBObject, Comparable<DBTableField> {
 		this.typeSQL = typeSQL;
 	}
 
-	public String getTypeMappingName() {
-		return typeMapping;
-	}
-
-	public void setTypeMapping(String typeMapping) {
-		this.typeMapping = typeMapping;
-	}
-	
 	public void setOrder(Integer order) {
 		this.order = order;
 	}

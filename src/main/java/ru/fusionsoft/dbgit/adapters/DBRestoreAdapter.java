@@ -5,6 +5,7 @@ import java.sql.Connection;
 import ru.fusionsoft.dbgit.core.DBGitLang;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.SchemaSynonym;
+import ru.fusionsoft.dbgit.core.db.DbType;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
 
 /**
@@ -26,8 +27,7 @@ public abstract class DBRestoreAdapter implements IDBAdapterRestoreMetaData {
 		return adapter;
 	}
 	
-	public String getSourceDbType(IMetaObject obj) {		
-		
+	public DbType getSourceDbType(IMetaObject obj) {
 		return obj.getDbType();
 	}
 	

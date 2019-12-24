@@ -12,6 +12,7 @@ import ru.fusionsoft.dbgit.adapters.IDBAdapter;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRestore;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
 import ru.fusionsoft.dbgit.core.SchemaSynonym;
+import ru.fusionsoft.dbgit.core.db.FieldType;
 import ru.fusionsoft.dbgit.dbobjects.DBConstraint;
 import ru.fusionsoft.dbgit.dbobjects.DBIndex;
 import ru.fusionsoft.dbgit.dbobjects.DBOptionsObject;
@@ -145,7 +146,7 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 									}
 																	
 									if(!tblField.leftValue().getTypeSQL().equals(tblField.rightValue().getTypeSQL())
-											&& !tblField.rightValue().getTypeUniversal().contains("boolean")) {
+											&& tblField.rightValue().getTypeUniversal() != FieldType.BOOLEAN) {
 										st.execute("alter table "+ tblName +" alter column "+ tblField.leftValue().getName() +" type "+ tblField.leftValue().getTypeSQL().replace("NOT NULL", ""));
 										if (tblField.leftValue().getTypeSQL().contains("NOT NULL")) {
 											st.execute("alter table " + tblName + " alter column " + tblField.leftValue().getName() + " set not null");

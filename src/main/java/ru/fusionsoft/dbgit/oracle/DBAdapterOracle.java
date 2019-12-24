@@ -22,6 +22,8 @@ import ru.fusionsoft.dbgit.core.DBGitConfig;
 import ru.fusionsoft.dbgit.core.DBGitLang;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
+import ru.fusionsoft.dbgit.core.db.DbType;
+import ru.fusionsoft.dbgit.core.db.FieldType;
 import ru.fusionsoft.dbgit.data_table.BooleanData;
 import ru.fusionsoft.dbgit.data_table.DateData;
 import ru.fusionsoft.dbgit.data_table.FactoryCellData;
@@ -55,8 +57,6 @@ import org.slf4j.Logger;
 
 
 public class DBAdapterOracle extends DBAdapter {
-	public static final String DEFAULT_MAPPING_TYPE = "VARCHAR2";
-	
 	private Logger logger = LoggerUtil.getLogger(this.getClass());
 	private FactoryDBAdapterRestoreOracle restoreFactory = new FactoryDBAdapterRestoreOracle();	
 	private FactoryDbConvertAdapterOracle convertFactory = new FactoryDbConvertAdapterOracle();
@@ -64,17 +64,6 @@ public class DBAdapterOracle extends DBAdapter {
 
 	private String s;
 
-	public void registryMappingTypes() {
-		FactoryCellData.regMappingTypes(DEFAULT_MAPPING_TYPE, StringData.class);
-		FactoryCellData.regMappingTypes("number", LongData.class);
-		FactoryCellData.regMappingTypes("date", DateData.class);
-		FactoryCellData.regMappingTypes("string", StringData.class);
-		FactoryCellData.regMappingTypes("binary", MapFileData.class);
-		FactoryCellData.regMappingTypes("text", TextFileData.class);
-		FactoryCellData.regMappingTypes("native", StringData.class);
-		FactoryCellData.regMappingTypes("boolean", BooleanData.class);
-	}
-	
 	@Override
 	public IFactoryDBAdapterRestoteMetaData getFactoryRestore() {
 		return restoreFactory;
@@ -317,8 +306,7 @@ public class DBAdapterOracle extends DBAdapter {
 					field.setIsPrimaryKey(true);
 				}
 				field.setTypeSQL(getFieldType(rs));
-				field.setTypeMapping(getTypeMapping(rs));
-				field.setTypeUniversal(rs.getString("TYPE"));
+				field.setTypeUniversal(FieldType.fromString(rs.getString("TYPE")));
 				field.setLength(rs.getInt("DATA_LENGTH"));
 				field.setScale(rs.getInt("DATA_SCALE"));
 				field.setPrecision(rs.getInt("DATA_PRECISION"));
@@ -336,15 +324,6 @@ public class DBAdapterOracle extends DBAdapter {
 		}		
 	}
 
-	protected String getTypeMapping(ResultSet rs) throws SQLException {
-		//String tp = rs.getString("DATA_TYPE");
-		String tp = rs.getString("type");
-		if (FactoryCellData.contains(tp) ) 
-			return tp;
-		
-		return DEFAULT_MAPPING_TYPE;
-	}
-	
 	protected String getFieldType(ResultSet rs) {
 		try {
 			StringBuilder type = new StringBuilder(); 
@@ -861,8 +840,8 @@ public class DBAdapterOracle extends DBAdapter {
 	}
 
 	@Override
-	public String getDbType() {
-		return "oracle";
+	public DbType getDbType() {
+		return DbType.ORACLE;
 	}
 	
 	@Override
