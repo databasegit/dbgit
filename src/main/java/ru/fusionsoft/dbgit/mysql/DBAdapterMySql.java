@@ -49,7 +49,10 @@ import ru.fusionsoft.dbgit.utils.LoggerUtil;
 
 public class DBAdapterMySql extends DBAdapter {
 	private Logger logger = LoggerUtil.getLogger(this.getClass());
-	private FactoryDbConvertAdapterMySql convertFactory = new FactoryDbConvertAdapterMySql();
+	
+	private FactoryDBRestoreAdapterMySql restoreFactory = new FactoryDBRestoreAdapterMySql();
+	private FactoryDBConvertAdapterMySql convertFactory = new FactoryDBConvertAdapterMySql();
+	private FactoryDBBackupAdapterMySql backupFactory = new FactoryDBBackupAdapterMySql();
 
 	@Override
 	public IFactoryDBAdapterRestoteMetaData getFactoryRestore() {
@@ -227,7 +230,9 @@ public class DBAdapterMySql extends DBAdapter {
 				if (rs.getString("constraint_name") != null) { 
 					field.setIsPrimaryKey(true);
 				}
-				field.setTypeSQL(getFieldType(rs));
+                String typeSQL = getFieldType(rs);
+				field.setTypeSQL(typeSQL);
+                field.setIsNullable( !typeSQL.toLowerCase().contains("not null"));
 				field.setTypeUniversal(FieldType.fromString(rs.getString("tp")));
 				field.setFixed(false);
 				field.setLength(rs.getInt("character_maximum_length"));

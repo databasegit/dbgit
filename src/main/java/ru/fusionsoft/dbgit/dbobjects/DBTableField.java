@@ -13,7 +13,7 @@ public class DBTableField implements IDBObject, Comparable<DBTableField> {
 	private int precision;
 	private boolean fixed;
 	private Integer order = 0;
-	
+	private boolean isNullable = true;
 	private Boolean isPrimaryKey = false;
 
 	public Boolean getIsPrimaryKey() {
@@ -33,7 +33,11 @@ public class DBTableField implements IDBObject, Comparable<DBTableField> {
 
 		return ch.calcHashStr();
 	}
-	
+
+	public Boolean getIsNullable() { return isNullable; }
+
+	public void setIsNullable(Boolean isNullable) { this.isNullable = isNullable; }
+
 	public void setTypeUniversal(FieldType typeUniversal) {
 		this.typeUniversal = typeUniversal;
 	}
