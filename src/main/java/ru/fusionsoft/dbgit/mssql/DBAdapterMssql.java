@@ -209,10 +209,12 @@ public class DBAdapterMssql extends DBAdapter {
         try {
             Connection connect = getConnection();
             String query =
-                "select user_name(objectproperty(sys.sequences.object_id,'OwnerId')) as owner, sys.sequences.* " +
-                "from sys.objects, sys.SEQUENCES\n" +
-                "where sys.objects.object_id = sys.sequences.object_id\n" +
-                "AND user_name(objectproperty(sys.sequences.object_id,'OwnerId')) = '" + schema + "'";
+                "SELECT seq.*,\n" +
+                "TYPE_NAME(seq.system_type_id) as typeName,\n" +
+                "SCHEMA_NAME(seq.schema_id) as owner \n" +
+                "FROM sys.objects, sys.SEQUENCES seq \n" +
+                "WHERE sys.objects.object_id = seq.object_id \n" +
+                "AND SCHEMA_NAME(seq.schema_id) = '"+schema+"'";
 
             Statement stmt = connect.createStatement();
             ResultSet rs = stmt.executeQuery(query);
@@ -233,11 +235,15 @@ public class DBAdapterMssql extends DBAdapter {
         try {
             Connection connect = getConnection();
             String query =
-				"select user_name(objectproperty(sys.sequences.object_id,'OwnerId')) as owner, sys.sequences.* " +
-				"from sys.objects, sys.SEQUENCES\n" +
-				"where sys.objects.object_id = sys.sequences.object_id\n" +
-				"AND user_name(objectproperty(sys.sequences.object_id,'OwnerId')) = '" + schema + "'\n" +
-				"AND sys.sequences.name = '" + name + "'\n";
+                "SELECT seq.*,\n" +
+                "USER_NAME(objectproperty(seq.object_id,'OwnerId')) as owner,\n" +
+                "TYPE_NAME(seq.system_type_id) as typeName, " +
+                "SCHEMA_NAME(seq.schema_id) as schemaName " +
+                "FROM sys.objects, sys.SEQUENCES seq " +
+                "WHERE sys.objects.object_id = seq.object_id " +
+                "AND SCHEMA_NAME(seq.schema_id) = '"+schema+"' " +
+                "AND seq.name = '" + name + "'\n";
+
             Statement stmt = connect.createStatement();
             ResultSet rs = stmt.executeQuery(query);
 
@@ -287,16 +293,18 @@ public class DBAdapterMssql extends DBAdapter {
         DBTable table = null;
         try(Statement stmt = getConnection().createStatement()) {
             String query =
-				"SELECT TABLE_NAME as 'name', TABLE_CATALOG as 'database', TABLE_SCHEMA as 'schema'\n" +
-				"FROM INFORMATION_SCHEMA.TABLES \n" +
-				"WHERE INFORMATION_SCHEMA.TABLES.TABLE_SCHEMA = '" + schema + "'\n" +
-				"AND INFORMATION_SCHEMA.TABLES.TABLE_TYPE = 'BASE TABLE'\n" +
-				"AND INFORMATION_SCHEMA.TABLES.TABLE_NAME = '" + name + "'\n";
+				"SELECT\n" +
+                "	o.name tableName, t.TABLE_SCHEMA schemaName, t.TABLE_CATALOG catalogName,\n" +
+                "	CASE WHEN o.principal_id is NOT NULL THEN (SELECT name FROM sys.database_principals dp WHERE dp.principal_id=o.principal_id)\n" +
+                "	ELSE (SELECT dp.name FROM sys.database_principals dp,sys.schemas s WHERE s.schema_id=o.schema_id and s.principal_id=dp.principal_id)\n" +
+                "	END as owner\n" +
+                "FROM sys.objects o, INFORMATION_SCHEMA.TABLES t\n" +
+                "WHERE o.type='U' AND o.name = t.TABLE_NAME AND t.TABLE_NAME = '"+name+"' AND t.TABLE_SCHEMA = '"+schema+"'";
 
             ResultSet rs = stmt.executeQuery(query);
 
             while(rs.next()){
-                String nameTable = rs.getString("name");
+                String nameTable = rs.getString("tableName");
                 table = new DBTable(nameTable);
                 table.setSchema(schema);
                 rowToProperties(rs, table.getOptions());
@@ -327,11 +335,11 @@ public class DBAdapterMssql extends DBAdapter {
 				"		when lower(c.DATA_TYPE) in ('timestamp', 'binary', 'varbinary', 'geometry', 'geography') then 'binary'\n" +
 				"		else 'native'\n" +
 				"		end dbgitType,\n" +
-				"	CASE WHEN ( \n" +
+				"	CASE WHEN 1 IN ( \n" +
 				"		SELECT OBJECTPROPERTY(OBJECT_ID(CONSTRAINT_SCHEMA + '.' + QUOTENAME(CONSTRAINT_NAME)),'IsPrimaryKey')\n" +
 				"		FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE\n" +
 				"		WHERE c.COLUMN_NAME = COLUMN_NAME AND c.TABLE_NAME = TABLE_NAME\n" +
-				"	) = 1\n" +
+				"	)\n" +
 				"	THEN 1 ELSE 0 END isPk,\n" +
 				"	c.IS_NULLABLE as isNullable,\n" +
 				"	c.NUMERIC_SCALE as scale,\n" +
@@ -1339,4 +1347,5 @@ public class DBAdapterMssql extends DBAdapter {
 		}
 		return false;
 	}
+
 }

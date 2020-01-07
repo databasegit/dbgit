@@ -13,13 +13,17 @@ import ru.fusionsoft.dbgit.meta.MetaSql;
 import ru.fusionsoft.dbgit.meta.MetaTable;
 import ru.fusionsoft.dbgit.statement.StatementLogging;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
+import ru.fusionsoft.dbgit.utils.StringProperties;
 
 import java.io.File;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.text.MessageFormat;
+import java.util.Objects;
 
+@SuppressWarnings("Duplicates")
 public class DBBackupAdapterMssql extends DBBackupAdapter {
 
 	@Override
@@ -43,13 +47,12 @@ public class DBBackupAdapterMssql extends DBBackupAdapter {
 
 				ConsoleWriter.detailsPrint(lang.getValue("general", "backup", "tryingToCopy").withParams(objectName, getFullDbName(schema, objectName)), 1);
 
-				// TODO MSSQL backup MetaSql script
-				//dropIfExists(isSaveToSchema() ? PREFIX + schema : schema,
-				//		isSaveToSchema() ? objectName : PREFIX + objectName, stLog);
+				dropIfExists(
+					isSaveToSchema() ? PREFIX + schema : schema,
+					isSaveToSchema() ? objectName : PREFIX + objectName, stLog
+				);
 
 				ddl = ddl.replace(schema + "." + objectName, getFullDbName(schema, objectName));
-
-				//ddl += "alter table "+ tableName + " owner to "+ metaTable.getTable().getOptions().get("tableowner").getData()+";\n";
 
 				stLog.execute(ddl);
 
@@ -58,16 +61,19 @@ public class DBBackupAdapterMssql extends DBBackupAdapter {
 					obj = metaSql.loadFromFile();
 
 				ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
-			} else if (obj instanceof MetaTable) {
+			}
+			else if (obj instanceof MetaTable) {
 
 				MetaTable metaTable = (MetaTable) obj;
 				metaTable.loadFromDB();
 				String objectName = metaTable.getTable().getName();
 				String schema = metaTable.getTable().getSchema();
 				schema = (SchemaSynonym.getInstance().getSchema(schema) == null) ? schema : SchemaSynonym.getInstance().getSchema(schema);
-				String tableName = getFullDbName(schema, objectName);
+				String tableSam = getFullDbName(schema, objectName);
+                String origTableName = schema + "." + objectName;
 
-				if(!isExists(schema, objectName)) {
+
+                if(!isExists(schema, objectName)) {
 					File file = new File(DBGitPath.getFullPath() + metaTable.getFileName());
 					if (file.exists())
 						obj = metaTable.loadFromFile();
@@ -85,33 +91,37 @@ public class DBBackupAdapterMssql extends DBBackupAdapter {
 
 				String ddl = "";
 				if (isToSaveData()) {
-					// TODO MSSQL backup MetaTable script
-					ddl = "create table " + tableName + " as (select * from " + schema + "." + objectName + ")" +
-							(metaTable.getTable().getOptions().getChildren().containsKey("tablespace") ?
-									" tablespace " + metaTable.getTable().getOptions().get("tablespace").getData() : "") +";\n";
-					ddl += "alter table "+ tableName + " owner to "+ metaTable.getTable().getOptions().get("owner").getData()+";\n";
-				} else {
+				    // Fields + data
+					ddl = "create table " + tableSam + " as (select * from " + schema + "." + objectName + ")" +";\n";
 
-					ddl ="create table " + tableName + "() " +
-							(metaTable.getTable().getOptions().getChildren().containsKey("tablespace") ?
-									" tablespace " + metaTable.getTable().getOptions().get("tablespace").getData() : "") +";\n";
-					ddl += "alter table "+ tableName + " owner to "+ metaTable.getTable().getOptions().get("tableowner").getData()+";\n";
-
-
+					// Schema
+					ddl += "alter schema "+ adapter.getDefaultScheme() + " transfer "+ tableSam + ";\n";
+                } else {
+				    // Fields
+					ddl ="create table " + tableSam + "(";
 					for (DBTableField field : metaTable.getFields().values()) {
-						ddl += "alter table " + tableName + " add " + field.getName() + " " + field.getTypeSQL() + ";\n";
+						ddl += MessageFormat.format("\n[{0}] {1},", field.getName(), field.getTypeSQL());
 					}
+					ddl = ddl.substring(0, ddl.length()-1);
+					ddl += "\n);\n";
 
+					// Schema
+					ddl += "alter schema "+ adapter.getDefaultScheme() + " transfer "+ tableSam + ";\n";
 				}
 
 				for (DBConstraint constraint : metaTable.getConstraints().values()) {
-					ddl += "alter table "+ tableName +" add constraint " + PREFIX + constraint.getName() + " " + constraint.getSql() + ";\n";
+				    String constraintSql = constraint.getSql().replace(
+                        "ALTER TABLE " + origTableName + " ADD CONSTRAINT " + constraint.getName(),
+                    "alter table "+ tableSam +" add constraint " + PREFIX + constraint.getName() + " "
+                    );
+					ddl += constraintSql + "\n";
 				}
 
 				for (DBIndex index : metaTable.getIndexes().values()) {
-					String indexDdl = index.getSql() + (metaTable.getTable().getOptions().getChildren().containsKey("tablespace") ?
-							" tablespace "+index.getOptions().get("tablespace").getData() : "") + ";\n";
-					indexDdl = indexDdl.replace(index.getName(), PREFIX + index.getName());
+					String indexDdl = index.getSql() + "\n";
+					indexDdl = indexDdl
+                        .replace(index.getName(), PREFIX + index.getName())
+                        .replace("["+objectName+"]", "["+PREFIX+objectName+"]");
 					if (indexDdl.length() > 3)
 						ddl += indexDdl;
 				}
@@ -121,7 +131,8 @@ public class DBBackupAdapterMssql extends DBBackupAdapter {
 				if (file.exists())
 					obj = metaTable.loadFromFile();
 				ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
-			} else if (obj instanceof MetaSequence) {
+			}
+			else if (obj instanceof MetaSequence) {
 				MetaSequence metaSequence = (MetaSequence) obj;
 				metaSequence.loadFromDB();
 
@@ -136,15 +147,35 @@ public class DBBackupAdapterMssql extends DBBackupAdapter {
 
 				ConsoleWriter.detailsPrint(lang.getValue("general", "backup", "tryingToCopy").withParams(objectName, getFullDbName(schema, objectName)), 1);
 
-				// TODO MSSQL Backup MetaSequence script
-				String ddl = "create sequence " + sequenceName + "\n"
-						+ (metaSequence.getSequence().getOptions().get("cycle_option").toString().equals("YES") ? "CYCLE\n" : "")
-						+ " INCREMENT " + metaSequence.getSequence().getOptions().get("increment").toString() + "\n"
-						+ " START " + metaSequence.getSequence().getOptions().get("start_value").toString() + "\n"
-						+ " MINVALUE " + metaSequence.getSequence().getOptions().get("minimum_value").toString() + "\n"
-						+ " MAXVALUE " + metaSequence.getSequence().getOptions().get("maximum_value").toString() + ";\n";
+                StringProperties props = metaSequence.getSequence().getOptions();
+				String seqName = props.get("name").getData();
+				String seqTypeName = props.get("typename").getData();
+                String seqStart = props.get("start_value").getData();
+                String seqIncr = props.get("increment").getData();
+                StringProperties seqMin = props.get("minimum_value");
+				StringProperties seqMax = props.get("maximum_value");
+                boolean seqCycle = props.get("is_cycling").getData().equals("1");
+                boolean seqHasCache = props.get("is_cached").getData().equals("1");
+                //there may be default cache size
+				StringProperties seqCacheSize = props.get("cache_size");
+                String seqOwner = props.get("owner").getData();
 
-				ddl += "alter sequence "+ sequenceName + " owner to "+ metaSequence.getSequence().getOptions().get("owner").getData()+";\n";
+                Objects.requireNonNull(seqTypeName);
+
+				String ddl = "CREATE SEQUENCE " + sequenceName + " AS " + seqTypeName
+					+ " START WITH " + seqStart
+					+ " INCREMENT BY " + seqIncr
+					+ (Objects.nonNull(seqMin) ? " MINVALUE " + seqMin.getData() : " NO MINVALUE ")
+					+ (Objects.nonNull(seqMax) ? " MAXVALUE " + seqMax.getData() : " NO MAXVALUE ")
+					+ ((seqHasCache)
+						? " CACHE " + (seqCacheSize != null ? seqCacheSize : " ")
+						: " NO CACHE")
+					+ ((seqCycle) ? " CYCLE " : " NO CYCLE " + "\n");
+
+                ddl += MessageFormat.format(
+				"ALTER SCHEMA {0} TRANSFER {1}.{2}",
+					adapter.getConnection().getSchema(), seqOwner, seqName
+				);
 
 				dropIfExists(isSaveToSchema() ? PREFIX + schema : schema,
 						isSaveToSchema() ? objectName : PREFIX + objectName, stLog);
@@ -158,15 +189,17 @@ public class DBBackupAdapterMssql extends DBBackupAdapter {
 			}
 
 		} catch (SQLException e1) {
-			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").
-					withParams(obj.getName() + ": " + e1.getLocalizedMessage()));
+			throw new ExceptionDBGitRestore(
+				lang.getValue("errors", "restore", "objectRestoreError")
+					.withParams(obj.getName() + ": " + e1.getLocalizedMessage())
+			);
 		} catch (Exception e) {
 			ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
 			connection.rollback();
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "backup", "backupError").withParams(obj.getName()), e);
 		} finally {
-			connection.commit();
-			stLog.close();
+            stLog.close();
+            connection.commit();
 		}
 		return obj;
 	}
@@ -185,52 +218,46 @@ public class DBBackupAdapterMssql extends DBBackupAdapter {
 	}
 
 	private void dropIfExists(String owner, String objectName, StatementLogging stLog) throws Exception {
-		Statement st = 	adapter.getConnection().createStatement();
+		String query =
+			"SELECT CASE \n" +
+			"WHEN type IN ('PC', 'P') THEN 'PROCEDURE'\n" +
+			"WHEN type IN ('FN', 'FS', 'FT', 'IF', 'TF') THEN 'FUNCTION' \n" +
+			"WHEN type = 'AF' THEN 'AGGREGATE' \n" +
+			"WHEN type = 'U' THEN 'TABLE' \n" +
+			"WHEN type = 'V' THEN 'VIEW' \n" +
+			"WHEN type IN ('SQ', 'SO') THEN 'SEQUENCE' \n" +
+			"END type\n" +
+			"FROM sys.objects so\n" +
+			"WHERE lower(name) = lower('"+objectName+"') \n" +
+			"AND lower(SCHEMA_NAME(schema_id)) = lower('"+owner+"')";
 
-		// TODO MSSQL dropIfExists script
-		ResultSet rs = st.executeQuery("select * from (\r\n" +
-				"	SELECT 'TABLE' tp, table_name obj_name, table_schema sch FROM information_schema.tables \r\n" +
-				"	union select 'VIEW' tp, table_name obj_name, table_schema sch from information_schema.views\r\n" +
-				"	union select 'SEQUENCE' tp, sequence_name obj_name, sequence_schema sch from information_schema.sequences\r\n" +
-				"	union select 'TRIGGER' tp, trigger_name obj_name, trigger_schema sch from information_schema.triggers\r\n" +
-				"	union select 'FUNCTION' tp, routine_name obj_name, routine_schema sch from information_schema.routines\r\n" +
-				") all_objects\r\n" +
-				"where sch = '" + owner.toLowerCase() + "' and obj_name = '" + objectName.toLowerCase() + "'");
-
-		while (rs.next()) {
-			stLog.execute("drop " + rs.getString("tp") + " " + owner + "." + objectName);
+		try(Statement st = 	adapter.getConnection().createStatement(); ResultSet rs = st.executeQuery(query)) {
+			while (rs.next()) {
+				String type = rs.getString("type");
+				stLog.execute(MessageFormat.format("DROP {0} {1}.{2}", type, owner, objectName));
+			}
 		}
 
-		rs.close();
-		st.close();
 	}
 
 	@Override
 	public boolean isExists(String owner, String objectName) throws Exception {
 		Statement st = 	adapter.getConnection().createStatement();
-		// TODO MSSQL isExists script
-		ResultSet rs = st.executeQuery("select count(*) cnt from (\r\n" +
-				"	SELECT 'TABLE' tp, table_name obj_name, table_schema sch FROM information_schema.tables \r\n" +
-				"	union select 'VIEW' tp, table_name obj_name, table_schema sch from information_schema.views\r\n" +
-				"	union select 'SEQUENCE' tp, sequence_name obj_name, sequence_schema sch from information_schema.sequences\r\n" +
-				"	union select 'TRIGGER' tp, trigger_name obj_name, trigger_schema sch from information_schema.triggers\r\n" +
-				"	union select 'FUNCTION' tp, routine_name obj_name, routine_schema sch from information_schema.routines\r\n" +
-				") all_objects\r\n" +
-				"where lower(sch) = '" + owner.toLowerCase() + "' and lower(obj_name) = '" + objectName.toLowerCase() + "'");
+		ResultSet rs = st.executeQuery(
+			"SELECT CASE WHEN OBJECT_ID('"+owner+"."+objectName+"') IS NOT NULL THEN 1 ELSE 0 END"
+		);
 
 		rs.next();
-		return rs.getInt("cnt") > 0;
+		return rs.getInt(1) == 1;
 	}
 
 	@Override
 	public boolean createSchema(StatementLogging stLog, String schema) {
 		try {
-
 			if (!adapter.getSchemes().containsKey(schema)) {
 				ConsoleWriter.detailsPrintLn(lang.getValue("general", "backup", "creatingSchema").withParams(PREFIX + schema));
-				stLog.execute("create schema " + PREFIX + schema);
+				stLog.execute(MessageFormat.format("CREATE SCHEMA {0}{1}", PREFIX, schema));
 			}
-
 			return true;
 		} catch (SQLException e) {
 			ConsoleWriter.println(lang.getValue("errors", "backup", "cannotCreateSchema").withParams(e.getLocalizedMessage()));

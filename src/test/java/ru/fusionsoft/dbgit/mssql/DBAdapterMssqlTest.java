@@ -3,6 +3,7 @@ package ru.fusionsoft.dbgit.mssql;
 import com.google.common.collect.Lists;
 
 import com.microsoft.sqlserver.jdbc.SQLServerException;
+import com.sun.jna.platform.win32.DBT;
 import org.apache.commons.lang.time.StopWatch;
 import org.junit.After;
 import org.junit.Before;
@@ -12,13 +13,12 @@ import ru.fusionsoft.dbgit.adapters.AdapterFactory;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBConvertAdapter;
 import ru.fusionsoft.dbgit.core.DBGitConfig;
 import ru.fusionsoft.dbgit.dbobjects.*;
-import ru.fusionsoft.dbgit.meta.IMetaObject;
-import ru.fusionsoft.dbgit.meta.MetaTable;
-import ru.fusionsoft.dbgit.oracle.DBBackupAdapterOracle;
+import ru.fusionsoft.dbgit.meta.*;
+import ru.fusionsoft.dbgit.statement.StatementLogging;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
-import ru.fusionsoft.dbgit.utils.StringProperties;
 
 import java.sql.*;
+import java.text.MessageFormat;
 import java.util.*;
 
 import static org.junit.Assert.*;
@@ -39,11 +39,13 @@ public class DBAdapterMssqlTest {
     * */
 
     public static String TEST_CONN_URL = "localhost:1433";
-    public static String TEST_CONN_STRING = "jdbc:sqlserver://"+TEST_CONN_URL+";databaseName=master;integratedSecurity=false;";
+    public static String TEST_CONN_CATALOG = "MyDiet";
+    public static String TEST_CONN_STRING = "jdbc:sqlserver://"+TEST_CONN_URL+";databaseName="+TEST_CONN_CATALOG+";integratedSecurity=false;";
     public static String TEST_CONN_USER = "test";
     public static String TEST_CONN_PASS = "test";
 
     private static DBAdapterMssql testAdapter;
+    private static DBBackupAdapterMssql testBackup;
     private static Connection testConnection;
     private static boolean isInitialized = false;
     private static boolean isMasterDatabase;
@@ -57,19 +59,33 @@ public class DBAdapterMssqlTest {
     }
 
 
+    private static String triggerName = "TestTrigger";
+    private static String procedureName = "TestProc";
+    private static String functionName = "TestFunc";
+    private static String functionNameTable = functionName + "Table";
+    private static String triggerTableName = "TestTableTrigger";
+    private static String schema;
+    private static String viewName = "TestView";
+    private static String sequenceName = "TestSequence";
+
+
     @Before
     public void setUp() throws Exception {
-        if(isInitialized) return;
-        try {
-            String url = testProps.getProperty("url");
-            testConnection = DriverManager.getConnection(url, testProps);
-            testConnection.setAutoCommit(false);
-            testAdapter = (DBAdapterMssql) AdapterFactory.createAdapter(testConnection);
-            isMasterDatabase = testConnection.getCatalog().equalsIgnoreCase("master");
-            isInitialized = true;
-        }
-        catch (Exception ex){
-            fail(ex.getMessage());
+        if(!isInitialized){
+            try {
+                String url = testProps.getProperty("url");
+                testConnection = DriverManager.getConnection(url, testProps);
+                testConnection.setAutoCommit(false);
+                testAdapter = (DBAdapterMssql) AdapterFactory.createAdapter(testConnection);
+                testBackup = (DBBackupAdapterMssql) testAdapter.getBackupAdapterFactory().getBackupAdapter(testAdapter);
+                isMasterDatabase = testConnection.getCatalog().equalsIgnoreCase("master");
+                schema = testConnection.getSchema();
+                isInitialized = true;
+            }
+            catch (Exception ex){
+                fail(ex.getMessage());
+            }
+            dropBackupTables();
         }
     }
 
@@ -91,46 +107,27 @@ public class DBAdapterMssqlTest {
     }
 
     @Test
-    public void getSequences() {
-        try(Statement stmt = testConnection.createStatement()){
-            stmt.execute(
-                "IF EXISTS (SELECT * FROM sys.sequences WHERE NAME = N'TEST_SEQUENCE' AND TYPE='SO')\n" +
-                "DROP Sequence TEST_SEQUENCE\n" +
-                "CREATE SEQUENCE TEST_SEQUENCE\n" +
-                "START WITH 1\n" +
-                "INCREMENT BY 1;\n"
-            );
+    public void getSequences() throws Exception{
+        String schemaName = testConnection.getSchema();
+        String sequenceName = "TEST_SEQUENCE";
+        createTestSequence(sequenceName);
 
-            Map<String, DBSequence> sequences = testAdapter.getSequences("dbo");
-            assertEquals("dbo", sequences.get("TEST_SEQUENCE").getOptions().get("owner").getData());
-            testConnection.createStatement().execute("DROP Sequence TEST_SEQUENCE\n");
-        }
-        catch (Exception ex) {
-            fail(ex.toString());
-        }
+        Map<String, DBSequence> sequences = testAdapter.getSequences(schemaName);
+        dropTestSequence(sequenceName);
+
+        assertEquals(schemaName, sequences.get(sequenceName).getOptions().get("owner").getData());
 
     }
 
     @Test
-    public void getSequence() {
+    public void getSequence() throws Exception{
         String name = "TEST_SEQUENCE";
-        try(Statement stmt = testConnection.createStatement()){
-            stmt.execute(
-            "IF EXISTS (SELECT * FROM sys.sequences WHERE NAME = N'" + name + "' AND TYPE='SO')\n" +
-                "DROP Sequence " + name + "\n" +
-                "CREATE Sequence " + name + "\n" +
-                "START WITH 1\n" +
-                "INCREMENT BY 1;\n"
-            );
 
-            DBSequence sequence = testAdapter.getSequence("dbo", name);
-            assertEquals(name, sequence.getOptions().get("name").getData());
-            stmt.execute("DROP Sequence " + name + "\n");
-        }
-        catch (Exception ex) {
-            fail(ex.toString());
-        }
+        createTestSequence(name);
+        DBSequence sequence = testAdapter.getSequence("dbo", name);
+        dropTestSequence(name);
 
+        assertEquals(name, sequence.getOptions().get("name").getData());
     }
 
     @Test
@@ -146,11 +143,10 @@ public class DBAdapterMssqlTest {
 
             Map<String, DBTable> tables = testAdapter.getTables(schema);
             assertEquals(name, tables.get(name).getOptions().get("name").getData());
-            dropTable(sam);
         } catch (Exception ex) {
             fail(ex.toString());
         } finally {
-            dropTable( schema + "." + name);
+            dropTable(sam);
         }
 
     }
@@ -201,9 +197,9 @@ public class DBAdapterMssqlTest {
         try{
             StopWatch watch = new StopWatch();
             watch.start();
-            createTestObjects();
+            createTestTriggerProcedureFunctions(triggerName, procedureName, functionName, triggerTableName);
 
-            DBTableData data = testAdapter.getTableData("dbo", "ExecutableTest");
+            DBTableData data = testAdapter.getTableData(testConnection.getSchema(), triggerTableName);
             ResultSet rs = data.getResultSet();
             ResultSetMetaData md = rs.getMetaData();
             int cols = md.getColumnCount();
@@ -213,7 +209,7 @@ public class DBAdapterMssqlTest {
             assertEquals(1, rs.getInt(1));
             assertEquals("Hey, I have some!", rs.getString(2));
 
-            dropTestObjects();
+            dropTestTriggerProcedureFunctions(procedureName, functionName, triggerTableName);
 
             System.out.println(watch.toString());
         }
@@ -248,71 +244,43 @@ public class DBAdapterMssqlTest {
     }
 
     @Test
-    public void getIndexes() {
-        String indexCreateDdl = "CREATE NONCLUSTERED INDEX [IX_IdTest] ON [dbo].[AspNetRolesTest] ([Id]) ON [PRIMARY];";
+    public void getIndexes() throws Exception{
 
-        try{
-            testConnection.createStatement().execute(
-            "CREATE TABLE [dbo].[AspNetRolesTest](\n" +
-                "	[Id] [nvarchar](128) NOT NULL,\n" +
-                "	[Name] [nvarchar](256) NOT NULL,\n" +
-                " CONSTRAINT [PK_dbo.AspNetRolesTest] PRIMARY KEY CLUSTERED \n" +
-                "(\n" +
-                "	[Id] ASC\n" +
-                ")WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]\n" +
-                ") ON [PRIMARY]\n" + indexCreateDdl
-            );
+        String tableName = "TestTableIndex";
+        String indexCreateDdl = createTestIndex(tableName);
 
-            Map<String, DBIndex> indexes = testAdapter.getIndexes("dbo", "AspNetRolesTest");
-            assertEquals("2", indexes.get("IX_IdTest").getOptions().getChildren().get("indexid").getData());
-            assertEquals(indexCreateDdl, indexes.get("IX_IdTest").getSql());
-            testConnection.createStatement().execute("DROP TABLE dbo.AspNetRolesTest" );
-        }
-        catch (Exception ex) {
-            fail(ex.toString());
-        }
+        Map<String, DBIndex> indexes = testAdapter.getIndexes(testConnection.getSchema(), tableName);
+        assertEquals("2", indexes.get("IX_IdTest").getOptions().getChildren().get("indexid").getData());
+        assertEquals(indexCreateDdl, indexes.get("IX_IdTest").getSql());
+
+        dropTestIndex(tableName);
 
     }
 
     @Test
-    public void getConstraints() {
+    public void getConstraints() throws Exception{
 
-        String constrDDL1 = "ALTER TABLE dbo.ConstraintsTestTable ADD CONSTRAINT df_constraint DEFAULT ('{}') FOR [value];";
-        String constrDDL2 = "ALTER TABLE dbo.ConstraintsTestTable ADD CONSTRAINT df_constraintInt DEFAULT ((1)) FOR [valueCheck1];";
-        String constrDDL3 = "ALTER TABLE dbo.ConstraintsTestTable ADD CONSTRAINT u_constraint UNIQUE NONCLUSTERED ([valueUnique]);";
-        String constrDDL4 = "ALTER TABLE dbo.ConstraintsTestTable ADD CONSTRAINT chk_constraint CHECK ([valueCheck1]>(0) AND [valueCheck2]>(0));";
-        String constrDDL5 = "ALTER TABLE dbo.ConstraintsTestTable ADD CONSTRAINT fk_constraint FOREIGN KEY (fkInt) references dbo.FKTest(keyInt);";
-        try{
-            testConnection.createStatement().execute(
-            "IF OBJECT_ID('dbo.ConstraintsTestTable', 'U') IS NOT NULL \n" +
-                "DROP TABLE dbo.ConstraintsTestTable;\n" +
-                "CREATE TABLE dbo.ConstraintsTestTable (\n" +
-                "	[key] varchar(20) PRIMARY KEY, \n" +
-                "	[value] varchar(20) NOT NULL, \n" +
-                "	[valueCheck1] int NOT NULL, \n" +
-                "	[valueCheck2] int NOT NULL,\n" +
-                "	[valueUnique] varchar(20),\n" +
-                "	[fkInt] int\n" +
-                ") ON [PRIMARY];\n" +
-                "IF OBJECT_ID('dbo.FKTest', 'U') IS NOT NULL DROP TABLE dbo.FKTest;\n" +
-                "CREATE TABLE dbo.FKTest( keyInt int PRIMARY KEY, valueChar nvarchar(100) );\n" +
-                "SELECT valueCheck1, valueCheck2 from dbo.ConstraintsTestTable; \n" +
-                constrDDL1 + constrDDL2 + constrDDL3 + constrDDL4 + constrDDL5
-            );
+        String schema = testConnection.getSchema();
+        String tableName = "CTestTable";
+
+        String constrDDL1 = "ALTER TABLE "+ schema + "." + tableName + " ADD CONSTRAINT df_constraint DEFAULT ('{}') FOR [value];";
+        String constrDDL2 = "ALTER TABLE "+ schema + "." + tableName + " ADD CONSTRAINT df_constraintInt DEFAULT ((1)) FOR [valueCheck1];";
+        String constrDDL3 = "ALTER TABLE "+ schema + "." + tableName + " ADD CONSTRAINT u_constraint UNIQUE NONCLUSTERED ([valueUnique]);";
+        String constrDDL4 = "ALTER TABLE "+ schema + "." + tableName + " ADD CONSTRAINT chk_constraint CHECK ([valueCheck1]>(0) AND [valueCheck2]>(0));";
+        String constrDDL5 = "ALTER TABLE "+ schema + "." + tableName + " ADD CONSTRAINT fk_constraint FOREIGN KEY (fkInt) references " + schema + "." + tableName + "FK(keyInt);";
 
 
-            Map<String, DBConstraint> constraints = testAdapter.getConstraints("dbo", "ConstraintsTestTable");
-            assertEquals(constrDDL1, constraints.get("df_constraint").getSql());
-            assertEquals(constrDDL2, constraints.get("df_constraintInt").getSql());
-            assertEquals(constrDDL3, constraints.get("u_constraint").getSql());
-            assertEquals(constrDDL4, constraints.get("chk_constraint").getSql());
-            assertEquals(constrDDL5, constraints.get("fk_constraint").getSql());
+        createTestConstraintsAndTables(schema, tableName);
 
-            testConnection.createStatement().execute("DROP TABLE dbo.ConstraintsTestTable;\n DROP TABLE dbo.FKTest\n" );
-        }
-        catch (Exception ex) {
-            fail(ex.toString());
-        }
+
+        Map<String, DBConstraint> constraints = testAdapter.getConstraints(schema, tableName);
+        assertEquals(constrDDL1, constraints.get("df_constraint").getSql());
+        assertEquals(constrDDL2, constraints.get("df_constraintInt").getSql());
+        assertEquals(constrDDL3, constraints.get("u_constraint").getSql());
+        assertEquals(constrDDL4, constraints.get("chk_constraint").getSql());
+        assertEquals(constrDDL5, constraints.get("fk_constraint").getSql());
+
+        dropTestConstraintsAndTables(schema, tableName);
 
     }
 
@@ -348,32 +316,28 @@ public class DBAdapterMssqlTest {
     }
 
     @Test
-    public void getView() {
+    public void getView() throws Exception {
+        String schema = testConnection.getSchema();
+        String viewName = "TestView";
+        String viewDDl = createTestView(schema, viewName);
 
-        try{
-            String viewDDl = createTestView();
+        DBView view = testAdapter.getView(schema, viewName);
+        assertEquals(viewDDl, view.getSql());
 
-            DBView view = testAdapter.getView("dbo", "testView");
-            assertEquals(viewDDl, view.getSql());
-
-            testConnection.createStatement().execute("DROP VIEW dbo.testView" );
-        }
-        catch (Exception ex) {
-            fail(ex.toString());
-        }
-
+        dropTestView(schema, viewName);
     }
 
     @Test
     public void getProcedures() {
 
         try{
-            List<String> ddls = createTestObjects();
+            List<String> ddls = createTestTriggerProcedureFunctions(triggerName, procedureName, functionName, triggerTableName);
 
-            Map<String, DBProcedure> procedures = testAdapter.getProcedures("dbo");
-            assertEquals(ddls.get(6), procedures.get("ProcedureTest").getSql());
+            Map<String, DBProcedure> procedures = testAdapter.getProcedures(testConnection.getSchema());
+            assertEquals(ddls.get(6), procedures.get(procedureName).getSql());
 
-            dropTestObjects();
+            dropTestTriggerProcedureFunctions(procedureName, functionName, triggerTableName);
+
         }
         catch (Exception ex) {
             fail(ex.toString());
@@ -385,12 +349,12 @@ public class DBAdapterMssqlTest {
     public void getProcedure() {
 
         try{
-            List<String> ddls = createTestObjects();
+            List<String> ddls = createTestTriggerProcedureFunctions(triggerName, procedureName, functionName, triggerTableName);;
 
-            DBProcedure procedure = testAdapter.getProcedure("dbo", "ProcedureTest");
+            DBProcedure procedure = testAdapter.getProcedure(testConnection.getSchema(), procedureName);
             assertEquals(ddls.get(6), procedure.getSql());
 
-            dropTestObjects();
+            dropTestTriggerProcedureFunctions(procedureName, functionName, triggerTableName);
         }
         catch (Exception ex) {
             fail(ex.toString());
@@ -402,12 +366,12 @@ public class DBAdapterMssqlTest {
     public void getFunctions(){
 
         try{
-            List<String> ddls = createTestObjects();
+            List<String> ddls = createTestTriggerProcedureFunctions(triggerName, procedureName, functionName, triggerTableName);;
 
-            Map<String, DBFunction> functions = testAdapter.getFunctions("dbo");
-            assertEquals(ddls.get(4), functions.get("FunctionTestTable").getSql());
+            Map<String, DBFunction> functions = testAdapter.getFunctions(testConnection.getSchema());
+            assertEquals(ddls.get(4), functions.get(functionNameTable).getSql());
 
-            dropTestObjects();
+            dropTestTriggerProcedureFunctions(procedureName, functionName, triggerTableName);
         }
         catch (Exception ex) {
             fail(ex.toString());
@@ -419,12 +383,12 @@ public class DBAdapterMssqlTest {
     public void getFunction() {
 
         try{
-            List<String> ddls = createTestObjects();
+            List<String> ddls = createTestTriggerProcedureFunctions(triggerName, procedureName, functionName, triggerTableName);;
 
-            DBFunction function = testAdapter.getFunction("dbo", "FunctionTestScalar");
+            DBFunction function = testAdapter.getFunction(testConnection.getSchema(), functionName);
             assertEquals(ddls.get(2), function.getSql());
 
-            dropTestObjects();
+            dropTestTriggerProcedureFunctions(procedureName, functionName, triggerTableName);
         }
         catch (Exception ex) {
             fail(ex.toString());
@@ -436,12 +400,12 @@ public class DBAdapterMssqlTest {
     public void getTriggers() {
 
         try{
-            List<String> ddls = createTestObjects();
+            List<String> ddls = createTestTriggerProcedureFunctions(triggerName, procedureName, functionName, triggerTableName);;
 
-            Map<String, DBTrigger> triggers = testAdapter.getTriggers("dbo");
-            assertEquals(ddls.get(7), triggers.get("TriggerTest").getSql());
+            Map<String, DBTrigger> triggers = testAdapter.getTriggers(testConnection.getSchema());
+            assertEquals(ddls.get(7), triggers.get(triggerName).getSql());
 
-            dropTestObjects();
+            dropTestTriggerProcedureFunctions(procedureName, functionName, triggerTableName);
         }
         catch (Exception ex) {
             fail(ex.toString());
@@ -453,16 +417,16 @@ public class DBAdapterMssqlTest {
     public void getTrigger() {
 
         try{
-            List<String> ddls = createTestObjects();
+            List<String> ddls = createTestTriggerProcedureFunctions(triggerName, procedureName, functionName, triggerTableName);;
 
             //TODO Discuss scenario when we get an encrypted trigger, IMO display a warning,
             // it is not possible to get definition of an encrypred trigger
-            DBTrigger trigger = testAdapter.getTrigger("dbo", "TriggerTestEncrypted");
+            DBTrigger trigger = testAdapter.getTrigger("dbo", triggerName + "Encrypted");
             assertEquals("", trigger.getSql());
             assertEquals("1", trigger.getOptions().getChildren().get("encrypted").getData());
 
 
-            dropTestObjects();
+            dropTestTriggerProcedureFunctions(procedureName, functionName, triggerTableName);
         }
         catch (Exception ex) {
             fail(ex.toString());
@@ -503,99 +467,58 @@ public class DBAdapterMssqlTest {
             stmt.close();
         }
         catch (Exception ex) {
-            fail(ex.toString());
+            fail(ex.getMessage());
 
         }
     }
 
     @Test
-    public void getRoles() {
+    public void getRoles() throws Exception{
 
-        try{
+        String roleName = "testRol";
+        String userName = "testUsr";
+        String tableSchemaAndName = "[dbo].[testTablePerm]";
+        String roleDdl = createTestRoleAndStuff(roleName, userName, tableSchemaAndName);
 
-            Statement stmt = testConnection.createStatement();
 
-            String roleName = "testRol";
-            String userName = "testUsr";
-            String tableSchemaAndName = "[dbo].[testTablePerm]";
+        Map<String, DBRole> roles = testAdapter.getRoles();
+        dropTestRoleAndStuff(roleName, userName, tableSchemaAndName);
 
-            String createUserExpr =
-                "CREATE USER ["+userName+"] WITHOUT LOGIN;";
+        //has role test
+        assertTrue(roles.containsKey(roleName));
 
-            String createRoleExpr =
-                "CREATE ROLE [ROLENAME];" +
-                "GRANT CONTROL ON [SCHEMA].[TABLENAME] TO [ROLENAME];" +
-                "GRANT DELETE ON [SCHEMA].[TABLENAME] TO [ROLENAME];" +
-                "GRANT INSERT ON [SCHEMA].[TABLENAME] TO [ROLENAME];" +
-                "GRANT TAKE OWNERSHIP ON [SCHEMA].[TABLENAME] TO [ROLENAME];" +
-                "EXECUTE sp_AddRoleMember '"+roleName+"', '"+userName+"';";
+        //correct ddl test
+        String ddl = roles.get(roleName).getOptions().get("ddl").getData();
+        assertEquals(roleDdl, ddl);
 
-            createRoleExpr = createRoleExpr
-                .replace("[ROLENAME]", "["+roleName+"]")
-                .replace("[SCHEMA].[TABLENAME]", tableSchemaAndName);
-
-            String dropRoleExpr = "IF EXISTS (SELECT * FROM sys.database_principals WHERE name = N'"+roleName+"') DROP ROLE ["+roleName+"];";
-            String dropUserExpr = "IF EXISTS (SELECT * FROM sys.database_principals WHERE name = N'"+userName+"') DROP USER ["+userName+"];";
-
-            //create script exec
-            ArrayList<String> exprs = new ArrayList<>();
-            exprs.add(dropUserExpr);
-            exprs.add(dropRoleExpr);
-            exprs.add(createUserExpr);
-            exprs.addAll(Arrays.asList(createRoleExpr.split(";")));
-
-            createTable(tableSchemaAndName, "[someKey] int PRIMARY KEY");
-
-            for(String expr : exprs) {
-                stmt.execute(expr);
-            }
-
-            //has role test
-            Map<String, DBRole> roles = testAdapter.getRoles();
-            assertTrue(roles.containsKey(roleName));
-
-            //correct ddl test
-            String ddl = roles.get(roleName).getOptions().get("ddl").getData();
-            assertEquals(createRoleExpr, ddl);
-
-            stmt.execute(dropUserExpr);
-            stmt.execute(dropRoleExpr);
-            stmt.close();
-        }
-        catch (Exception ex) {
-            fail(ex.toString());
-        }
     }
 
     @Test
     public void userHasRightsToGetDdlOfOtherUsers() throws Exception{
         try{
 
-            if(trySetMasterCatalog() && getIsDbOwner()) {
-                String publicUserName = "testUsrPublic";
-                String publicLoginName = "testLgnPublic";
-                String password = "test";
-                String dboUserName = "testUsrDbo";
-                String dboLoginName = "testLgnDbo";
+            String publicUserName = "testUsrPublic";
+            String publicLoginName = "testLgnPublic";
+            String password = "test";
+            String dboUserName = "testUsrDbo";
+            String dboLoginName = "testLgnDbo";
 
-                createUserAndLogin(publicUserName, publicLoginName, "public", password, false);
-                createUserAndLogin(dboUserName, dboLoginName, "dbo", password, false);
-                addToRole(dboUserName, "db_owner");
+            createUserAndLogin(publicUserName, publicLoginName, "public", password, false);
+            createUserAndLogin(dboUserName, dboLoginName, "dbo", password, false);
+            addToRole(dboUserName, "db_owner");
 
-                DBAdapterMssql publicAdapter = createAdapterWithCredentials(publicLoginName, password, TEST_CONN_STRING);
-                DBAdapterMssql dboAdapter = createAdapterWithCredentials(dboLoginName, password, TEST_CONN_STRING);
+            DBAdapterMssql publicAdapter = createAdapterWithCredentials(publicLoginName, password, TEST_CONN_STRING);
+            DBAdapterMssql dboAdapter = createAdapterWithCredentials(dboLoginName, password, TEST_CONN_STRING);
 
-                boolean publicHasRights = publicAdapter.userHasRightsToGetDdlOfOtherUsers();
-                boolean dboHasRights = dboAdapter.userHasRightsToGetDdlOfOtherUsers();
+            boolean publicHasRights = publicAdapter.userHasRightsToGetDdlOfOtherUsers();
+            boolean dboHasRights = dboAdapter.userHasRightsToGetDdlOfOtherUsers();
 
-                publicAdapter.getConnection().close();
-                dboAdapter.getConnection().close();
+            publicAdapter.getConnection().close();
+            dboAdapter.getConnection().close();
 
-                assertFalse(publicHasRights);
-                assertTrue(dboHasRights);
-            } else {
-                System.out.println("Could not create test data, just try for not throwing exception");
-            }
+            assertFalse(publicHasRights);
+            assertTrue(dboHasRights);
+
             testAdapter.userHasRightsToGetDdlOfOtherUsers();
 
         }
@@ -658,6 +581,117 @@ public class DBAdapterMssqlTest {
         assertTrue(testAdapter.isReservedWord("PERCENTILE_DISC"));
     }
 
+    //backupAdapter methods
+
+    @Test
+    public void backupMetaSequence() throws Exception{
+        try(AutoCloseable testSequence = useTestSequence(sequenceName)){
+
+            MetaSequence metaSequence = new MetaSequence(testAdapter.getSequences(schema).get(sequenceName));
+            testBackup.backupDBObject(metaSequence);
+        }
+    }
+
+    @Test
+    public void backupMetaTable() throws Exception{
+        String tableName = "CTestTable";
+        String indexTableName = "TestTableIndex";
+        String sam = schema + ".PersonsTest";
+
+        String someTableDdl = createTable(sam, "PersonID int, LastName varchar(255), FirstName varchar(255), Address varchar(255), City varchar(255) ");
+        createTestIndex(indexTableName);
+        createTestConstraintsAndTables(schema, tableName);
+
+        Map<String, DBTable> tables = testAdapter.getTables(schema);
+
+        MetaTable constraintsMetaTable = new MetaTable(tables.get(tableName));
+        MetaTable indexedMetaTable = new MetaTable(tables.get(indexTableName));
+        MetaTable ignoredProducts = new MetaTable(tables.get("IgnoredProducts"));
+        testConnection.commit();
+
+        testBackup.backupDBObject(ignoredProducts);
+        testBackup.backupDBObject(constraintsMetaTable);
+        testBackup.backupDBObject(indexedMetaTable);
+
+        dropTable(sam);
+        dropTestIndex(indexTableName);
+        dropTestConstraintsAndTables(schema, tableName);
+        testConnection.commit();
+    }
+
+    @Test
+    public void backupMetaSql() throws Exception{
+        createTestTriggerProcedureFunctions(triggerName, procedureName, functionName, triggerTableName);
+        createTestView(schema, viewName);
+
+        MetaView metaView = new MetaView(testAdapter.getViews(schema).get(viewName));
+        MetaTrigger metaTrigger = new MetaTrigger(testAdapter.getTriggers(schema).get(triggerName));
+        MetaProcedure metaProcedure = new MetaProcedure(testAdapter.getProcedures(schema).get(procedureName));
+        MetaFunction metaFunction = new MetaFunction(testAdapter.getFunctions(schema).get(functionName));
+        MetaFunction metaFunctionTable = new MetaFunction(testAdapter.getFunctions(schema).get(functionName+"Table"));
+
+        testBackup.backupDBObject(metaView);
+        testBackup.backupDBObject(metaTrigger);
+        testBackup.backupDBObject(metaProcedure);
+        testBackup.backupDBObject(metaFunction);
+        testBackup.backupDBObject(metaFunctionTable);
+
+        dropTestView(schema, viewName);
+        dropTestTriggerProcedureFunctions(procedureName, functionName, triggerTableName);
+    }
+
+    @Test
+    public void isExists() throws Exception{
+        String objectName = "ShouldExist";
+
+        try(AutoCloseable view = useTestView(schema, objectName)){
+            assertTrue(testBackup.isExists(schema, objectName));
+        }
+    }
+
+    @Test
+    public void createSchema() throws Exception {
+        String schemaName = "TESTSCHEMA2";
+        String prefix = "BACKUP$";
+        StatementLogging stLog = new StatementLogging(testConnection, testAdapter.getStreamOutputSqlCommand(), testAdapter.isExecSql());
+
+        testBackup.createSchema(stLog, schemaName);
+        assertTrue(testAdapter.getSchemes().containsKey(prefix+schemaName));
+        dropSchema(prefix+schemaName);
+    }
+
+    public void restoreDBObject() throws Exception{
+
+    }
+    public void backupMetaObjOptions() throws Exception{
+        String roleName = "TestRoleB";
+        String userName = "TestUserB";
+        String tableName = "RTestTable";
+        String sam = schema + "." + tableName;
+        createTestRoleAndStuff(roleName, userName, sam);
+
+        MetaRole metaRole = new MetaRole(testAdapter.getRoles().get(roleName));
+        MetaUser metaUser = new MetaUser(testAdapter.getUsers().get(userName));
+        MetaSchema metaSchema = new MetaSchema(testAdapter.getSchemes().get(schema));
+        MetaTableSpace metaTableSpace = new MetaTableSpace(testAdapter.getTableSpaces().get("PRIMARY"));
+
+        List<MetaObjOptions> objs = Arrays.asList(metaRole, metaUser, metaSchema, metaTableSpace);
+        for(MetaObjOptions obj : objs) testBackup.backupDBObject(obj);
+
+        dropTestRoleAndStuff(roleName, userName, sam);
+    }
+
+
+    //heplers
+
+    public void dropBackupTables() throws Exception{
+        Map<String, DBTable> tables = testAdapter.getTables(schema);
+        for (DBTable table : tables.values()){
+            if(table.getName().startsWith("BACKUP$")){
+                dropTable(schema+"."+table.getName());
+            }
+        }
+    }
 
     public boolean trySetMasterCatalog(){
         try {
@@ -669,6 +703,39 @@ public class DBAdapterMssqlTest {
             System.out.println("Could not switch to master database");
             return false;
         }
+    }
+
+    public boolean trySetInnitialCatalog(){
+        try {
+            testConnection.setCatalog(TEST_CONN_CATALOG);
+            return true;
+        } catch (Exception e){
+            System.out.println("Could not switch to master database");
+            return false;
+        }
+    }
+
+    public void executeSqlInMaster(String expression, boolean commitAfter) throws SQLException{
+        testConnection.setCatalog("master");
+
+        Statement stmt = testConnection.createStatement();
+        stmt.execute(expression);
+        stmt.close();
+
+        if(commitAfter) testConnection.commit();
+        testConnection.setCatalog(TEST_CONN_CATALOG);
+    }
+
+    public void executeSqlInMaster(List<String> expressions, boolean commitAfter) throws SQLException{
+        testConnection.setCatalog("master");
+
+        Statement stmt = testConnection.createStatement();
+        for(String expr : expressions)  stmt.execute(expr);
+        stmt.close();
+
+        if(commitAfter) testConnection.commit();
+        testConnection.setCatalog(TEST_CONN_CATALOG);
+
     }
 
     public boolean getIsDbOwner() throws Exception{
@@ -726,7 +793,6 @@ public class DBAdapterMssqlTest {
                 "IF EXISTS (SELECT * FROM sys.database_principals WHERE name = N'"+userName+"') DROP USER ["+userName+"];" +
                 "IF EXISTS (SELECT * FROM sys.server_principals WHERE name = N'"+loginName+"') DROP LOGIN ["+loginName+"];" +
                 "CREATE LOGIN ["+loginName+"] WITH PASSWORD = "+passExpr+";" +
-                "GRANT CONNECT SQL TO ["+loginName+"];" +
                 "CREATE USER ["+userName+"] FOR LOGIN ["+loginName+"] WITH DEFAULT_SCHEMA = ["+schemaName+"];"
             ).split(";")
         );
@@ -734,6 +800,9 @@ public class DBAdapterMssqlTest {
         for(String expr : createUserExprs) stmt.execute(expr);
         stmt.close();
         testConnection.commit();
+
+        executeSqlInMaster("GRANT CONNECT SQL TO ["+loginName+"]", true);
+
     }
 
     public void dropUserAndLogin(String userName, String loginName) throws Exception{
@@ -749,21 +818,21 @@ public class DBAdapterMssqlTest {
         stmt.close();
     }
 
-    public void createTable(String schemaAndName, String fieldsExpr) throws Exception{
+    public String createTable(String schemaAndName, String fieldsExpr) throws Exception{
 
         try (Statement stmt = testConnection.createStatement()){
             String name = convertSchemaAndName(schemaAndName);
+            String ddl = "CREATE TABLE "+schemaAndName+"("+fieldsExpr+") ON [PRIMARY]\n";
             stmt.execute("IF OBJECT_ID('"+name+"', 'U') IS NOT NULL DROP TABLE " + name);
-            stmt.execute("CREATE TABLE "+schemaAndName+"( " +fieldsExpr+" ) ON [PRIMARY]\n");
-        } catch (SQLException e) {
-            e.printStackTrace();
+            stmt.execute(ddl);
+            return ddl;
         }
     }
 
     public void dropTable(String schemaAndName) throws Exception{
         Statement stmt = testConnection.createStatement();
         String name = convertSchemaAndName(schemaAndName);
-        stmt.execute("DROP TABLE "+name);
+        stmt.execute("IF OBJECT_ID('"+name+"', 'U') IS NOT NULL DROP TABLE " + name);
         stmt.close();
     }
 
@@ -774,6 +843,163 @@ public class DBAdapterMssqlTest {
     }
 
     //entire sets
+
+    private void createTestConstraintsAndTables(String schema, String tableName) throws SQLException {
+        String constrDDL1 = "ALTER TABLE "+ schema + "." + tableName + " ADD CONSTRAINT df_constraint DEFAULT ('{}') FOR [value];";
+        String constrDDL2 = "ALTER TABLE "+ schema + "." + tableName + " ADD CONSTRAINT df_constraintInt DEFAULT ((1)) FOR [valueCheck1];";
+        String constrDDL3 = "ALTER TABLE "+ schema + "." + tableName + " ADD CONSTRAINT u_constraint UNIQUE NONCLUSTERED ([valueUnique]);";
+        String constrDDL4 = "ALTER TABLE "+ schema + "." + tableName + " ADD CONSTRAINT chk_constraint CHECK (valueCheck1>(0) AND valueCheck2>(0));";
+        String constrDDL5 = "ALTER TABLE "+ schema + "." + tableName + " ADD CONSTRAINT fk_constraint FOREIGN KEY (fkInt) references " + schema + "." + tableName + "FK(keyInt);";
+
+        Statement stmt = testConnection.createStatement();
+        stmt.execute(
+        "IF OBJECT_ID('"+ schema + "." + tableName + "', 'U') IS NOT NULL DROP TABLE "+ schema + "." + tableName + ";\n" +
+
+            "CREATE TABLE "+ schema + "." + tableName + " (\n" +
+            "	[key] varchar(20) PRIMARY KEY, \n" +
+            "	[value] varchar(20) NOT NULL, \n" +
+            "   [valueCheck1] int NOT NULL, \n" +
+            "   [valueCheck2] int NOT NULL, \n" +
+            "	[valueUnique] varchar(20),\n" +
+            "	[fkInt] int\n" +
+            ") ON [PRIMARY];\n" +
+
+            "IF OBJECT_ID('"+ schema + "." + tableName + "FK', 'U') IS NOT NULL DROP TABLE "+ schema + "." + tableName + "FK ;\n" +
+
+            "CREATE TABLE "+ schema + "." + tableName + "FK ( keyInt int PRIMARY KEY, valueChar nvarchar(100) );\n"
+        );
+
+        stmt.execute(constrDDL1 + constrDDL2 + constrDDL3 + constrDDL4 + constrDDL5);
+        stmt.close();
+    }
+
+    private void dropTestConstraintsAndTables(String schema, String tableName) throws Exception {
+        dropTable(schema+"."+tableName);
+        dropTable(schema+"."+tableName+"FK");
+        testConnection.commit();
+    }
+
+    public AutoCloseable useTestSequence(String sequenceName) throws Exception{
+        return new AutoCloseable() {
+            {
+                createTestSequence(sequenceName);
+            }
+
+            @Override
+            public void close() throws Exception {
+                dropTestSequence(sequenceName);
+            }
+        };
+    }
+
+
+    private void createTestSequence(String sequenceName) throws SQLException {
+        Statement stmt = testConnection.createStatement();
+        stmt.execute(
+        "IF EXISTS (SELECT * FROM sys.sequences WHERE NAME = N'"+sequenceName+"' AND TYPE='SO')\n" +
+            "DROP Sequence "+sequenceName+"\n" +
+            "CREATE SEQUENCE "+sequenceName+"\n" +
+            "START WITH 1\n" +
+            "INCREMENT BY 1;\n"
+        );
+        stmt.close();
+    }
+
+    public void dropTestSequence(String sequenceName) throws Exception{
+        Statement stmt = testConnection.createStatement();
+        stmt.execute(
+                "IF EXISTS (SELECT * FROM sys.sequences WHERE NAME = N'TEST_SEQUENCE' AND TYPE='SO')\n" +
+                        "DROP Sequence "+sequenceName+"\n"
+        );
+        stmt.close();
+    }
+
+    public String createTestRoleAndStuff(String roleName, String userName, String tableSchemaAndName) throws Exception{
+        Statement stmt = testConnection.createStatement();
+
+        String createUserExpr =
+                "CREATE USER ["+userName+"] WITHOUT LOGIN;";
+
+        String createRoleExpr =
+                "CREATE ROLE [ROLENAME];" +
+                "GRANT CONTROL ON [SCHEMA].[TABLENAME] TO [ROLENAME];" +
+                "GRANT DELETE ON [SCHEMA].[TABLENAME] TO [ROLENAME];" +
+                "GRANT INSERT ON [SCHEMA].[TABLENAME] TO [ROLENAME];" +
+                "GRANT TAKE OWNERSHIP ON [SCHEMA].[TABLENAME] TO [ROLENAME];" +
+                "EXECUTE sp_AddRoleMember '"+roleName+"', '"+userName+"';";
+
+        createRoleExpr = createRoleExpr
+                .replace("[ROLENAME]", "["+roleName+"]")
+                .replace("[SCHEMA].[TABLENAME]", tableSchemaAndName);
+
+        String dropRoleExpr = "IF EXISTS (SELECT * FROM sys.database_principals WHERE name = N'"+roleName+"') DROP ROLE ["+roleName+"];";
+        String dropUserExpr = "IF EXISTS (SELECT * FROM sys.database_principals WHERE name = N'"+userName+"') DROP USER ["+userName+"];";
+
+        //build execution pipeline
+        ArrayList<String> exprs = new ArrayList<>();
+        exprs.add(dropUserExpr);
+        exprs.add(dropRoleExpr);
+        exprs.add(createUserExpr);
+        exprs.addAll(Arrays.asList(createRoleExpr.split(";")));
+
+
+        //table for testing permissions
+        createTable(tableSchemaAndName, "[someKey] int PRIMARY KEY");
+
+
+        //execute scripts
+        for(String expr : exprs) {
+            stmt.execute(expr);
+        }
+
+        stmt.close();
+
+        return createRoleExpr;
+    }
+
+    public void dropTestRoleAndStuff(String roleName, String userName, String tableSchemaAndName) throws Exception{
+        Statement stmt = testConnection.createStatement();
+
+        String dropRoleExpr = "IF EXISTS (SELECT * FROM sys.database_principals WHERE name = N'"+roleName+"') DROP ROLE ["+roleName+"];";
+        String dropUserExpr = "IF EXISTS (SELECT * FROM sys.database_principals WHERE name = N'"+userName+"') DROP USER ["+userName+"];";
+
+        stmt.execute(dropUserExpr);
+        stmt.execute(dropRoleExpr);
+        stmt.close();
+
+        dropTable(tableSchemaAndName);
+    }
+
+    public String createTestIndex(String tableName) throws Exception{
+        String schema = testConnection.getSchema();
+        String indexCreateDdl = "CREATE NONCLUSTERED INDEX [IX_IdTest] ON ["+schema+"].["+tableName+"] ([Id]) ON [PRIMARY];";
+
+        dropTestIndex(tableName);
+        createTable(
+schema + "." + tableName,
+    "	[Id] [nvarchar](128) NOT NULL, " +
+            "	[Name] [nvarchar](256) NOT NULL, " +
+            "   CONSTRAINT [TestConstraint] PRIMARY KEY CLUSTERED \n" +
+            "       ([Id] ASC) " +
+            "       WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]\n"
+        );
+
+        Statement stmt = testConnection.createStatement();
+        stmt.execute(indexCreateDdl);
+        stmt.close();
+        return indexCreateDdl;
+    }
+
+    public void dropTestIndex(String tableName)throws Exception{
+        Statement stmt = testConnection.createStatement();
+        String schema = testConnection.getSchema();
+
+        dropTable(schema + "." + tableName);
+        stmt.execute(
+            "IF EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'"+schema+"."+tableName+"') AND name = 'IX_IdTest') " +
+                "DROP INDEX IX_IdTest ON " + schema + "." + tableName + "\n");
+        stmt.close();
+    }
 
     public void createBigDummyTable() throws Exception{
 
@@ -808,44 +1034,89 @@ public class DBAdapterMssqlTest {
         stmt.close();
     }
 
-    private String createTestView() throws Exception{
+    public AutoCloseable useTestView(String schemaName, String viewName) throws Exception{
+        return new AutoCloseable() {
+            private Statement stmt = testConnection.createStatement();
+
+            {
+                stmt.execute("IF OBJECT_ID('"+schemaName+" ."+viewName+"', 'V') IS NOT NULL DROP VIEW "+schemaName+"."+viewName+" \n");
+                stmt.execute(
+                "CREATE VIEW "+schemaName+"."+viewName+" AS\n" +
+                    "SELECT SC.name + '(' + SO.NAME + ')' as theUsualTitle\n" +
+                    "FROM sys.columns SC JOIN sys.objects SO on SC.object_id = SO.object_id\n"
+                );
+                stmt.execute(
+                    "ALTER VIEW "+schemaName+"."+viewName+" AS\n" +
+                    "SELECT 'THE ALLMIGHT ''' + SC.name + ''' FROM ' + SO.name  as theBigTitle\n" +
+                    "FROM sys.columns SC JOIN sys.objects SO on SC.object_id = SO.object_id\n"
+                );
+            }
+
+            @Override
+            public void close() throws Exception {
+                //did you know that in MessageFormat.format (') single quotes should be escaped by another ' single quote -> ('') ?
+                stmt.execute(MessageFormat.format("IF OBJECT_ID(''{0}.{1}'', ''V'') IS NOT NULL DROP VIEW {0}.{1} \n", schemaName, viewName));
+                stmt.close();
+            }
+        };
+    }
+
+    private String createTestView(String schemaName, String viewName) throws Exception{
         String viewDDl =
-                "CREATE VIEW dbo.testView AS\n" +
-                "SELECT 'THE ALLMIGHT ''' + SC.name + ''' FROM ' + SO.name  as theBigTitle\n" +
-                "FROM sys.columns SC JOIN sys.objects SO on SC.object_id = SO.object_id";
+            "CREATE VIEW "+schemaName+"."+viewName+" AS\n" +
+            "SELECT 'THE ALLMIGHT ''' + SC.name + ''' FROM ' + SO.name  as theBigTitle\n" +
+            "FROM sys.columns SC JOIN sys.objects SO on SC.object_id = SO.object_id";
 
         Statement stmt = testConnection.createStatement();
-        stmt.execute("IF OBJECT_ID('dbo.testView', 'V') IS NOT NULL DROP VIEW dbo.testView \n");
+        stmt.execute("IF OBJECT_ID('"+schemaName+" ."+viewName+"', 'V') IS NOT NULL DROP VIEW "+schemaName+"."+viewName+" \n");
         stmt.execute(
-                "CREATE VIEW dbo.testView AS\n" +
-                        "SELECT SC.name + '(' + SO.NAME + ')' as theUsualTitle\n" +
-                        "FROM sys.columns SC JOIN sys.objects SO on SC.object_id = SO.object_id\n");
+        "CREATE VIEW "+schemaName+"."+viewName+" AS\n" +
+            "SELECT SC.name + '(' + SO.NAME + ')' as theUsualTitle\n" +
+            "FROM sys.columns SC JOIN sys.objects SO on SC.object_id = SO.object_id\n");
         stmt.execute(
-                "ALTER VIEW dbo.testView AS\n" +
-                        "SELECT 'THE ALLMIGHT ''' + SC.name + ''' FROM ' + SO.name  as theBigTitle\n" +
-                        "FROM sys.columns SC JOIN sys.objects SO on SC.object_id = SO.object_id\n");
+        "ALTER VIEW "+schemaName+"."+viewName+" AS\n" +
+            "SELECT 'THE ALLMIGHT ''' + SC.name + ''' FROM ' + SO.name  as theBigTitle\n" +
+            "FROM sys.columns SC JOIN sys.objects SO on SC.object_id = SO.object_id\n");
+        stmt.close();
 
         return viewDDl;
 
     }
 
-    private List<String> createTestObjects() throws Exception{
+    public void dropTestView(String schemaName, String viewName) throws Exception{
+        Statement stmt = testConnection.createStatement();
+
+        stmt.execute("IF OBJECT_ID('"+schemaName+"."+viewName+"', 'V') IS NOT NULL DROP VIEW "+schemaName+"."+viewName+" \n");
+        stmt.close();
+        testConnection.commit();
+    }
+
+    private List<String> createTestTriggerProcedureFunctions(String triggerName, String procedureName, String functionName, String tableName) throws Exception{
 
         Statement stmt = testConnection.createStatement();
+        String schema = testConnection.getSchema();
+        String sam = schema+"."+tableName;
+        String functionSam = schema + "." + functionName;
+        String functionSamTable = functionSam + "Table";
+        String functionSamScalar = functionSam;
+        String procedureSam = MessageFormat.format("{0}.{1}", schema, procedureName);
+        String triggerSam = MessageFormat.format("{0}.{1}", schema, triggerName);
+        String triggerSamEncrypted = triggerSam + "Encrypted";
+
         ArrayList<String> scripts = Lists.newArrayList(
 
             //table
-            "IF OBJECT_ID('dbo.ExecutableTest', 'U') IS NOT NULL DROP TABLE dbo.ExecutableTest\n" +
-            "CREATE TABLE dbo.ExecutableTest (\n" +
+            "IF OBJECT_ID('"+sam+"', 'U') IS NOT NULL DROP TABLE "+sam+"\n" +
+            "CREATE TABLE "+sam+" (\n" +
             "	[id] int PRIMARY KEY, \n" +
             "	[val] varchar(250) NULL DEFAULT ('Hey, I have some!')\n" +
             ") ON [PRIMARY]\n" +
-            "INSERT INTO dbo.ExecutableTest VALUES (1, DEFAULT)\n",
+            "INSERT INTO "+sam+" VALUES (1, DEFAULT)\n",
 
-            "IF object_id(N'dbo.FunctionTestScalar', N'FN') IS NOT NULL DROP FUNCTION dbo.FunctionTestScalar\n",
+            "IF object_id(N'"+functionSamScalar+"', N'FN') IS NOT NULL DROP FUNCTION "+functionSamScalar+"\n",
 
             //function scalar
-            "CREATE FUNCTION dbo.FunctionTestScalar (@input VARCHAR(250), @toReplace VARCHAR(100))\n" +
+            "CREATE FUNCTION "+functionSamScalar+" (@input VARCHAR(250), @toReplace VARCHAR(100))\n" +
             "RETURNS VARCHAR(250)\n" +
             "AS BEGIN\n" +
             "    DECLARE @Work VARCHAR(250)\n" +
@@ -855,9 +1126,9 @@ public class DBAdapterMssqlTest {
             "END",
 
             //function table
-            "IF object_id(N'dbo.FunctionTestTable', N'TF') IS NOT NULL DROP FUNCTION dbo.FunctionTestTable\n",
+            "IF object_id(N'"+functionSamTable+"', N'TF') IS NOT NULL DROP FUNCTION "+functionSamTable+"\n",
 
-            "CREATE FUNCTION [dbo].FunctionTestTable(\n" +
+            "CREATE FUNCTION "+functionSamTable+"(\n" +
             "   @find varchar(100)\n" +
             ")\n" +
             "RETURNS @Result TABLE\n" +
@@ -865,50 +1136,60 @@ public class DBAdapterMssqlTest {
             "    id int ,\n" +
             "    val char(100)\n" +
             ") AS BEGIN\n" +
-            "   INSERT INTO @Result SELECT * FROM dbo.ExecutableTest et WHERE et.val LIKE '%' + @find + '%'\n" +
+            "   INSERT INTO @Result SELECT * FROM "+sam+" et WHERE et.val LIKE '%' + @find + '%'\n" +
             "   INSERT INTO @Result SELECT\n" +
-            "      (SELECT MAX(ett.id) FROM dbo.ExecutableTest ett) + 1 as id, dbo.FunctionTestScalar(et.val, @find) as val FROM dbo.ExecutableTest et\n" +
+            "      (SELECT MAX(ett.id) FROM "+sam+" ett) + 1 as id, "+functionSamScalar+"(et.val, @find) as val FROM "+sam+" et\n" +
             "      WHERE et.val LIKE '%' + @find + '%'\n" +
             "RETURN END",
 
 
             //procedure
-            "IF OBJECT_ID('dbo.ProcedureTest', 'P') IS NOT NULL DROP PROCEDURE dbo.ProcedureTest\n",
+            "IF OBJECT_ID('"+procedureSam+"', 'P') IS NOT NULL DROP PROCEDURE "+procedureSam+"\n",
 
-            "CREATE PROCEDURE dbo.ProcedureTest @word varchar(100) AS\n" +
+            "CREATE PROCEDURE "+procedureSam+" @word varchar(100) AS\n" +
             "BEGIN\n" +
             "    SELECT *\n" +
-            "    FROM dbo.FunctionTestTable(@word) t\n" +
+            "    FROM "+functionSamTable+"(@word) t\n" +
             "END",
 
             //trigger
-            "CREATE TRIGGER dbo.TriggerTest\n" +
-            "ON dbo.ExecutableTest\n" +
+            "CREATE TRIGGER "+triggerSam+"\n" +
+            "ON "+sam+"\n" +
             "AFTER DELETE\n" +
             "NOT FOR REPLICATION\n" +
-            "AS INSERT INTO dbo.ExecutableTest SELECT * FROM deleted",
+            "AS INSERT INTO "+sam+" SELECT * FROM deleted",
 
             //trigger encrypted
-            "CREATE TRIGGER dbo.TriggerTestEncrypted\n" +
-            "ON dbo.ExecutableTest\n" +
+            "CREATE TRIGGER "+triggerSamEncrypted+"\n" +
+            "ON "+sam+"\n" +
             "WITH ENCRYPTION\n" +
             "AFTER DELETE\n" +
-            "AS INSERT INTO dbo.ExecutableTest SELECT * FROM deleted"
+            "AS INSERT INTO "+sam+" SELECT * FROM deleted"
         );
 
         for (String script : scripts){
             stmt.execute(script);
         }
-
+        stmt.close();
+        testConnection.commit();
         return scripts;
     }
 
-    private void dropTestObjects() throws Exception{
+    private void dropTestTriggerProcedureFunctions(String procedureName, String functionName, String tableName) throws Exception{
+        String schema = testConnection.getSchema();
+        String sam = schema+"."+tableName;
+        String functionSam = schema + "." + functionName;
+        String functionSamTable = functionSam + "Table";
+        String functionSamScalar = functionSam;
+        String procedureSam = MessageFormat.format("{0}.{1}", schema, procedureName);
+
         Statement stmt = testConnection.createStatement();
         stmt.execute(
-            "DROP TABLE dbo.ExecutableTest\n" +
-            "DROP FUNCTION dbo.FunctionTestScalar, dbo.FunctionTestTable\n" +
-            "DROP PROCEDURE dbo.ProcedureTest"
+            MessageFormat.format(
+                "DROP TABLE {0}\nDROP FUNCTION {1}, {2}\nDROP PROCEDURE {3}\n",
+                sam, functionSamScalar, functionSamTable, procedureSam
+            )
         );
+        stmt.close();
     }
 }
