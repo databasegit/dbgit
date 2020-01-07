@@ -5,7 +5,6 @@ import ru.fusionsoft.dbgit.utils.StringProperties;
 
 public class DBIndex extends DBSQLObject {
 	//private DBTable table;
-	private StringProperties options = new StringProperties();
 	public DBIndex() {
 		super();
 	}	
@@ -13,16 +12,7 @@ public class DBIndex extends DBSQLObject {
 		super();
 		this.name = name;
 	}
-	
-	
-	public StringProperties getOptions() {
-		return options;
-	}
 
-
-	public void setOptions(StringProperties options) {
-		this.options = options;
-	}
 	
 	public String getHash() {
 		CalcHash ch = new CalcHash();

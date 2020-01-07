@@ -64,6 +64,7 @@ public class DBAdapterOracle extends DBAdapter {
 
 	private String s;
 
+	@SuppressWarnings("Duplicates")
 	public void registryMappingTypes() {
 		FactoryCellData.regMappingTypes(DEFAULT_MAPPING_TYPE, StringData.class);
 		FactoryCellData.regMappingTypes("number", LongData.class);
