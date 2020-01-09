@@ -24,7 +24,10 @@ public class DBGitConfig {
 			    .toURI()).getAbsolutePath();
 		
 		while (!new File(path + "/dbgitconfig").exists()) {
-			path += "/..";
+			int i = path.lastIndexOf("/");
+			if (i == -1) i = path.lastIndexOf("\\");
+			
+			path = path.substring(0, i);
 		}
 		
 		if (new File(path + "/bin/dbgitconfig").exists())
