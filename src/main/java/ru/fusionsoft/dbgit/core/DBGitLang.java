@@ -7,7 +7,6 @@ import java.util.Map;
 import org.yaml.snakeyaml.Yaml;
 
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
-import ru.fusionsoft.dbgit.utils.LoggerUtil;
 
 public class DBGitLang {
 	private static DBGitLang lang = null;
@@ -16,9 +15,7 @@ public class DBGitLang {
 	
 	@SuppressWarnings("unchecked")
 	private DBGitLang() {
-		try {
-			ConsoleWriter.println(DBGitLang.class.getProtectionDomain().getCodeSource().getLocation().toURI());
-			
+		try {			
 			String path = new File(DBGitLang.class.getProtectionDomain().getCodeSource().getLocation()
 				    .toURI()).getAbsolutePath();
 			
