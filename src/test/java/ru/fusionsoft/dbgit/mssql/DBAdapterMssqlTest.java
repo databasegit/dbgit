@@ -828,6 +828,24 @@ public class DBAdapterMssqlTest {
         assertTrue(testAdapter.getFunctions(schema).containsKey(functionNameTable));
     }
 
+    @Test
+    public void restoreProcedure() throws Exception{
+        DBRestoreProcedureMssql restoreAdapter = (DBRestoreProcedureMssql) testRestoreFactory.getAdapterRestore(DBGitMetaType.DbGitProcedure,testAdapter);
+        String tableName = "someTestTable";
+
+        createTestTriggerProcedureFunctions(tableName);
+        MetaProcedure metaProcedure = new MetaProcedure(testAdapter.getProcedure(schema, procedureName));
+        metaProcedure.loadFromDB();
+        restoreAdapter.restoreMetaObject(metaProcedure);
+        assertTrue(testAdapter.getProcedures(schema).containsKey(procedureName));
+
+        dropTestTriggerProcedureFunctions(tableName);
+        assertFalse(testAdapter.getProcedures(schema).containsKey(procedureName));
+
+        restoreAdapter.restoreMetaObject(metaProcedure);
+        assertTrue(testAdapter.getProcedures(schema).containsKey(procedureName));
+    }
+
     //heplers
 
     public void dropBackupTables() throws Exception{
