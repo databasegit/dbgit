@@ -4,12 +4,14 @@ import ru.fusionsoft.dbgit.adapters.DBRestoreAdapter;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRestore;
 import ru.fusionsoft.dbgit.dbobjects.DBFunction;
+import ru.fusionsoft.dbgit.dbobjects.DBSQLObject;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
 import ru.fusionsoft.dbgit.meta.MetaFunction;
 import ru.fusionsoft.dbgit.statement.StatementLogging;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
 import java.sql.Connection;
+import java.text.MessageFormat;
 import java.util.Map;
 
 public class DBRestoreFunctionMssql extends DBRestoreAdapter {
@@ -23,34 +25,31 @@ public class DBRestoreFunctionMssql extends DBRestoreAdapter {
 		try {
 			if (obj instanceof MetaFunction) {
 				MetaFunction restoreFunction = (MetaFunction)obj;
+				DBSQLObject restoringDBF = restoreFunction.getSqlObject();
+				String functionName = restoreFunction.getSqlObject().getName();
 				Map<String, DBFunction> functions = adapter.getFunctions(restoreFunction.getSqlObject().getSchema());
-				boolean exist = false;
-				if(!(functions.isEmpty() || functions == null)) {
-					for(DBFunction fnc:functions.values()) {
-						if(restoreFunction.getSqlObject().getName().equals(fnc.getName())){
-							exist = true;
-							if(!restoreFunction.getSqlObject().getSql().equals(fnc.getSql())) {
-								st.execute(restoreFunction.getSqlObject().getSql());
-							}
-							// TODO MSSQL restore MetaFunction script
-							if(!restoreFunction.getSqlObject().getOwner().equals(fnc.getOwner())) {
-								if(restoreFunction.getSqlObject().getOptions().get("arguments").getData() == null || restoreFunction.getSqlObject().getOptions().get("arguments").getData().isEmpty()) {
-									st.execute("ALTER FUNCTION "+restoreFunction.getSqlObject().getName() + "() OWNER TO "
-											+ restoreFunction.getSqlObject().getOwner());
-								}
-								else {
-									st.execute("ALTER FUNCTION "+restoreFunction.getSqlObject().getName()+"("
-											+ restoreFunction.getSqlObject().getOptions().get("arguments").getData() + ") OWNER TO " + restoreFunction.getSqlObject().getOwner());
-								}
-							}
-							//TODO Восстановление привилегий							
-						}
+
+				if(functions.containsKey(functionName)){
+					DBFunction existingDBF = functions.get(functionName);
+					boolean ddlsDiffer = !restoringDBF.getSql().equals(existingDBF.getSql());
+					boolean ownersDiffer = !restoringDBF.getOwner().equals(existingDBF.getOwner());
+
+					if(ddlsDiffer) {
+						st.execute(restoreFunction.getSqlObject().getSql());
+                        st.execute(MessageFormat.format("DROP FUNCTION {0}.{1}", existingDBF.getOwner(), existingDBF.getName()));
+                    }
+					if(ownersDiffer) {
+					    //TODO remove sp_changeowner usage in other methods
+						String ddl = MessageFormat.format(
+                            "ALTER SCHEMA {0} TRANSFER {1}.{2}",
+                            restoringDBF.getOwner(), existingDBF.getOwner(), functionName
+						);
+						st.execute(ddl);
 					}
-				}
-				if(!exist){
-					st.execute(restoreFunction.getSqlObject().getSql());
-					//TODO Восстановление привилегий	
-				}
+				} else {
+                    st.execute(restoreFunction.getSqlObject().getSql());
+                }
+                //TODO Восстановление привилегий
 			}
 			else
 			{

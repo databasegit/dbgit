@@ -2,9 +2,7 @@ package ru.fusionsoft.dbgit.mssql;
 
 import com.google.common.collect.Lists;
 
-import com.microsoft.sqlserver.jdbc.SQLServerException;
-import com.sun.jna.platform.win32.DBT;
-import org.apache.commons.lang.time.StopWatch;
+import org.apache.commons.lang3.time.StopWatch;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -14,9 +12,11 @@ import ru.fusionsoft.dbgit.adapters.IFactoryDBConvertAdapter;
 import ru.fusionsoft.dbgit.core.DBGitConfig;
 import ru.fusionsoft.dbgit.dbobjects.*;
 import ru.fusionsoft.dbgit.meta.*;
+import ru.fusionsoft.dbgit.oracle.DBRestorePackageOracle;
 import ru.fusionsoft.dbgit.statement.StatementLogging;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
+import javax.naming.Name;
 import java.sql.*;
 import java.text.MessageFormat;
 import java.util.*;
@@ -46,6 +46,8 @@ public class DBAdapterMssqlTest {
 
     private static DBAdapterMssql testAdapter;
     private static DBBackupAdapterMssql testBackup;
+    private static FactoryDBAdapterRestoreMssql testRestoreFactory = new FactoryDBAdapterRestoreMssql();
+
     private static Connection testConnection;
     private static boolean isInitialized = false;
     private static boolean isMasterDatabase;
@@ -197,7 +199,7 @@ public class DBAdapterMssqlTest {
         try{
             StopWatch watch = new StopWatch();
             watch.start();
-            createTestTriggerProcedureFunctions(triggerName, procedureName, functionName, triggerTableName);
+            createTestTriggerProcedureFunctions(triggerTableName);
 
             DBTableData data = testAdapter.getTableData(testConnection.getSchema(), triggerTableName);
             ResultSet rs = data.getResultSet();
@@ -209,7 +211,7 @@ public class DBAdapterMssqlTest {
             assertEquals(1, rs.getInt(1));
             assertEquals("Hey, I have some!", rs.getString(2));
 
-            dropTestTriggerProcedureFunctions(procedureName, functionName, triggerTableName);
+            dropTestTriggerProcedureFunctions(triggerTableName);
 
             System.out.println(watch.toString());
         }
@@ -247,6 +249,7 @@ public class DBAdapterMssqlTest {
     public void getIndexes() throws Exception{
 
         String tableName = "TestTableIndex";
+
         String indexCreateDdl = createTestIndex(tableName);
 
         Map<String, DBIndex> indexes = testAdapter.getIndexes(testConnection.getSchema(), tableName);
@@ -262,12 +265,13 @@ public class DBAdapterMssqlTest {
 
         String schema = testConnection.getSchema();
         String tableName = "CTestTable";
+        String tableSam = schema + "." + tableName;
 
-        String constrDDL1 = "ALTER TABLE "+ schema + "." + tableName + " ADD CONSTRAINT df_constraint DEFAULT ('{}') FOR [value];";
-        String constrDDL2 = "ALTER TABLE "+ schema + "." + tableName + " ADD CONSTRAINT df_constraintInt DEFAULT ((1)) FOR [valueCheck1];";
-        String constrDDL3 = "ALTER TABLE "+ schema + "." + tableName + " ADD CONSTRAINT u_constraint UNIQUE NONCLUSTERED ([valueUnique]);";
-        String constrDDL4 = "ALTER TABLE "+ schema + "." + tableName + " ADD CONSTRAINT chk_constraint CHECK ([valueCheck1]>(0) AND [valueCheck2]>(0));";
-        String constrDDL5 = "ALTER TABLE "+ schema + "." + tableName + " ADD CONSTRAINT fk_constraint FOREIGN KEY (fkInt) references " + schema + "." + tableName + "FK(keyInt);";
+        String constrDDL1 = "ALTER TABLE "+ tableSam + " ADD CONSTRAINT df_constraint DEFAULT ('{}') FOR [value];";
+        String constrDDL2 = "ALTER TABLE "+ tableSam + " ADD CONSTRAINT df_constraintInt DEFAULT ((1)) FOR [valueCheck1];";
+        String constrDDL3 = "ALTER TABLE "+ tableSam + " ADD CONSTRAINT u_constraint UNIQUE NONCLUSTERED ([valueUnique]);";
+        String constrDDL4 = "ALTER TABLE "+ tableSam + " ADD CONSTRAINT chk_constraint CHECK ([valueCheck1]>(0) AND [valueCheck2]>(0));";
+        String constrDDL5 = "ALTER TABLE "+ tableSam + " ADD CONSTRAINT fk_constraint FOREIGN KEY (fkInt) references " + tableSam + "FK(keyInt);";
 
 
         createTestConstraintsAndTables(schema, tableName);
@@ -331,12 +335,12 @@ public class DBAdapterMssqlTest {
     public void getProcedures() {
 
         try{
-            List<String> ddls = createTestTriggerProcedureFunctions(triggerName, procedureName, functionName, triggerTableName);
+            List<String> ddls = createTestTriggerProcedureFunctions(triggerTableName);
 
             Map<String, DBProcedure> procedures = testAdapter.getProcedures(testConnection.getSchema());
             assertEquals(ddls.get(6), procedures.get(procedureName).getSql());
 
-            dropTestTriggerProcedureFunctions(procedureName, functionName, triggerTableName);
+            dropTestTriggerProcedureFunctions(triggerTableName);
 
         }
         catch (Exception ex) {
@@ -349,12 +353,12 @@ public class DBAdapterMssqlTest {
     public void getProcedure() {
 
         try{
-            List<String> ddls = createTestTriggerProcedureFunctions(triggerName, procedureName, functionName, triggerTableName);;
+            List<String> ddls = createTestTriggerProcedureFunctions(triggerTableName);;
 
             DBProcedure procedure = testAdapter.getProcedure(testConnection.getSchema(), procedureName);
             assertEquals(ddls.get(6), procedure.getSql());
 
-            dropTestTriggerProcedureFunctions(procedureName, functionName, triggerTableName);
+            dropTestTriggerProcedureFunctions(triggerTableName);
         }
         catch (Exception ex) {
             fail(ex.toString());
@@ -366,12 +370,12 @@ public class DBAdapterMssqlTest {
     public void getFunctions(){
 
         try{
-            List<String> ddls = createTestTriggerProcedureFunctions(triggerName, procedureName, functionName, triggerTableName);;
+            List<String> ddls = createTestTriggerProcedureFunctions(triggerTableName);;
 
             Map<String, DBFunction> functions = testAdapter.getFunctions(testConnection.getSchema());
             assertEquals(ddls.get(4), functions.get(functionNameTable).getSql());
 
-            dropTestTriggerProcedureFunctions(procedureName, functionName, triggerTableName);
+            dropTestTriggerProcedureFunctions(triggerTableName);
         }
         catch (Exception ex) {
             fail(ex.toString());
@@ -383,12 +387,12 @@ public class DBAdapterMssqlTest {
     public void getFunction() {
 
         try{
-            List<String> ddls = createTestTriggerProcedureFunctions(triggerName, procedureName, functionName, triggerTableName);;
+            List<String> ddls = createTestTriggerProcedureFunctions(triggerTableName);;
 
             DBFunction function = testAdapter.getFunction(testConnection.getSchema(), functionName);
             assertEquals(ddls.get(2), function.getSql());
 
-            dropTestTriggerProcedureFunctions(procedureName, functionName, triggerTableName);
+            dropTestTriggerProcedureFunctions(triggerTableName);
         }
         catch (Exception ex) {
             fail(ex.toString());
@@ -400,12 +404,12 @@ public class DBAdapterMssqlTest {
     public void getTriggers() {
 
         try{
-            List<String> ddls = createTestTriggerProcedureFunctions(triggerName, procedureName, functionName, triggerTableName);;
+            List<String> ddls = createTestTriggerProcedureFunctions(triggerTableName);;
 
             Map<String, DBTrigger> triggers = testAdapter.getTriggers(testConnection.getSchema());
             assertEquals(ddls.get(7), triggers.get(triggerName).getSql());
 
-            dropTestTriggerProcedureFunctions(procedureName, functionName, triggerTableName);
+            dropTestTriggerProcedureFunctions(triggerTableName);
         }
         catch (Exception ex) {
             fail(ex.toString());
@@ -417,7 +421,7 @@ public class DBAdapterMssqlTest {
     public void getTrigger() {
 
         try{
-            List<String> ddls = createTestTriggerProcedureFunctions(triggerName, procedureName, functionName, triggerTableName);;
+            List<String> ddls = createTestTriggerProcedureFunctions(triggerTableName);;
 
             //TODO Discuss scenario when we get an encrypted trigger, IMO display a warning,
             // it is not possible to get definition of an encrypred trigger
@@ -426,7 +430,7 @@ public class DBAdapterMssqlTest {
             assertEquals("1", trigger.getOptions().getChildren().get("encrypted").getData());
 
 
-            dropTestTriggerProcedureFunctions(procedureName, functionName, triggerTableName);
+            dropTestTriggerProcedureFunctions(triggerTableName);
         }
         catch (Exception ex) {
             fail(ex.toString());
@@ -606,10 +610,8 @@ public class DBAdapterMssqlTest {
 
         MetaTable constraintsMetaTable = new MetaTable(tables.get(tableName));
         MetaTable indexedMetaTable = new MetaTable(tables.get(indexTableName));
-        MetaTable ignoredProducts = new MetaTable(tables.get("IgnoredProducts"));
         testConnection.commit();
 
-        testBackup.backupDBObject(ignoredProducts);
         testBackup.backupDBObject(constraintsMetaTable);
         testBackup.backupDBObject(indexedMetaTable);
 
@@ -621,7 +623,7 @@ public class DBAdapterMssqlTest {
 
     @Test
     public void backupMetaSql() throws Exception{
-        createTestTriggerProcedureFunctions(triggerName, procedureName, functionName, triggerTableName);
+        createTestTriggerProcedureFunctions(triggerTableName);
         createTestView(schema, viewName);
 
         MetaView metaView = new MetaView(testAdapter.getViews(schema).get(viewName));
@@ -637,7 +639,7 @@ public class DBAdapterMssqlTest {
         testBackup.backupDBObject(metaFunctionTable);
 
         dropTestView(schema, viewName);
-        dropTestTriggerProcedureFunctions(procedureName, functionName, triggerTableName);
+        dropTestTriggerProcedureFunctions(triggerTableName);
     }
 
     @Test
@@ -681,6 +683,150 @@ public class DBAdapterMssqlTest {
         dropTestRoleAndStuff(roleName, userName, sam);
     }
 
+    //restoreAdapter methods
+
+    @Test
+    public void getAdapterRestore(){
+        assertEquals(
+                testRestoreFactory.getAdapterRestore(DBGitMetaType.DBGitSequence,testAdapter).getClass(),
+                DBRestoreSequenceMssql.class
+        );
+        assertEquals(
+                testRestoreFactory.getAdapterRestore(DBGitMetaType.DBGitTable,testAdapter).getClass(),
+                DBRestoreTableMssql.class
+        );
+        assertEquals(
+                testRestoreFactory.getAdapterRestore(DBGitMetaType.DbGitTableData,testAdapter).getClass(),
+                DBRestoreTableDataMssql.class
+        );
+        assertEquals(
+                testRestoreFactory.getAdapterRestore(DBGitMetaType.DBGitSchema,testAdapter).getClass(),
+                DBRestoreSchemaMssql.class
+        );
+        assertEquals(
+                testRestoreFactory.getAdapterRestore(DBGitMetaType.DbGitFunction,testAdapter).getClass(),
+                DBRestoreFunctionMssql.class
+        );
+        assertEquals(
+                testRestoreFactory.getAdapterRestore(DBGitMetaType.DbGitProcedure,testAdapter).getClass(),
+                DBRestoreProcedureMssql.class
+        );
+        assertEquals(
+                testRestoreFactory.getAdapterRestore(DBGitMetaType.DBGitRole,testAdapter).getClass(),
+                DBRestoreRoleMssql.class
+        );
+        assertEquals(
+                testRestoreFactory.getAdapterRestore(DBGitMetaType.DbGitTrigger,testAdapter).getClass(),
+                DBRestoreTriggerMssql.class
+        );
+        assertEquals(
+                testRestoreFactory.getAdapterRestore(DBGitMetaType.DbGitView,testAdapter).getClass(),
+                DBRestoreViewMssql.class
+        );
+        assertEquals(
+                testRestoreFactory.getAdapterRestore(DBGitMetaType.DbGitPackage,testAdapter),
+                null
+        );
+
+        assertEquals(
+                testRestoreFactory.getAdapterRestore(DBGitMetaType.DBGitTableSpace,testAdapter).getClass(),
+                DBRestoreTableSpaceMssql.class
+        );
+
+        assertEquals(
+                testRestoreFactory.getAdapterRestore(DBGitMetaType.DBGitUser,testAdapter).getClass(),
+                DBRestoreUserMssql.class
+        );
+
+    }
+
+    @Test
+    public void restoreSequence() throws Exception{
+        String seqName = "testSeq";
+        String seqDdl = createTestSequence(seqName);
+
+        DBRestoreSequenceMssql ra = (DBRestoreSequenceMssql) testRestoreFactory.getAdapterRestore(DBGitMetaType.DBGitSequence,testAdapter);
+        DBSequence dbSequence = testAdapter.getSequence(schema, seqName);
+        MetaSequence metaSequence = new MetaSequence(dbSequence);
+        String sourceDbType = ra.getSourceDbType(metaSequence);
+
+        dropTestSequence(seqName);
+        assertFalse(testAdapter.getSequences(schema).containsKey(seqName));
+
+        ra.restoreMetaObject(metaSequence);
+        assertTrue(testAdapter.getSequences(schema).containsKey(seqName));
+
+        dropTestSequence(seqName);
+    }
+
+    @Test
+    public void restoreTable() throws Exception{
+        DBRestoreTableMssql restoreAdapter = (DBRestoreTableMssql) testRestoreFactory.getAdapterRestore(DBGitMetaType.DBGitTable,testAdapter);
+
+
+        String tblNameConstraints = "testConstraintsTable";
+        createTestConstraintsAndTables(tblNameConstraints);
+        MetaTable metaTableConstraints = new MetaTable(testAdapter.getTable(schema, tblNameConstraints));
+        metaTableConstraints.loadFromDB();
+
+        String tblNameIndexes = "testTbl";
+        createTestIndex(tblNameIndexes);
+        MetaTable metaTableIndexes = new MetaTable(testAdapter.getTable(schema, tblNameIndexes));
+        metaTableIndexes.loadFromDB();
+
+        Map<String, DBConstraint> constraintsBefore = metaTableConstraints.getConstraints();
+        Map<String, DBIndex> indexesBefore = metaTableIndexes.getIndexes();
+
+        for(MetaTable mt : Arrays.asList(metaTableConstraints, metaTableIndexes)){
+            String tableName = mt.getTable().getName();
+            dropTable(schema, tableName);
+            assertFalse(testAdapter.getTables(schema).containsKey(tableName));
+
+            for(int step : Arrays.asList(0, -1, 1)){
+                restoreAdapter.restoreMetaObject(mt, step);
+            }
+            assertTrue(testAdapter.getTables(schema).containsKey(tableName));
+        }
+
+        Map<String, DBConstraint> constraintsAfter = testAdapter.getConstraints(schema, tblNameConstraints);
+        Map<String, DBIndex> indexesAfter = testAdapter.getIndexes(schema, tblNameIndexes);
+
+        assertTrue(indexesBefore.keySet().containsAll(indexesAfter.keySet()));
+        assertTrue(constraintsBefore.keySet().containsAll(constraintsAfter.keySet()));
+
+        dropTestConstraintsAndTables(tblNameConstraints);
+        dropTestIndex(tblNameIndexes);
+
+        testConnection.commit();
+
+    }
+
+    @Test
+    public void restoreFunction() throws Exception{
+        DBRestoreFunctionMssql restoreAdapter = (DBRestoreFunctionMssql) testRestoreFactory.getAdapterRestore(DBGitMetaType.DbGitFunction,testAdapter);
+        String tableName = "someTestTable";
+
+        createTestTriggerProcedureFunctions(tableName);
+        MetaFunction metaFunction = new MetaFunction(testAdapter.getFunction(schema, functionName));
+        MetaFunction metaFunctionTable = new MetaFunction(testAdapter.getFunction(schema, functionNameTable));
+        metaFunction.loadFromDB();
+        metaFunctionTable.loadFromDB();
+        assertTrue(testAdapter.getFunctions(schema).containsKey(functionName));
+        assertTrue(testAdapter.getFunctions(schema).containsKey(functionNameTable));
+
+        restoreAdapter.restoreMetaObject(metaFunction);
+        restoreAdapter.restoreMetaObject(metaFunctionTable);
+
+        dropTestTriggerProcedureFunctions(tableName);
+        assertFalse(testAdapter.getFunctions(schema).containsKey(functionName));
+        assertFalse(testAdapter.getFunctions(schema).containsKey(functionNameTable));
+
+
+        restoreAdapter.restoreMetaObject(metaFunction);
+        restoreAdapter.restoreMetaObject(metaFunctionTable);
+        assertTrue(testAdapter.getFunctions(schema).containsKey(functionName));
+        assertTrue(testAdapter.getFunctions(schema).containsKey(functionNameTable));
+    }
 
     //heplers
 
@@ -829,10 +975,15 @@ public class DBAdapterMssqlTest {
         }
     }
 
+    public void dropTable(String schemaName, String tableName) throws Exception{
+        dropTable(schemaName+"."+tableName);
+    }
+
     public void dropTable(String schemaAndName) throws Exception{
         Statement stmt = testConnection.createStatement();
         String name = convertSchemaAndName(schemaAndName);
-        stmt.execute("IF OBJECT_ID('"+name+"', 'U') IS NOT NULL DROP TABLE " + name);
+        String ddl = MessageFormat.format("IF OBJECT_ID(''{0}'', ''U'') IS NOT NULL DROP TABLE {0}", name);
+        stmt.execute(ddl);
         stmt.close();
     }
 
@@ -843,6 +994,10 @@ public class DBAdapterMssqlTest {
     }
 
     //entire sets
+
+    private void createTestConstraintsAndTables(String tableName) throws SQLException {
+        createTestConstraintsAndTables(schema, tableName);
+    }
 
     private void createTestConstraintsAndTables(String schema, String tableName) throws SQLException {
         String constrDDL1 = "ALTER TABLE "+ schema + "." + tableName + " ADD CONSTRAINT df_constraint DEFAULT ('{}') FOR [value];";
@@ -873,10 +1028,11 @@ public class DBAdapterMssqlTest {
         stmt.close();
     }
 
+    private void dropTestConstraintsAndTables(String tableName) throws Exception {dropTestConstraintsAndTables(schema, tableName);}
     private void dropTestConstraintsAndTables(String schema, String tableName) throws Exception {
         dropTable(schema+"."+tableName);
         dropTable(schema+"."+tableName+"FK");
-        testConnection.commit();
+//        testConnection.commit();
     }
 
     public AutoCloseable useTestSequence(String sequenceName) throws Exception{
@@ -893,23 +1049,26 @@ public class DBAdapterMssqlTest {
     }
 
 
-    private void createTestSequence(String sequenceName) throws SQLException {
-        Statement stmt = testConnection.createStatement();
-        stmt.execute(
-        "IF EXISTS (SELECT * FROM sys.sequences WHERE NAME = N'"+sequenceName+"' AND TYPE='SO')\n" +
-            "DROP Sequence "+sequenceName+"\n" +
+    private String createTestSequence(String sequenceName) throws SQLException {
+        String dieDdl =
+            "IF EXISTS (SELECT * FROM sys.sequences WHERE NAME = N'"+sequenceName+"' AND TYPE='SO')\n" +
+            "DROP Sequence "+sequenceName+"\n";
+        String crDdl =
             "CREATE SEQUENCE "+sequenceName+"\n" +
             "START WITH 1\n" +
-            "INCREMENT BY 1;\n"
-        );
-        stmt.close();
+            "INCREMENT BY 1;\n";
+
+        try(Statement stmt = testConnection.createStatement()){
+            stmt.execute(dieDdl + crDdl);
+        }
+        return crDdl;
     }
 
     public void dropTestSequence(String sequenceName) throws Exception{
         Statement stmt = testConnection.createStatement();
         stmt.execute(
-                "IF EXISTS (SELECT * FROM sys.sequences WHERE NAME = N'TEST_SEQUENCE' AND TYPE='SO')\n" +
-                        "DROP Sequence "+sequenceName+"\n"
+        "IF EXISTS (SELECT * FROM sys.sequences WHERE NAME = N'"+sequenceName+"' AND TYPE='SO')\n" +
+            "DROP Sequence "+sequenceName+"\n"
         );
         stmt.close();
     }
@@ -972,9 +1131,12 @@ public class DBAdapterMssqlTest {
 
     public String createTestIndex(String tableName) throws Exception{
         String schema = testConnection.getSchema();
-        String indexCreateDdl = "CREATE NONCLUSTERED INDEX [IX_IdTest] ON ["+schema+"].["+tableName+"] ([Id]) ON [PRIMARY];";
+        return createTestIndex(schema, tableName);
+    }
 
-        dropTestIndex(tableName);
+    public String createTestIndex(String schemaName, String tableName) throws Exception{
+        dropTestIndex(schemaName, tableName);
+        String indexCreateDdl = "CREATE NONCLUSTERED INDEX [IX_IdTest] ON ["+schema+"].["+tableName+"] ([Id], [Name]) ON [PRIMARY];";
         createTable(
 schema + "." + tableName,
     "	[Id] [nvarchar](128) NOT NULL, " +
@@ -990,14 +1152,16 @@ schema + "." + tableName,
         return indexCreateDdl;
     }
 
-    public void dropTestIndex(String tableName)throws Exception{
+    public void dropTestIndex(String tableName)throws Exception{ dropTestIndex(schema, tableName); }
+
+    public void dropTestIndex(String schema, String tableName)throws Exception{
         Statement stmt = testConnection.createStatement();
-        String schema = testConnection.getSchema();
 
         dropTable(schema + "." + tableName);
-        stmt.execute(
+        String ddl =
             "IF EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'"+schema+"."+tableName+"') AND name = 'IX_IdTest') " +
-                "DROP INDEX IX_IdTest ON " + schema + "." + tableName + "\n");
+            "DROP INDEX IX_IdTest ON " + schema + "." + tableName + "\n";
+        stmt.execute(ddl);
         stmt.close();
     }
 
@@ -1028,7 +1192,7 @@ schema + "." + tableName,
     public void dropBigDummyTable() throws Exception{
         
         Statement stmt = testConnection.createStatement();
-        try { stmt.execute("DROP TABLE tempdb..#bigDummyTable\n"); } catch (SQLServerException ex) {
+        try { stmt.execute("DROP TABLE tempdb..#bigDummyTable\n"); } catch (SQLException ex) {
             ConsoleWriter.println("Failed to drop #bigDummyTable");
         }
         stmt.close();
@@ -1091,7 +1255,7 @@ schema + "." + tableName,
         testConnection.commit();
     }
 
-    private List<String> createTestTriggerProcedureFunctions(String triggerName, String procedureName, String functionName, String tableName) throws Exception{
+    private List<String> createTestTriggerProcedureFunctions(String tableName) throws Exception{
 
         Statement stmt = testConnection.createStatement();
         String schema = testConnection.getSchema();
@@ -1142,7 +1306,6 @@ schema + "." + tableName,
             "      WHERE et.val LIKE '%' + @find + '%'\n" +
             "RETURN END",
 
-
             //procedure
             "IF OBJECT_ID('"+procedureSam+"', 'P') IS NOT NULL DROP PROCEDURE "+procedureSam+"\n",
 
@@ -1175,7 +1338,7 @@ schema + "." + tableName,
         return scripts;
     }
 
-    private void dropTestTriggerProcedureFunctions(String procedureName, String functionName, String tableName) throws Exception{
+    private void dropTestTriggerProcedureFunctions(String tableName) throws Exception{
         String schema = testConnection.getSchema();
         String sam = schema+"."+tableName;
         String functionSam = schema + "." + functionName;

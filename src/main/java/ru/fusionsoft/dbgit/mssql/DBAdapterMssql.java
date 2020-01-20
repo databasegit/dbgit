@@ -21,6 +21,7 @@ import java.util.concurrent.TimeUnit;
 
 
 public class DBAdapterMssql extends DBAdapter {
+
 	public static final String DEFAULT_MAPPING_TYPE = "varchar";
 	private static final HashSet<String> systemSchemas = new HashSet<>(Arrays.asList(
 			"db_denydatawriter",
@@ -406,119 +407,120 @@ public class DBAdapterMssql extends DBAdapter {
 		}
 	}
 
-	@Override
-	public Map<String, DBIndex> getIndexes(String schema, String nameTable) {
+	public Map<String, DBIndex> getIndexesWithPks(String schema, String nameTable) {
 		Map<String, DBIndex> indexes = new HashMap<>();
 		try (Statement stmt = getConnection().createStatement()){
 			String query =
-					"    SELECT DB_NAME() AS databaseName,\n" +
-					"    sc.name as schemaName, \n" +
-					"	 t.name AS tableName,\n" +
-					"	 col.name as columnName,\n" +
-					"    si.name AS indexName,\n" +
-					"	 si.index_id as indexId,\n" +
-					"    CASE si.index_id WHEN 0 THEN NULL\n" +
-					"    ELSE \n" +
-					"        CASE is_primary_key WHEN 1 THEN\n" +
-					"            N'ALTER TABLE ' + QUOTENAME(sc.name) + N'.' + QUOTENAME(t.name) + N' ADD CONSTRAINT ' + QUOTENAME(si.name) + N' PRIMARY KEY ' +\n" +
-					"                CASE WHEN si.index_id > 1 THEN N'NON' ELSE N'' END + N'CLUSTERED '\n" +
-					"            ELSE N'CREATE ' + \n" +
-					"                CASE WHEN si.is_unique = 1 then N'UNIQUE ' ELSE N'' END +\n" +
-					"                CASE WHEN si.index_id > 1 THEN N'NON' ELSE N'' END + N'CLUSTERED ' +\n" +
-					"                N'INDEX ' + QUOTENAME(si.name) + N' ON ' + QUOTENAME(sc.name) + N'.' + QUOTENAME(t.name) + N' '\n" +
-					"        END +\n" +
-					"        /* key def */ N'(' + key_definition + N')' +\n" +
-					"        /* includes */ CASE WHEN include_definition IS NOT NULL THEN \n" +
-					"            N' INCLUDE (' + include_definition + N')'\n" +
-					"            ELSE N''\n" +
-					"        END +\n" +
-					"        /* filters */ CASE WHEN filter_definition IS NOT NULL THEN \n" +
-					"            N' WHERE ' + filter_definition ELSE N''\n" +
-					"        END +\n" +
-					"        /* with clause - compression goes here */\n" +
-					"        CASE WHEN row_compression_partition_list IS NOT NULL OR page_compression_partition_list IS NOT NULL \n" +
-					"            THEN N' WITH (' +\n" +
-					"                CASE WHEN row_compression_partition_list IS NOT NULL THEN\n" +
-					"                    N'DATA_COMPRESSION = ROW ' + CASE WHEN psc.name IS NULL THEN N'' ELSE + N' ON PARTITIONS (' + row_compression_partition_list + N')' END\n" +
-					"                ELSE N'' END +\n" +
-					"                CASE WHEN row_compression_partition_list IS NOT NULL AND page_compression_partition_list IS NOT NULL THEN N', ' ELSE N'' END +\n" +
-					"                CASE WHEN page_compression_partition_list IS NOT NULL THEN\n" +
-					"                    N'DATA_COMPRESSION = PAGE ' + CASE WHEN psc.name IS NULL THEN N'' ELSE + N' ON PARTITIONS (' + page_compression_partition_list + N')' END\n" +
-					"                ELSE N'' END\n" +
-					"            + N')'\n" +
-					"            ELSE N''\n" +
-					"        END +\n" +
-					"        ' ON ' + CASE WHEN psc.name is null \n" +
-					"            THEN ISNULL(QUOTENAME(fg.name),N'')\n" +
-					"            ELSE psc.name + N' (' + partitioning_column.column_name + N')' \n" +
-					"            END\n" +
-					"        + N';'\n" +
-					"    END AS ddl,\n" +
-					"    si.has_filter,\n" +
-					"    si.is_unique,\n" +
-					"    ISNULL(pf.name, NULL) AS partition_function,\n" +
-					"    ISNULL(psc.name, fg.name) AS partition_scheme_or_filegroup\n" +
-					"FROM sys.indexes AS si \n" +
-					"JOIN sys.index_columns ic ON  si.object_id = ic.object_id and si.index_id = ic.index_id \n" +
-					"JOIN sys.columns col ON ic.object_id = col.object_id and ic.column_id = col.column_id \n" +
-					"JOIN sys.tables AS t ON si.object_id=t.object_id\n" +
-					"JOIN sys.schemas AS sc ON t.schema_id=sc.schema_id\n" +
-					"LEFT JOIN sys.dm_db_index_usage_stats AS stat ON \n" +
-					"    stat.database_id = DB_ID() \n" +
-					"    and si.object_id=stat.object_id \n" +
-					"    and si.index_id=stat.index_id\n" +
-					"LEFT JOIN sys.partition_schemes AS psc ON si.data_space_id=psc.data_space_id\n" +
-					"LEFT JOIN sys.partition_functions AS pf ON psc.function_id=pf.function_id\n" +
-					"LEFT JOIN sys.filegroups AS fg ON si.data_space_id=fg.data_space_id\n" +
-					"OUTER APPLY ( SELECT STUFF (\n" +
-					"    (SELECT N', ' + QUOTENAME(c.name) +\n" +
-					"        CASE ic.is_descending_key WHEN 1 then N' DESC' ELSE N'' END\n" +
-					"    FROM sys.index_columns AS ic \n" +
-					"    JOIN sys.columns AS c ON \n" +
-					"        ic.column_id=c.column_id  \n" +
-					"        and ic.object_id=c.object_id\n" +
-					"    WHERE ic.object_id = si.object_id\n" +
-					"        and ic.index_id=si.index_id\n" +
-					"        and ic.key_ordinal > 0\n" +
-					"    ORDER BY ic.key_ordinal FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'),1,2,'')) AS keys ( key_definition )\n" +
-					"OUTER APPLY (\n" +
-					"    SELECT MAX(QUOTENAME(c.name)) AS column_name\n" +
-					"    FROM sys.index_columns AS ic \n" +
-					"    JOIN sys.columns AS c ON \n" +
-					"        ic.column_id=c.column_id  \n" +
-					"        and ic.object_id=c.object_id\n" +
-					"    WHERE ic.object_id = si.object_id\n" +
-					"        and ic.index_id=si.index_id\n" +
-					"        and ic.partition_ordinal = 1) AS partitioning_column\n" +
-					"OUTER APPLY ( SELECT STUFF (\n" +
-					"    (SELECT N', ' + QUOTENAME(c.name)\n" +
-					"    FROM sys.index_columns AS ic \n" +
-					"    JOIN sys.columns AS c ON \n" +
-					"        ic.column_id=c.column_id  \n" +
-					"        and ic.object_id=c.object_id\n" +
-					"    WHERE ic.object_id = si.object_id\n" +
-					"        and ic.index_id=si.index_id\n" +
-					"        and ic.is_included_column = 1\n" +
-					"    ORDER BY c.name FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'),1,2,'')) AS includes ( include_definition )\n" +
-					"OUTER APPLY ( SELECT STUFF (\n" +
-					"    (SELECT N', ' + CAST(p.partition_number AS VARCHAR(32))\n" +
-					"    FROM sys.partitions AS p\n" +
-					"    WHERE p.object_id = si.object_id\n" +
-					"        and p.index_id=si.index_id\n" +
-					"        and p.data_compression = 1\n" +
-					"    ORDER BY p.partition_number FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'),1,2,'')) AS row_compression_clause ( row_compression_partition_list )\n" +
-					"OUTER APPLY ( SELECT STUFF (\n" +
-					"    (SELECT N', ' + CAST(p.partition_number AS VARCHAR(32))\n" +
-					"    FROM sys.partitions AS p\n" +
-					"    WHERE p.object_id = si.object_id\n" +
-					"        and p.index_id=si.index_id\n" +
-					"        and p.data_compression = 2\n" +
-					"    ORDER BY p.partition_number FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'),1,2,'')) AS page_compression_clause ( page_compression_partition_list )\n" +
-					"WHERE si.type IN (1,2) /* clustered, nonclustered */\n" +
-					"AND si.is_primary_key = 0 /* no PKs */\n" +
-					"AND si.is_hypothetical = 0 /* bugged feature, always better to delete, no need to store and reconstruct them */\n" +
-					"AND upper(t.name) = upper('" + nameTable + "') AND upper(sc.name) = upper('" + schema + "')" +
-					"OPTION (RECOMPILE);";
+				"    SELECT DB_NAME() AS databaseName,\n" +
+				"    sc.name as schemaName, \n" +
+				"	 t.name AS tableName,\n" +
+				"	 col.name as columnName,\n" +
+				"    si.name AS indexName,\n" +
+				"	 si.is_primary_key isPk," +
+				"	 si.index_id as indexId,\n" +
+				"	 si.type_desc as typeName, \n" +
+				"    CASE si.index_id WHEN 0 THEN NULL\n" +
+				"    ELSE \n" +
+				"        CASE is_primary_key WHEN 1 THEN\n" +
+				"            N'ALTER TABLE ' + QUOTENAME(sc.name) + N'.' + QUOTENAME(t.name) + N' ADD CONSTRAINT ' + QUOTENAME(si.name) + N' PRIMARY KEY ' +\n" +
+				"                CASE WHEN si.index_id > 1 THEN N'NON' ELSE N'' END + N'CLUSTERED '\n" +
+				"            ELSE N'CREATE ' + \n" +
+				"                CASE WHEN si.is_unique = 1 then N'UNIQUE ' ELSE N'' END +\n" +
+				"                CASE WHEN si.index_id > 1 THEN N'NON' ELSE N'' END + N'CLUSTERED ' +\n" +
+				"                N'INDEX ' + QUOTENAME(si.name) + N' ON ' + QUOTENAME(sc.name) + N'.' + QUOTENAME(t.name) + N' '\n" +
+				"        END +\n" +
+				"        /* key def */ N'(' + key_definition + N')' +\n" +
+				"        /* includes */ CASE WHEN include_definition IS NOT NULL THEN \n" +
+				"            N' INCLUDE (' + include_definition + N')'\n" +
+				"            ELSE N''\n" +
+				"        END +\n" +
+				"        /* filters */ CASE WHEN filter_definition IS NOT NULL THEN \n" +
+				"            N' WHERE ' + filter_definition ELSE N''\n" +
+				"        END +\n" +
+				"        /* with clause - compression goes here */\n" +
+				"        CASE WHEN row_compression_partition_list IS NOT NULL OR page_compression_partition_list IS NOT NULL \n" +
+				"            THEN N' WITH (' +\n" +
+				"                CASE WHEN row_compression_partition_list IS NOT NULL THEN\n" +
+				"                    N'DATA_COMPRESSION = ROW ' + CASE WHEN psc.name IS NULL THEN N'' ELSE + N' ON PARTITIONS (' + row_compression_partition_list + N')' END\n" +
+				"                ELSE N'' END +\n" +
+				"                CASE WHEN row_compression_partition_list IS NOT NULL AND page_compression_partition_list IS NOT NULL THEN N', ' ELSE N'' END +\n" +
+				"                CASE WHEN page_compression_partition_list IS NOT NULL THEN\n" +
+				"                    N'DATA_COMPRESSION = PAGE ' + CASE WHEN psc.name IS NULL THEN N'' ELSE + N' ON PARTITIONS (' + page_compression_partition_list + N')' END\n" +
+				"                ELSE N'' END\n" +
+				"            + N')'\n" +
+				"            ELSE N''\n" +
+				"        END +\n" +
+				"        ' ON ' + CASE WHEN psc.name is null \n" +
+				"            THEN ISNULL(QUOTENAME(fg.name),N'')\n" +
+				"            ELSE psc.name + N' (' + partitioning_column.column_name + N')' \n" +
+				"            END\n" +
+				"        + N';'\n" +
+				"    END AS ddl,\n" +
+				"    si.has_filter,\n" +
+				"    si.is_unique,\n" +
+				"    ISNULL(pf.name, NULL) AS partition_function,\n" +
+				"    ISNULL(psc.name, fg.name) AS partition_scheme_or_filegroup\n" +
+				"FROM sys.indexes AS si \n" +
+				"JOIN sys.index_columns ic ON  si.object_id = ic.object_id and si.index_id = ic.index_id \n" +
+				"JOIN sys.columns col ON ic.object_id = col.object_id and ic.column_id = col.column_id \n" +
+				"JOIN sys.tables AS t ON si.object_id=t.object_id\n" +
+				"JOIN sys.schemas AS sc ON t.schema_id=sc.schema_id\n" +
+				"LEFT JOIN sys.dm_db_index_usage_stats AS stat ON \n" +
+				"    stat.database_id = DB_ID() \n" +
+				"    and si.object_id=stat.object_id \n" +
+				"    and si.index_id=stat.index_id\n" +
+				"LEFT JOIN sys.partition_schemes AS psc ON si.data_space_id=psc.data_space_id\n" +
+				"LEFT JOIN sys.partition_functions AS pf ON psc.function_id=pf.function_id\n" +
+				"LEFT JOIN sys.filegroups AS fg ON si.data_space_id=fg.data_space_id\n" +
+				"OUTER APPLY ( SELECT STUFF (\n" +
+				"    (SELECT N', ' + QUOTENAME(c.name) +\n" +
+				"        CASE ic.is_descending_key WHEN 1 then N' DESC' ELSE N'' END\n" +
+				"    FROM sys.index_columns AS ic \n" +
+				"    JOIN sys.columns AS c ON \n" +
+				"        ic.column_id=c.column_id  \n" +
+				"        and ic.object_id=c.object_id\n" +
+				"    WHERE ic.object_id = si.object_id\n" +
+				"        and ic.index_id=si.index_id\n" +
+				"        and ic.key_ordinal > 0\n" +
+				"    ORDER BY ic.key_ordinal FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'),1,2,'')) AS keys ( key_definition )\n" +
+				"OUTER APPLY (\n" +
+				"    SELECT MAX(QUOTENAME(c.name)) AS column_name\n" +
+				"    FROM sys.index_columns AS ic \n" +
+				"    JOIN sys.columns AS c ON \n" +
+				"        ic.column_id=c.column_id  \n" +
+				"        and ic.object_id=c.object_id\n" +
+				"    WHERE ic.object_id = si.object_id\n" +
+				"        and ic.index_id=si.index_id\n" +
+				"        and ic.partition_ordinal = 1) AS partitioning_column\n" +
+				"OUTER APPLY ( SELECT STUFF (\n" +
+				"    (SELECT N', ' + QUOTENAME(c.name)\n" +
+				"    FROM sys.index_columns AS ic \n" +
+				"    JOIN sys.columns AS c ON \n" +
+				"        ic.column_id=c.column_id  \n" +
+				"        and ic.object_id=c.object_id\n" +
+				"    WHERE ic.object_id = si.object_id\n" +
+				"        and ic.index_id=si.index_id\n" +
+				"        and ic.is_included_column = 1\n" +
+				"    ORDER BY c.name FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'),1,2,'')) AS includes ( include_definition )\n" +
+				"OUTER APPLY ( SELECT STUFF (\n" +
+				"    (SELECT N', ' + CAST(p.partition_number AS VARCHAR(32))\n" +
+				"    FROM sys.partitions AS p\n" +
+				"    WHERE p.object_id = si.object_id\n" +
+				"        and p.index_id=si.index_id\n" +
+				"        and p.data_compression = 1\n" +
+				"    ORDER BY p.partition_number FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'),1,2,'')) AS row_compression_clause ( row_compression_partition_list )\n" +
+				"OUTER APPLY ( SELECT STUFF (\n" +
+				"    (SELECT N', ' + CAST(p.partition_number AS VARCHAR(32))\n" +
+				"    FROM sys.partitions AS p\n" +
+				"    WHERE p.object_id = si.object_id\n" +
+				"        and p.index_id=si.index_id\n" +
+				"        and p.data_compression = 2\n" +
+				"    ORDER BY p.partition_number FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'),1,2,'')) AS page_compression_clause ( page_compression_partition_list )\n" +
+				"WHERE si.type IN (1,2) /* clustered, nonclustered */\n" +
+//					"AND si.is_primary_key = 0 /* no PKs */\n" +
+				"AND si.is_hypothetical = 0 /* bugged feature, always better to delete, no need to store and reconstruct them */\n" +
+				"AND upper(t.name) = upper('" + nameTable + "') AND upper(sc.name) = upper('" + schema + "')" +
+				"OPTION (RECOMPILE);";
 
 			ResultSet rs = stmt.executeQuery(query);
 			while(rs.next()){
@@ -537,6 +539,12 @@ public class DBAdapterMssql extends DBAdapter {
 		}
 	}
 
+	@Override
+	public Map<String, DBIndex> getIndexes(String schema, String nameTable){
+		Map<String, DBIndex> indexes = getIndexesWithPks(schema, nameTable);
+		indexes.values().removeIf(x->x.getOptions().getChildren().get("ispk").getData().equals("1"));
+		return indexes;
+	}
 
     @Override
     public Map<String, DBConstraint> getConstraints(String schema, String nameTable) {
@@ -544,7 +552,7 @@ public class DBAdapterMssql extends DBAdapter {
         ArrayList<String> queries = new ArrayList<>();
         //TODO [] in object names
         //check
-        queries.add("SELECT sc.name as schemaName, t.name as tableName, col.name as columnName, c.name as constraintName, c.type_desc as constraintType, \n" +
+        queries.add("SELECT sc.name as schemaName, t.name as tableName, col.name as columnName, c.name as constraintName, c.name as indexName, c.type_desc as constraintType, \n" +
                 "'ALTER TABLE ' + sc.name + '.' + t.name + ' ADD CONSTRAINT ' + c.name + ' CHECK ' + c.definition + ';' as ddl\n" +
                 "FROM sys.check_constraints c\n" +
                 "JOIN sys.tables t ON c.parent_object_id = t.object_id \n" +
@@ -584,6 +592,8 @@ public class DBAdapterMssql extends DBAdapter {
 				"WHERE t.name = ? AND ss.name = ?\n"
 		);
 
+
+
         Iterator<String> it = queries.iterator();
         try {
             while (it.hasNext()) {
@@ -605,7 +615,19 @@ public class DBAdapterMssql extends DBAdapter {
                 stmt.close();
             }
 
-            return constraints;
+            //primary keys
+			Map<String, DBIndex> indexes = getIndexesWithPks(schema, nameTable);
+			indexes.values().removeIf(x->x.getOptions().getChildren().get("ispk").getData().equals("0"));
+			for(DBIndex pki:indexes.values()){
+				DBConstraint pkc = new DBConstraint();
+				pkc.setName(pki.getName());
+				pkc.setConstraintType(pki.getOptions().getChildren().get("typename").getData());
+				pkc.setSchema(pki.getSchema());
+				pkc.setOptions(pki.getOptions());
+				constraints.put(pkc.getName(), pkc);
+			}
+
+			return constraints;
 
         }catch(Exception e) {
             logger.error(lang.getValue("errors", "adapter", "constraints").toString());
