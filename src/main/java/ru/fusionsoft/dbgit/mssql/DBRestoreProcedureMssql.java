@@ -11,6 +11,7 @@ import ru.fusionsoft.dbgit.statement.StatementLogging;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
 import java.sql.Connection;
+import java.text.MessageFormat;
 import java.util.Map;
 
 public class DBRestoreProcedureMssql extends DBRestoreAdapter {
@@ -32,7 +33,8 @@ public class DBRestoreProcedureMssql extends DBRestoreAdapter {
 					DBProcedure existingProc = adapter.getProcedure(procedureSchema, procedureName);
 
 					if(!restoringProc.getSql().equals(existingProc.getSql())) {
-						st.execute(restoreProcedure.getSqlObject().getSql(), "/");
+                        st.execute(MessageFormat.format("DROP PROCEDURE {0}.{1}", existingProc.getOwner(), existingProc.getName()));
+                        st.execute(restoreProcedure.getSqlObject().getSql(), "/");
 						//TODO Восстановление привилегий
 					}
 				}
@@ -62,7 +64,6 @@ public class DBRestoreProcedureMssql extends DBRestoreAdapter {
 	@Override
 	public void removeMetaObject(IMetaObject obj) throws Exception {
 		// TODO Auto-generated method stub
-
 	}
 
 }

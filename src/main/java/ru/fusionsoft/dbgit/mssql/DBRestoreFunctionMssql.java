@@ -35,8 +35,8 @@ public class DBRestoreFunctionMssql extends DBRestoreAdapter {
 					boolean ownersDiffer = !restoringDBF.getOwner().equals(existingDBF.getOwner());
 
 					if(ddlsDiffer) {
-						st.execute(restoreFunction.getSqlObject().getSql());
                         st.execute(MessageFormat.format("DROP FUNCTION {0}.{1}", existingDBF.getOwner(), existingDBF.getName()));
+                        st.execute(restoreFunction.getSqlObject().getSql());
                     }
 					if(ownersDiffer) {
 					    //TODO remove sp_changeowner usage in other methods

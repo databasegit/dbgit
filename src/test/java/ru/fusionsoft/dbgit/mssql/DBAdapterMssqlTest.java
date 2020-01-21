@@ -47,6 +47,8 @@ public class DBAdapterMssqlTest {
     private static DBAdapterMssql testAdapter;
     private static DBBackupAdapterMssql testBackup;
     private static FactoryDBAdapterRestoreMssql testRestoreFactory = new FactoryDBAdapterRestoreMssql();
+    private static DBRestoreTriggerMssql restoreTrigger;
+
 
     private static Connection testConnection;
     private static boolean isInitialized = false;
@@ -61,7 +63,9 @@ public class DBAdapterMssqlTest {
     }
 
 
+    private static String tableName = "TestTableSome";
     private static String triggerName = "TestTrigger";
+    private static String triggerNameEncr = "TestTriggerEncrypted";
     private static String procedureName = "TestProc";
     private static String functionName = "TestFunc";
     private static String functionNameTable = functionName + "Table";
@@ -80,6 +84,7 @@ public class DBAdapterMssqlTest {
                 testConnection.setAutoCommit(false);
                 testAdapter = (DBAdapterMssql) AdapterFactory.createAdapter(testConnection);
                 testBackup = (DBBackupAdapterMssql) testAdapter.getBackupAdapterFactory().getBackupAdapter(testAdapter);
+                restoreTrigger = (DBRestoreTriggerMssql) testRestoreFactory.getAdapterRestore(DBGitMetaType.DbGitTrigger,testAdapter);
                 isMasterDatabase = testConnection.getCatalog().equalsIgnoreCase("master");
                 schema = testConnection.getSchema();
                 isInitialized = true;
@@ -846,6 +851,73 @@ public class DBAdapterMssqlTest {
         assertTrue(testAdapter.getProcedures(schema).containsKey(procedureName));
     }
 
+    @Test
+    public void restoreTriggerEncryptedNotExist() throws Exception{
+        List<String> ddls = createTestTriggerProcedureFunctions(tableName);
+        assertTrue(testAdapter.getTriggers(schema).containsKey(triggerNameEncr));
+
+        MetaTrigger metaTriggerEncr = new MetaTrigger(testAdapter.getTrigger(schema, triggerNameEncr));
+        metaTriggerEncr.loadFromDB();
+
+        dropTestTriggerProcedureFunctions(tableName);
+        restoreTrigger.restoreMetaObject(metaTriggerEncr);
+
+        assertFalse(testAdapter.getTriggers(schema).containsKey(triggerNameEncr));
+    }
+
+    @Test
+    public void restoreTriggerExisting() throws Exception{
+        List<String> ddls = createTestTriggerProcedureFunctions(tableName);
+        assertTrue(testAdapter.getTriggers(schema).containsKey(triggerName));
+
+        MetaTrigger metaTrigger = new MetaTrigger(testAdapter.getTrigger(schema, triggerName));
+        metaTrigger.loadFromDB();
+
+        restoreTrigger.restoreMetaObject(metaTrigger);
+
+        assertTrue(testAdapter.getTriggers(schema).containsKey(triggerName));
+    }
+
+    @Test
+    public void restoreTriggerAltered() throws Exception{
+        String triggerDdl = createTestTriggerProcedureFunctions(tableName).get(7);
+        assertTrue(testAdapter.getTriggers(schema).containsKey(triggerName));
+
+        MetaTrigger metaTrigger = new MetaTrigger(testAdapter.getTrigger(schema, triggerName));
+        metaTrigger.loadFromDB();
+
+        try(Statement st = testConnection.createStatement()){
+            st.execute(MessageFormat.format(
+                "ALTER TRIGGER {0}.{1} ON {2} {3}",
+                schema, triggerName, tableName, "AFTER UPDATE AS RAISERROR ('An Update is performed on the "+tableName+" table', 0, 0);"
+            ));
+        }
+
+        restoreTrigger.restoreMetaObject(metaTrigger);
+
+        assertTrue(testAdapter.getTriggers(schema).containsKey(triggerName));
+        assertTrue(testAdapter.getTrigger(schema, triggerName).getSql().equals(triggerDdl));
+    }
+
+    @Test
+    public void restoreTriggerAfterDrop() throws Exception {
+        List<String> ddls = createTestTriggerProcedureFunctions(tableName);
+        String triggerDdl = ddls.get(7);
+        String tableCreateDdl = ddls.get(0);
+        assertTrue(testAdapter.getTriggers(schema).containsKey(triggerNameEncr));
+
+        MetaTrigger metaTrigger = new MetaTrigger(testAdapter.getTrigger(schema, triggerName));
+        metaTrigger.loadFromDB();
+
+        try(Statement st = testConnection.createStatement()){
+            st.execute("DROP TRIGGER " + triggerName);
+        }
+        restoreTrigger.restoreMetaObject(metaTrigger);
+
+        assertTrue(testAdapter.getTriggers(schema).containsKey(triggerName));
+        assertTrue(testAdapter.getTrigger(schema, triggerName).getSql().equals(triggerDdl));
+    }
+
     //heplers
 
     public void dropBackupTables() throws Exception{
@@ -1283,11 +1355,11 @@ schema + "." + tableName,
         String functionSamScalar = functionSam;
         String procedureSam = MessageFormat.format("{0}.{1}", schema, procedureName);
         String triggerSam = MessageFormat.format("{0}.{1}", schema, triggerName);
-        String triggerSamEncrypted = triggerSam + "Encrypted";
+        String triggerSamEncrypted = MessageFormat.format("{0}.{1}", schema, triggerNameEncr);
 
         ArrayList<String> scripts = Lists.newArrayList(
 
-            //table
+            // (0) table
             "IF OBJECT_ID('"+sam+"', 'U') IS NOT NULL DROP TABLE "+sam+"\n" +
             "CREATE TABLE "+sam+" (\n" +
             "	[id] int PRIMARY KEY, \n" +
@@ -1295,9 +1367,10 @@ schema + "." + tableName,
             ") ON [PRIMARY]\n" +
             "INSERT INTO "+sam+" VALUES (1, DEFAULT)\n",
 
+            // (1) drop if exists function scalar
             "IF object_id(N'"+functionSamScalar+"', N'FN') IS NOT NULL DROP FUNCTION "+functionSamScalar+"\n",
 
-            //function scalar
+            // (2) function scalar  ddl
             "CREATE FUNCTION "+functionSamScalar+" (@input VARCHAR(250), @toReplace VARCHAR(100))\n" +
             "RETURNS VARCHAR(250)\n" +
             "AS BEGIN\n" +
@@ -1307,9 +1380,10 @@ schema + "." + tableName,
             "    RETURN @work\n" +
             "END",
 
-            //function table
+            // (3) drop if exists function table
             "IF object_id(N'"+functionSamTable+"', N'TF') IS NOT NULL DROP FUNCTION "+functionSamTable+"\n",
 
+            // (4) function table ddl
             "CREATE FUNCTION "+functionSamTable+"(\n" +
             "   @find varchar(100)\n" +
             ")\n" +
@@ -1324,23 +1398,26 @@ schema + "." + tableName,
             "      WHERE et.val LIKE '%' + @find + '%'\n" +
             "RETURN END",
 
-            //procedure
-            "IF OBJECT_ID('"+procedureSam+"', 'P') IS NOT NULL DROP PROCEDURE "+procedureSam+"\n",
+            // (5) drop if exists procedure and triggers
+            "IF OBJECT_ID('"+procedureSam+"', 'P') IS NOT NULL DROP PROCEDURE "+procedureSam+"\n" +
+            "IF OBJECT_ID('"+triggerName+"', 'TR') IS NOT NULL DROP TRIGGER "+triggerName+"\n" +
+            "IF OBJECT_ID('"+triggerNameEncr+"', 'TR') IS NOT NULL DROP TRIGGER "+triggerNameEncr+"\n",
 
+            // (6) procedure ddl
             "CREATE PROCEDURE "+procedureSam+" @word varchar(100) AS\n" +
             "BEGIN\n" +
             "    SELECT *\n" +
             "    FROM "+functionSamTable+"(@word) t\n" +
             "END",
 
-            //trigger
+            // (7) trigger ddl
             "CREATE TRIGGER "+triggerSam+"\n" +
             "ON "+sam+"\n" +
             "AFTER DELETE\n" +
             "NOT FOR REPLICATION\n" +
             "AS INSERT INTO "+sam+" SELECT * FROM deleted",
 
-            //trigger encrypted
+            // (8) trigger encrypted ddl
             "CREATE TRIGGER "+triggerSamEncrypted+"\n" +
             "ON "+sam+"\n" +
             "WITH ENCRYPTION\n" +
