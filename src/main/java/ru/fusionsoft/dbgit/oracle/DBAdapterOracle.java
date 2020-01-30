@@ -213,14 +213,14 @@ public class DBAdapterOracle extends DBAdapter {
 	public Map<String, DBTable> getTables(String schema) {
 		Map<String, DBTable> listTable = new HashMap<String, DBTable>();
 		try {
-			String query = "SELECT T.TABLE_NAME, T.OWNER, (SELECT dbms_metadata.get_ddl('TABLE', T.TABLE_NAME, T.OWNER) from dual) AS DDL\n" + 
+			String query = "SELECT T.TABLE_NAME, T.OWNER, (SELECT dbms_metadata.get_ddl('TABLE', T.TABLE_NAME, T.OWNER) from dual) AS DDL\n" +
 					"FROM DBA_TABLES T WHERE upper(OWNER) = upper('" + schema + "') and nested = 'NO' and (iot_type <> 'IOT_OVERFLOW' or iot_type is null)";
 			Connection connect = getConnection();
 			
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
 			
-			while(rs.next()){
+			while (rs.next()) {
 				String nameTable = rs.getString("TABLE_NAME");
 				DBTable table = new DBTable(nameTable);
 				table.setSchema(schema);

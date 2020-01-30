@@ -102,7 +102,7 @@ public class StringProperties {
 		String prefix = StringUtils.leftPad("", 4*level, " ");
 		if (children.size() > 0) {
 			for (String item : children.keySet()) {
-				sb.append("\n"+prefix+item+":"+" "+children.get(item).toString(level+1));
+				sb.append("\n" + prefix + item + ":" + " " + children.get(item).toString(level + 1));
 			}
 		} else {
 			sb.append(getData());

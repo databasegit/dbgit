@@ -1,12 +1,12 @@
 package ru.fusionsoft.dbgit.command;
 
-import java.util.HashSet;
-import java.util.Set;
-
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
-
 import ru.fusionsoft.dbgit.core.DBGit;
+
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 public class CmdMerge implements IDBGitCommand {
 	
@@ -35,11 +35,8 @@ public class CmdMerge implements IDBGitCommand {
 	@Override
 	public void execute(CommandLine cmdLine) throws Exception {
 		String[] args = cmdLine.getArgs();
-		
-		Set<String> branches = new HashSet<String>();
-		
-		for (String arg : args)
-			branches.add(arg);
+
+		Set<String> branches = new HashSet<>(Arrays.asList(args));
 		
 		DBGit.getInstance().gitMerge(branches);
 

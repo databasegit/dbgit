@@ -87,7 +87,7 @@ public class RowData {
 		if (idColumns.size() > 0) {
 			StringBuilder keyBuilder = new StringBuilder();
 			for (String nmId : idColumns) {
-				keyBuilder.append(data.get(nmId).convertToString()+"_");
+				keyBuilder.append(data.get(nmId).convertToString() + "_");
 			}
 			return keyBuilder.toString();
 		} else {

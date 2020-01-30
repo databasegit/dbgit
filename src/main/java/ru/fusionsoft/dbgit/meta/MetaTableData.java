@@ -67,7 +67,7 @@ public class MetaTableData extends MetaBase {
 		return table;
 	}
 
-	public TreeMap<String, RowData> getmapRows() {
+	public TreeMap<String, RowData> getMapRows() {
 		return mapRows;
 	}
 	

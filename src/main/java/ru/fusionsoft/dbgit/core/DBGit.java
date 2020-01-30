@@ -255,8 +255,7 @@ public class DBGit {
 					checkout = checkout.setStartPoint(commit);
 				else {
 					if (git.branchList().setListMode(ListMode.REMOTE).call().stream()
-							.filter(ref -> ref.getName().equals("refs/remotes/origin/" + branch))
-							.count() > 0)
+							.anyMatch(ref -> ref.getName().equals("refs/remotes/origin/" + branch)))
 						checkout = checkout.setStartPoint("remotes/origin/" + branch);
 				}				
 				

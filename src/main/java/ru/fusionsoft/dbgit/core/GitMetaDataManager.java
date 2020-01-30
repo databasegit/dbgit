@@ -1,33 +1,16 @@
 package ru.fusionsoft.dbgit.core;
 
-import java.io.IOException;
+import ru.fusionsoft.dbgit.adapters.AdapterFactory;
+import ru.fusionsoft.dbgit.adapters.IDBAdapter;
+import ru.fusionsoft.dbgit.dbobjects.*;
+import ru.fusionsoft.dbgit.meta.*;
+import ru.fusionsoft.dbgit.utils.ConsoleWriter;
+
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import ru.fusionsoft.dbgit.adapters.AdapterFactory;
-import ru.fusionsoft.dbgit.adapters.IDBAdapter;
-import ru.fusionsoft.dbgit.dbobjects.DBOptionsObject;
-import ru.fusionsoft.dbgit.dbobjects.DBSQLObject;
-import ru.fusionsoft.dbgit.dbobjects.DBSchema;
-import ru.fusionsoft.dbgit.dbobjects.DBSequence;
-import ru.fusionsoft.dbgit.dbobjects.DBTable;
-import ru.fusionsoft.dbgit.meta.DBGitMetaType;
-import ru.fusionsoft.dbgit.meta.IMapMetaObject;
-import ru.fusionsoft.dbgit.meta.IMetaObject;
-import ru.fusionsoft.dbgit.meta.MetaObjOptions;
-import ru.fusionsoft.dbgit.meta.MetaObjectFactory;
-import ru.fusionsoft.dbgit.meta.MetaSequence;
-import ru.fusionsoft.dbgit.meta.MetaSql;
-import ru.fusionsoft.dbgit.meta.MetaTable;
-import ru.fusionsoft.dbgit.meta.MetaTableData;
-import ru.fusionsoft.dbgit.meta.TreeMapMetaObject;
-import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
 /**
  * <div class="en">Manager of meta description objects.</div>
@@ -129,11 +112,11 @@ public class GitMetaDataManager {
 		ConsoleWriter.println(DBGitLang.getInstance().getValue("general", "add", "loading") + " " + currentPortionIndex, 2);
 		currentPortion = new MetaTableData(tbl.getTable());
 		
-		if (currentPortion != null && currentPortion.getmapRows() != null)
-			currentPortion.getmapRows().clear();
+		if (currentPortion != null && currentPortion.getMapRows() != null)
+			currentPortion.getMapRows().clear();
 				
 		currentPortion.loadPortionFromDB(currentPortionIndex); 
-		ConsoleWriter.println(DBGitLang.getInstance().getValue("general", "add", "size") + " " + currentPortion.getmapRows().size(), 2);
+		ConsoleWriter.println(DBGitLang.getInstance().getValue("general", "add", "size") + " " + currentPortion.getMapRows().size(), 2);
 
 		currentPortionIndex++;
 		try {
@@ -142,7 +125,7 @@ public class GitMetaDataManager {
 			throw new ExceptionDBGit(e);
 		}
 		
-		return currentPortion.getmapRows().size() > 0 ? true : false;
+		return currentPortion.getMapRows().size() > 0;
 	}
 	
 	public MetaTableData getCurrent() {

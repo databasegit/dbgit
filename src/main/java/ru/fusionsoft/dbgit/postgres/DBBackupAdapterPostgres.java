@@ -81,39 +81,43 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 				
 				dropIfExists(isSaveToSchema() ? PREFIX + schema : schema, 
 						isSaveToSchema() ? objectName : PREFIX + objectName, stLog);
-				
-				String ddl = "";
+
+				StringBuilder ddl;
 				if (isToSaveData()) {	
-					ddl = "create table " + tableName + " as (select * from " + schema + "." + objectName + ")" +
-							(metaTable.getTable().getOptions().getChildren().containsKey("tablespace") ? 
-									" tablespace " + metaTable.getTable().getOptions().get("tablespace").getData() : "") +";\n";
-					ddl += "alter table "+ tableName + " owner to "+ metaTable.getTable().getOptions().get("owner").getData()+";\n";
-				} else {					
-					
-					ddl ="create table " + tableName + "() " +
-						(metaTable.getTable().getOptions().getChildren().containsKey("tablespace") ? 
-								" tablespace " + metaTable.getTable().getOptions().get("tablespace").getData() : "") +";\n";
-					ddl += "alter table "+ tableName + " owner to "+ metaTable.getTable().getOptions().get("tableowner").getData()+";\n";
-						
-					
+					ddl = new StringBuilder("create table " + tableName + " as (select * from " + schema + "." + objectName + ")" +
+							(metaTable.getTable().getOptions().getChildren().containsKey("tablespace") ?
+									" tablespace " + metaTable.getTable().getOptions().get("tablespace").getData() : "") + ";\n");
+					ddl.append("alter table ").append(tableName).append(" owner to ")
+							.append(metaTable.getTable().getOptions().get("owner").getData()).append(";\n");
+				} else {
+					ddl = new StringBuilder("create table " + tableName + "() " +
+							(metaTable.getTable().getOptions().getChildren().containsKey("tablespace") ?
+									" tablespace " + metaTable.getTable().getOptions().get("tablespace").getData() : "") + ";\n");
+					ddl.append("alter table ").append(tableName).append(" owner to ")
+							.append(metaTable.getTable().getOptions().get("tableowner").getData()).append(";\n");
+
+
 					for (DBTableField field : metaTable.getFields().values()) {
-						ddl += "alter table " + tableName + " add " + field.getName() + " " + field.getTypeSQL() + ";\n";
-					}					
-					
+						ddl.append("alter table ").append(tableName).append(" add ")
+								.append(field.getName()).append(" ").append(field.getTypeSQL()).append(";\n");
+					}
+
 				}				
 				
 				for (DBConstraint constraint : metaTable.getConstraints().values()) {
-					ddl += "alter table "+ tableName +" add constraint " + PREFIX + constraint.getName() + " " + constraint.getSql() + ";\n";
+					ddl.append("alter table ").append(tableName).append(" add constraint ").append(PREFIX)
+							.append(constraint.getName()).append(" ").append(constraint.getSql()).append(";\n");
 				}
 				
 				for (DBIndex index : metaTable.getIndexes().values()) {
-					String indexDdl = index.getSql() + (metaTable.getTable().getOptions().getChildren().containsKey("tablespace") ? 
+					String indexDdl = index.getSql()
+							+ (metaTable.getTable().getOptions().getChildren().containsKey("tablespace") ?
 							" tablespace "+index.getOptions().get("tablespace").getData() : "") + ";\n";
 					indexDdl = indexDdl.replace(index.getName(), PREFIX + index.getName());
 					if (indexDdl.length() > 3)
-						ddl += indexDdl;
+						ddl.append(indexDdl);
 				}
-				stLog.execute(ddl);
+				stLog.execute(ddl.toString());
 				
 				File file = new File(DBGitPath.getFullPath() + metaTable.getFileName());				
 				if (file.exists())

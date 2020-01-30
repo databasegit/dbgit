@@ -65,10 +65,10 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 				Map<String, DBTable> tables = adapter.getTables(schema.toUpperCase());
 				boolean exist = false;
 				if(!(tables.isEmpty() || tables == null)) {
-					for(DBTable table:tables.values()) {
-						if(restoreTable.getTable().getName().equalsIgnoreCase(table.getName())){
+					for (DBTable table : tables.values()) {
+						if (restoreTable.getTable().getName().equalsIgnoreCase(table.getName())) {
 							exist = true;
-																									
+							break;
 						}						
 					}
 				}
@@ -193,7 +193,7 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
 		try {
 			if (obj instanceof MetaTable) {
-				MetaTable restoreTable = (MetaTable)obj;	
+				MetaTable restoreTable = (MetaTable)obj;
 				String schema = getPhisicalSchema(restoreTable.getTable().getSchema());
 				schema = (SchemaSynonym.getInstance().getSchema(schema) == null) ? schema : SchemaSynonym.getInstance().getSchema(schema);
 				String tblName = schema+"."+restoreTable.getTable().getName();
@@ -201,8 +201,9 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 				boolean exist = false;
 				if(!(tables.isEmpty() || tables == null)) {
 					for(DBTable table:tables.values()) {
-						if(restoreTable.getTable().getName().equals(table.getName())){
-							exist = true;																									
+						if (restoreTable.getTable().getName().equals(table.getName())) {
+							exist = true;
+							break;
 						}						
 					}
 				}

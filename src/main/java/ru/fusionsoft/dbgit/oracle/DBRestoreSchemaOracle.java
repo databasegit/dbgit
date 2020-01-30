@@ -26,9 +26,9 @@ public class DBRestoreSchemaOracle extends DBRestoreAdapter {
 				boolean exist = false;
 				if(!(schs.isEmpty() || schs == null)) {
 					for(DBSchema sch:schs.values()) {
-						if(restoreSchema.getObjectOption().getName().equals(sch.getName())){
+						if (restoreSchema.getObjectOption().getName().equals(sch.getName())) {
 							exist = true;
-							
+							break;
 							/*if(!restoreSchema.getObjectOption().getOptions().getChildren().get("owner").getData().equals(sch.getOptions().getChildren().get("owner").getData())) {
 								st.execute("CREATE USER "+ restoreSchema.getObjectOption().getName() +" IDENTIFIED BY "+ 
 								restoreSchema.getObjectOption().getOptions().getChildren().get("OWNER").getData());

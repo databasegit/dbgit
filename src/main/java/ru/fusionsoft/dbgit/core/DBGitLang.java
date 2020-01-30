@@ -14,11 +14,12 @@ public class DBGitLang {
 	@SuppressWarnings("unchecked")
 	private DBGitLang() {
 		try {
-			String path = new File(DBGitLang.class.getProtectionDomain().getCodeSource().getLocation()
-				    .toURI()).getAbsolutePath();
+			StringBuilder path = new StringBuilder(new File(
+					DBGitLang.class.getProtectionDomain().getCodeSource().getLocation().toURI()
+			).getAbsolutePath());
 			
 			while (!new File(path + "/lang").exists()) 
-				path += "/..";
+				path.append("/..");
 
 			mapValue = (Map<String, Object>) 
 					new Yaml().load(new FileInputStream(new File(path + "/lang/" + 

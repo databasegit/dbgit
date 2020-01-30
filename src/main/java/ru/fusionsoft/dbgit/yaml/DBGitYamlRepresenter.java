@@ -39,7 +39,7 @@ import ru.fusionsoft.dbgit.utils.StringProperties;
  */
 public class DBGitYamlRepresenter extends Representer {
 	
-	class ComparatorProperty implements Comparator<Property> {
+	static class ComparatorProperty implements Comparator<Property> {
 		public static final int MAX_ORDER = 1000;
 		
 		private Map<String, Integer> propertyOrders = new HashMap<>();

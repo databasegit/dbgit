@@ -1,15 +1,9 @@
 package ru.fusionsoft.dbgit.oracle;
 
-import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -17,7 +11,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.StringJoiner;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
@@ -46,7 +39,6 @@ import ru.fusionsoft.dbgit.dbobjects.DBConstraint;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
 import ru.fusionsoft.dbgit.meta.MetaTable;
 import ru.fusionsoft.dbgit.meta.MetaTableData;
-import ru.fusionsoft.dbgit.statement.PrepareStatementLogging;
 import ru.fusionsoft.dbgit.statement.StatementLogging;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
@@ -79,7 +71,7 @@ public class DBRestoreTableDataOracle extends DBRestoreAdapter {
 					currentTableData.setMapRows(new TreeMapRowData());
 					currentTableData.setDataTable(restoreTableData.getDataTable());
 				}
-				currentTableData.getmapRows().clear();
+				currentTableData.getMapRows().clear();
 			
 				if (getAdapter().getTable(schema, currentTableData.getTable().getName()) != null) {
 					currentTableData.setDataTable(getAdapter().getTableData(schema, currentTableData.getTable().getName()));
@@ -127,15 +119,15 @@ public class DBRestoreTableDataOracle extends DBRestoreAdapter {
 
 			String insertQuery= "";
 			
-			if (restoreTableData.getmapRows() == null)
+			if (restoreTableData.getMapRows() == null)
 				restoreTableData.setMapRows(new TreeMapRowData());
 			
 			String fields = "";
-			if (restoreTableData.getmapRows().size() > 0)
-				fields = "(" + restoreTableData.getmapRows().firstEntry().getValue().getData().keySet().stream()
+			if (restoreTableData.getMapRows().size() > 0)
+				fields = "(" + restoreTableData.getMapRows().firstEntry().getValue().getData().keySet().stream()
 					.map(d -> adapter.isReservedWord(d.toString()) ? "\"" + d.toString() + "\"" : d.toString())
 					.collect(Collectors.joining(",")) + ")";
-			MapDifference<String, RowData> diffTableData = Maps.difference(restoreTableData.getmapRows(), currentTableData == null ? new TreeMap<String, RowData>() : currentTableData.getmapRows());
+			MapDifference<String, RowData> diffTableData = Maps.difference(restoreTableData.getMapRows(), currentTableData == null ? new TreeMap<String, RowData>() : currentTableData.getMapRows());
 
 			ResultSet rsTypes = st.executeQuery("select column_name, data_type from ALL_TAB_COLUMNS \r\n" + 
 					"where lower(owner||'.'||table_name) = lower('" + tblName + "')");
@@ -343,21 +335,21 @@ public class DBRestoreTableDataOracle extends DBRestoreAdapter {
 	}
 	
 	private String getBlobQuery(Collection<ICellData> datas, String query) throws Exception {
-		String res = "declare\n";
+		StringBuilder res = new StringBuilder("declare\n");
 		
 		for (ICellData data : datas) {
 			if (data instanceof TextFileData)
-				res += "    b_" + data.hashCode() + " CLOB;\n";
+				res.append("    b_").append(data.hashCode()).append(" CLOB;\n");
 			else if (data instanceof MapFileData)
-				res += "    b_" + data.hashCode() + " BLOB;\n";
+				res.append("    b_").append(data.hashCode()).append(" BLOB;\n");
 		}
 		
-		res += "begin\n";
+		res.append("begin\n");
 		int i = 0;
 		for (ICellData data : datas) {
 			if (data instanceof TextFileData) {
 				if (((TextFileData) data).getFile() != null && !((TextFileData) data).getFile().getName().contains("null")) {
-					res += "    DBMS_LOB.CREATETEMPORARY(b_" + data.hashCode() + ",TRUE);\n";
+					res.append("    DBMS_LOB.CREATETEMPORARY(b_").append(data.hashCode()).append(",TRUE);\n");
 					
 					FileInputStream fis = new FileInputStream(((MapFileData) data).getFile());	
 					
@@ -371,17 +363,17 @@ public class DBRestoreTableDataOracle extends DBRestoreAdapter {
 		            	sb.append(hex);
 		            	
 		            	if (sb.length() == 2000) {
-		            		res += "    dbms_lob.WRITEAPPEND (b_" + data.hashCode() + ", 1000, utl_raw.cast_to_varchar2(hextoraw('" + sb.toString() + "')));\n";
+		            		res.append("    dbms_lob.WRITEAPPEND (b_").append(data.hashCode()).append(", 1000, utl_raw.cast_to_varchar2(hextoraw('").append(sb.toString()).append("')));\n");
 		            		sb.setLength(0);
 		            	}
 		            }
 		            if (sb.length() > 0)
-		            	res += "    dbms_lob.WRITEAPPEND (b_" + data.hashCode() + ", " + sb.length()/2 + ", utl_raw.cast_to_varchar2(hextoraw('" + sb.toString() + "')));\n";
+		            	res.append("    dbms_lob.WRITEAPPEND (b_").append(data.hashCode()).append(", ").append(sb.length() / 2).append(", utl_raw.cast_to_varchar2(hextoraw('").append(sb.toString()).append("')));\n");
 		            fis.close();
 				}
 			} else if (data instanceof MapFileData) {
 				if (((MapFileData) data).getFile() != null && !((MapFileData) data).getFile().getName().contains("null")) {
-					res += "    DBMS_LOB.CREATETEMPORARY(b_" + data.hashCode() + ",TRUE);\n";
+					res.append("    DBMS_LOB.CREATETEMPORARY(b_").append(data.hashCode()).append(",TRUE);\n");
 					
 					FileInputStream fis = new FileInputStream(((MapFileData) data).getFile());	
 					
@@ -395,22 +387,22 @@ public class DBRestoreTableDataOracle extends DBRestoreAdapter {
 		            	sb.append(hex);
 		            	
 		            	if (sb.length() == 2000) {
-		            		res += "    dbms_lob.WRITEAPPEND (b_" + data.hashCode() + ", 1000, hextoraw('" + sb.toString() + "'));\n";
+		            		res.append("    dbms_lob.WRITEAPPEND (b_").append(data.hashCode()).append(", 1000, hextoraw('").append(sb.toString()).append("'));\n");
 		            		sb.setLength(0);
 		            	}
 		            }
 		            if (sb.length() > 0)
-		            	res += "    dbms_lob.WRITEAPPEND (b_" + data.hashCode() + ", " + sb.length()/2 + ", hextoraw('" + sb.toString() + "'));\n";
+		            	res.append("    dbms_lob.WRITEAPPEND (b_").append(data.hashCode()).append(", ").append(sb.length() / 2).append(", hextoraw('").append(sb.toString()).append("'));\n");
 		            fis.close();
 				}
 			}
 			i++;
 		}		
 		
-		res += "    " + query + ";\n";
-		res += "end;\n";
+		res.append("    ").append(query).append(";\n");
+		res.append("end;\n");
 		
-		return res;
+		return res.toString();
 	}
 	
 	public String valuesToString(Collection<ICellData> datas, HashMap<String, String> colTypes, ArrayList<String> fieldsList, boolean isInsert) throws ExceptionDBGit, IOException {

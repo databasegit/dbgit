@@ -1,17 +1,12 @@
 package ru.fusionsoft.dbgit.postgres;
 
 import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -21,6 +16,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.StringJoiner;
 
+import org.apache.commons.lang3.StringUtils;
 import ru.fusionsoft.dbgit.adapters.DBRestoreAdapter;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
@@ -80,7 +76,7 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 						currentTableData.setMapRows(new TreeMapRowData());
 						currentTableData.setDataTable(restoreTableData.getDataTable());
 					}
-					currentTableData.getmapRows().clear();
+					currentTableData.getMapRows().clear();
 				
 					if (getAdapter().getTable(schema, currentTableData.getTable().getName()) != null) {
 						currentTableData.setDataTable(getAdapter().getTableData(schema, currentTableData.getTable().getName()));
@@ -133,13 +129,13 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 		Connection connect = adapter.getConnection();
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
 		try {			
-			if (restoreTableData.getmapRows() == null)
+			if (restoreTableData.getMapRows() == null)
 				restoreTableData.setMapRows(new TreeMapRowData());
 			
 			String fields = "";
-			if (restoreTableData.getmapRows().size() > 0)
-				fields = keysToString(restoreTableData.getmapRows().firstEntry().getValue().getData().keySet()) + " values ";
-			MapDifference<String, RowData> diffTableData = Maps.difference(restoreTableData.getmapRows(),currentTableData.getmapRows());
+			if (restoreTableData.getMapRows().size() > 0)
+				fields = keysToString(restoreTableData.getMapRows().firstEntry().getValue().getData().keySet()) + " values ";
+			MapDifference<String, RowData> diffTableData = Maps.difference(restoreTableData.getMapRows(),currentTableData.getMapRows());
 			String schema = getPhisicalSchema(restoreTableData.getTable().getSchema());
 			
 			schema = (SchemaSynonym.getInstance().getSchema(schema) == null) ? schema : SchemaSynonym.getInstance().getSchema(schema);
@@ -199,7 +195,7 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 			
 			if(!diffTableData.entriesOnlyOnRight().isEmpty()){
 				ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "deleting"), 2);
-				String deleteQuery="";
+				StringBuilder deleteQuery= new StringBuilder();
 				Map<String,String> primarykeys = new HashMap();
 				for(RowData rowData:diffTableData.entriesOnlyOnRight().values()) {
 					Map<String, ICellData> tempcols = rowData.getData();
@@ -220,21 +216,21 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 					StringJoiner valuejoiner = new StringJoiner(",");	
 					for (Map.Entry<String, String> entry : primarykeys.entrySet()) {																	
 						fieldJoiner.add("\""+entry.getKey()+"\"");
-						valuejoiner.add("\'"+entry.getValue()+"\'");												
+						valuejoiner.add("'"+entry.getValue()+"'");
 					}
 					delFields+=fieldJoiner.toString()+")";
 					delValues+=valuejoiner.toString()+")";
 					primarykeys.clear();
 					if (delValues.length() > 3)
-						deleteQuery+="delete from " + tblName+
-							" where " + delFields + " = " + delValues + ";\n";
+						deleteQuery.append("delete from ").append(tblName).append(" where ")
+								.append(delFields).append(" = ").append(delValues).append(";\n");
 					if(deleteQuery.length() > 50000 ){
-						st.execute(deleteQuery);
-						deleteQuery = "";
+						st.execute(deleteQuery.toString());
+						deleteQuery = new StringBuilder();
 					}
 				}
 				if(deleteQuery.length()>1) {
-					st.execute(deleteQuery);
+					st.execute(deleteQuery.toString());
 				}
 				ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
 			}
@@ -242,12 +238,12 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 			if(!diffTableData.entriesDiffering().isEmpty()) {
 				ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "updating"), 2);
 				String updateQuery="";
-				Map<String,String> primarykeys = new HashMap();
+				Map<String,String> primarykeys = new HashMap<>();
 				for(ValueDifference<RowData> diffRowData:diffTableData.entriesDiffering().values()) {	
 					if(!diffRowData.leftValue().getHashRow().equals(diffRowData.rightValue().getHashRow())) {
 						Map<String, ICellData> tempCols = diffRowData.leftValue().getData();
 						String[] keysArray = diffRowData.leftValue().getKey().split("_");
-						for(String key:keysArray) {
+						for(String key : keysArray) {
 							for (String o : tempCols.keySet()) {
 								if (tempCols.get(o) == null || tempCols.get(o).convertToString() == null) continue;
 								if (tempCols.get(o).convertToString().equals(key)) {
@@ -264,7 +260,7 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 							StringJoiner valuejoiner = new StringJoiner(",");	
 							for (Map.Entry<String, String> entry : primarykeys.entrySet()) {																	
 								fieldJoiner.add("\""+entry.getKey()+"\"");
-								valuejoiner.add("\'"+entry.getValue()+"\'");												
+								valuejoiner.add("'"+entry.getValue()+"'");
 							}
 							keyFields+=fieldJoiner.toString()+")";
 							keyValues+=valuejoiner.toString()+")";
@@ -286,8 +282,9 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 							updFields+=updfieldJoiner.toString()+")";
 							updValues+=updvaluejoiner.toString()+")";							
 							
-							updateQuery="update "+tblName+
-									" set "+updFields + " = " + valuesToString(tempCols.values(), colTypes, fieldsList) + " where " + keyFields+ "=" +keyValues+";\n";							
+							updateQuery="update " + tblName
+									+ " set " + updFields + " = " + valuesToString(tempCols.values(), colTypes, fieldsList)
+									+ " where " + keyFields + "=" + keyValues + ";\n";
 							
 							ConsoleWriter.detailsPrintLn(updateQuery);
 							
@@ -300,7 +297,8 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 								ConsoleWriter.detailsPrintLn(data.getSQLData());						
 								
 								ResultSet rs = st.executeQuery("select data_type from information_schema.columns \r\n" + 
-										"where lower(table_schema||'.'||table_name) = lower('" + tblName + "') and lower(column_name) = '" + fieldsList.get(i - 1) + "'");
+										"where lower(table_schema||'.'||table_name) = lower('" + tblName + "') " +
+										"and lower(column_name) = '" + fieldsList.get(i - 1) + "'");
 								
 								boolean isBoolean = false;
 								while (rs.next()) {							
@@ -329,7 +327,7 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 					}
 				}
 				ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
-				if(updateQuery.length()>1) {
+				if(updateQuery.length() > 1) {
 					ConsoleWriter.println(updateQuery);
 					st.execute(updateQuery);
 				}
@@ -453,20 +451,7 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 	}
 	
 	public String keysToString(Set<String> keys) {
-		String fields="";
-		if(keys.size()>1) {
-			String[] fieldsArray = keys.toArray(new String[keys.size()]);	
-			fields="("+fieldsArray[0];
-			for(int i=1;i<fieldsArray.length;i++) {
-				fields+=","+fieldsArray[i];
-			}
-			fields+=")";
-		}
-		else {
-			String[] fieldsArray = keys.toArray(new String[keys.size()]);	
-			fields="("+fieldsArray[0]+")";
-		}
-		return fields;		
+		return "(" + StringUtils.join(keys, ",") + ")";
 	}
 
 	public void restoreTableConstraintPostgres(MetaTable table) throws Exception {

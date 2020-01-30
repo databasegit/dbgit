@@ -1,10 +1,9 @@
 package ru.fusionsoft.dbgit.core;
 
-import java.io.File;
-
 import org.ini4j.Ini;
-
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
+
+import java.io.File;
 
 public class DBGitConfig {
 	
@@ -20,19 +19,20 @@ public class DBGitConfig {
 				ini = new Ini(file);
 		}
 
-		String path = new File(DBGitConfig.class.getProtectionDomain().getCodeSource().getLocation()
-			    .toURI()).getAbsolutePath();
+		StringBuilder path = new StringBuilder(new File(
+				DBGitConfig.class.getProtectionDomain().getCodeSource().getLocation().toURI()
+		).getAbsolutePath());
 		
 		while (!new File(path + "/dbgitconfig").exists()) {
-			path += "/..";
+			path.append("/..");
 		}
 		
 		if (new File(path + "/bin/dbgitconfig").exists())
-			path = path + "/bin/dbgitconfig";
+			path.append("/bin/dbgitconfig");
 		else
-			path = path + "/dbgitconfig";
+			path.append("/dbgitconfig");
 		
-		File fileGlobal = new File(path);
+		File fileGlobal = new File(path.toString());
 		if (fileGlobal.exists())
 			iniGlobal = new Ini(fileGlobal);
 	}

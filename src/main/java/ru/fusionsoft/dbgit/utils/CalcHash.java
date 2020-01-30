@@ -28,11 +28,11 @@ public class CalcHash {
 	}
 	
 	public static String byteToHex(byte[] bt) {
-		String hexString = "";
-    	for (int i=0; i < bt.length; i++) {    	  
-    	  hexString += Integer.toString( ( bt[i] & 0xff ) + 0x100, 16).substring( 1 );
-    	}
-    	return hexString;
+		StringBuilder hexString = new StringBuilder();
+		for (byte b : bt) {
+			hexString.append(Integer.toString((b & 0xff) + 0x100, 16).substring(1));
+		}
+    	return hexString.toString();
 	}
 	
 	public CalcHash addData(byte[] data) {

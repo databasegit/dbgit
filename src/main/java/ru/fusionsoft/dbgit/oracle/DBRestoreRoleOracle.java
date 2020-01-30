@@ -27,46 +27,43 @@ public class DBRestoreRoleOracle extends DBRestoreAdapter{
 				boolean exist = false;
 				if(!(roles.isEmpty() || roles == null)) {
 					for(DBRole role:roles.values()) {
-						if(restoreRole.getObjectOption().getName().equals(role.getName())){
+						if (restoreRole.getObjectOption().getName().equals(role.getName())) {
 							exist = true;
-							
+							break;
 						}
-							//TODO Восстановление привилегий							
+						//TODO Восстановление привилегий
 					}
 				}
-			
-				if(!exist){
+
+				if (!exist) {
 					//String rolconnect = "", rolresource = "", roldba = "";
 					String q = "GRANT ";
 					if(restoreRole.getObjectOption().getOptions().getChildren().get("GRANTED_ROLE").getData().equals("CONNECT")) {
 						//rolconnect = "CONNECT";
 						q += "CONNECT";
 					}
-					
+
 					if(restoreRole.getObjectOption().getOptions().getChildren().get("GRANTED_ROLE").getData().equals("RESOURCE")) {
 						//rolresource = "RESOURCE";
 						q += ", RESOURCE";
 					}
-					
+
 					if(restoreRole.getObjectOption().getOptions().getChildren().get("GRANTED_ROLE").getData().equals("DBA")) {
 						//roldba = "DBA";
 						q += ", DBA";
 					}
-					
-					st.execute(q + 
+
+					st.execute(q +
 							" TO " + restoreRole.getObjectOption().getOptions().getChildren().get("GRANTEE").getData());
-					
-					//TODO Восстановление привилегий	
+
+					//TODO Восстановление привилегий
 				}
-				
 				//TODO restore memberOfRole
 				ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
-		}
-			else
-			{
+			} else {
 				ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
 				throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()));
-			}			
+			}
 		} catch (Exception e) {
 			ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()), e);

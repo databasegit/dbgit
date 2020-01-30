@@ -56,7 +56,7 @@ public interface IDBAdapter {
 	/**
 	 * 
 	 * @param stream Stream for output sql command
-	 * @param isExec - Execute action sql command or only write command to stream
+	 * @param isExecSql - Execute action sql command or only write command to stream
 	 */
 	public void setDumpSqlCommand(OutputStream stream, Boolean isExecSql);
 	

@@ -747,14 +747,14 @@ public class DBAdapterPostgres extends DBAdapter {
 			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
-			while(rs.next()){
-					String name = rs.getString("rolname");
-					DBRole role = new DBRole(name);
-					rowToProperties(rs, role.getOptions());
-					listRole.put(name, role);				
+			while (rs.next()) {
+				String name = rs.getString("rolname");
+				DBRole role = new DBRole(name);
+				rowToProperties(rs, role.getOptions());
+				listRole.put(name, role);
 			}
 			stmt.close();
-		}catch(Exception e) {
+		} catch (Exception e) {
 			logger.error(e.getMessage());
 			throw new ExceptionDBGitRunTime(e.getMessage());
 		}
