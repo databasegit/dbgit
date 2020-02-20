@@ -28,7 +28,6 @@ public class AdapterFactory {
 	public static IDBAdapter createAdapter(Connection conn) throws ExceptionDBGit {
 		if (adapter == null) {
 			SchemaSynonym ss = SchemaSynonym.getInstance();
-			
 			if (conn.getClass().getName().equals("oracle.jdbc.driver.T4CConnection")) {
 				adapter = new DBAdapterOracle();
 			} else if (conn.getClass().getName().equals("org.postgresql.jdbc.PgConnection")) {

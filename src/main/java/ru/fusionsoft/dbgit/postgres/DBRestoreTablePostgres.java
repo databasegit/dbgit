@@ -61,7 +61,7 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 				MetaTable restoreTable = (MetaTable)obj;	
 				String schema = getPhisicalSchema(restoreTable.getTable().getSchema().toLowerCase());
 				schema = (SchemaSynonym.getInstance().getSchema(schema) == null) ? schema : SchemaSynonym.getInstance().getSchema(schema);
-				String tblName = schema+"."+restoreTable.getTable().getName();
+				String tblName = schema+"."+(restoreTable.getTable().getName().contains(".")?("\"" + restoreTable.getTable().getName() + "\""):restoreTable.getTable().getName());
 				
 				ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "table").withParams(tblName) + "\n", 1);
 				
@@ -119,11 +119,11 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 								values.sort(comparator);
 								
 								for(DBTableField tblField : values) {
-										String as = "alter table "+ tblName +" add column " + (adapter.isReservedWord(tblField.getName()) ? "\"" + tblField.getName() + "\" " : tblField.getName())  + " " + tblField.getTypeSQL().replace("NOT NULL", "");
-										st.execute("alter table "+ tblName +" add column " + (adapter.isReservedWord(tblField.getName()) ? "\"" + tblField.getName() + "\" " : tblField.getName())  + " " + tblField.getTypeSQL().replace("NOT NULL", ""));
+										String as = "alter table "+ tblName +" add column " + ((adapter.isReservedWord(tblField.getName()) || tblField.getNameExactly()) ? "\"" + tblField.getName() + "\" " : tblField.getName())  + " " + tblField.getTypeSQL().replace("NOT NULL", "");
+										st.execute("alter table "+ tblName +" add column " + ((adapter.isReservedWord(tblField.getName()) || tblField.getNameExactly()) ? "\"" + tblField.getName() + "\" " : tblField.getName())  + " " + tblField.getTypeSQL().replace("NOT NULL", ""));
 								
 										if (!tblField.getIsNullable()) {
-											st.execute("alter table " + tblName + " alter column " + tblField.getName() + " set not null");
+											st.execute("alter table " + tblName + " alter column " + (adapter.isReservedWord(tblField.getName()) ? "\"" + tblField.getName() + "\" " : tblField.getName()) + " set not null");
 										}
 
 								}	
@@ -186,7 +186,7 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 					for(DBConstraint tableconst: restoreTable.getConstraints().values()) {
 						if(tableconst.getConstraintType().equals("p")) {
 							ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "addPk"), 2);
-							st.execute("alter table "+ tblName +" add constraint "+ tableconst.getName() + " "+tableconst.getSql()
+							st.execute("alter table "+ tblName +" add constraint "+ (tableconst.getName().contains(".")?("\"" + tableconst.getName() + "\""):tableconst.getName()) + " "+tableconst.getSql()
 								.replace(" " +tableconst.getSchema() + ".", " " + schema + "."));
 							ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
 							flagPkCreated = true;
@@ -198,7 +198,12 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 						for(DBTableField field: restoreTable.getFields().values()) {
 							if (field.getIsPrimaryKey()) {
 								ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "addPk"), 2);
-								st.execute("alter table "+ tblName +" add constraint pk_" + restoreTable.getTable().getName() + "_" + field.getName() + " PRIMARY KEY (" + field.getName() + ")");
+								
+								String constrName = "pk_" + restoreTable.getTable().getName() + "_" + field.getName();
+								if (constrName.contains("."))
+									constrName = "\"" + constrName + "\"";
+								
+								st.execute("alter table "+ tblName +" add constraint " + constrName + " PRIMARY KEY (" + (adapter.isReservedWord(field.getName()) ? "\"" + field.getName() + "\" " : field.getName()) + ")");
 								ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));							
 								break;
 							}

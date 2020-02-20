@@ -14,6 +14,7 @@ public class DBTableField implements IDBObject, Comparable<DBTableField> {
 	private boolean fixed;
 	private Integer order = 0;
 	private Boolean isNullable;
+	private Boolean isNameExactly = false;
 	
 	private Boolean isPrimaryKey = false;
 
@@ -101,6 +102,14 @@ public class DBTableField implements IDBObject, Comparable<DBTableField> {
 	
 	public Integer getOrder() {
 		return order;
+	}
+	
+	public void setNameExactly(Boolean isNameExactly) {
+		this.isNameExactly = isNameExactly;
+	}
+	
+	public Boolean getNameExactly() {
+		return isNameExactly;
 	}
 
 	@Override

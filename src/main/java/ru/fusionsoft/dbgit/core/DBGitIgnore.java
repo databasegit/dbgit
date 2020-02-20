@@ -76,6 +76,7 @@ public class DBGitIgnore {
 	}
 	
 	public boolean matchSchema(String schemaName) {
+		
 		for (MaskFilter mask : exclusions.values()) {
 			if (mask.getMask().toUpperCase().substring(0, mask.getMask().indexOf("/")).equals(schemaName.toUpperCase())) {
 				return false;

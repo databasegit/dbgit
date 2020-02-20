@@ -272,7 +272,7 @@ public class DBAdapterPostgres extends DBAdapter {
 			Map<String, DBTableField> listField = new HashMap<String, DBTableField>();
 			
 			String query = 
-					"SELECT distinct col.column_name,col.is_nullable,col.data_type,col.character_maximum_length, tc.constraint_name, " +
+					"SELECT distinct col.column_name,col.is_nullable,col.data_type, col.udt_name::regtype dtype,col.character_maximum_length, tc.constraint_name, " +
 					"case\r\n" + 
 					"	when lower(data_type) in ('integer', 'numeric', 'smallint', 'double precision', 'bigint') then 'number' \r\n" + 
 					"	when lower(data_type) in ('character varying', 'char', 'character', 'varchar') then 'string'\r\n" + 
@@ -298,14 +298,16 @@ public class DBAdapterPostgres extends DBAdapter {
 			ResultSet rs = stmt.executeQuery();
 			while(rs.next()){				
 				DBTableField field = new DBTableField();
-				field.setName(rs.getString("column_name").toLowerCase());  
+				
+				field.setName(rs.getString("column_name"));  
+				field.setNameExactly(!rs.getString("column_name").equals(rs.getString("column_name").toLowerCase()));
 				if (rs.getString("constraint_name") != null) { 
 					field.setIsPrimaryKey(true);
 				}
 				String typeSQL = getFieldType(rs);
 				field.setTypeSQL(typeSQL);
 				field.setIsNullable( !typeSQL.toLowerCase().contains("not null"));
-				field.setTypeUniversal(FieldType.valueOf(rs.getString("tp")));
+				field.setTypeUniversal(FieldType.valueOf(rs.getString("tp").toUpperCase()));
 				field.setFixed(false);
 				field.setLength(rs.getInt("character_maximum_length"));
 				field.setPrecision(rs.getInt("numeric_precision"));
@@ -326,7 +328,7 @@ public class DBAdapterPostgres extends DBAdapter {
 	protected String getFieldType(ResultSet rs) {
 		try {
 			StringBuilder type = new StringBuilder(); 
-			type.append(rs.getString("data_type"));
+			type.append(rs.getString("dtype"));
 			
 			Integer max_length = rs.getInt("character_maximum_length");
 			if (!rs.wasNull()) {
@@ -640,7 +642,7 @@ public class DBAdapterPostgres extends DBAdapter {
 
 			Statement st = getConnection().createStatement();
 			ResultSet rs = st.executeQuery("    SELECT * FROM \r\n" + 
-					"   (SELECT f.*, ROW_NUMBER() OVER (ORDER BY ctid) DBGIT_ROW_NUM FROM " + schema + "." + nameTable + " f) s\r\n" + 
+					"   (SELECT f.*, ROW_NUMBER() OVER (ORDER BY ctid) DBGIT_ROW_NUM FROM " + schema + "." + (nameTable.contains(".")?("\"" + nameTable + "\""):nameTable) + " f) s\r\n" + 
 					"   WHERE DBGIT_ROW_NUM BETWEEN " + begin  + " and " + end);
 			data.setResultSet(rs);	
 			return data;

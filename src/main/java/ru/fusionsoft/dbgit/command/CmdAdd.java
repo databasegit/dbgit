@@ -12,6 +12,7 @@ import org.apache.commons.csv.CSVPrinter;
 
 import ru.fusionsoft.dbgit.core.DBGit;
 import ru.fusionsoft.dbgit.core.DBGitConfig;
+import ru.fusionsoft.dbgit.core.DBGitIgnore;
 import ru.fusionsoft.dbgit.core.DBGitIndex;
 import ru.fusionsoft.dbgit.core.DBGitPath;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
@@ -94,7 +95,10 @@ public class CmdAdd implements IDBGitCommand {
 				
 				index.addItem(obj);		
 				
-				if (obj instanceof MetaTable && maskAdd.match(obj.getName().replace(".tbl", ".csv"))) {
+				DBGitIgnore ignore = DBGitIgnore.getInctance(); 
+				
+				if (obj instanceof MetaTable && maskAdd.match(obj.getName().replace(".tbl", ".csv"))
+						&& !ignore.matchOne(obj.getName().replace(".tbl", ".csv"))) {
 					MetaTableData tblData = new MetaTableData(((MetaTable) obj).getTable());
 					tblData.setName(obj.getName().replace(".tbl", ".csv"));
 					File file = new File(DBGitPath.getFullPath(null)+"/"+obj.getFileName().replace(".tbl", ".csv"));
