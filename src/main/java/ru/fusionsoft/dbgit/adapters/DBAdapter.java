@@ -24,14 +24,7 @@ import ru.fusionsoft.dbgit.core.db.FieldType;
 import ru.fusionsoft.dbgit.data_table.*;
 import ru.fusionsoft.dbgit.dbobjects.DBSequence;
 import ru.fusionsoft.dbgit.dbobjects.DBTableField;
-import ru.fusionsoft.dbgit.meta.DBGitMetaType;
-import ru.fusionsoft.dbgit.meta.IMapMetaObject;
-import ru.fusionsoft.dbgit.meta.IMetaObject;
-import ru.fusionsoft.dbgit.meta.MetaSequence;
-import ru.fusionsoft.dbgit.meta.MetaSql;
-import ru.fusionsoft.dbgit.meta.MetaTable;
-import ru.fusionsoft.dbgit.meta.MetaTableData;
-import ru.fusionsoft.dbgit.meta.TreeMapMetaObject;
+import ru.fusionsoft.dbgit.meta.*;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 import ru.fusionsoft.dbgit.utils.StringProperties;
 
@@ -119,8 +112,27 @@ public abstract class DBAdapter implements IDBAdapter {
 			
 			Comparator<IMetaObject> comparator = new Comparator<IMetaObject>() {
 				public int compare(IMetaObject o1, IMetaObject o2) {
-				    if (o1 instanceof MetaTable) 
+					boolean dependsOnO2 = false;
+					if (o1 instanceof MetaTable && o2 instanceof MetaTable) {
+						MetaTable left = (MetaTable) o1;
+						MetaTable right = (MetaTable) o2;
+						if (left.getDependencies().contains(right.getName())) {
+							dependsOnO2 = true;
+						}
+						return (dependsOnO2) ? 1 : -1;
+					}
+					if (o1 instanceof MetaView && o2 instanceof MetaView) {
+						MetaView left = (MetaView) o1;
+						MetaView right = (MetaView) o2;
+						if (left.getDependencies().contains(right.getName())) {
+							dependsOnO2 = true;
+						}
+						return (dependsOnO2) ? 1 : -1;
+					}
+
+				    if (o1 instanceof MetaTable) {
 				    	return -1;
+					}
 				    else if (o1 instanceof MetaTableData)
 				    	return 1;
 				    else
