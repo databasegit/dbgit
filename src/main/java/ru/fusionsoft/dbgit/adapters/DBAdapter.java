@@ -122,12 +122,15 @@ public abstract class DBAdapter implements IDBAdapter {
 						return (dependsOnO2) ? 1 : -1;
 					}
 					if (o1 instanceof MetaView && o2 instanceof MetaView) {
+						/*
 						MetaView left = (MetaView) o1;
 						MetaView right = (MetaView) o2;
 						if (left.getDependencies().contains(right.getName())) {
 							dependsOnO2 = true;
 						}
 						return (dependsOnO2) ? 1 : -1;
+
+						 */
 					}
 
 				    if (o1 instanceof MetaTable) {
