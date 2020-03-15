@@ -42,9 +42,6 @@ public class MetaTable extends MetaBase {
 	@YamlOrder(4)
 	private Map<String, DBConstraint> constraints = new TreeMap<>();
 
-	@YamlOrder(5)
-	private Set<String> dependencies = new HashSet<>();
-	
 	public MetaTable() {	
 		setDbType();
 		setDbVersion();
@@ -209,14 +206,6 @@ public class MetaTable extends MetaBase {
 
 	public Map<String, DBConstraint> getConstraints() {
 		return constraints;
-	}
-
-	public Set<String> getDependencies() {
-		return dependencies;
-	}
-
-	public void setDependencies(Set<String> dependencies) {
-		this.dependencies = dependencies;
 	}
 
 	public void setConstraints(Map<String, DBConstraint> constraints) {

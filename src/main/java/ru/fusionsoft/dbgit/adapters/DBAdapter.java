@@ -3,7 +3,6 @@ package ru.fusionsoft.dbgit.adapters;
 import java.io.OutputStream;
 import java.sql.Connection;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -11,8 +10,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import com.axiomalaska.jdbc.NamedParameterPreparedStatement;
-
+import com.google.common.collect.ImmutableList;
 import ru.fusionsoft.dbgit.core.DBConnection;
 import ru.fusionsoft.dbgit.core.DBGitConfig;
 import ru.fusionsoft.dbgit.core.DBGitLang;
@@ -22,7 +20,7 @@ import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
 import ru.fusionsoft.dbgit.core.SchemaSynonym;
 import ru.fusionsoft.dbgit.core.db.FieldType;
 import ru.fusionsoft.dbgit.data_table.*;
-import ru.fusionsoft.dbgit.dbobjects.DBSequence;
+import ru.fusionsoft.dbgit.dbobjects.DBSQLObject;
 import ru.fusionsoft.dbgit.dbobjects.DBTableField;
 import ru.fusionsoft.dbgit.meta.*;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
@@ -40,6 +38,46 @@ public abstract class DBAdapter implements IDBAdapter {
 	protected Boolean isExec = true;
 	protected OutputStream streamSql = null;	
 	protected DBGitLang lang = DBGitLang.getInstance();
+
+
+	public static List<Class> imoOrders = ImmutableList.of(
+		MetaTableSpace.class,
+		MetaSchema.class,
+		MetaRole.class,
+		MetaUser.class,
+		MetaTable.class,
+		MetaSequence.class,
+		MetaFunction.class,
+		MetaView.class,
+		MetaPackage.class,
+		MetaProcedure.class,
+		MetaTrigger.class,
+		MetaTableData.class,
+		MetaBlobData.class
+	);
+
+	public static int getIMetaObjectOrder(IMetaObject obj){
+		int order = 0;
+		for(Class tp : imoOrders){
+			if(obj.getClass().isAssignableFrom(tp)) return order;
+			else order++;
+		}
+		return order;
+	}
+
+	public Comparator<IMetaObject> imoTypeComparator = Comparator.comparing(DBAdapter::getIMetaObjectOrder);
+	public Comparator<IMetaObject> imoDependenceComparator = (o1, o2) -> {
+		int result = imoTypeComparator.compare(o1, o2);
+		if (result == 0 && o2 instanceof MetaSql && o1 instanceof MetaSql) {
+			DBSQLObject left = ((MetaSql) o1).getSqlObject();
+			DBSQLObject right = ((MetaSql) o2).getSqlObject();
+			if (right.getDependencies().contains(left.getSchema()+"."+left.getName())) {
+				return -1; // left comes earlier than right if right depends on it
+			}
+		}
+		return result;
+	};
+
 
 	@Override
 	public void setConnection(Connection conn) {
@@ -100,6 +138,8 @@ public abstract class DBAdapter implements IDBAdapter {
 	public void restoreDataBase(IMapMetaObject updateObjs) throws Exception {
 		Connection connect = getConnection();
 		IMapMetaObject currStep = updateObjs;
+
+
 		
 		DBGitLang lang = DBGitLang.getInstance();
 		
@@ -109,41 +149,8 @@ public abstract class DBAdapter implements IDBAdapter {
 			
 			List<String> createdSchemas = new ArrayList<String>();
 			List<String> createdRoles = new ArrayList<String>();
-			
-			Comparator<IMetaObject> comparator = new Comparator<IMetaObject>() {
-				public int compare(IMetaObject o1, IMetaObject o2) {
-					boolean dependsOnO2 = false;
-					if (o1 instanceof MetaTable && o2 instanceof MetaTable) {
-						MetaTable left = (MetaTable) o1;
-						MetaTable right = (MetaTable) o2;
-						if (left.getDependencies().contains(right.getName())) {
-							dependsOnO2 = true;
-						}
-						return (dependsOnO2) ? 1 : -1;
-					}
-					if (o1 instanceof MetaView && o2 instanceof MetaView) {
-						/*
-						MetaView left = (MetaView) o1;
-						MetaView right = (MetaView) o2;
-						if (left.getDependencies().contains(right.getName())) {
-							dependsOnO2 = true;
-						}
-						return (dependsOnO2) ? 1 : -1;
 
-						 */
-					}
-
-				    if (o1 instanceof MetaTable) {
-				    	return -1;
-					}
-				    else if (o1 instanceof MetaTableData)
-				    	return 1;
-				    else
-				    	return 0;
-				}
-			};
-			
-			for (IMetaObject obj : updateObjs.values().stream().sorted(comparator).collect(Collectors.toList())) {
+			for (IMetaObject obj : updateObjs.values().stream().sorted(imoDependenceComparator).collect(Collectors.toList())) {
 				Integer step = 0;
 				
 				String schemaName = getSchemaName(obj);

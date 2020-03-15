@@ -1,15 +1,8 @@
 package ru.fusionsoft.dbgit.postgres;
 
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.sql.*;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import ru.fusionsoft.dbgit.adapters.AdapterFactory;
@@ -424,27 +417,47 @@ public class DBAdapterPostgres extends DBAdapter {
 	public Map<String, DBView> getViews(String schema) {
 		Map<String, DBView> listView = new HashMap<String, DBView>();
 		try {
-			String query = "select nsp.nspname as object_schema, " + 
-				       "cls.relname as object_name,  rol.rolname as owner, 'create or replace view ' || nsp.nspname || '.' || cls.relname || ' as \n' || pg_get_viewdef(cls.oid) as ddl "+
-				       "from pg_class cls " + 
-				         " join pg_roles rol on rol.oid = cls.relowner" +
-				         " join pg_namespace nsp on nsp.oid = cls.relnamespace " + 
-				       " where nsp.nspname not in ('information_schema', 'pg_catalog') " + 
-				       " and nsp.nspname not like 'pg_toast%' " +
-				       "and cls.relkind = 'v' and nsp.nspname = '" + schema + "'";
+			String query =
+				"select nsp.nspname as object_schema, cls.relname as object_name,  rol.rolname as owner, \n" +
+				"'create or replace view ' || nsp.nspname || '.' || cls.relname || ' as ' || pg_get_viewdef(cls.oid) as ddl, (\n" +
+				"	select array_agg(distinct source_ns.nspname || '.' || source_table.relname) as dependencySam\n" +
+				"	from pg_depend \n" +
+				"	join pg_rewrite ON pg_depend.objid = pg_rewrite.oid \n" +
+				"	join pg_class as dependent_view ON pg_rewrite.ev_class = dependent_view.oid \n" +
+				"	join pg_class as source_table ON pg_depend.refobjid = source_table.oid \n" +
+				"	join pg_attribute ON pg_attribute.attrelid  = pg_depend.refobjid \n" +
+				"		and pg_attribute.attnum = pg_depend.refobjsubid  \n" +
+				"	join pg_namespace dependent_ns ON dependent_ns.oid = dependent_view.relnamespace\n" +
+				"	join pg_namespace source_ns ON source_ns.oid = source_table.relnamespace\n" +
+				"	where pg_attribute.attnum > 0 \n" +
+				"	and dependent_view.relname = cls.relname\n" +
+				") as dependencies\n" +
+				"from pg_class cls  \n" +
+				"join pg_roles rol on rol.oid = cls.relowner \n" +
+				"join pg_namespace nsp on nsp.oid = cls.relnamespace  \n" +
+				"where nsp.nspname not in ('information_schema', 'pg_catalog')  \n" +
+				"and nsp.nspname not like 'pg_toast%' \n" +
+				"and cls.relkind = 'v' \n" +
+				"and nsp.nspname = '"+schema+"' \n";
+
 			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
+
 			while(rs.next()){
 				DBView view = new DBView(rs.getString("object_name"));
 				view.setSchema(rs.getString("object_schema"));
 				view.setOwner(rs.getString("owner"));
 				rowToProperties(rs, view.getOptions());
+				if(rs.getArray("dependencies") != null){
+					view.setDependencies(new HashSet<>(Arrays.asList((String[])rs.getArray("dependencies").getArray())));
+				}
 				listView.put(rs.getString("object_name"), view);
 			}
+
 			stmt.close();
 			return listView;
-		}catch(Exception e) {
+		} catch (Exception e) {
 			logger.error(e.getMessage());
 			System.out.println(lang.getValue("errors", "adapter", "views") + ": "+ e.getMessage());
 			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "views") + ": "+ e.getMessage());
@@ -455,23 +468,45 @@ public class DBAdapterPostgres extends DBAdapter {
 	public DBView getView(String schema, String name) {
 		DBView view = new DBView(name);
 		view.setSchema(schema);
+		view.setDependencies(new HashSet<>());
+
 		try {
-			String query = "select nsp.nspname as object_schema, " + 
-				       "cls.relname as object_name,  rol.rolname as owner, 'create or replace view ' || nsp.nspname || '.' || cls.relname || ' as \n' || pg_get_viewdef(cls.oid) as ddl "+
-				       "from pg_class cls " + 
-				         " join pg_roles rol on rol.oid = cls.relowner" +
-				         " join pg_namespace nsp on nsp.oid = cls.relnamespace " + 
-				       " where nsp.nspname not in ('information_schema', 'pg_catalog') " + 
-				       " and nsp.nspname not like 'pg_toast%' " +
-				       "and cls.relkind = 'v' and nsp.nspname = '" + schema + "' and cls.relname='"+name+"'";
+
+			String query =
+				"select nsp.nspname as object_schema, cls.relname as object_name,  rol.rolname as owner, \n" +
+				"'create or replace view ' || nsp.nspname || '.' || cls.relname || ' as ' || pg_get_viewdef(cls.oid) as ddl, (\n" +
+				"	select array_agg(distinct source_ns.nspname || '.' || source_table.relname) as dependencySam\n" +
+				"	from pg_depend \n" +
+				"	join pg_rewrite ON pg_depend.objid = pg_rewrite.oid \n" +
+				"	join pg_class as dependent_view ON pg_rewrite.ev_class = dependent_view.oid \n" +
+				"	join pg_class as source_table ON pg_depend.refobjid = source_table.oid \n" +
+				"	join pg_attribute ON pg_attribute.attrelid  = pg_depend.refobjid \n" +
+				"		and pg_attribute.attnum = pg_depend.refobjsubid  \n" +
+				"	join pg_namespace dependent_ns ON dependent_ns.oid = dependent_view.relnamespace\n" +
+				"	join pg_namespace source_ns ON source_ns.oid = source_table.relnamespace\n" +
+				"	where pg_attribute.attnum > 0 \n" +
+				"	and dependent_view.relname = cls.relname\n" +
+				") as dependencies\n" +
+				"from pg_class cls  \n" +
+				"join pg_roles rol on rol.oid = cls.relowner \n" +
+				"join pg_namespace nsp on nsp.oid = cls.relnamespace  \n" +
+				"where nsp.nspname not in ('information_schema', 'pg_catalog')  \n" +
+				"and nsp.nspname not like 'pg_toast%' \n" +
+				"and cls.relkind = 'v' \n" +
+				"and nsp.nspname = '"+schema+"' \n" +
+				"and cls.relname='"+name+"'\n";
+
 			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
-			
+
 			while (rs.next()) {
 				view.setOwner(rs.getString("owner"));
+				view.setDependencies(new HashSet<>(Arrays.asList((String[])rs.getArray("dependencies").getArray())));
 				rowToProperties(rs, view.getOptions());
 			}
+
+
 			stmt.close();
 			return view;
 			
