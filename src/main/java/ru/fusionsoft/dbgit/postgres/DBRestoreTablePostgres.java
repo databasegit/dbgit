@@ -106,6 +106,10 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 					
 					ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
 				}
+				
+				if (restoreTable.getTable().getComment() != null && restoreTable.getTable().getComment().length() > 0)
+					st.execute("COMMENT ON TABLE " + tblName + " IS '" + restoreTable.getTable().getComment() + "'");
+				
 				//restore tabl fields
 							Map<String, DBTableField> currentFileds = adapter.getTableFields(schema.toLowerCase(), restoreTable.getTable().getName().toLowerCase());
 							MapDifference<String, DBTableField> diffTableFields = Maps.difference(restoreTable.getFields(),currentFileds);
@@ -119,13 +123,20 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 								values.sort(comparator);
 								
 								for(DBTableField tblField : values) {
-										String as = "alter table "+ tblName +" add column " + ((adapter.isReservedWord(tblField.getName()) || tblField.getNameExactly()) ? "\"" + tblField.getName() + "\" " : tblField.getName())  + " " + tblField.getTypeSQL().replace("NOT NULL", "");
 										st.execute("alter table "+ tblName +" add column " + ((adapter.isReservedWord(tblField.getName()) || tblField.getNameExactly()) ? "\"" + tblField.getName() + "\" " : tblField.getName())  + " " + tblField.getTypeSQL().replace("NOT NULL", ""));
 								
+										if (tblField.getDescription() != null && tblField.getDescription().length() > 0)
+											st.execute("COMMENT ON COLUMN " + tblName + "." + ((adapter.isReservedWord(tblField.getName()) || tblField.getNameExactly()) ? "\"" + tblField.getName() + "\" " : tblField.getName()) + " IS '" + tblField.getDescription() + "'");
+										
 										if (!tblField.getIsNullable()) {
 											st.execute("alter table " + tblName + " alter column " + (adapter.isReservedWord(tblField.getName()) ? "\"" + tblField.getName() + "\" " : tblField.getName()) + " set not null");
-										}
-
+										}										
+										
+										if (tblField.getDefaultValue() != null && tblField.getDefaultValue().length() > 0) {
+											st.execute("alter table " + tblName + " alter column " + (adapter.isReservedWord(tblField.getName()) ? "\"" + tblField.getName() + "\" " : tblField.getName()) 
+													+ " SET DEFAULT " + tblField.getDefaultValue());
+										}										
+										
 								}	
 								ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
 							}
@@ -144,6 +155,9 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 									if(!tblField.leftValue().getName().equals(tblField.rightValue().getName())) {
 										st.execute("alter table "+ tblName +" rename column "+ tblField.rightValue().getName() +" to "+ tblField.leftValue().getName());
 									}
+									
+									if (restoreTable.getTable().getComment() != null && restoreTable.getTable().getComment().length() > 0)
+										st.execute("COMMENT ON COLUMN " + tblName + "." + ((adapter.isReservedWord(tblField.leftValue().getName()) || tblField.leftValue().getNameExactly()) ? "\"" + tblField.leftValue().getName() + "\" " : tblField.leftValue().getName()) + " IS '" + tblField.leftValue().getDescription() + "'");									
 																	
 									if(!tblField.leftValue().getTypeSQL().equals(tblField.rightValue().getTypeSQL())
 											&& tblField.rightValue().getTypeUniversal() != FieldType.BOOLEAN) {
@@ -244,8 +258,19 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 							
 							if(!diffTableFields.entriesOnlyOnLeft().isEmpty()){
 								for(DBTableField tblField:diffTableFields.entriesOnlyOnLeft().values()) {
-										String as = "alter table "+ tblName +" add column " + tblField.getName()  + " " + tblField.getTypeSQL();
 										st.execute("alter table "+ tblName +" add column " + tblField.getName()  + " " + tblField.getTypeSQL());
+
+										if (tblField.getDescription() != null && tblField.getDescription().length() > 0)
+											st.execute("COMMENT ON COLUMN " + tblName + "." + ((adapter.isReservedWord(tblField.getName()) || tblField.getNameExactly()) ? "\"" + tblField.getName() + "\" " : tblField.getName()) + " IS '" + tblField.getDescription() + "'");
+										
+										if (!tblField.getIsNullable()) {
+											st.execute("alter table " + tblName + " alter column " + (adapter.isReservedWord(tblField.getName()) ? "\"" + tblField.getName() + "\" " : tblField.getName()) + " set not null");
+										}										
+										
+										if (tblField.getDefaultValue() != null && tblField.getDefaultValue().length() > 0) {
+											st.execute("alter table " + tblName + " alter column " + (adapter.isReservedWord(tblField.getName()) ? "\"" + tblField.getName() + "\" " : tblField.getName()) 
+													+ " SET DEFAULT " + tblField.getDefaultValue());
+										}										
 								}								
 							}
 							
@@ -272,6 +297,19 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 				if(!exist){								
 					for(DBTableField tblField:restoreTable.getFields().values()) {
 							st.execute("alter table "+ tblName +" add column " + tblField.getName()  + " " + tblField.getTypeSQL());
+							
+							if (tblField.getDescription() != null && tblField.getDescription().length() > 0)
+								st.execute("COMMENT ON COLUMN " + tblName + "." + ((adapter.isReservedWord(tblField.getName()) || tblField.getNameExactly()) ? "\"" + tblField.getName() + "\" " : tblField.getName()) + " IS '" + tblField.getDescription() + "'");
+
+							if (!tblField.getIsNullable()) {
+								st.execute("alter table " + tblName + " alter column " + (adapter.isReservedWord(tblField.getName()) ? "\"" + tblField.getName() + "\" " : tblField.getName()) + " set not null");
+							}										
+							
+							if (tblField.getDefaultValue() != null && tblField.getDefaultValue().length() > 0) {
+								st.execute("alter table " + tblName + " alter column " + (adapter.isReservedWord(tblField.getName()) ? "\"" + tblField.getName() + "\" " : tblField.getName()) 
+										+ " SET DEFAULT " + tblField.getDefaultValue());
+							}										
+
 					}
 				}
 				
@@ -317,21 +355,22 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 					for(DBTable table:tables.values()) {
 						if(restoreTable.getTable().getName().equals(table.getName())){
 							exist = true;
+														
 							Map<String, DBIndex> currentIndexes = adapter.getIndexes(schema, table.getName());
 							MapDifference<String, DBIndex> diffInd = Maps.difference(restoreTable.getIndexes(), currentIndexes);
 							if(!diffInd.entriesOnlyOnLeft().isEmpty()) {
 								for(DBIndex ind:diffInd.entriesOnlyOnLeft().values()) {
 									if(ind.getOptions().getChildren().containsKey("tablespace")) {
-										st.execute(ind.getSql()+" tablespace "+ind.getOptions().get("tablespace").getData());
+										st.execute(ind.getSql().replace(" INDEX ", " INDEX IF NOT EXISTS ")+" tablespace "+ind.getOptions().get("tablespace").getData());
 									}
 									else {
-										st.execute(ind.getSql());
+										st.execute(ind.getSql().replace(" INDEX ", " INDEX IF NOT EXISTS "));
 									}
 								}								
 							}
 							if(!diffInd.entriesOnlyOnRight().isEmpty()) {
 								for(DBIndex ind:diffInd.entriesOnlyOnRight().values()) {
-									st.execute("drop index IF EXISTS "+schema+"."+ind.getName());
+									st.execute("drop index IF EXISTS "+schema+"."+ (ind.getName().contains(".")?("\"" + ind.getName() + "\""):ind.getName()));
 								}								
 							}
 							
@@ -352,14 +391,16 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 					}
 				}
 				if(!exist){								
-					for(DBIndex ind:restoreTable.getIndexes().values()) {						
-							if(ind.getOptions().getChildren().containsKey("tablespace")) {
-								String as = ind.getSql()+" tablespace "+ind.getOptions().get("tablespace").getData();
-								st.execute(ind.getSql()+" tablespace "+ind.getOptions().get("tablespace").getData());
-							}
-							else {						
-								st.execute(ind.getSql());
-							}						
+					ConsoleWriter.println("count of indexes: " + restoreTable.getIndexes().size());					
+					
+					for(DBIndex ind:restoreTable.getIndexes().values()) {
+
+						if(ind.getOptions().getChildren().containsKey("tablespace")) {
+							st.execute(ind.getSql().replace(" INDEX ", " INDEX IF NOT EXISTS ")+" tablespace "+ind.getOptions().get("tablespace").getData());
+						}
+						else {						
+							st.execute(ind.getSql().replace(" INDEX ", " INDEX IF NOT EXISTS "));
+						}						
 					}
 				}
 			}

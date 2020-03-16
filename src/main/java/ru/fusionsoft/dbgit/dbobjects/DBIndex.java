@@ -19,9 +19,12 @@ public class DBIndex extends DBSQLObject {
 		return options;
 	}
 
-
 	public void setOptions(StringProperties options) {
 		this.options = options;
+	}
+	
+	public String getSql() {
+		return options.get("ddl") != null ? options.get("ddl").toString() : "";
 	}
 	
 	public String getHash() {

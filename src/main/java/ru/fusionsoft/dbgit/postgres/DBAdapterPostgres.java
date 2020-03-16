@@ -213,6 +213,7 @@ public class DBAdapterPostgres extends DBAdapter {
 		try {
 			String query = 
 					"select tablename as table_name,tableowner as owner,tablespace,hasindexes,hasrules,hastriggers "
+					+ ", obj_description(to_regclass(schemaname || '.\"' || tablename || '\"')::oid) table_comment "
 					+ "from pg_tables where schemaname not in ('information_schema', 'pg_catalog') "
 					+ "and schemaname not like 'pg_toast%' and upper(schemaname) = upper(:schema) ";
 			Connection connect = getConnection();
@@ -225,6 +226,7 @@ public class DBAdapterPostgres extends DBAdapter {
 				String nameTable = rs.getString("table_name");
 				DBTable table = new DBTable(nameTable);
 				table.setSchema(schema);
+				table.setComment(rs.getString("table_comment"));
 				rowToProperties(rs, table.getOptions());
 				listTable.put(nameTable, table);
 			}
@@ -240,7 +242,10 @@ public class DBAdapterPostgres extends DBAdapter {
 	public DBTable getTable(String schema, String name) {
 		try {
 			String query = 
-					"select tablename as table_name,tableowner as owner,tablespace,hasindexes,hasrules,hastriggers from pg_tables where schemaname not in ('information_schema', 'pg_catalog') "
+					"select tablename as table_name,tableowner as owner,tablespace,hasindexes,hasrules,hastriggers "
+					+ ", obj_description(to_regclass(schemaname || '.\"' || tablename || '\"')::oid) table_comment "
+					+ "from pg_tables "
+					+ "where schemaname not in ('information_schema', 'pg_catalog') "
 					+ "and schemaname not like 'pg_toast%' and upper(schemaname) = upper(\'"+schema+"\') and upper(tablename) = upper(\'"+name+"\') ";
 			Connection connect = getConnection();
 			
@@ -254,6 +259,7 @@ public class DBAdapterPostgres extends DBAdapter {
 				String nameTable = rs.getString("table_name");
 				table = new DBTable(nameTable);
 				table.setSchema(schema);
+				table.setComment(rs.getString("table_comment"));
 				rowToProperties(rs, table.getOptions());
 			}
 			stmt.close();
@@ -272,7 +278,7 @@ public class DBAdapterPostgres extends DBAdapter {
 			Map<String, DBTableField> listField = new HashMap<String, DBTableField>();
 			
 			String query = 
-					"SELECT distinct col.column_name,col.is_nullable,col.data_type, col.udt_name::regtype dtype,col.character_maximum_length, tc.constraint_name, " +
+					"SELECT distinct col.column_name,col.is_nullable,col.data_type, col.udt_name::regtype dtype,col.character_maximum_length, col.column_default, tc.constraint_name, " +
 					"case\r\n" + 
 					"	when lower(data_type) in ('integer', 'numeric', 'smallint', 'double precision', 'bigint') then 'number' \r\n" + 
 					"	when lower(data_type) in ('character varying', 'char', 'character', 'varchar') then 'string'\r\n" + 
@@ -283,10 +289,13 @@ public class DBAdapterPostgres extends DBAdapter {
 					"	else 'native'\r\n" + 
 					"	end tp, " +
 					"    case when lower(data_type) in ('char', 'character') then true else false end fixed, " +
+					"  pgd.description," +
 					"col.*  FROM " + 
 					"information_schema.columns col  " + 
 					"left join information_schema.key_column_usage kc on col.table_schema = kc.table_schema and col.table_name = kc.table_name and col.column_name=kc.column_name " + 
 					"left join information_schema.table_constraints tc on col.table_schema = kc.table_schema and col.table_name = kc.table_name and kc.constraint_name = tc.constraint_name and tc.constraint_type = 'PRIMARY KEY' " + 
+					"left join pg_catalog.pg_statio_all_tables st on st.schemaname = col.table_schema and st.relname = col.table_name " +
+					"left join pg_catalog.pg_description pgd on (pgd.objoid=st.relid and pgd.objsubid=col.ordinal_position) " +
 					"where upper(col.table_schema) = upper(:schema) and upper(col.table_name) = upper(:table) " + 
 					"order by col.column_name ";
 			Connection connect = getConnection();			
@@ -300,6 +309,7 @@ public class DBAdapterPostgres extends DBAdapter {
 				DBTableField field = new DBTableField();
 				
 				field.setName(rs.getString("column_name"));  
+				field.setDescription(rs.getString("description"));
 				field.setNameExactly(!rs.getString("column_name").equals(rs.getString("column_name").toLowerCase()));
 				if (rs.getString("constraint_name") != null) { 
 					field.setIsPrimaryKey(true);
@@ -314,6 +324,7 @@ public class DBAdapterPostgres extends DBAdapter {
 				field.setScale(rs.getInt("numeric_scale"));
 				field.setFixed(rs.getBoolean("fixed"));
 				field.setOrder(rs.getInt("ordinal_position"));
+				field.setDefaultValue(rs.getString("column_default"));
 				listField.put(field.getName(), field);
 			}
 			stmt.close();
@@ -359,7 +370,7 @@ public class DBAdapterPostgres extends DBAdapter {
 					"	on i.indexname = cl.relname\r\n" + 
 					"JOIN pg_index AS idx \r\n" + 
 					"	ON cl.oid = idx.indexrelid\r\n" + 
-					"where i.tablename not like 'pg%' and i.schemaname = :schema and i.tablename = :table and idx.indisprimary = false and idx.indisunique=false ";
+					"where i.tablename not like 'pg%' and i.schemaname = :schema and i.tablename = :table --and idx.indisprimary = false and idx.indisunique=false ";
 			
 			Connection connect = getConnection();
 			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);			
@@ -389,6 +400,7 @@ public class DBAdapterPostgres extends DBAdapter {
 	public Map<String, DBConstraint> getConstraints(String schema, String nameTable) {
 		Map<String, DBConstraint> constraints = new HashMap<>();
 		try {
+			/*
 			String query = "select conname as constraint_name,contype as constraint_type, " + 
 					"  pg_catalog.pg_get_constraintdef(r.oid, true) as ddl " + 
 					"from " + 
@@ -396,8 +408,22 @@ public class DBAdapterPostgres extends DBAdapter {
 					"    join pg_namespace n on n.oid = c.relnamespace " + 
 					"    join pg_catalog.pg_constraint r on r.conrelid = c.relfilenode " + 
 					"WHERE    " + 
-					"    relname = :table and nspname = :schema and c.relkind = 'r' ";
-
+					"    relname = :table and nspname = :schema and c.relkind = 'r'";
+			*/
+			
+			
+			String query = "SELECT conname as constraint_name,contype as constraint_type, \r\n" + 
+					"  pg_catalog.pg_get_constraintdef(con.oid, true) as ddl\r\n" + 
+					"       FROM pg_catalog.pg_constraint con\r\n" + 
+					"            INNER JOIN pg_catalog.pg_class rel\r\n" + 
+					"                       ON rel.oid = con.conrelid\r\n" + 
+					"            INNER JOIN pg_catalog.pg_namespace nsp\r\n" + 
+					"                       ON nsp.oid = connamespace\r\n" + 
+					"       WHERE nsp.nspname = :schema\r\n" + 
+					"             AND rel.relname = :table";
+			
+			
+			
 			Connection connect = getConnection();
 			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);
 			stmt.setString("table", nameTable);
@@ -585,7 +611,8 @@ public class DBAdapterPostgres extends DBAdapter {
 				func.setOwner(owner);
 				rowToProperties(rs,func.getOptions());
 				//func.setArguments(args);
-				listFunction.put(name, func);
+								
+				listFunction.put(listFunction.containsKey(name) ? name + "_" + func.getHash() : name, func);
 			}
 			stmt.close();
 		}catch(Exception e) {
@@ -639,14 +666,18 @@ public class DBAdapterPostgres extends DBAdapter {
 			
 			int begin = 1 + portionSize*portionIndex;
 			int end = portionSize + portionSize*portionIndex;
-
+			
 			Statement st = getConnection().createStatement();
-			ResultSet rs = st.executeQuery("    SELECT * FROM \r\n" + 
+			String query = "    SELECT * FROM \r\n" + 
 					"   (SELECT f.*, ROW_NUMBER() OVER (ORDER BY ctid) DBGIT_ROW_NUM FROM " + schema + "." + (nameTable.contains(".")?("\"" + nameTable + "\""):nameTable) + " f) s\r\n" + 
-					"   WHERE DBGIT_ROW_NUM BETWEEN " + begin  + " and " + end);
+					"   WHERE DBGIT_ROW_NUM BETWEEN " + begin  + " and " + end;
+			ResultSet rs = st.executeQuery(query);
+			
 			data.setResultSet(rs);	
 			return data;
 		} catch(Exception e) {
+			ConsoleWriter.println("err: " + e.getLocalizedMessage());
+			
 			logger.error(lang.getValue("errors", "adapter", "tableData").toString(), e);
 			
 			try {
