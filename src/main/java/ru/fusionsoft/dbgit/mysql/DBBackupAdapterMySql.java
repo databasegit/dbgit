@@ -21,6 +21,13 @@ public class DBBackupAdapterMySql extends DBBackupAdapter {
         // TODO Auto-generated method stub
     }
 
+    private String getFullDbName(String schema, String objectName) {
+        if (isSaveToSchema())
+            return PREFIX + schema + "." + objectName;
+        else
+            return schema + "." + PREFIX + objectName;
+    }
+
     private void dropIfExists(String owner, String objectName, StatementLogging stLog) throws Exception {
         Statement st = 	adapter.getConnection().createStatement();
         ResultSet rs = st.executeQuery("select * from (\r\n" +

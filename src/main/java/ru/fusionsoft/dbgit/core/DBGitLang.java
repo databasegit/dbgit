@@ -28,7 +28,7 @@ public class DBGitLang {
 			
 			mapValue = (Map<String, Object>) 
 					new Yaml().load(new FileInputStream(new File(path + "/lang/" + 
-			DBGitConfig.getInstance().getString("core", "LANG", DBGitConfig.getInstance().getStringGlobal("core", "LANG", "no")) + ".yaml")));			
+			DBGitConfig.getInstance().getString("core", "LANG", DBGitConfig.getInstance().getStringGlobal("core", "LANG", "no")).toLowerCase() + ".yaml")));
 		} catch (Exception e) {
 			ConsoleWriter.println(e.getLocalizedMessage());
 			throw new ExceptionDBGitRunTime(e);

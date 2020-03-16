@@ -50,11 +50,12 @@ import ru.fusionsoft.dbgit.meta.IMapMetaObject;
 import ru.fusionsoft.dbgit.statement.StatementLogging;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 import ru.fusionsoft.dbgit.utils.LoggerUtil;
+import ru.fusionsoft.dbgit.utils.StringProperties;
 
 public class DBAdapterMySql extends DBAdapter {
 	private Logger logger = LoggerUtil.getLogger(this.getClass());
 	
-	private FactoryDBAdapterRestoreMySql restoreFactory = new FactoryDBAdapterRestoreMySql();
+	private FactoryDBRestoreAdapterMySql restoreFactory = new FactoryDBRestoreAdapterMySql();
 	private FactoryDBConvertAdapterMySql convertFactory = new FactoryDBConvertAdapterMySql();
 	private FactoryDBBackupAdapterMySql backupFactory = new FactoryDBBackupAdapterMySql();
 
@@ -356,7 +357,7 @@ public class DBAdapterMySql extends DBAdapter {
 					"group_concat(concat(P.parameter_name, \" \", P.data_type)) as \"arguments\", R.routine_definition as \"ddl\"\r\n" +
 					"FROM information_schema.routines as R, information_schema.parameters as P\r\n" + 
 					"WHERE P.parameter_mode='IN' and P.routine_type=R.routine_type and P.specific_schema=R.routine_schema and\r\n" +
-					"P.specific_name=R.specific_name and R.routine_type='FUNCTION' and R.routine_schema='" + schema + "' GROUP BY R.specific_name ORDER BY P.ordinal_position";
+					"P.specific_name=R.specific_name and R.routine_type='FUNCTION' and R.routine_schema='" + schema + "' GROUP BY R.specific_name,1,2,5,P.ordinal_position ORDER BY P.ordinal_position";
 			Statement stmt = getConnection().createStatement();
 			ResultSet rs = stmt.executeQuery(query);
 			while(rs.next()) {
@@ -379,14 +380,14 @@ public class DBAdapterMySql extends DBAdapter {
 
 	@Override
 	public DBFunction getFunction(String schema, String name) {
-        DBFunction function = new DBFunction();
+        DBFunction function = new DBFunction(name);
         try {
             String query = "SELECT R.routine_schema as \"schema\", R.definer as \"rolname\", R.specific_name as \"name\"," +
                     "group_concat(concat(P.parameter_name, \" \", P.data_type)) as \"arguments\", R.routine_definition as \"ddl\"\r\n" +
                     "FROM information_schema.routines as R, information_schema.parameters as P\r\n" +
                     "WHERE P.parameter_mode='IN' and P.routine_type=R.routine_type and P.specific_schema=R.routine_schema and\r\n" +
                     "P.specific_name=R.specific_name and R.routine_type='FUNCTION' and R.routine_schema='" + schema + "' and R.specific_name='" + name + "'\r\n" +
-                    "GROUP BY R.specific_name ORDER BY P.ordinal_position";
+                    "GROUP BY R.specific_name,1,2,5,P.ordinal_position ORDER BY P.ordinal_position";
             Statement stmt = getConnection().createStatement();
             ResultSet rs = stmt.executeQuery(query);
             rs.next();
@@ -500,12 +501,15 @@ public class DBAdapterMySql extends DBAdapter {
 	public Map<String, DBUser> getUsers() {
 		Map<String, DBUser> users = new HashMap<String, DBUser>();
 		try {
-			String query = "select User from mysql.user";
+			String query = "select User, authentication_string from mysql.user";
 			Statement stmt = getConnection().createStatement();
 			ResultSet rs = stmt.executeQuery(query);
 			while(rs.next()) {
 				String name = rs.getString(1);
-				DBUser user = new DBUser(name);
+				String password = rs.getString(2);
+				StringProperties options = new StringProperties();
+				options.addChild("password", password);
+				DBUser user = new DBUser(name, options);
 				users.put(name, user);
 			}
 			stmt.close();
