@@ -502,7 +502,9 @@ public class DBAdapterPostgres extends DBAdapter {
 
 			while (rs.next()) {
 				view.setOwner(rs.getString("owner"));
-				view.setDependencies(new HashSet<>(Arrays.asList((String[])rs.getArray("dependencies").getArray())));
+				if(rs.getArray("dependencies") != null){
+					view.setDependencies(new HashSet<>(Arrays.asList((String[])rs.getArray("dependencies").getArray())));
+				}
 				rowToProperties(rs, view.getOptions());
 			}
 

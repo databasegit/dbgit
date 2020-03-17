@@ -98,6 +98,16 @@ public class DependencyAwareTest {
     }
 
     @Test
+    public void getViewPostgres(){
+        testAdapter.getViews(schema);
+    }
+
+    @Test
+    public void getViewsPostgres(){
+        testAdapter.getView(schema, "dependency");
+    }
+
+    @Test
     public void sort() throws Exception {
         createTestObjects();
         MetaTable mt = new MetaTable(testAdapter.getTable(schema, tableName));
