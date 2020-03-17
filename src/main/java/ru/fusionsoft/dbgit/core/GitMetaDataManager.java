@@ -211,36 +211,16 @@ public class GitMetaDataManager {
 			}
 		}
 		
-		//triggers
+		//triggers, packages, functions, procedures, views
 		for (DBSchema schema : schemes.values()) {
 			if (ignore.matchSchema(schema.getName())) continue;
 			addToMapSqlObject(dbObjs, adapter.getTriggers(schema.getName()), DBGitMetaType.DbGitTrigger);
-		}
-		
-		//packages
-		for (DBSchema schema : schemes.values()) {
-			if (ignore.matchSchema(schema.getName())) continue;
 			addToMapSqlObject(dbObjs, adapter.getPackages(schema.getName()), DBGitMetaType.DbGitPackage);
-		}
-		
-		//functions
-		for (DBSchema schema : schemes.values()) {
-			if (ignore.matchSchema(schema.getName())) continue;
 			addToMapSqlObject(dbObjs, adapter.getFunctions(schema.getName()), DBGitMetaType.DbGitFunction);
-		}
-		
-		//procedures
-		for (DBSchema schema : schemes.values()) {
-			if (ignore.matchSchema(schema.getName())) continue;
 			addToMapSqlObject(dbObjs, adapter.getProcedures(schema.getName()), DBGitMetaType.DbGitProcedure);
-		}
-		
-		//views
-		for (DBSchema schema : schemes.values()) {
-			if (ignore.matchSchema(schema.getName())) continue;
 			addToMapSqlObject(dbObjs, adapter.getViews(schema.getName()), DBGitMetaType.DbGitView);
 		}
-				
+		
 		//data tables
 		/*
 		for (MetaTable tbl : tbls.values()) {

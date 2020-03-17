@@ -6,6 +6,8 @@ import java.util.Map;
 
 import org.yaml.snakeyaml.Yaml;
 
+import ru.fusionsoft.dbgit.utils.ConsoleWriter;
+
 public class DBGitLang {
 	private static DBGitLang lang = null;
 	private Map<String, Object> mapValue;
@@ -13,17 +15,22 @@ public class DBGitLang {
 	
 	@SuppressWarnings("unchecked")
 	private DBGitLang() {
-		try {
+		try {			
 			String path = new File(DBGitLang.class.getProtectionDomain().getCodeSource().getLocation()
 				    .toURI()).getAbsolutePath();
 			
-			while (!new File(path + "/lang").exists()) 
-				path += "/..";
-
+			while (!new File(path + "/lang").exists()) {
+				int i = path.lastIndexOf("/");
+				if (i == -1) i = path.lastIndexOf("\\");
+				
+				path = path.substring(0, i);
+			}
+			
 			mapValue = (Map<String, Object>) 
 					new Yaml().load(new FileInputStream(new File(path + "/lang/" + 
-			DBGitConfig.getInstance().getString("core", "LANG", DBGitConfig.getInstance().getStringGlobal("core", "LANG", "no")) + ".yaml")));			
+			DBGitConfig.getInstance().getString("core", "LANG", DBGitConfig.getInstance().getStringGlobal("core", "LANG", "no")).toLowerCase() + ".yaml")));
 		} catch (Exception e) {
+			ConsoleWriter.println(e.getLocalizedMessage());
 			throw new ExceptionDBGitRunTime(e);
 		}
 	}

@@ -12,7 +12,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class FactoryDBConvertAdapterMySql implements IFactoryDBConvertAdapter {
-
     private static final Map<String, IDBConvertAdapter> converters;
 
     static {

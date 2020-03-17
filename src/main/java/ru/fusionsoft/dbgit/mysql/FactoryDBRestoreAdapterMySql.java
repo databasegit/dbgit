@@ -4,6 +4,7 @@ import ru.fusionsoft.dbgit.adapters.IDBAdapter;
 import ru.fusionsoft.dbgit.adapters.IDBAdapterRestoreMetaData;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBAdapterRestoteMetaData;
 import ru.fusionsoft.dbgit.core.DBGitLang;
+import ru.fusionsoft.dbgit.meta.DBGitMetaType;
 import ru.fusionsoft.dbgit.meta.IDBGitMetaType;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
@@ -12,11 +13,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class FactoryDBRestoreAdapterMySql implements IFactoryDBAdapterRestoteMetaData {
-
     private static final Map<String, IDBAdapterRestoreMetaData> restoreAdapters;
     static {
         Map<String, IDBAdapterRestoreMetaData> aMap = new HashMap<String, IDBAdapterRestoreMetaData>();
-        //TODO: change
         //aMap.put(DBGitMetaType.DBGitSchema.getValue(), new DBRestoreSchemaMySql());
         //aMap.put(DBGitMetaType.DBGitTableSpace.getValue(), new DBRestoreTableSpaceMySql());
         //aMap.put(DBGitMetaType.DBGitRole.getValue(), new DBRestoreRoleMySql());
@@ -27,7 +26,7 @@ public class FactoryDBRestoreAdapterMySql implements IFactoryDBAdapterRestoteMet
         //aMap.put(DBGitMetaType.DbGitFunction.getValue(), new DBRestoreFunctionMySql());
         //aMap.put(DBGitMetaType.DbGitTrigger.getValue(), new DBRestoreTriggerMySql());
         //aMap.put(DBGitMetaType.DbGitView.getValue(), new DBRestoreViewMySql());
-        //aMap.put(DBGitMetaType.DBGitUser.getValue(), new DBRestoreUserMySql());
+        aMap.put(DBGitMetaType.DBGitUser.getValue(), new DBRestoreUserMySql());
 
 
 
@@ -48,5 +47,4 @@ public class FactoryDBRestoreAdapterMySql implements IFactoryDBAdapterRestoteMet
         re.setAdapter(adapter);
         return re;
     }
-
 }

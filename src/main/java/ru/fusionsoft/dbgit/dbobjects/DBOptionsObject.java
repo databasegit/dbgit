@@ -12,6 +12,11 @@ public class DBOptionsObject implements IDBObject {
 	public DBOptionsObject(String name) {
 		this.setName(name);
 	}
+
+	public DBOptionsObject(String name, StringProperties options) {
+		this.setName(name);
+		this.setOptions(options);
+	}
 	
 	public StringProperties getOptions() {
 		return options;

@@ -6,7 +6,6 @@ import ru.fusionsoft.dbgit.adapters.IFactoryDBBackupAdapter;
 import ru.fusionsoft.dbgit.core.DBGitConfig;
 
 public class FactoryDBBackupAdapterMySql implements IFactoryDBBackupAdapter {
-
     private IDBBackupAdapter backupAdapter = null;
 
     @Override
@@ -20,5 +19,4 @@ public class FactoryDBBackupAdapterMySql implements IFactoryDBBackupAdapter {
 
         return backupAdapter;
     }
-
 }

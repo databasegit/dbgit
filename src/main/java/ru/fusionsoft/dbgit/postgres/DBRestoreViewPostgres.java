@@ -44,10 +44,16 @@ public class DBRestoreViewPostgres extends DBRestoreAdapter {
 				if(!exist){
 					String query = restoreView.getSqlObject().getSql();
 					
+					if (restoreView.getSqlObject().getName().contains(".")) {
+						query = query.replace(
+								"create or replace view " + restoreView.getSqlObject().getSchema() + "." + restoreView.getSqlObject().getName(), 
+								"create or replace view " + restoreView.getSqlObject().getSchema() + ".\"" + restoreView.getSqlObject().getName() + "\"");
+					}
+					
 					if (!query.endsWith(";")) query = query + ";";
 					query = query + "\n";
 					
-					query+= "ALTER VIEW "+restoreView.getSqlObject().getName() +" OWNER TO "+restoreView.getSqlObject().getOwner()+";\n";
+					query+= "ALTER VIEW "+ restoreView.getSqlObject().getSchema() + "." + (restoreView.getSqlObject().getName().contains(".")?("\"" + restoreView.getSqlObject().getName() + "\""):restoreView.getSqlObject().getName()) +" OWNER TO "+restoreView.getSqlObject().getOwner()+";\n";
 					st.execute(query); 
 					//TODO Восстановление привилегий	
 				}

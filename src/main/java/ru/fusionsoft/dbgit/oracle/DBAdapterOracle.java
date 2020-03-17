@@ -308,7 +308,7 @@ public class DBAdapterOracle extends DBAdapter {
 				String typeSQL = getFieldType(rs);
 				field.setTypeSQL(typeSQL);
 				field.setIsNullable( !typeSQL.toLowerCase().contains("not null"));
-				field.setTypeUniversal(FieldType.fromString(rs.getString("TYPE")));
+				field.setTypeUniversal(FieldType.fromString(rs.getString("TYPE").toUpperCase()));
 				field.setLength(rs.getInt("DATA_LENGTH"));
 				field.setScale(rs.getInt("DATA_SCALE"));
 				field.setPrecision(rs.getInt("DATA_PRECISION"));

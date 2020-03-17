@@ -54,11 +54,9 @@ public class MetaObjectFactory  {
 			if (pos > 0) {
 				nm.setSchema(name.substring(0, pos));
 			}
-			
-			String tmp = name.substring(pos+1);
-			String[] partName = tmp.split("\\.");
-			nm.setName(partName[0]);
-			nm.setType(DBGitMetaType.valueByCode(partName[1]));
+			Integer posDot = name.lastIndexOf(".");
+			nm.setName(name.substring(pos+1, posDot));
+			nm.setType(DBGitMetaType.valueByCode(name.substring(posDot + 1)));
 
 			return nm;
 		} catch(Exception e) {

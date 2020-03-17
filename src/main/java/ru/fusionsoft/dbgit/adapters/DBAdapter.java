@@ -20,6 +20,9 @@ import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
 import ru.fusionsoft.dbgit.core.SchemaSynonym;
 import ru.fusionsoft.dbgit.core.db.FieldType;
 import ru.fusionsoft.dbgit.data_table.*;
+import ru.fusionsoft.dbgit.dbobjects.DBSequence;
+import ru.fusionsoft.dbgit.core.db.FieldType;
+import ru.fusionsoft.dbgit.data_table.*;
 import ru.fusionsoft.dbgit.dbobjects.DBSQLObject;
 import ru.fusionsoft.dbgit.dbobjects.DBTableField;
 import ru.fusionsoft.dbgit.meta.*;
@@ -77,6 +80,7 @@ public abstract class DBAdapter implements IDBAdapter {
 		}
 		return result;
 	};
+
 
 
 	@Override
@@ -138,8 +142,6 @@ public abstract class DBAdapter implements IDBAdapter {
 	public void restoreDataBase(IMapMetaObject updateObjs) throws Exception {
 		Connection connect = getConnection();
 		IMapMetaObject currStep = updateObjs;
-
-
 		
 		DBGitLang lang = DBGitLang.getInstance();
 		
