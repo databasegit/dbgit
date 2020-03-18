@@ -38,7 +38,7 @@ public class RowData {
 	
 	public void loadDataFromRS(ResultSet rs) throws Exception {
 		for (int i = 0; i < rs.getMetaData().getColumnCount(); i++) {	
-			String columnName = rs.getMetaData().getColumnName(i+1).toLowerCase();
+			String columnName = rs.getMetaData().getColumnName(i+1);
 
 			if (columnName.equalsIgnoreCase("DBGIT_ROW_NUM"))
 				continue;

@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.StreamSupport;
 
 import org.eclipse.jgit.api.CheckoutCommand;
 import org.eclipse.jgit.api.FetchCommand;
@@ -33,6 +34,8 @@ import org.eclipse.jgit.transport.PushResult;
 import org.eclipse.jgit.transport.RemoteRefUpdate;
 import org.eclipse.jgit.transport.URIish;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
+
+import com.google.common.collect.Iterables;
 
 import ru.fusionsoft.dbgit.meta.IMapMetaObject;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
@@ -320,11 +323,25 @@ public class DBGit {
 
 	public void gitPush(String remoteName) throws ExceptionDBGit {
 		try {
+			git.log().call();
+		} catch (Exception e) {
+			ConsoleWriter.println("No commits found!");
+			return;
+		} 
+
+		try {			
+			ConsoleWriter.detailsPrintLn("Entered to gitPush");
+			ConsoleWriter.detailsPrintLn("remoteName: " + (remoteName.equals("") ? Constants.DEFAULT_REMOTE_NAME : remoteName));
+
 			Iterable<PushResult> result = git.push()
 					.setCredentialsProvider(getCredentialsProviderByName(remoteName.equals("") ? Constants.DEFAULT_REMOTE_NAME : remoteName))
 					.setRemote(remoteName.equals("") ? Constants.DEFAULT_REMOTE_NAME : remoteName).call();
 			
+			ConsoleWriter.detailsPrintLn("Push called ");
+			
 			result.forEach(pushResult -> {
+				if (pushResult == null)
+					ConsoleWriter.detailsPrintLn("Push result is null!!! ");
 				pushResult.toString();
 				for (RemoteRefUpdate res : pushResult.getRemoteUpdates()) {
 					if (res.getStatus() == RemoteRefUpdate.Status.UP_TO_DATE)
@@ -442,8 +459,9 @@ public class DBGit {
 	}	
 	
 	private CredentialsProvider getCredentialsProviderByName(String remoteName) throws ExceptionDBGit {
-		
+		ConsoleWriter.detailsPrintLn("Getting link to repo... ");
 		String link = git.getRepository().getConfig().getString("remote", remoteName, "url");
+		ConsoleWriter.detailsPrintLn("link:" + link);
 		
 		if (link != null)
 			return getCredentialsProvider(link);
@@ -458,12 +476,19 @@ public class DBGit {
 	
 	private static CredentialsProvider getCredentialsProvider(String link) throws ExceptionDBGit {
 		try {			
+			ConsoleWriter.detailsPrintLn("Getting credentials...");
+			
+			URIish uri = new URIish(link);
+			
+			ConsoleWriter.detailsPrintLn("uri login = " + uri.getUser());
+			ConsoleWriter.detailsPrintLn("uri pass = " + uri.getPass());
+			/*
 			Pattern patternPass = Pattern.compile("(?<=:(?!\\/))(.*?)(?=@)");
 			Pattern patternLogin = Pattern.compile("(?<=\\/\\/)(.*?)(?=:(?!\\/))");
 			
 			String login = "";
 			String pass = "";
-			
+
 			Matcher matcher = patternPass.matcher(link);
 			if (matcher.find())
 			{
@@ -479,8 +504,10 @@ public class DBGit {
 			} else {
 				throw new ExceptionDBGit(DBGitLang.getInstance().getValue("errors", "gitLoginNotFound"));
 			}
-	
-			return new UsernamePasswordCredentialsProvider(login, pass);
+			
+			ConsoleWriter.detailsPrintLn("login: " + login);
+			ConsoleWriter.detailsPrintLn("pass: " + pass);*/
+			return new UsernamePasswordCredentialsProvider(uri.getUser(), uri.getPass());
 		} catch (Exception e) {
 			throw new ExceptionDBGit(e);
 		} 

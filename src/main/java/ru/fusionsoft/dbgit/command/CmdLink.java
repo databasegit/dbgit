@@ -42,6 +42,7 @@ public class CmdLink implements IDBGitCommand {
 	
 	@Override
 	public void execute(CommandLine cmdLine) throws Exception {
+
 		String[] args = cmdLine.getArgs();
 		
 		if(args == null || args.length == 0) {
@@ -52,7 +53,7 @@ public class CmdLink implements IDBGitCommand {
 		Properties props = CreateProperties(Arrays.copyOfRange(args, 1, args.length));
 		
 		DBConnection conn = DBConnection.getInctance(false);
-		
+
 		if(conn.testingConnection(url, props)) {
 			DBConnection.createFileDBLink(url, props, cmdLine.hasOption("d"));	
 			DBGitPath.createDefaultDbignore(DBGitPath.getFullPath(), url, props);

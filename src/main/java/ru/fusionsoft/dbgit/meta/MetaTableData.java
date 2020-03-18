@@ -216,6 +216,8 @@ public class MetaTableData extends MetaBase {
 			}
 			return true;
 		} catch (Exception e) {
+			e.printStackTrace();
+			ConsoleWriter.println(e.getMessage());
 			ConsoleWriter.println(e.getLocalizedMessage());
 			
 			try {

@@ -349,7 +349,37 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 		int i = 0;
 		for (ICellData data : datas) {		
 			boolean isBoolean = ((colTypes.get(fieldsList.get(i)) != null) && (colTypes.get(fieldsList.get(i)).toLowerCase().contains("boolean")));
-			if (data instanceof MapFileData) {
+			
+			if (data instanceof TextFileData) {
+				if (((TextFileData) data).getFile() == null || ((TextFileData) data).getFile().getName().contains("null")) {
+					joiner.add("null");
+				} else {				
+					FileInputStream fis = new FileInputStream(((MapFileData) data).getFile());	
+					BufferedReader br = new BufferedReader(new InputStreamReader(fis));
+					
+					StringBuilder sb = new StringBuilder();
+				    String line;
+				    while(( line = br.readLine()) != null ) {
+				    	sb.append( line );
+				    	sb.append( '\n' );
+				    }
+					br.close();
+					
+					fis.close();
+					String res = "'" + sb.toString().replace("'", "''")
+							.replace("\\", "\\\\")
+							.replace("\n", "' || chr(10) || '")
+							.replace("\0", "' || '\\000' || '")
+							+ "'";
+					
+					if (res.endsWith(" || chr(10) || ''")) {
+						res = res.substring(0, res.length() - " || chr(10) || ''".length());	
+					}
+					joiner.add(res);
+					
+					
+				}
+			} else if (data instanceof MapFileData) {
 				if (((MapFileData) data).getFile() == null || ((MapFileData) data).getFile().getName().contains("null")) {
 					joiner.add("null");
 				} else {
@@ -374,28 +404,6 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 							.replace("\n", "' || chr(10) || '")
 							.replace("\0", "' || '\\000' || '")
 							+ "', 'escape')");*/
-				}
-			} else if (data instanceof TextFileData) {
-				if (((TextFileData) data).getFile() == null || ((TextFileData) data).getFile().getName().contains("null")) {
-					joiner.add("null");
-				} else {				
-					FileInputStream fis = new FileInputStream(((MapFileData) data).getFile());	
-					BufferedReader br = new BufferedReader(new InputStreamReader(fis));
-					
-					StringBuilder sb = new StringBuilder();
-				    String line;
-				    while(( line = br.readLine()) != null ) {
-				    	sb.append( line );
-				    	sb.append( '\n' );
-				    }
-					br.close();
-					
-					fis.close();
-					joiner.add("'" + sb.toString().replace("'", "''")
-							.replace("\\", "\\\\")
-							.replace("\n", "' || chr(10) || '")
-							.replace("\0", "' || '\\000' || '")
-							+ "'");
 				}
 			} else if (data instanceof DateData) { 
 				Date date = ((DateData) data).getDate();
@@ -456,9 +464,9 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 		String fields="";
 		if(keys.size()>1) {
 			String[] fieldsArray = keys.toArray(new String[keys.size()]);	
-			fields="("+fieldsArray[0];
+			fields="("+(fieldsArray[0].equals(fieldsArray[0].toLowerCase()) ? fieldsArray[0] : "\"" + fieldsArray[0] + "\"");
 			for(int i=1;i<fieldsArray.length;i++) {
-				fields+=","+fieldsArray[i];
+				fields+=","+(fieldsArray[i].equals(fieldsArray[i].toLowerCase()) ? fieldsArray[i] : "\"" + fieldsArray[i] + "\"");
 			}
 			fields+=")";
 		}

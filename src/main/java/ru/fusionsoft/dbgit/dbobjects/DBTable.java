@@ -6,6 +6,7 @@ import ru.fusionsoft.dbgit.utils.StringProperties;
 
 public class DBTable extends DBSchemaObject {
 	private StringProperties options = new StringProperties();
+	private String comment = "";
 	
 	public DBTable() {
 		super();
@@ -31,6 +32,14 @@ public class DBTable extends DBSchemaObject {
 		ch.addData(this.getOptions().toString().replace("\n", ""));
 
 		return ch.calcHashStr();
+	}
+	
+	public void setComment(String comment) {
+		this.comment = comment;
+	}
+
+	public String getComment() {
+		return this.comment;
 	}
 
 }

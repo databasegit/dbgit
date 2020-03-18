@@ -6,6 +6,7 @@ import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
 public class DBTableField implements IDBObject, Comparable<DBTableField> {
 	private String name;
+	private String description;
 	private String typeSQL;
 	private FieldType typeUniversal;
 	private int length;
@@ -15,6 +16,7 @@ public class DBTableField implements IDBObject, Comparable<DBTableField> {
 	private Integer order = 0;
 	private Boolean isNullable;
 	private Boolean isNameExactly = false;
+	private String defaultValue;	
 	
 	private Boolean isPrimaryKey = false;
 
@@ -111,7 +113,23 @@ public class DBTableField implements IDBObject, Comparable<DBTableField> {
 	public Boolean getNameExactly() {
 		return isNameExactly;
 	}
+	
+	public String getDefaultValue() {
+		return this.defaultValue;
+	}
 
+	public void setDefaultValue(String defaultValue) {
+		this.defaultValue = defaultValue;
+	}
+
+	public String getDescription() {
+		return this.description;
+	}
+
+	public void setDescription(String description) {
+		this.description = description;
+	}
+	
 	@Override
 	public int compareTo(DBTableField o) {
 		int res = - isPrimaryKey.compareTo(o.getIsPrimaryKey());
