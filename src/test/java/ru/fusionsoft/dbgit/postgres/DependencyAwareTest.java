@@ -1,29 +1,23 @@
 package ru.fusionsoft.dbgit.postgres;
 
 
-import com.google.common.collect.Lists;
-
-import org.apache.commons.lang3.time.StopWatch;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
 import ru.fusionsoft.dbgit.adapters.AdapterFactory;
 import ru.fusionsoft.dbgit.adapters.DBAdapter;
-import ru.fusionsoft.dbgit.adapters.IFactoryDBConvertAdapter;
-import ru.fusionsoft.dbgit.core.DBGitConfig;
-import ru.fusionsoft.dbgit.core.ExceptionDBGit;
-import ru.fusionsoft.dbgit.dbobjects.*;
+import ru.fusionsoft.dbgit.dbobjects.DBTable;
+import ru.fusionsoft.dbgit.dbobjects.DBView;
+import ru.fusionsoft.dbgit.dbobjects.IDBObject;
 import ru.fusionsoft.dbgit.meta.*;
-import ru.fusionsoft.dbgit.oracle.DBRestorePackageOracle;
-import ru.fusionsoft.dbgit.statement.StatementLogging;
-import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
-import javax.naming.Name;
-import java.sql.*;
-import java.text.MessageFormat;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Properties;
 
 import static org.junit.Assert.*;
 
@@ -127,6 +121,29 @@ public class DependencyAwareTest {
         assertTrue(metaObjects.indexOf(mt) < metaObjects.indexOf(mf));
         assertTrue(metaObjects.indexOf(mv1) < metaObjects.indexOf(mv2));
         assertTrue(metaObjects.indexOf(mt) < metaObjects.indexOf(mv1));
+    }
+
+    @Test
+    public void restoreDataBase() throws Exception{
+        List<IDBObject> toDeleteDBOs = new ArrayList<>();
+        toDeleteDBOs.addAll( testAdapter.getViews(schema).values());
+        toDeleteDBOs.addAll( testAdapter.getViews(otherSchema).values());
+
+        IMapMetaObject toDeleteMOs = new TreeMapMetaObject();
+        for (IDBObject dbo : toDeleteDBOs){
+            toDeleteMOs.put(new MetaView((DBView) dbo));
+        }
+
+        toDeleteDBOs.clear();
+        toDeleteDBOs.add( testAdapter.getTable(schema, tableName) );
+        for (IDBObject dbo : toDeleteDBOs){
+            toDeleteMOs.put(new MetaTable((DBTable) dbo));
+        }
+
+
+
+        //testAdapter.deleteDataBase(toDeleteMOs);
+        testAdapter.restoreDataBase(toDeleteMOs);
     }
 
     @Test

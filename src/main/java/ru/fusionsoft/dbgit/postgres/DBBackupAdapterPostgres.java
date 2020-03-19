@@ -93,23 +93,39 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 					ddl ="create table " + tableName + "() " +
 						(metaTable.getTable().getOptions().getChildren().containsKey("tablespace") ? 
 								" tablespace " + metaTable.getTable().getOptions().get("tablespace").getData() : "") +";\n";
-					ddl += "alter table "+ tableName + " owner to "+ metaTable.getTable().getOptions().get("tableowner").getData()+";\n";
+					String owner = (metaTable.getTable().getOptions().get("tableowner") != null)
+							? metaTable.getTable().getOptions().get("tableowner").getData()
+							: metaTable.getTable().getOptions().get("owner").getData();
+
+					ddl += "alter table "+ tableName + " owner to "+ owner +";\n";
 						
 					
 					for (DBTableField field : metaTable.getFields().values()) {
-						ddl += "alter table " + tableName + " add " + field.getName() + " " + field.getTypeSQL() + ";\n";
+						String name = field.getName();
+						name = (!name.equals(name.toLowerCase())  || Character.isUpperCase(name.codePointAt(0)))
+							? "\"" + name + "\""
+							: name;
+						ddl += "alter table " + tableName + " add " + name + " " + field.getTypeSQL() + ";\n";
 					}					
 					
 				}				
 				
 				for (DBConstraint constraint : metaTable.getConstraints().values()) {
-					ddl += "alter table "+ tableName +" add constraint " + PREFIX + constraint.getName() + " " + constraint.getSql() + ";\n";
+					String name = PREFIX + constraint.getName();
+					name = (!name.equals(name.toLowerCase()) || Character.isUpperCase(name.codePointAt(0)))
+							? "\"" + name + "\""
+							: name;
+					ddl += "alter table "+ tableName +" add constraint " + name + " " + constraint.getSql() + ";\n";
 				}
 				
 				for (DBIndex index : metaTable.getIndexes().values()) {
-					String indexDdl = index.getSql() + (metaTable.getTable().getOptions().getChildren().containsKey("tablespace") ? 
-							" tablespace "+index.getOptions().get("tablespace").getData() : "") + ";\n";
+					String indexDdl = index.getSql()
+							+ (metaTable.getTable().getOptions().getChildren().containsKey("tablespace")
+								?  " tablespace "+index.getOptions().get("tablespace").getData()
+								: "")
+							+ ";\n";
 					indexDdl = indexDdl.replace(index.getName(), PREFIX + index.getName());
+					indexDdl = indexDdl.replace(objectName, PREFIX + objectName);
 					if (indexDdl.length() > 3)
 						ddl += indexDdl;
 				}
@@ -175,10 +191,23 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 	}
 	
 	private String getFullDbName(String schema, String objectName) {
-		if (isSaveToSchema())
-			return PREFIX + schema + "." + objectName;
-		else
-			return schema + "." + PREFIX + objectName;
+		boolean shouldBeEscaped = Character.isUpperCase(objectName.codePointAt(0));
+		String result = isSaveToSchema() ? PREFIX + schema + "." + objectName : schema + "." + PREFIX + objectName;
+		if (isSaveToSchema()){
+			result = PREFIX + schema + "." + objectName;
+			result = (shouldBeEscaped)
+					? result.replace(objectName, "\"" + objectName + "\"")
+					: result;
+		}
+		else {
+			result =  schema + "." + PREFIX + objectName;
+			result = (shouldBeEscaped)
+					? result.replace(PREFIX + objectName, "\"" + PREFIX + objectName + "\"")
+					: result;
+
+		}
+
+		return result;
 	}
 	
 	private void dropIfExists(String owner, String objectName, StatementLogging stLog) throws Exception {		
