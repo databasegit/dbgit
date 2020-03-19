@@ -53,8 +53,11 @@ public class DBRestoreViewPostgres extends DBRestoreAdapter {
 					if (!query.endsWith(";")) query = query + ";";
 					query = query + "\n";
 					
-					query+= "ALTER VIEW "+ restoreView.getSqlObject().getSchema() + "." + (restoreView.getSqlObject().getName().contains(".")?("\"" + restoreView.getSqlObject().getName() + "\""):restoreView.getSqlObject().getName()) +" OWNER TO "+restoreView.getSqlObject().getOwner()+";\n";
-					st.execute(query); 
+					query+= "ALTER VIEW "+ restoreView.getSqlObject().getSchema() + "."
+							+ ( nameShouldBeEscaped  ?( "\"" + name + "\"") : name)
+							+ " OWNER TO "+restoreView.getSqlObject().getOwner()+";\n";
+					st.execute(query);
+					connect.commit();
 					//TODO Восстановление привилегий	
 				}
 			}

@@ -48,8 +48,8 @@ public abstract class DBAdapter implements IDBAdapter {
 		MetaSchema.class,
 		MetaRole.class,
 		MetaUser.class,
-		MetaTable.class,
 		MetaSequence.class,
+		MetaTable.class,
 		MetaFunction.class,
 		MetaView.class,
 		MetaPackage.class,
@@ -71,6 +71,7 @@ public abstract class DBAdapter implements IDBAdapter {
 	public Comparator<IMetaObject> imoTypeComparator = Comparator.comparing(DBAdapter::getIMetaObjectOrder);
 	public Comparator<IMetaObject> imoDependenceComparator = (o1, o2) -> {
 		int result = imoTypeComparator.compare(o1, o2);
+		//int prior = o1.getType().getPriority();
 		if (result == 0 && o2 instanceof MetaSql && o1 instanceof MetaSql) {
 			DBSQLObject left = ((MetaSql) o1).getSqlObject();
 			DBSQLObject right = ((MetaSql) o2).getSqlObject();
