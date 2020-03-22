@@ -14,10 +14,8 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Properties;
+import java.text.MessageFormat;
+import java.util.*;
 
 import static org.junit.Assert.*;
 
@@ -54,7 +52,7 @@ public class DependencyAwareTest {
 
     private static String tableName = "SomeTable";
     private static String functionName = "TestFunc";
-    private static String schema = "public";
+    private static String publicSchema = "public";
     private static String otherSchema = "other";
     private static String viewNameL1 = "TestViewL1";
     private static String viewNameL2 = "TestViewL2";
@@ -71,8 +69,7 @@ public class DependencyAwareTest {
                 testAdapter = (DBAdapterPostgres) AdapterFactory.createAdapter(testConnection);
                 testBackup = (DBBackupAdapterPostgres) testAdapter.getBackupAdapterFactory().getBackupAdapter(testAdapter);
                 restoreTrigger = (DBRestoreTriggerPostgres) testRestoreFactory.getAdapterRestore(DBGitMetaType.DbGitTrigger,testAdapter);
-                isMasterDatabase = testConnection.getCatalog().equalsIgnoreCase("master");
-                schema = testConnection.getSchema();
+
                 isInitialized = true;
             }
             catch (Exception ex){
@@ -81,33 +78,24 @@ public class DependencyAwareTest {
             //dropBackupTables();
         }
     }
-
-    @Test
-    public void getIMetaObjectOrder() throws Exception{
-        createTestObjects();
-
-        IMetaObject mv = new MetaView();
-        int order = DBAdapter.getIMetaObjectOrder(mv);
-        assertEquals(DBAdapter.imoOrders.indexOf(MetaView.class), order);
-    }
-
+    
     @Test
     public void getViewPostgres(){
-        testAdapter.getViews(schema);
+        testAdapter.getViews(publicSchema);
     }
 
     @Test
     public void getViewsPostgres(){
-        testAdapter.getView(schema, "dependency");
+        testAdapter.getView(publicSchema, "dependency");
     }
 
     @Test
     public void sort() throws Exception {
         createTestObjects();
-        MetaTable mt = new MetaTable(testAdapter.getTable(schema, tableName));
-        MetaFunction mf = new MetaFunction(testAdapter.getFunction(schema, functionName));
+        MetaTable mt = new MetaTable(testAdapter.getTable(publicSchema, tableName));
+        MetaFunction mf = new MetaFunction(testAdapter.getFunction(publicSchema, functionName));
         MetaView mv1 = new MetaView(testAdapter.getView(otherSchema, viewNameL1));
-        MetaView mv2 = new MetaView(testAdapter.getView(schema, viewNameL2));
+        MetaView mv2 = new MetaView(testAdapter.getView(publicSchema, viewNameL2));
 
         List<IMetaObject> metaObjects = new ArrayList<>();
 
@@ -125,8 +113,10 @@ public class DependencyAwareTest {
 
     @Test
     public void restoreDataBase() throws Exception{
+        createTestObjects();
+
         List<IDBObject> toDeleteDBOs = new ArrayList<>();
-        toDeleteDBOs.addAll( testAdapter.getViews(schema).values());
+        toDeleteDBOs.addAll( testAdapter.getViews(publicSchema).values());
         toDeleteDBOs.addAll( testAdapter.getViews(otherSchema).values());
 
         IMapMetaObject toDeleteMOs = new TreeMapMetaObject();
@@ -135,51 +125,82 @@ public class DependencyAwareTest {
         }
 
         toDeleteDBOs.clear();
-        toDeleteDBOs.add( testAdapter.getTable(schema, tableName) );
+        toDeleteDBOs.add( testAdapter.getTable(publicSchema, tableName) );
         for (IDBObject dbo : toDeleteDBOs){
             toDeleteMOs.put(new MetaTable((DBTable) dbo));
         }
 
-
-
-        //testAdapter.deleteDataBase(toDeleteMOs);
+        dropBackupObjects();
+        testAdapter.deleteDataBase(toDeleteMOs);
         testAdapter.restoreDataBase(toDeleteMOs);
     }
 
-    @Test
     public void createTestObjects() throws SQLException {
         executeSqlInMaster(Arrays.asList(
-                "CREATE TABLE IF NOT EXISTS "+schema+".\""+tableName+"\"\n" +
+                "CREATE SCHEMA IF NOT EXISTS "+publicSchema,
+
+                "CREATE TABLE IF NOT EXISTS "+ publicSchema +".\""+tableName+"\"\n" +
                 "(\n" +
                 "    \"someKey\" integer NOT NULL,\n" +
                 "    \"someValue\" text,\n" +
                 "    PRIMARY KEY (\"someKey\")\n" +
                 ")",
 
-                "create schema if not exists "+otherSchema,
+                "CREATE SCHEMA IF NOT EXISTS "+otherSchema,
 
                 "CREATE OR REPLACE VIEW "+otherSchema+".\""+viewNameL1+"\"\n" +
                 " AS SELECT \"someKey\",\"someValue\"\n" +
                 " FROM public.\"SomeTable\";",
 
-                "CREATE OR REPLACE FUNCTION "+schema+".\""+functionName+"\"(val text) RETURNS text AS $$\n" +
+                "CREATE OR REPLACE FUNCTION "+ publicSchema +".\""+functionName+"\"(val text) RETURNS text AS $$\n" +
                 "BEGIN\n" +
                 "RETURN val || 'Some';\n" +
                 "END; \n" +
                 "$$ LANGUAGE PLPGSQL;",
 
-                "CREATE SEQUENCE IF NOT EXISTS "+schema+".\""+sequenceName+"\"\n" +
+                "CREATE SEQUENCE IF NOT EXISTS "+ publicSchema +".\""+sequenceName+"\"\n" +
                 "    INCREMENT 1\n" +
                 "    START 0\n" +
                 "    MINVALUE 0;",
 
-                "CREATE OR REPLACE VIEW "+schema+".\""+viewNameL2+"\" AS \n" +
-                "SELECT DISTINCT "+schema+".\""+functionName+"\"(v.\"someValue\") as transformedValue\n" +
+                "CREATE OR REPLACE VIEW "+ publicSchema +".\""+viewNameL2+"\" AS \n" +
+                "SELECT DISTINCT "+ publicSchema +".\""+functionName+"\"(v.\"someValue\") as transformedValue\n" +
                 "FROM "+otherSchema+".\""+viewNameL1+"\" v"
             ),
             true
         );
 
+
+    }
+
+    public void dropBackupObjects() throws SQLException {
+
+        String prefix = "BACKUP$";
+        try( Statement st = testConnection.createStatement() ) {
+            StringBuilder sb = new StringBuilder();
+            for(String schema : Arrays.asList(publicSchema, otherSchema)){
+                testAdapter.getViews(schema).values().stream().filter( x->x.getName().contains(prefix ) ).sorted(DBAdapter.dbsqlComparator).forEach(x-> {
+                        sb.append( MessageFormat.format("DROP VIEW {0}.{1};\n", x.getSchema(), DBAdapterPostgres.escapeNameIfNeeded(x.getName())));
+                });
+               testAdapter.getTables(schema).values().stream().filter( x->x.getName().contains(prefix ) ).forEach(x-> {
+                        sb.append( MessageFormat.format("DROP TABLE {0}.{1};\n", x.getSchema(), DBAdapterPostgres.escapeNameIfNeeded(x.getName())));
+                });
+               testAdapter.getFunctions(schema).values().stream().filter( x->x.getName().contains(prefix ) ).sorted(DBAdapter.dbsqlComparator).forEach(x-> {
+                        sb.append( MessageFormat.format("DROP FUNCTION {0}.{1};\n", x.getSchema(), DBAdapterPostgres.escapeNameIfNeeded(x.getName())));
+                });
+               /*
+               testAdapter.getProcedures(schema).values().stream().filter( x->x.getName().contains(prefix ) ).sorted(DBAdapter.dbsqlComparator).forEach(x-> {
+                        sb.append( MessageFormat.format("DROP PROCEDURE {0}.{1};\n", x.getSchema(), DBAdapterPostgres.escapeNameIfNeeded(x.getName())));
+                });
+               */
+               testAdapter.getTriggers(schema).values().stream().filter( x->x.getName().contains(prefix ) ).sorted(DBAdapter.dbsqlComparator).forEach(x-> {
+                        sb.append( MessageFormat.format("DROP TRIGGER {0}.{1};\n", x.getSchema(), DBAdapterPostgres.escapeNameIfNeeded(x.getName())));
+                });
+            }
+           st.execute(sb.toString());
+           testConnection.commit();
+
+        }
 
     }
 
@@ -195,7 +216,7 @@ public class DependencyAwareTest {
     }
 
     public void executeSqlInMaster(List<String> expressions, boolean commitAfter) throws SQLException{
-        testConnection.setCatalog("master");
+        testConnection.setCatalog(TEST_CONN_CATALOG);
 
         Statement stmt = testConnection.createStatement();
         for(String expr : expressions)  stmt.execute(expr);

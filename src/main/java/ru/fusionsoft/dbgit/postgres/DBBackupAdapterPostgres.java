@@ -5,6 +5,8 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.HashSet;
+import java.util.Set;
 
 import ru.fusionsoft.dbgit.adapters.DBBackupAdapter;
 import ru.fusionsoft.dbgit.core.DBGitPath;
@@ -12,6 +14,7 @@ import ru.fusionsoft.dbgit.core.ExceptionDBGitRestore;
 import ru.fusionsoft.dbgit.core.SchemaSynonym;
 import ru.fusionsoft.dbgit.dbobjects.DBConstraint;
 import ru.fusionsoft.dbgit.dbobjects.DBIndex;
+import ru.fusionsoft.dbgit.dbobjects.DBSchemaObject;
 import ru.fusionsoft.dbgit.dbobjects.DBTableField;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
 import ru.fusionsoft.dbgit.meta.MetaSequence;
@@ -79,8 +82,10 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 
 				ConsoleWriter.detailsPrint(lang.getValue("general", "backup", "tryingToCopy").withParams(objectName, getFullDbName(schema, objectName)), 1);
 				
-				dropIfExists(isSaveToSchema() ? PREFIX + schema : schema, 
-						isSaveToSchema() ? objectName : PREFIX + objectName, stLog);
+				dropIfExists(
+					isSaveToSchema() ? PREFIX + schema : schema,
+					isSaveToSchema() ? objectName : PREFIX + objectName, stLog
+				);
 				
 				String ddl = "";
 				if (isToSaveData()) {	
@@ -101,31 +106,33 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 						
 					
 					for (DBTableField field : metaTable.getFields().values()) {
-						String name = field.getName();
-						name = (!name.equals(name.toLowerCase())  || Character.isUpperCase(name.codePointAt(0)))
-							? "\"" + name + "\""
-							: name;
+						String name = DBAdapterPostgres.escapeNameIfNeeded(field.getName());
 						ddl += "alter table " + tableName + " add " + name + " " + field.getTypeSQL() + ";\n";
 					}					
 					
-				}				
-				
+				}
+
+				Set<String> constraintNames = new HashSet<>();
 				for (DBConstraint constraint : metaTable.getConstraints().values()) {
 					String name = PREFIX + constraint.getName();
-					name = (!name.equals(name.toLowerCase()) || Character.isUpperCase(name.codePointAt(0)))
-							? "\"" + name + "\""
-							: name;
+					constraintNames.add(constraint.getName());
+					name = DBAdapterPostgres.escapeNameIfNeeded(name);
 					ddl += "alter table "+ tableName +" add constraint " + name + " " + constraint.getSql() + ";\n";
 				}
-				
+
 				for (DBIndex index : metaTable.getIndexes().values()) {
+					// Adding a PRIMARY KEY constraint will automatically create a unique btree index
+					// on the column or group of columns used in the constraint
+					// -- from the docs
+					if(constraintNames.contains(index.getName())) continue;
 					String indexDdl = index.getSql()
 							+ (metaTable.getTable().getOptions().getChildren().containsKey("tablespace")
 								?  " tablespace "+index.getOptions().get("tablespace").getData()
 								: "")
 							+ ";\n";
-					indexDdl = indexDdl.replace(index.getName(), PREFIX + index.getName());
+
 					indexDdl = indexDdl.replace(objectName, PREFIX + objectName);
+					if(!index.getName().contains(objectName)) indexDdl = indexDdl.replace(index.getName(), PREFIX + index.getName());
 					if (indexDdl.length() > 3)
 						ddl += indexDdl;
 				}
@@ -159,8 +166,10 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 				
 				ddl += "alter sequence "+ sequenceName + " owner to "+ metaSequence.getSequence().getOptions().get("owner").getData()+";\n";
 				
-				dropIfExists(isSaveToSchema() ? PREFIX + schema : schema, 
-						isSaveToSchema() ? objectName : PREFIX + objectName, stLog);
+				dropIfExists(
+					isSaveToSchema() ? PREFIX + schema : schema,
+					isSaveToSchema() ? objectName : PREFIX + objectName, stLog
+				);
 				
 				stLog.execute(ddl);
 				
@@ -191,23 +200,13 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 	}
 	
 	private String getFullDbName(String schema, String objectName) {
-		boolean shouldBeEscaped = Character.isUpperCase(objectName.codePointAt(0));
-		String result = isSaveToSchema() ? PREFIX + schema + "." + objectName : schema + "." + PREFIX + objectName;
 		if (isSaveToSchema()){
-			result = PREFIX + schema + "." + objectName;
-			result = (shouldBeEscaped)
-					? result.replace(objectName, "\"" + objectName + "\"")
-					: result;
+			return PREFIX + schema + "." + DBAdapterPostgres.escapeNameIfNeeded(objectName);
 		}
 		else {
-			result =  schema + "." + PREFIX + objectName;
-			result = (shouldBeEscaped)
-					? result.replace(PREFIX + objectName, "\"" + PREFIX + objectName + "\"")
-					: result;
-
+			return schema + "." + DBAdapterPostgres.escapeNameIfNeeded(PREFIX + objectName);
 		}
 
-		return result;
 	}
 	
 	private void dropIfExists(String owner, String objectName, StatementLogging stLog) throws Exception {		
@@ -219,10 +218,10 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 				"	union select 'TRIGGER' tp, trigger_name obj_name, trigger_schema sch from information_schema.triggers\r\n" + 
 				"	union select 'FUNCTION' tp, routine_name obj_name, routine_schema sch from information_schema.routines\r\n" + 
 				") all_objects\r\n" + 
-				"where sch = '" + owner.toLowerCase() + "' and obj_name = '" + objectName.toLowerCase() + "'");
+				"where sch = '" + owner.toLowerCase() + "' and obj_name = '" + objectName.toLowerCase() + "' or obj_name = '"+objectName+"'");
 		
 		while (rs.next()) {
-			stLog.execute("drop " + rs.getString("tp") + " " + owner + "." + objectName);
+			stLog.execute("drop " + rs.getString("tp") + " " + owner + "." + DBAdapterPostgres.escapeNameIfNeeded(objectName));
 		}
 		
 		rs.close();
@@ -267,5 +266,7 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 			return false;
 		}
 	}
+
+
 
 }

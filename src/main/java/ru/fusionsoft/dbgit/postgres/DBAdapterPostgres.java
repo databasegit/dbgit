@@ -2,6 +2,7 @@ package ru.fusionsoft.dbgit.postgres;
 
 
 import java.sql.*;
+import java.text.MessageFormat;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -1554,5 +1555,9 @@ public class DBAdapterPostgres extends DBAdapter {
 		return reservedWords.contains(word.toUpperCase());
 	}
 
+	public static String escapeNameIfNeeded(String name){
+		boolean shouldBeEscaped = !name.equals(name.toLowerCase()) || name.contains(".");
+		return MessageFormat.format("{1}{0}{1}", name, shouldBeEscaped ? "\"" : "");
+	}
 
 }

@@ -20,9 +20,6 @@ import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
 import ru.fusionsoft.dbgit.core.SchemaSynonym;
 import ru.fusionsoft.dbgit.core.db.FieldType;
 import ru.fusionsoft.dbgit.data_table.*;
-import ru.fusionsoft.dbgit.dbobjects.DBSequence;
-import ru.fusionsoft.dbgit.core.db.FieldType;
-import ru.fusionsoft.dbgit.data_table.*;
 import ru.fusionsoft.dbgit.dbobjects.DBSQLObject;
 import ru.fusionsoft.dbgit.dbobjects.DBTableField;
 import ru.fusionsoft.dbgit.meta.*;
@@ -42,36 +39,9 @@ public abstract class DBAdapter implements IDBAdapter {
 	protected OutputStream streamSql = null;	
 	protected DBGitLang lang = DBGitLang.getInstance();
 
-
-	public static List<Class> imoOrders = ImmutableList.of(
-		MetaTableSpace.class,
-		MetaSchema.class,
-		MetaRole.class,
-		MetaUser.class,
-		MetaSequence.class,
-		MetaTable.class,
-		MetaFunction.class,
-		MetaView.class,
-		MetaPackage.class,
-		MetaProcedure.class,
-		MetaTrigger.class,
-		MetaTableData.class,
-		MetaBlobData.class
-	);
-
-	public static int getIMetaObjectOrder(IMetaObject obj){
-		int order = 0;
-		for(Class tp : imoOrders){
-			if(obj.getClass().isAssignableFrom(tp)) return order;
-			else order++;
-		}
-		return order;
-	}
-
-	public Comparator<IMetaObject> imoTypeComparator = Comparator.comparing(DBAdapter::getIMetaObjectOrder);
-	public Comparator<IMetaObject> imoDependenceComparator = (o1, o2) -> {
+	public static Comparator<IMetaObject> imoTypeComparator = Comparator.comparing(x->x.getType().getPriority());
+	public static Comparator<IMetaObject> imoDependenceComparator = (o1, o2) -> {
 		int result = imoTypeComparator.compare(o1, o2);
-		//int prior = o1.getType().getPriority();
 		if (result == 0 && o2 instanceof MetaSql && o1 instanceof MetaSql) {
 			DBSQLObject left = ((MetaSql) o1).getSqlObject();
 			DBSQLObject right = ((MetaSql) o2).getSqlObject();
@@ -81,7 +51,13 @@ public abstract class DBAdapter implements IDBAdapter {
 		}
 		return result;
 	};
-
+	public static Comparator<DBSQLObject> dbsqlComparator = (o1, o2) -> {
+		if (o2.getDependencies().contains(o1.getSchema()+"."+o1.getName())) {
+			return -1; // left comes earlier than right if right depends on it
+		} else if (o1.getDependencies().contains(o2.getSchema()+"."+o2.getName())) {
+			return 1;
+		} else return 0;
+	};
 
 
 	@Override
