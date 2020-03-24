@@ -49,6 +49,7 @@ general:
     seekingToRestore: Seeking objects to restore...
     toRestore: "Objects to restore:"
     toRemove: "Objects to remove:"
+    notExists: Object {0} not exists in db, it will be removed from index
     nothingToRemove: No objects to remove
     nothingToRestore: No objects to restore
     restoring: Restoring...

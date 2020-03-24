@@ -4,7 +4,7 @@
 
 	<groupId>ru.fusionsoft</groupId>
 	<artifactId>dbgit</artifactId>
-	<version>0.2.2</version>
+	<version>0.3.1</version>
 	<packaging>jar</packaging>
 	<build>
 		<plugins>

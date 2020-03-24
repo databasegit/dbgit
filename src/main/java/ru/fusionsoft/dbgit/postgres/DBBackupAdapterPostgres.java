@@ -89,9 +89,12 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 				
 				String ddl = "";
 				if (isToSaveData()) {	
-					ddl = "create table " + tableName + " as (select * from " + schema + "." + objectName + ")" +
-							(metaTable.getTable().getOptions().getChildren().containsKey("tablespace") ? 
-									" tablespace " + metaTable.getTable().getOptions().get("tablespace").getData() : "") +";\n";
+					ddl = "create table " + tableName + " as (select * from " + schema + "." + objectName + ")"
+						+ (metaTable.getTable().getOptions().getChildren().containsKey("tablespace")
+								? " tablespace " + metaTable.getTable().getOptions().get("tablespace").getData()
+								: ""
+						)
+						+";\n";
 					ddl += "alter table "+ tableName + " owner to "+ metaTable.getTable().getOptions().get("owner").getData()+";\n";
 				} else {					
 					

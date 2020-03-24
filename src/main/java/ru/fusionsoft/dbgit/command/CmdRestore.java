@@ -2,23 +2,16 @@ package ru.fusionsoft.dbgit.command;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.Map;
 
+import com.google.common.collect.Lists;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 
 import ru.fusionsoft.dbgit.adapters.AdapterFactory;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
-import ru.fusionsoft.dbgit.core.DBGitIndex;
-import ru.fusionsoft.dbgit.core.DBGitPath;
-import ru.fusionsoft.dbgit.core.ExceptionDBGit;
-import ru.fusionsoft.dbgit.core.ExceptionDBGitObjectNotFound;
-import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
-import ru.fusionsoft.dbgit.core.GitMetaDataManager;
-import ru.fusionsoft.dbgit.core.ItemIndex;
+import ru.fusionsoft.dbgit.core.*;
 import ru.fusionsoft.dbgit.meta.IMapMetaObject;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
 import ru.fusionsoft.dbgit.meta.MetaObjectFactory;
@@ -60,6 +53,7 @@ public class CmdRestore implements IDBGitCommand {
 			System.exit(0);
 		}
 		GitMetaDataManager gmdm = GitMetaDataManager.getInctance();
+		IMapMetaObject dbObjs = gmdm.loadDBMetaData();
 		IMapMetaObject fileObjs = gmdm.loadFileMetaData();		
 		IMapMetaObject updateObjs = new TreeMapMetaObject();
 		IMapMetaObject deleteObjs = new TreeMapMetaObject();
@@ -96,25 +90,31 @@ public class CmdRestore implements IDBGitCommand {
 		}
 		try {
 			//delete obj
-			DBGitIndex index = DBGitIndex.getInctance();			
-			
+			DBGitIndex index = DBGitIndex.getInctance();
+			DBGitIgnore ignore = DBGitIgnore.getInctance();
+
 			ConsoleWriter.println(getLang().getValue("general", "restore", "seekingToRemove"));
-			
-			for (ItemIndex item : index.getTreeItems().values()) {
-				//TODO db ignore
+			for (ItemIndex item : Lists.newArrayList(index.getTreeItems().values())) {
+				if (ignore.matchOne(item.getName())) continue;
 				if (item.getIsDelete()) {
-					try {
-						IMetaObject obj = MetaObjectFactory.createMetaObject(item.getName());
-						gmdm.loadFromDB(obj);					
-						if (item.getHash().equals(obj.getHash())) {							
-							deleteObjs.put(obj);
-							if (deleteObjs.size() == 1)
-								ConsoleWriter.println(getLang().getValue("general", "restore", "toRemove"));
-							ConsoleWriter.println("    " + obj.getName());
+					if( !dbObjs.containsKey(item.getName()) ) {
+						ConsoleWriter.println(getLang().getValue("general", "restore", "notExists").withParams(item.getName()));
+					} else {
+						try {
+							IMetaObject obj = MetaObjectFactory.createMetaObject(item.getName());
+							gmdm.loadFromDB(obj);
+							if (item.getHash().equals(obj.getHash())) {
+								deleteObjs.put(obj);
+								if (deleteObjs.size() == 1)
+									ConsoleWriter.println(getLang().getValue("general", "restore", "toRemove"));
+								ConsoleWriter.println("    " + obj.getName());
+							}
+							index.removeItemFromIndex(obj);
+						} catch(ExceptionDBGit e) {
+							LoggerUtil.getGlobalLogger().error(getLang().getValue("errors", "restore", "cantConnect") + ": " + item.getName(), e);
 						}
-					} catch(ExceptionDBGit e) {
-						LoggerUtil.getGlobalLogger().error(getLang().getValue("errors", "restore", "cantConnect") + ": " + item.getName(), e);
 					}
+					index.removeItemFromIndex(item.getName());
 				}
 			}
 			if (deleteObjs.size() == 0)
@@ -124,8 +124,8 @@ public class CmdRestore implements IDBGitCommand {
 				ConsoleWriter.println(getLang().getValue("general", "restore", "removing"));
 			}
 			gmdm.deleteDataBase(deleteObjs);
-			
-			ConsoleWriter.println(getLang().getValue("general", "restore", "seekingToRestore"));
+
+			 ConsoleWriter.println(getLang().getValue("general", "restore", "seekingToRestore"));
 
 			for (IMetaObject obj : fileObjs.values()) {
 				Boolean isRestore = false;
