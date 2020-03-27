@@ -346,14 +346,23 @@ public class GitMetaDataManager {
 	}
 	
 	/**
-	 * Restore map meta object to DB
-	 * @param updateObjs
+	 * Delete map meta object from DB and index if specified
+	 * @param deleteObjs
+	 * @param isDeleteFromIndex should I delete dropped object entry from dbindex?
+	 */
+	public void deleteDataBase(IMapMetaObject deleteObjs, boolean isDeleteFromIndex) throws Exception {
+		IDBAdapter adapter = AdapterFactory.createAdapter();
+		adapter.deleteDataBase(deleteObjs, isDeleteFromIndex);
+	}
+
+	/**
+	 * Delete map meta object from DB
+	 * @param deleteObjs
 	 */
 	public void deleteDataBase(IMapMetaObject deleteObjs) throws Exception {
 		IDBAdapter adapter = AdapterFactory.createAdapter();
-		
-		adapter.deleteDataBase(deleteObjs);	
+		adapter.deleteDataBase(deleteObjs, false);
 	}
-	
+
 	
 }

@@ -79,8 +79,12 @@ public class DBAdapterProxy implements IDBAdapter {
 	}
 
 	public void deleteDataBase(IMapMetaObject delObjs) throws Exception {
+		deleteDataBase(delObjs, false);
+	}
+
+	public void deleteDataBase(IMapMetaObject delObjs, boolean isDeleteFromIndex) throws Exception {
 		//TODO replace IMapMetaObject
-		adapter.deleteDataBase(delObjs);
+		adapter.deleteDataBase(delObjs, isDeleteFromIndex);
 	}
 	/*
 	protected IMapMetaObject mapSynonymSchema(IMapMetaObject objs) {

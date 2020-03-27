@@ -22,24 +22,39 @@ public class DBRestoreFunctionPostgres extends DBRestoreAdapter {
 		ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "restoreFnc").withParams(obj.getName()), 1);
 		try {
 			if (obj instanceof MetaFunction) {
-				MetaFunction restoreFunction = (MetaFunction)obj;								
+				MetaFunction restoreFunction = (MetaFunction)obj;
+				String restoreFunctionName = DBAdapterPostgres.escapeNameIfNeeded(restoreFunction.getSqlObject().getName());
 				Map<String, DBFunction> functions = adapter.getFunctions(restoreFunction.getSqlObject().getSchema());
 				boolean exist = false;
 				if(!(functions.isEmpty() || functions == null)) {
 					for(DBFunction fnc:functions.values()) {
-						if(restoreFunction.getSqlObject().getName().equals(fnc.getName())){
+						if(restoreFunctionName.equals(DBAdapterPostgres.escapeNameIfNeeded(fnc.getName()))){
 							exist = true;
-							if(!restoreFunction.getSqlObject().getSql().equals(fnc.getSql())) {								
+
+							//if codes differ
+							if( !restoreFunction.getSqlObject().getSql()
+								.replace(" ", "")
+								.equals(fnc.getSql().replace(" ", ""))
+							) {
 								st.execute(restoreFunction.getSqlObject().getSql());
 							}
+
+							//if owners differ
 							if(!restoreFunction.getSqlObject().getOwner().equals(fnc.getOwner())) {									
-								if(restoreFunction.getSqlObject().getOptions().get("arguments").getData() == null || restoreFunction.getSqlObject().getOptions().get("arguments").getData().isEmpty()) {									
-									st.execute("ALTER FUNCTION "+restoreFunction.getSqlObject().getName() + "() OWNER TO " 
-								+ restoreFunction.getSqlObject().getOwner());									
+								//without arguments
+								if(restoreFunction.getSqlObject().getOptions().get("arguments").getData() == null || restoreFunction.getSqlObject().getOptions().get("arguments").getData().isEmpty()) {
+									st.execute(
+									"ALTER FUNCTION "+ restoreFunctionName + "() OWNER TO "
+										+ restoreFunction.getSqlObject().getOwner())
+									;
 								}
+								//with arguments
 								else {								
-									st.execute("ALTER FUNCTION "+restoreFunction.getSqlObject().getName()+"("
-								+ restoreFunction.getSqlObject().getOptions().get("arguments").getData() + ") OWNER TO " + restoreFunction.getSqlObject().getOwner());
+									st.execute(
+									"ALTER FUNCTION "+restoreFunctionName +"("
+										+ restoreFunction.getSqlObject().getOptions().get("arguments").getData()
+										+ ") OWNER TO " + restoreFunction.getSqlObject().getOwner()
+									);
 								}								
 							}						
 							//TODO Восстановление привилегий							
@@ -62,6 +77,7 @@ public class DBRestoreFunctionPostgres extends DBRestoreAdapter {
 		} finally {
 			ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
 			st.close();
+			connect.commit();
 		}
 		return true;
 	}

@@ -90,7 +90,7 @@ public class CmdRm implements IDBGitCommand {
 		}
 		if (cmdLine.hasOption("db")) {
 			ConsoleWriter.detailsPrint(getLang().getValue("general", "rm", "removingFromDb"), 2);
-			gmdm.deleteDataBase(deleteObjs);
+			gmdm.deleteDataBase(deleteObjs, true);
 			ConsoleWriter.detailsPrintlnGreen(getLang().getValue("general", "ok"));
 		}
 		

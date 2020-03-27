@@ -58,19 +58,24 @@ public class CmdRestore implements IDBGitCommand {
 		IMapMetaObject updateObjs = new TreeMapMetaObject();
 		IMapMetaObject deleteObjs = new TreeMapMetaObject();
 
+		SimpleDateFormat format = new SimpleDateFormat("yyyyMMddHHmmss");
+		File scriptFile = new File(DBGitPath.getScriptsPath() + "script-" + format.format(new Date()) + ".sql");
+
+		//Console output
 		ConsoleWriter.setDetailedLog(cmdLine.hasOption("v"));
-		
+
+		boolean toMakeBackup = DBGitConfig.getInstance().getBoolean("core", "TO_MAKE_BACKUP", true);
+		if(toMakeBackup) ConsoleWriter.println(getLang().getValue("general", "restore", "willMakeBackup").toString());
+
+		if (cmdLine.hasOption("r")) { ConsoleWriter.println(getLang().getValue("general", "restore", "toMakeChanges").toString()); }
+		else { ConsoleWriter.println(getLang().getValue("general", "restore", "notMakeChanges").withParams(scriptFile.getAbsolutePath())); }
+
+		//File output
 		FileOutputStream fop = null;
 		FileOutputStream scriptOutputStream = null;
 
-		SimpleDateFormat format = new SimpleDateFormat("yyyyMMddHHmmss");
-		
-		File scriptFile = new File(DBGitPath.getScriptsPath() + "script-" + format.format(new Date()) + ".sql");
 		DBGitPath.createScriptsDir();
-		
-		if (!scriptFile.exists()) 
-			scriptFile.createNewFile();
-		
+		if (!scriptFile.exists()) { scriptFile.createNewFile(); }
 		scriptOutputStream = new FileOutputStream(scriptFile);
 
 		IDBAdapter adapter = AdapterFactory.createAdapter();
@@ -109,12 +114,10 @@ public class CmdRestore implements IDBGitCommand {
 									ConsoleWriter.println(getLang().getValue("general", "restore", "toRemove"));
 								ConsoleWriter.println("    " + obj.getName());
 							}
-							index.removeItemFromIndex(obj);
 						} catch(ExceptionDBGit e) {
 							LoggerUtil.getGlobalLogger().error(getLang().getValue("errors", "restore", "cantConnect") + ": " + item.getName(), e);
 						}
 					}
-					index.removeItemFromIndex(item.getName());
 				}
 			}
 			if (deleteObjs.size() == 0)
@@ -123,7 +126,7 @@ public class CmdRestore implements IDBGitCommand {
 			if (cmdLine.hasOption("r")) {
 				ConsoleWriter.println(getLang().getValue("general", "restore", "removing"));
 			}
-			gmdm.deleteDataBase(deleteObjs);
+			gmdm.deleteDataBase(deleteObjs, true);
 
 			 ConsoleWriter.println(getLang().getValue("general", "restore", "seekingToRestore"));
 

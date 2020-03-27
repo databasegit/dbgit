@@ -879,14 +879,15 @@ public class DBAdapterPostgres extends DBAdapter {
 			rs.next();
 			if (rs.getInt("cnt") == 0) {
 				StatementLogging stLog = new StatementLogging(connect, getStreamOutputSqlCommand(), isExecSql());
-				stLog.execute("create schema " + schemaName);
+				stLog.execute("create schema " + schemaName + ";\n");
 
 				stLog.close();
 			}
-			
+
+			connect.commit();
 			rs.close();
 			st.close();
-		} catch (SQLException e) {			
+		} catch (SQLException e) {
 			throw new ExceptionDBGit(lang.getValue("errors", "adapter", "createSchema") + ": " + e.getLocalizedMessage());
 		}
 		
@@ -1556,7 +1557,8 @@ public class DBAdapterPostgres extends DBAdapter {
 	}
 
 	public static String escapeNameIfNeeded(String name){
-		boolean shouldBeEscaped = !name.equals(name.toLowerCase()) || name.contains(".");
+		boolean shouldBeEscaped = !name.equals(name.toLowerCase()) || name.contains("."); //TODO maybe check on isReservedWord?
+		if(name.startsWith("\"") && name.endsWith("\"")) shouldBeEscaped = false;
 		return MessageFormat.format("{1}{0}{1}", name, shouldBeEscaped ? "\"" : "");
 	}
 

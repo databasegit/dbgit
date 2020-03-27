@@ -11,13 +11,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableList;
-import ru.fusionsoft.dbgit.core.DBConnection;
-import ru.fusionsoft.dbgit.core.DBGitConfig;
-import ru.fusionsoft.dbgit.core.DBGitLang;
-import ru.fusionsoft.dbgit.core.ExceptionDBGit;
-import ru.fusionsoft.dbgit.core.ExceptionDBGitRestore;
-import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
-import ru.fusionsoft.dbgit.core.SchemaSynonym;
+import ru.fusionsoft.dbgit.core.*;
 import ru.fusionsoft.dbgit.core.db.FieldType;
 import ru.fusionsoft.dbgit.data_table.*;
 import ru.fusionsoft.dbgit.dbobjects.DBSQLObject;
@@ -46,7 +40,18 @@ public abstract class DBAdapter implements IDBAdapter {
 			DBSQLObject left = ((MetaSql) o1).getSqlObject();
 			DBSQLObject right = ((MetaSql) o2).getSqlObject();
 			if (right.getDependencies().contains(left.getSchema()+"."+left.getName())) {
-				return -1; // left comes earlier than right if right depends on it
+				return -1; // dependant comes later than dependency
+			}
+		}
+		return result;
+	};
+	public static Comparator<IMetaObject> imoDependenceComparatorReversed = (o1, o2) -> {
+		int result = imoTypeComparator.reversed().compare(o1, o2);
+		if (result == 0 && o2 instanceof MetaSql && o1 instanceof MetaSql) {
+			DBSQLObject left = ((MetaSql) o1).getSqlObject();
+			DBSQLObject right = ((MetaSql) o2).getSqlObject();
+			if (right.getDependencies().contains(left.getSchema()+"."+left.getName())) {
+				return 1; // dependant comes earlier than dependency
 			}
 		}
 		return result;
@@ -246,23 +251,30 @@ public abstract class DBAdapter implements IDBAdapter {
 	
 	@Override
 	public void deleteDataBase(IMapMetaObject deleteObjs)  throws Exception {
+		deleteDataBase(deleteObjs, false);
+	}
+
+	public void deleteDataBase(IMapMetaObject deleteObjs, boolean isDeleteFromIndex) throws Exception {
 		Connection connect = getConnection();
+		DBGitIndex index = DBGitIndex.getInctance();
+
 		try {
 			//start transaction
-			for (IMetaObject obj : deleteObjs.values()) {
-				if (DBGitConfig.getInstance().getBoolean("core", "TO_MAKE_BACKUP", true)) 
-					obj = getBackupAdapterFactory().getBackupAdapter(this).backupDBObject(obj);
+			boolean toMakeBackup = DBGitConfig.getInstance().getBoolean("core", "TO_MAKE_BACKUP", true);
 
+			for (IMetaObject obj : deleteObjs.values().stream().sorted(imoDependenceComparatorReversed).collect(Collectors.toList())) {
+				if (toMakeBackup) { obj = getBackupAdapterFactory().getBackupAdapter(this).backupDBObject(obj); }
 				getFactoryRestore().getAdapterRestore(obj.getType(), this).removeMetaObject(obj);
+				if(isDeleteFromIndex) index.removeItemFromIndex(obj);
 			}
+
 			connect.commit();
 		} catch (Exception e) {
 			connect.rollback();
 			throw new ExceptionDBGitRestore(DBGitLang.getInstance().getValue("errors", "restore", "removeError").toString(), e);
 		} finally {
 			//connect.setAutoCommit(false);
-		} 
-
+		}
 	}
 	
 	public String cleanString(String str) {

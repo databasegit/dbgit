@@ -79,6 +79,9 @@ general:
     deleting: Deleteng...
     updating: Updating...
     unsupportedTypes: Table {0} contains unsupported types, it will be skipped
+    willMakeBackup: Backup option enabled, all objects will be backed up before making changes
+    toMakeChanges: Restore key specified, the operation will make changes to database
+    notMakeChanges: The operation will NOT make changes to database, a sql script was generated at {0}. Use "-r" key to make changes.
   rm:
     checking: Checking files
     deleteng: Deleting
@@ -147,7 +150,7 @@ errors:
     pkNotFound: PK not found for table {0}, cannot process row!
     cantConnect: Can't connect to db!
     errorLoadDelete: Error load and delete object
-  add: 
+  add:
     badCommand: Bad command. Not found object to add!
     cantFindObjectInDb: Can't find object {0} in database
   checkout:
