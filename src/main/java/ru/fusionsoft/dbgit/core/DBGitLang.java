@@ -18,7 +18,10 @@ public class DBGitLang {
 		try {			
 			String path = new File(DBGitLang.class.getProtectionDomain().getCodeSource().getLocation()
 				    .toURI()).getAbsolutePath();
-			
+
+			//for debug:
+			if (path.contains("classes")) path = path + "/../dbgit";
+
 			while (!new File(path + "/lang").exists()) {
 				int i = path.lastIndexOf("/");
 				if (i == -1) i = path.lastIndexOf("\\");
