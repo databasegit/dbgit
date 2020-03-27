@@ -90,7 +90,7 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 				if(!exist){								
 					ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "createTable"), 2);
 					String ownerName = restoreTable.getTable().getOptions().get("owner").getData();
-					Map<String, DBRole> roles = adapter.getRoles();
+					//Map<String, DBRole> roles = adapter.getRoles();
 					
 					if(restoreTable.getTable().getOptions().getChildren().containsKey("tablespace")) {
 						String tablespace = restoreTable.getTable().getOptions().get("tablespace").getData();

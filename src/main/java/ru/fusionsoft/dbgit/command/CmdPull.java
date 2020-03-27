@@ -5,6 +5,7 @@ import org.apache.commons.cli.Options;
 
 import ru.fusionsoft.dbgit.core.DBGit;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
+import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
 public class CmdPull implements IDBGitCommand {
 
@@ -36,6 +37,7 @@ public class CmdPull implements IDBGitCommand {
 
 	@Override
 	public void execute(CommandLine cmdLine) throws Exception {
+		ConsoleWriter.setDetailedLog(cmdLine.hasOption("v"));
 		String[] args = cmdLine.getArgs();
 		String remote = "";
 		String remoteBranch = "";

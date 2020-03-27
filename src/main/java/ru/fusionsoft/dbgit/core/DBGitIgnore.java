@@ -75,15 +75,18 @@ public class DBGitIgnore {
 		return false;
 	}
 	
-	public boolean matchSchema(String schemaName) {
+	public boolean matchSchema(String schemaName) {		
 		
 		for (MaskFilter mask : exclusions.values()) {
+			if (mask.getMask().indexOf("/") == -1) return false;
+				
 			if (mask.getMask().toUpperCase().substring(0, mask.getMask().indexOf("/")).equals(schemaName.toUpperCase())) {
 				return false;
 			}
 		}
 
 		for (MaskFilter mask : filters.values()) {
+			if (mask.getMask().indexOf("/") == -1) return true;
 			if (mask.match(schemaName) || mask.getMask().toUpperCase().substring(0, mask.getMask().indexOf("/")).equals(schemaName.toUpperCase())) {
 				return true;
 			}

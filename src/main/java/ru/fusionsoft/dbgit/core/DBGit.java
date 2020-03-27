@@ -305,9 +305,8 @@ public class DBGit {
 	}
 
 	public void gitPull(String remote, String remoteBranch) throws ExceptionDBGit {
-		try {			
+		try {					
 			PullCommand pull = git.pull();
-			
 			if (remote.length() > 0)
 				pull = pull.setRemote(remote);
 			else
@@ -317,7 +316,8 @@ public class DBGit {
 				pull = pull.setRemoteBranchName(remoteBranch);
 			ConsoleWriter.printlnGreen(pull.setCredentialsProvider(getCredentialsProviderByName(pull.getRemote())).call().toString());
 		} catch (Exception e) {
-			throw new ExceptionDBGit(e);
+			ConsoleWriter.println("Repo is empty!");
+			//throw new ExceptionDBGit(e);
 		} 
 	}
 

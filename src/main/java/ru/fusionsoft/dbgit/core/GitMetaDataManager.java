@@ -165,8 +165,11 @@ public class GitMetaDataManager {
 		dbObjs.clear();
 		Map<String, MetaTable> tbls = new HashMap<String, MetaTable>();
 		
-		addToMapDBOptionsObject(dbObjs, adapter.getUsers(), DBGitMetaType.DBGitUser);
-		addToMapDBOptionsObject(dbObjs, adapter.getRoles(), DBGitMetaType.DBGitRole);
+		if (!ignore.matchOne("*." + DBGitMetaType.DBGitUser.getValue())) 		
+			addToMapDBOptionsObject(dbObjs, adapter.getUsers(), DBGitMetaType.DBGitUser);
+		
+		if (!ignore.matchOne("*." + DBGitMetaType.DBGitRole.getValue()))
+			addToMapDBOptionsObject(dbObjs, adapter.getRoles(), DBGitMetaType.DBGitRole);
 		//addToMapDBOptionsObject(dbObjs, adapter.getTableSpaces(), DBGitMetaType.DBGitTableSpace);
 		
 		Map<String, DBSchema> schemes;
@@ -184,29 +187,35 @@ public class GitMetaDataManager {
 		
 		addToMapDBOptionsObject(dbObjs, schemes, DBGitMetaType.DBGitSchema);
 		
-		//load sequence
+		//load sequence		
 		for (DBSchema schema : schemes.values()) {
 			if (ignore.matchSchema(schema.getName())) continue;
-			for (DBSequence seq : adapter.getSequences(schema.getName()).values()) {
-				MetaSequence metaSeq = new MetaSequence();
-				metaSeq.setSequence(seq);
-				if (ignore.matchOne(metaSeq.getName())) continue ;
-				dbObjs.put(metaSeq);
+			if (!ignore.matchOne(schema.getName() + "/*." + DBGitMetaType.DBGitSequence.getValue())) {
+				for (DBSequence seq : adapter.getSequences(schema.getName()).values()) {
+					MetaSequence metaSeq = new MetaSequence();
+					metaSeq.setSequence(seq);
+					if (ignore.matchOne(metaSeq.getName())) continue ;
+					dbObjs.put(metaSeq);
+				}
 			}
 			
 		}
+		
 			
 		//load tables
 		for (DBSchema sch : schemes.values()) {
 			if (ignore.matchSchema(sch.getName())) continue;
-			for (DBTable tbl : adapter.getTables(sch.getName()).values()) {
-				MetaTable tblMeta = new MetaTable(tbl);
-				if (ignore.matchOne(tblMeta.getName())) {
-					continue ;
-				}
-				if ( tblMeta.loadFromDB(tbl) ) {
-					dbObjs.put(tblMeta);
-					tbls.put(tblMeta.getName(), tblMeta);
+			
+			if (!ignore.matchOne(sch.getName() + "/*." + DBGitMetaType.DBGitTable.getValue())) {
+				for (DBTable tbl : adapter.getTables(sch.getName()).values()) {
+					MetaTable tblMeta = new MetaTable(tbl);
+					if (ignore.matchOne(tblMeta.getName())) {
+						continue ;
+					}
+					if ( tblMeta.loadFromDB(tbl) ) {
+						dbObjs.put(tblMeta);
+						tbls.put(tblMeta.getName(), tblMeta);
+					}
 				}
 			}
 		}
@@ -214,11 +223,17 @@ public class GitMetaDataManager {
 		//triggers, packages, functions, procedures, views
 		for (DBSchema schema : schemes.values()) {
 			if (ignore.matchSchema(schema.getName())) continue;
-			addToMapSqlObject(dbObjs, adapter.getTriggers(schema.getName()), DBGitMetaType.DbGitTrigger);
-			addToMapSqlObject(dbObjs, adapter.getPackages(schema.getName()), DBGitMetaType.DbGitPackage);
-			addToMapSqlObject(dbObjs, adapter.getFunctions(schema.getName()), DBGitMetaType.DbGitFunction);
-			addToMapSqlObject(dbObjs, adapter.getProcedures(schema.getName()), DBGitMetaType.DbGitProcedure);
-			addToMapSqlObject(dbObjs, adapter.getViews(schema.getName()), DBGitMetaType.DbGitView);
+			
+			if (!ignore.matchOne(schema.getName() + "/*." + DBGitMetaType.DbGitTrigger.getValue()))
+				addToMapSqlObject(dbObjs, adapter.getTriggers(schema.getName()), DBGitMetaType.DbGitTrigger);
+			if (!ignore.matchOne(schema.getName() + "/*." + DBGitMetaType.DbGitPackage.getValue()))
+				addToMapSqlObject(dbObjs, adapter.getPackages(schema.getName()), DBGitMetaType.DbGitPackage);
+			if (!ignore.matchOne(schema.getName() + "/*." + DBGitMetaType.DbGitFunction.getValue()))
+				addToMapSqlObject(dbObjs, adapter.getFunctions(schema.getName()), DBGitMetaType.DbGitFunction);
+			if (!ignore.matchOne(schema.getName() + "/*." + DBGitMetaType.DbGitProcedure.getValue()))
+				addToMapSqlObject(dbObjs, adapter.getProcedures(schema.getName()), DBGitMetaType.DbGitProcedure);
+			if (!ignore.matchOne(schema.getName() + "/*." + DBGitMetaType.DbGitView.getValue()))
+				addToMapSqlObject(dbObjs, adapter.getViews(schema.getName()), DBGitMetaType.DbGitView);
 		}
 		
 		//data tables
@@ -272,10 +287,10 @@ public class GitMetaDataManager {
 	    		
 	    		if (force) {			
 	    			IMetaObject obj = MetaObjectFactory.createMetaObject(filename);
-	    			
+
 		    		if (obj != null) 
 		    			objs.put(obj);
-		    		
+
 		    		ConsoleWriter.detailsPrintlnGreen(DBGitLang.getInstance().getValue("errors", "meta", "ok"));
 	    		} else {
 	    			try {		

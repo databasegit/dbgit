@@ -188,7 +188,9 @@ public class DBGitPath {
 			writer.write("*\n");
 			
 			for (DBGitMetaType value : DBGitMetaType.values()) { 
-				if (!value.getValue().equals("csv"))
+				if (!value.getValue().equals(DBGitMetaType.DbGitTableData.getValue()) 
+						&& !value.getValue().equals(DBGitMetaType.DBGitRole.getValue()) 
+						&& !value.getValue().equals(DBGitMetaType.DBGitUser.getValue()))
 					writer.write("!" + AdapterFactory.createAdapter(DriverManager.getConnection(url, props)).getDefaultScheme() + "/*." + value.getValue() + "\n");
 			}
 
