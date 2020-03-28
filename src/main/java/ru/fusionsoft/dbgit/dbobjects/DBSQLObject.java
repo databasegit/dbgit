@@ -17,7 +17,6 @@ public class DBSQLObject extends DBSchemaObject {
 	protected String sql;
 	protected String owner;
 	private StringProperties options = new StringProperties();
-	private Set<String> dependencies = new HashSet<>();
 
 	public String getHash() {
 		CalcHash ch = new CalcHash();
@@ -49,12 +48,4 @@ public class DBSQLObject extends DBSchemaObject {
 		this.options = options;
 	}
 
-	public Set<String> getDependencies() {
-		return dependencies;
-	}
-
-	public void setDependencies(Set<String> dependencies) {
-		this.dependencies = dependencies;
-	}
-	
 }

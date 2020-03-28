@@ -9,6 +9,7 @@ import ru.fusionsoft.dbgit.dbobjects.DBTable;
 import ru.fusionsoft.dbgit.dbobjects.DBView;
 import ru.fusionsoft.dbgit.dbobjects.IDBObject;
 import ru.fusionsoft.dbgit.meta.*;
+import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -78,7 +79,17 @@ public class DependencyAwareTest {
             //dropBackupTables();
         }
     }
-    
+
+    @Test
+    public void getTablesPostgres() {
+        Map<String, DBTable> tables = testAdapter.getTables(publicSchema);
+        tables.values().forEach( x -> {
+            DBTable table = testAdapter.getTable(x.getSchema(), x.getName());
+            ConsoleWriter.println("table " + table.getSchema() + "." + table.getName() +", its deps:");
+            x.getDependencies().forEach(ConsoleWriter::println);
+        });
+    }
+
     @Test
     public void getViewPostgres(){
         testAdapter.getViews(publicSchema);
@@ -104,7 +115,7 @@ public class DependencyAwareTest {
         metaObjects.add(mt);
         metaObjects.add(mf);
 
-        metaObjects.sort(testAdapter.imoDependenceComparator);
+        metaObjects.sort(DBAdapter.imoDependenceComparator);
 
         assertTrue(metaObjects.indexOf(mt) < metaObjects.indexOf(mf));
         assertTrue(metaObjects.indexOf(mv1) < metaObjects.indexOf(mv2));

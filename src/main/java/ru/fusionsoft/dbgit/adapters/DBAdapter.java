@@ -7,6 +7,7 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -15,6 +16,7 @@ import ru.fusionsoft.dbgit.core.*;
 import ru.fusionsoft.dbgit.core.db.FieldType;
 import ru.fusionsoft.dbgit.data_table.*;
 import ru.fusionsoft.dbgit.dbobjects.DBSQLObject;
+import ru.fusionsoft.dbgit.dbobjects.DBTable;
 import ru.fusionsoft.dbgit.dbobjects.DBTableField;
 import ru.fusionsoft.dbgit.meta.*;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
@@ -35,24 +37,20 @@ public abstract class DBAdapter implements IDBAdapter {
 
 	public static Comparator<IMetaObject> imoTypeComparator = Comparator.comparing(x->x.getType().getPriority());
 	public static Comparator<IMetaObject> imoDependenceComparator = (o1, o2) -> {
+
 		int result = imoTypeComparator.compare(o1, o2);
-		if (result == 0 && o2 instanceof MetaSql && o1 instanceof MetaSql) {
-			DBSQLObject left = ((MetaSql) o1).getSqlObject();
-			DBSQLObject right = ((MetaSql) o2).getSqlObject();
-			if (right.getDependencies().contains(left.getSchema()+"."+left.getName())) {
-				return -1; // dependant comes later than dependency
+		if(result == 0){
+			if(o1 instanceof MetaSql){
+				DBSQLObject left = ((MetaSql) o1).getSqlObject();
+				Set<String> rightDeps = ((MetaSql) o2).getSqlObject().getDependencies();
+				if (rightDeps.contains(left.getSchema() + "." + left.getName())) return -1;
 			}
-		}
-		return result;
-	};
-	public static Comparator<IMetaObject> imoDependenceComparatorReversed = (o1, o2) -> {
-		int result = imoTypeComparator.reversed().compare(o1, o2);
-		if (result == 0 && o2 instanceof MetaSql && o1 instanceof MetaSql) {
-			DBSQLObject left = ((MetaSql) o1).getSqlObject();
-			DBSQLObject right = ((MetaSql) o2).getSqlObject();
-			if (right.getDependencies().contains(left.getSchema()+"."+left.getName())) {
-				return 1; // dependant comes earlier than dependency
+			if(o1 instanceof MetaTable){
+				DBTable left = ((MetaTable) o1).getTable();
+				Set<String> rightDeps = ((MetaTable) o2).getTable().getDependencies();
+				if (rightDeps.contains(left.getSchema() + "." + left.getName())) return -1;
 			}
+			// dependant comes earlier than dependency
 		}
 		return result;
 	};
@@ -262,7 +260,7 @@ public abstract class DBAdapter implements IDBAdapter {
 			//start transaction
 			boolean toMakeBackup = DBGitConfig.getInstance().getBoolean("core", "TO_MAKE_BACKUP", true);
 
-			for (IMetaObject obj : deleteObjs.values().stream().sorted(imoDependenceComparatorReversed).collect(Collectors.toList())) {
+			for (IMetaObject obj : deleteObjs.values().stream().sorted(imoDependenceComparator.reversed()).collect(Collectors.toList())) {
 				if (toMakeBackup) { obj = getBackupAdapterFactory().getBackupAdapter(this).backupDBObject(obj); }
 				getFactoryRestore().getAdapterRestore(obj.getType(), this).removeMetaObject(obj);
 				if(isDeleteFromIndex) index.removeItemFromIndex(obj);
