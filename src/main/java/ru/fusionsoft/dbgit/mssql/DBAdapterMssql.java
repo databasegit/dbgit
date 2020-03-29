@@ -8,6 +8,8 @@ import ru.fusionsoft.dbgit.adapters.IFactoryDBConvertAdapter;
 import ru.fusionsoft.dbgit.core.DBGitConfig;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
+import ru.fusionsoft.dbgit.core.db.DbType;
+import ru.fusionsoft.dbgit.core.db.FieldType;
 import ru.fusionsoft.dbgit.data_table.*;
 import ru.fusionsoft.dbgit.dbobjects.*;
 import ru.fusionsoft.dbgit.meta.IMapMetaObject;
@@ -44,19 +46,6 @@ public class DBAdapterMssql extends DBAdapter {
 	private FactoryDBAdapterRestoreMssql restoreFactory = new FactoryDBAdapterRestoreMssql();
 	private FactoryDbConvertAdapterMssql convertFactory = new FactoryDbConvertAdapterMssql();
 	private FactoryDBBackupAdapterMssql backupFactory = new FactoryDBBackupAdapterMssql();
-
-	@Override
-    @SuppressWarnings("Duplicates")
-	public void registryMappingTypes() {
-		FactoryCellData.regMappingTypes(DEFAULT_MAPPING_TYPE, StringData.class);
-		FactoryCellData.regMappingTypes("number", LongData.class);
-		FactoryCellData.regMappingTypes("date", DateData.class);
-		FactoryCellData.regMappingTypes("string", StringData.class);
-		FactoryCellData.regMappingTypes("binary", MapFileData.class);
-		FactoryCellData.regMappingTypes("text", TextFileData.class);
-		FactoryCellData.regMappingTypes("native", StringData.class);
-		FactoryCellData.regMappingTypes("boolean", BooleanData.class);
-	}
 
 	@Override
 	public IFactoryDBAdapterRestoteMetaData getFactoryRestore() {
@@ -369,22 +358,13 @@ public class DBAdapterMssql extends DBAdapter {
 			field.setIsPrimaryKey(true);
 		}
 		field.setTypeSQL(getFieldType(rs));
-		field.setTypeMapping(getTypeMapping(rs));
-		field.setTypeUniversal(rs.getString("dbgitType"));
+		field.setTypeUniversal(FieldType.fromString(rs.getString("dbgitType").toUpperCase()));
 		field.setLength(rs.getInt("length"));
 		field.setScale(rs.getInt("scale"));
 		field.setPrecision(rs.getInt("precision"));
 		field.setFixed(rs.getBoolean("isFixed"));
 		field.setOrder(rs.getInt("columnOrder"));
 		return field;
-	}
-
-	protected String getTypeMapping(ResultSet rs) throws SQLException {
-		String tp = rs.getString("dbgitType");
-		if (FactoryCellData.contains(tp) )
-			return tp;
-
-		return DEFAULT_MAPPING_TYPE;
 	}
 
 	protected String getFieldType(ResultSet rs) {
@@ -1027,7 +1007,7 @@ public class DBAdapterMssql extends DBAdapter {
 				"WHERE dp.type_desc = 'SQL_USER' AND u.name NOT IN ('dbo','guest') AND u.name NOT LIKE '##MS%'";
 
 			Statement stmt = getConnection().createStatement();
-			ResultSet rs = stmt.executeQuery(query);;
+			ResultSet rs = stmt.executeQuery(query);
 
             while(rs.next()){
                 String name = rs.getString(1);
@@ -1204,8 +1184,8 @@ public class DBAdapterMssql extends DBAdapter {
 	}
 
 	@Override
-	public String getDbType() {
-		return IFactoryDBConvertAdapter.MSSQL;
+	public DbType getDbType() {
+		return DbType.MSSQL;
 	}
 
     @Override

@@ -10,6 +10,7 @@ import org.junit.Test;
 import ru.fusionsoft.dbgit.adapters.AdapterFactory;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBConvertAdapter;
 import ru.fusionsoft.dbgit.core.DBGitConfig;
+import ru.fusionsoft.dbgit.core.db.DbType;
 import ru.fusionsoft.dbgit.dbobjects.*;
 import ru.fusionsoft.dbgit.meta.*;
 import ru.fusionsoft.dbgit.oracle.DBRestorePackageOracle;
@@ -539,9 +540,8 @@ public class DBAdapterMssqlTest {
 
     @Test
     public void getDbType(){
-        String type = testAdapter.getDbType();
-        assertFalse(type.isEmpty());
-        assertEquals(IFactoryDBConvertAdapter.MSSQL, type);
+        DbType type = testAdapter.getDbType();
+        assertEquals(DbType.MSSQL, type);
     }
 
     @Test
@@ -753,7 +753,7 @@ public class DBAdapterMssqlTest {
         DBRestoreSequenceMssql ra = (DBRestoreSequenceMssql) testRestoreFactory.getAdapterRestore(DBGitMetaType.DBGitSequence,testAdapter);
         DBSequence dbSequence = testAdapter.getSequence(schema, seqName);
         MetaSequence metaSequence = new MetaSequence(dbSequence);
-        String sourceDbType = ra.getSourceDbType(metaSequence);
+        DbType sourceDbType = ra.getSourceDbType(metaSequence);
 
         dropTestSequence(seqName);
         assertFalse(testAdapter.getSequences(schema).containsKey(seqName));

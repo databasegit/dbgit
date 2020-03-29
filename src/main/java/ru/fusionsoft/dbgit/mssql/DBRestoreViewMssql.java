@@ -31,12 +31,11 @@ public class DBRestoreViewMssql extends DBRestoreAdapter {
 							exist = true;
 							// TODO MSSQL restore View script
 							if(!restoreView.getSqlObject().getSql().equals(vw.getSql())) {
-								//String ss = "CREATE OR REPLACE VIEW "+restoreView.getSqlObject().getName() +" AS\n"+restoreView.getSqlObject().getSql();
 								st.execute(restoreView.getSqlObject().getName() +" AS\n"+restoreView.getSqlObject().getSql());
 							}
 
 							if(!restoreView.getSqlObject().getOwner().equals(vw.getOwner())) {
-								st.execute("ALTER VIEW "+restoreView.getSqlObject().getName() +" OWNER TO "+restoreView.getSqlObject().getOwner());
+								//st.execute("ALTER VIEW "+restoreView.getSqlObject().getName() +" OWNER TO "+restoreView.getSqlObject().getOwner());
 							}
 							//TODO Восстановление привилегий							
 						}
