@@ -5,6 +5,7 @@ import java.sql.Connection;
 import ru.fusionsoft.dbgit.core.DBConnection;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.SchemaSynonym;
+import ru.fusionsoft.dbgit.mssql.DBAdapterMssql;
 import ru.fusionsoft.dbgit.mysql.DBAdapterMySql;
 import ru.fusionsoft.dbgit.oracle.DBAdapterOracle;
 import ru.fusionsoft.dbgit.postgres.DBAdapterPostgres;
@@ -32,6 +33,8 @@ public class AdapterFactory {
 				adapter = new DBAdapterOracle();
 			} else if (conn.getClass().getName().equals("org.postgresql.jdbc.PgConnection")) {
 				adapter = new DBAdapterPostgres();
+			} else if (conn.getClass().getName().equals("com.microsoft.sqlserver.jdbc.SQLServerConnection")) {
+				adapter = new DBAdapterMssql();
 			} else {
 				adapter = new DBAdapterMySql();
 			}	
