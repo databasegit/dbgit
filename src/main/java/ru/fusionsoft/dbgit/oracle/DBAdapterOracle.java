@@ -567,7 +567,8 @@ public class DBAdapterOracle extends DBAdapter {
 	public Map<String, DBProcedure> getProcedures(String schema) {
 		Map<String, DBProcedure> listProcedure = new HashMap<String, DBProcedure>();
 		try {
-			String query = "SELECT f.owner, f.object_name, (select dbms_metadata.get_ddl('PROCEDURE', f.object_name, f.owner) AS DDL from dual) AS DDL \n" + 
+			String query = "SELECT f.owner, f.object_name, (select listagg(DATA_TYPE, ' ' ) within group (order by DATA_TYPE) from ALL_ARGUMENTS " + 
+					"WHERE object_name = f.OBJECT_NAME AND owner = f.owner) arguments, (select dbms_metadata.get_ddl('PROCEDURE', f.object_name, f.owner) AS DDL from dual) AS DDL \n" + 
 					"FROM all_objects f WHERE f.owner = '" + schema + "' and f.object_type = 'PROCEDURE'";
 			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
@@ -594,7 +595,8 @@ public class DBAdapterOracle extends DBAdapter {
 	@Override
 	public DBProcedure getProcedure(String schema, String name) {
 		try {
-			String query = "SELECT f.owner, f.object_name, (select dbms_metadata.get_ddl('PROCEDURE', f.object_name, f.owner) AS DDL from dual) AS DDL \n" + 
+			String query = "SELECT f.owner, f.object_name, (select listagg(DATA_TYPE, ' ' ) within group (order by DATA_TYPE) from ALL_ARGUMENTS " + 
+					"WHERE object_name = f.OBJECT_NAME AND owner = f.owner) arguments, (select dbms_metadata.get_ddl('PROCEDURE', f.object_name, f.owner) AS DDL from dual) AS DDL \n" + 
 					"FROM all_objects f WHERE f.owner = '" + schema + "' and f.object_type = 'PROCEDURE' and f.object_name = '" + name + "'";
 			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
@@ -623,7 +625,8 @@ public class DBAdapterOracle extends DBAdapter {
 	public Map<String, DBFunction> getFunctions(String schema) {
 		Map<String, DBFunction> listFunction = new HashMap<String, DBFunction>();
 		try {
-			String query = "SELECT f.owner, f.object_name, (select dbms_metadata.get_ddl('FUNCTION', f.object_name, f.owner) AS DDL from dual) AS DDL \n" + 
+			String query = "SELECT f.owner, f.object_name, (select listagg(DATA_TYPE, ' ' ) within group (order by DATA_TYPE) from ALL_ARGUMENTS \r\n" + 
+					"WHERE object_name = f.OBJECT_NAME AND owner = f.owner) arguments, (select dbms_metadata.get_ddl('FUNCTION', f.object_name, f.owner) AS DDL from dual) AS DDL \n" + 
 					"FROM all_objects f WHERE f.owner = '" + schema + "' and f.object_type = 'FUNCTION'";
 			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
@@ -650,7 +653,8 @@ public class DBAdapterOracle extends DBAdapter {
 	@Override
 	public DBFunction getFunction(String schema, String name) {
 		try {
-			String query = "SELECT f.owner, f.object_name, (select dbms_metadata.get_ddl('FUNCTION', f.object_name, f.owner) AS DDL from dual) AS DDL \n" + 
+			String query = "SELECT f.owner, f.object_name, (select listagg(DATA_TYPE, ' ' ) within group (order by DATA_TYPE) from ALL_ARGUMENTS " + 
+					"WHERE object_name = f.OBJECT_NAME AND owner = f.owner) arguments, (select dbms_metadata.get_ddl('FUNCTION', f.object_name, f.owner) AS DDL from dual) AS DDL \n" + 
 					"FROM all_objects f WHERE f.owner = '" + schema +"' and " + 
 					"f.object_type = 'FUNCTION' and f.object_name = '" + name +"'";
 			Connection connect = getConnection();

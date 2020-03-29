@@ -44,6 +44,9 @@ public class CmdStatus implements IDBGitCommand {
 	
 	@Override
 	public void execute(CommandLine cmdLine) throws Exception {
+		
+		ConsoleWriter.setDetailedLog(cmdLine.hasOption("v"));
+		
 		GitMetaDataManager gmdm = GitMetaDataManager.getInctance();
 		
 		IMapMetaObject dbObjs = gmdm.loadDBMetaData();		

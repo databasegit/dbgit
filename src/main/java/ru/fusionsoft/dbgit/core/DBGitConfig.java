@@ -22,7 +22,10 @@ public class DBGitConfig {
 
 		String path = new File(DBGitConfig.class.getProtectionDomain().getCodeSource().getLocation()
 			    .toURI()).getAbsolutePath();
-		
+
+		//for debug:
+		if (path.contains("classes")) path = path + "/../dbgit";
+
 		while (!new File(path + "/dbgitconfig").exists()) {
 			int i = path.lastIndexOf("/");
 			if (i == -1) i = path.lastIndexOf("\\");
