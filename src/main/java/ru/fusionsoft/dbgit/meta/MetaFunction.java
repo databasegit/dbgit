@@ -34,7 +34,7 @@ public class MetaFunction extends MetaSql {
 				.replace(",", "");
 		
 		if (res.endsWith("_")) res = res.substring(0, res.length() - 1);
-		if (res.length() > 230) {
+		if (res.length() > MAX_FILE_NAME_LENGTH) {
 			String resTemp = res.substring(0, MAX_FILE_NAME_LENGTH);
 			int resInt = res.length() - MAX_FILE_NAME_LENGTH;
 			res = resTemp + "_" + resInt;
