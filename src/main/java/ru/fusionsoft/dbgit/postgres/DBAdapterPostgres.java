@@ -55,6 +55,7 @@ public class DBAdapterPostgres extends DBAdapter {
 	private FactoryDBAdapterRestorePostgres restoreFactory = new FactoryDBAdapterRestorePostgres();
 	private FactoryDbConvertAdapterPostgres convertFactory = new FactoryDbConvertAdapterPostgres();	
 	private FactoryDBBackupAdapterPostgres backupFactory = new FactoryDBBackupAdapterPostgres();
+	private static Set<String> reservedWords = new HashSet<>();
 
 	@Override
 	public IFactoryDBAdapterRestoteMetaData getFactoryRestore() {
@@ -952,8 +953,17 @@ public class DBAdapterPostgres extends DBAdapter {
 
 	@Override
 	public boolean isReservedWord(String word) {
-		Set<String> reservedWords = new HashSet<>();
-		
+		return reservedWords.contains(word.toUpperCase());
+	}
+
+
+	public static String escapeNameIfNeeded(String name){
+		boolean shouldBeEscaped = !name.equals(name.toLowerCase()) || name.contains(".") || reservedWords.contains(name.toUpperCase()); //TODO maybe check on isReservedWord?
+		if(name.startsWith("\"") && name.endsWith("\"")) shouldBeEscaped = false;
+		return MessageFormat.format("{1}{0}{1}", name, shouldBeEscaped ? "\"" : "");
+	}
+
+	static {
 		reservedWords.add("A");
 		reservedWords.add("ABORT");
 		reservedWords.add("ABS");
@@ -1581,14 +1591,5 @@ public class DBAdapterPostgres extends DBAdapter {
 		reservedWords.add("WRITE");
 		reservedWords.add("YEAR");
 		reservedWords.add("ZONE");
-		
-		return reservedWords.contains(word.toUpperCase());
 	}
-
-	public static String escapeNameIfNeeded(String name){
-		boolean shouldBeEscaped = !name.equals(name.toLowerCase()) || name.contains("."); //TODO maybe check on isReservedWord?
-		if(name.startsWith("\"") && name.endsWith("\"")) shouldBeEscaped = false;
-		return MessageFormat.format("{1}{0}{1}", name, shouldBeEscaped ? "\"" : "");
-	}
-
 }

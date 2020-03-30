@@ -104,49 +104,6 @@
 					<include>dbgitconfig</include>
 				</includes>
 			</resource>
-			<resource>
-				<directory>${project.basedir}/src/main/resources/scripts</directory><!-- from -->
-				<targetPath>${project.build.directory}/classes/scripts</targetPath><!-- to -->
-				<includes><!-- what -->
-					<include>dbgit-install-windows.bat</include>
-					<include>dbgit-install-linux.sh</include>
-					<include>dbgit-install-mac.sh</include>
-					<include>INSTALLER-README.txt</include>
-				</includes>
-			</resource>
-			<resource>
-				<directory>${project.basedir}/src/main/resources/scripts</directory><!-- from -->
-				<targetPath>${project.build.directory}/classes/scripts</targetPath><!-- to -->
-				<includes><!-- what -->
-					<include>path-update.ps1</include>
-					<include>git-download-x64.ps1</include>
-					<include>git-download-x86.ps1</include>
-					<include>path-parser.ps1</include>
-				</includes>
-			</resource>
-			<resource>
-				<directory>${project.basedir}/src/main/resources/lang</directory><!-- from -->
-				<targetPath>${project.build.directory}/classes/lang</targetPath><!-- to -->
-				<includes><!-- what -->
-					<include>eng.yaml</include>
-					<include>rus.yaml</include>
-				</includes>
-			</resource>
-			<resource>
-				<directory>${project.basedir}/src/main/resources/example</directory><!-- from -->
-				<targetPath>${project.build.directory}/classes/example</targetPath><!-- to -->
-				<includes><!-- what -->
-					<include>.dblink</include>
-				</includes>
-			</resource>
-			<resource>
-				<directory>${project.basedir}/src/main/resources</directory><!-- from -->
-				<targetPath>${project.build.directory}/classes/</targetPath><!-- to -->
-				<includes><!-- what -->
-					<include>dbgitconfig</include>
-					<include>logback.xml</include>
-				</includes>
-			</resource>
 		</resources>
 
 	</build>

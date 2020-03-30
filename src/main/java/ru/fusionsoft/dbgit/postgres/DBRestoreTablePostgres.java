@@ -114,29 +114,30 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 						values.sort(comparator);
 
 						for(DBTableField tblField : values) {
+								String fieldName = DBAdapterPostgres.escapeNameIfNeeded(tblField.getName());
 								st.execute(
 								"alter table "+ tblName +" add column "
-									+ DBAdapterPostgres.escapeNameIfNeeded(tblField.getName()) + " "
+									+ fieldName + " "
 									+ tblField.getTypeSQL().replace("NOT NULL", "")
 								);
 
 								if (tblField.getDescription() != null && tblField.getDescription().length() > 0)
 									st.execute(
 									"COMMENT ON COLUMN " + tblName + "."
-										+ DBAdapterPostgres.escapeNameIfNeeded(tblField.getName())
+										+ fieldName
 										+ " IS '" + tblField.getDescription() + "'"
 									);
 
 								if (!tblField.getIsNullable()) {
 									st.execute(
 									"alter table " + tblName
-										+ " alter column " + DBAdapterPostgres.escapeNameIfNeeded(tblField.getName())
+										+ " alter column " + fieldName
 										+ " set not null"
 									);
 								}
 
 								if (tblField.getDefaultValue() != null && tblField.getDefaultValue().length() > 0) {
-									st.execute("alter table " + tblName + " alter column " + (adapter.isReservedWord(tblField.getName()) ? "\"" + tblField.getName() + "\" " : tblField.getName())
+									st.execute("alter table " + tblName + " alter column " + fieldName
 											+ " SET DEFAULT " + tblField.getDefaultValue());
 								}
 
@@ -165,7 +166,7 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 							}
 
 							if (restoreTable.getTable().getComment() != null && restoreTable.getTable().getComment().length() > 0)
-								st.execute("COMMENT ON COLUMN " + tblName + "." + ((adapter.isReservedWord(tblField.leftValue().getName()) || tblField.leftValue().getNameExactly()) ? "\"" + tblField.leftValue().getName() + "\" " : tblField.leftValue().getName()) + " IS '" + tblField.leftValue().getDescription() + "'");
+								st.execute("COMMENT ON COLUMN " + tblName + "." + DBAdapterPostgres.escapeNameIfNeeded(tblField.leftValue().getName()) + " IS '" + tblField.leftValue().getDescription() + "'");
 
 							if(!tblField.leftValue().getTypeSQL().equals(tblField.rightValue().getTypeSQL())
 									&& tblField.rightValue().getTypeUniversal() != FieldType.BOOLEAN) {
