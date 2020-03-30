@@ -31,7 +31,8 @@ import ru.fusionsoft.dbgit.utils.ConsoleWriter;
  *
  */
 public interface IMetaObject {
-	public static final String EMPTY_HASH = "<EMPTY>"; 
+	public static final String EMPTY_HASH = "<EMPTY>";
+	public static final int MAX_FILE_NAME_LENGTH = 130; 
 	/**
 	 * 
 	 * @return Type meta object
