@@ -55,7 +55,7 @@ public class DBRestoreTableMssql extends DBRestoreAdapter {
 				String tblName = restoreTable.getTable().getName();
 				String tblSam = tblSchema+"."+tblName;
 
-				ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "table").withParams(tblSam) + "\n", 1);
+				ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "restoreTable").withParams(tblSam) + "\n", 1);
 
 				Map<String, DBTable> tables = adapter.getTables(tblSchema);
 
@@ -145,7 +145,7 @@ public class DBRestoreTableMssql extends DBRestoreAdapter {
 									String ddl;
 									if(idx.rightValue().getOptions().get("is_unique").getData().equals("0")){
 										ddl = MessageFormat.format(
-									"DROP INDEX [{2}] ON [{0}].[{1}] ",
+											"DROP INDEX [{2}] ON [{0}].[{1}] ",
 											schema, currentTable.getName(), idx.rightValue().getName()
 										);
 									}

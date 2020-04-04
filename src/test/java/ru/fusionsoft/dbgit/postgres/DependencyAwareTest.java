@@ -101,6 +101,11 @@ public class DependencyAwareTest {
     }
 
     @Test
+    public void getIndexesPostgres() throws Exception {
+        testAdapter.getIndexes("loader", "t$predecessors");
+    }
+
+    @Test
     public void sort() throws Exception {
         createTestObjects();
         MetaTable mt = new MetaTable(testAdapter.getTable(publicSchema, tableName));

@@ -60,7 +60,7 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 				String schema = getPhisicalSchema(restoreTable.getTable().getSchema());
 				schema = (SchemaSynonym.getInstance().getSchema(schema) == null) ? schema : SchemaSynonym.getInstance().getSchema(schema);
 				String tblName = schema+"."+restoreTable.getTable().getName();
-				ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "table").withParams(tblName) + "\n", 1);
+				ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "restoreTable").withParams(tblName) + "\n", 1);
 
 				Map<String, DBTable> tables = adapter.getTables(schema.toUpperCase());
 				boolean exist = false;

@@ -296,7 +296,7 @@ public class DBAdapterPostgres extends DBAdapter {
 	}
 
 	@Override
-	public Map<String, DBTableField> getTableFields(String schema, String nameTable) {
+	public Map<String, DBTableField>  getTableFields(String schema, String nameTable) {
 		
 		try {
 			Map<String, DBTableField> listField = new HashMap<String, DBTableField>();
