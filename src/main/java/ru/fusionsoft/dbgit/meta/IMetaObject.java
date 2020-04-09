@@ -10,7 +10,7 @@ import java.io.OutputStream;
 import ru.fusionsoft.dbgit.core.DBGitPath;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.db.DbType;
-import ru.fusionsoft.dbgit.utils.ConsoleWriter;
+import ru.fusionsoft.dbgit.dbobjects.DBSchemaObject;
 
 /**
  * <div class="en">
