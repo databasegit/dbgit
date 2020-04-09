@@ -40,15 +40,12 @@ public abstract class DBAdapter implements IDBAdapter {
 
 		int result = imoTypeComparator.compare(o1, o2);
 		if(result == 0){
-			if(o1 instanceof MetaSql){
-				DBSQLObject left = ((MetaSql) o1).getSqlObject();
-				Set<String> rightDeps = ((MetaSql) o2).getSqlObject().getDependencies();
-				if (rightDeps.contains(left.getSchema() + "." + left.getName())) return -1;
-			}
-			if(o1 instanceof MetaTable){
-				DBTable left = ((MetaTable) o1).getTable();
-				Set<String> rightDeps = ((MetaTable) o2).getTable().getDependencies();
-				if (rightDeps.contains(left.getSchema() + "." + left.getName())) return -1;
+			if(o1 instanceof MetaSql || o1 instanceof MetaTable){
+				Set<String> leftDeps = o1.getUnderlyingDbObject().getDependencies();
+				Set<String> rightDeps = o2.getUnderlyingDbObject().getDependencies();
+
+				if (rightDeps.contains(o1.getName()) || (leftDeps.size()==0 && rightDeps.size()!=0)) return -1;
+				if (leftDeps.contains(o2.getName()) || (rightDeps.size()==0 && leftDeps.size()!=0)) return 1;
 			}
 			// dependant comes earlier than dependency
 		}

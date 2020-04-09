@@ -138,6 +138,12 @@ public interface IMetaObject {
 	public int addToGit() throws ExceptionDBGit;
 	
 	public int removeFromGit() throws ExceptionDBGit;
-	
-	
+
+
+	default DBSchemaObject getUnderlyingDbObject(){
+		//All in one place
+		if(this instanceof MetaSql) return ((MetaSql) this).getSqlObject();
+		if(this instanceof MetaTable) return ((MetaTable) this).getTable();
+		return null;
+	}
 }
