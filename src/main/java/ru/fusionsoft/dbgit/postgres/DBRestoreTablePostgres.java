@@ -11,9 +11,9 @@ import ru.fusionsoft.dbgit.core.db.FieldType;
 import ru.fusionsoft.dbgit.dbobjects.*;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
 import ru.fusionsoft.dbgit.meta.MetaTable;
-import ru.fusionsoft.dbgit.oracle.converters.TableConverterOracle;
 import ru.fusionsoft.dbgit.statement.StatementLogging;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
+import ru.fusionsoft.dbgit.utils.StringProperties;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -58,7 +58,7 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 				schema = (SchemaSynonym.getInstance().getSchema(schema) == null) ? schema : SchemaSynonym.getInstance().getSchema(schema);
 				String tblName = DBAdapterPostgres.escapeNameIfNeeded(restoreTable.getTable().getName());
 
-				ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "restoreTable").withParams(schema+"."+tblName) + "\n", 1);
+				ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "restoreTable").withParams(schema+"."+tblName), 1);
 
 				//find existing table and set tablespace or create
 				if(existingTable.loadFromDB()){
@@ -75,7 +75,7 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 				} else {
 					ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "createTable"), 2);
 					String createTableDdl = MessageFormat.format(
-						"create table {0}.{1}() tablespace {2};\n alter table {0}.{1} onwer to "
+						"create table {0}.{1}() tablespace {2};\n alter table {0}.{1} owner to {3}"
 						,schema
 						,tblName
 						,restoreTable.getTable().getOptions().getChildren().containsKey("tablespace")
@@ -323,26 +323,31 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 					}
 
 					for(DBIndex ind:diffInd.entriesOnlyOnRight().values()) {
-						st.execute("drop index IF EXISTS "+schema+"."+ DBAdapterPostgres.escapeNameIfNeeded(ind.getName()));
+						if(existingTable.getConstraints().containsKey(ind.getName())) continue;
+						st.execute("drop index if exists "+schema+"."+ DBAdapterPostgres.escapeNameIfNeeded(ind.getName()));
 					}
 
 					for(ValueDifference<DBIndex> ind : diffInd.entriesDiffering().values()) {
 						DBIndex restoreIndex = ind.leftValue();
 						DBIndex existingIndex = ind.rightValue();
 						if(!restoreIndex.getSql().equalsIgnoreCase(existingIndex.getSql())) {
-							st.execute("drop index "+DBAdapterPostgres.escapeNameIfNeeded(existingIndex.getName()));
-							st.execute(restoreIndex.getSql());
+							st.execute(MessageFormat.format("drop index {0}.{1};\n{2};\n",
+								schema
+								, DBAdapterPostgres.escapeNameIfNeeded(existingIndex.getName())
+								, restoreIndex.getSql()
+							));
 						}
 
 						st.execute(MessageFormat.format(
-							"alter index {0} set tablespace {1}"
+							"alter index {0}.{1} set tablespace {2}"
+							,schema
 							,DBAdapterPostgres.escapeNameIfNeeded(existingIndex.getName())
 							,restoreIndex.getOptions().getChildren().containsKey("tablespace")
 								? restoreIndex.getOptions().get("tablespace").getData()
 								: "pg_default"
 						));
 					}
-
+					connect.commit();
 				} else {
 					// TODO error if not exists
 				}
@@ -376,34 +381,55 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 
 				MapDifference<String, DBConstraint> diff = Maps.difference(existingTable.getConstraints(), restoreTable.getConstraints());
 
-				if(!diff.areEqual()){
-					removeTableConstraintsPostgres(obj);
+				//drop unneeded
+				for(DBConstraint constr : diff.entriesOnlyOnLeft().values()){
+					st.execute(MessageFormat.format(
+						"alter table {0}.{1} drop constraint {2};\n"
+						, schema
+						, DBAdapterPostgres.escapeNameIfNeeded(existingTable.getTable().getName())
+						, DBAdapterPostgres.escapeNameIfNeeded(constr.getName())
+					));
 				}
 
-				for(DBConstraint constrs : restoreTable.getConstraints().values()) {
+				//restore not existing
+				for(DBConstraint constr : diff.entriesOnlyOnRight().values()) {
 					String constrDdl = "";
-					if(!constrs.getConstraintType().equalsIgnoreCase("p")) {
+					if(!constr.getConstraintType().equalsIgnoreCase("p")) {
 						constrDdl = MessageFormat.format(
 							"alter table {0}.{1} add constraint {2} {3};\n"
 							,schema
 							,DBAdapterPostgres.escapeNameIfNeeded(restoreTable.getTable().getName())
-							,DBAdapterPostgres.escapeNameIfNeeded(constrs.getName())
-							,constrs.getSql()
-								.replace(" " + constrs.getSchema() + ".", " " + schema + ".")
+							,DBAdapterPostgres.escapeNameIfNeeded(constr.getName())
+							,constr.getSql()
+								.replace(" " + constr.getSchema() + ".", " " + schema + ".")
 								.replace("REFERENCES ", "REFERENCES " + schema + ".")
 						);
 					} else {
-						constrDdl = MessageFormat.format(
-							"alter table {0}.{1} add constraint {2} {3};\n"
-							,schema
-							,DBAdapterPostgres.escapeNameIfNeeded(restoreTable.getTable().getName())
-							,DBAdapterPostgres.escapeNameIfNeeded(constrs.getName())
-							,constrs.getSql()
-								.replace(" " + constrs.getSchema() + ".", " " + schema + ".")
-								.replace("REFERENCES ", "REFERENCES " + schema + ".")
-						);
+						if(existingTable.getIndexes().containsKey(constr.getName())){
+							constrDdl = MessageFormat.format(
+								"alter table {0}.{1} add primary key using index {2};\n"
+								,schema
+								,DBAdapterPostgres.escapeNameIfNeeded(restoreTable.getTable().getName())
+								,DBAdapterPostgres.escapeNameIfNeeded(existingTable.getIndexes().get(constr.getName()).getName())
+							);
+						} else {
+							constrDdl = MessageFormat.format(
+								"alter table {0}.{1} add constraint {2} {3};\n"
+								,schema
+								,DBAdapterPostgres.escapeNameIfNeeded(restoreTable.getTable().getName())
+								,DBAdapterPostgres.escapeNameIfNeeded(constr.getName())
+								,constr.getSql()
+									.replace(" " + constr.getSchema() + ".", " " + schema + ".")
+									.replace("REFERENCES ", "REFERENCES " + schema + ".")
+							);
+						}
 					}
 					st.execute(constrDdl);
+				}
+
+				//process intersects
+				for (ValueDifference<DBConstraint> constr : diff.entriesDiffering().values()){
+					MapDifference<String, StringProperties> propsDiff = Maps.difference(constr.leftValue().getOptions().getChildren(), constr.leftValue().getOptions().getChildren());
 				}
 
 				ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
@@ -434,15 +460,13 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 
 				Map<String, DBConstraint> constraints = table.getConstraints();
 				for(DBConstraint constrs :constraints.values()) {
-					if (!constrs.getConstraintType().equalsIgnoreCase("p"))
-						st.execute(
-						"alter table "+ schema+"."+DBAdapterPostgres.escapeNameIfNeeded(table.getTable().getName())
-							+" drop constraint IF EXISTS "+DBAdapterPostgres.escapeNameIfNeeded(constrs.getName())
-						);
+					st.execute(
+					"alter table "+ schema +"."+DBAdapterPostgres.escapeNameIfNeeded(table.getTable().getName())
+						+" drop constraint if exists "+DBAdapterPostgres.escapeNameIfNeeded(constrs.getName())
+					);
 				}
 			}
-			else
-			{
+			else {
 				throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()));
 			}	
 		} catch (Exception e) {
