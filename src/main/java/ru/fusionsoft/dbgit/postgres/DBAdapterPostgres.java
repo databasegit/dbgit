@@ -212,12 +212,12 @@ public class DBAdapterPostgres extends DBAdapter {
 					"	tableowner as owner,\n" +
 					"	tablespace,hasindexes,hasrules,hastriggers, \n" +
 					"	obj_description(to_regclass(schemaname || '.\"' || tablename || '\"')::oid) table_comment, ( \n" +
-					"		select array_agg(distinct n2.nspname || '.' || c2.relname) as dependencies\n" +
+					"		select array_agg(distinct n2.nspname || '/' || c2.relname || '.tbl') as dependencies\n" +
 					"	 	FROM pg_catalog.pg_constraint c  \n" +
-					"		JOIN ONLY pg_catalog.pg_class c1     ON c1.oid = c.confrelid\n" +
-					"		JOIN ONLY pg_catalog.pg_class c2     ON c2.oid = c.conrelid\n" +
+					"		JOIN ONLY pg_catalog.pg_class c1     ON c1.oid = c.conrelid\n" +
+					"		JOIN ONLY pg_catalog.pg_class c2     ON c2.oid = c.confrelid\n" +
 					"		JOIN ONLY pg_catalog.pg_namespace n2 ON n2.oid = c2.relnamespace\n" +
-					"		WHERE c.confrelid = to_regclass(schemaname || '.\"' || tablename || '\"')::oid\n" +
+					"		WHERE c.conrelid = to_regclass(schemaname || '.\"' || tablename || '\"')::oid\n" +
 					"		and c1.relkind = 'r' AND c.contype = 'f'\n" +
 					"	)\n" +
 					"from pg_tables \n" +
@@ -256,14 +256,14 @@ public class DBAdapterPostgres extends DBAdapter {
 				"	tableowner as owner,\n" +
 				"	tablespace,hasindexes,hasrules,hastriggers, \n" +
 				"	obj_description(to_regclass(schemaname || '.\"' || tablename || '\"')::oid) table_comment, ( \n" +
-				"		select array_agg(distinct n2.nspname || '.' || c2.relname) as dependencies\n" +
+				"		select array_agg(distinct n2.nspname || '/' || c2.relname || '.tbl') as dependencies\n" +
 				"	 	FROM pg_catalog.pg_constraint c  \n" +
-				"		JOIN ONLY pg_catalog.pg_class c1     ON c1.oid = c.confrelid\n" +
-				"		JOIN ONLY pg_catalog.pg_class c2     ON c2.oid = c.conrelid\n" +
+				"		JOIN ONLY pg_catalog.pg_class c1     ON c1.oid = c.conrelid\n" +
+				"		JOIN ONLY pg_catalog.pg_class c2     ON c2.oid = c.confrelid\n" +
 				"		JOIN ONLY pg_catalog.pg_namespace n2 ON n2.oid = c2.relnamespace\n" +
-				"		WHERE c.confrelid = to_regclass(schemaname || '.\"' || tablename || '\"')::oid\n" +
+				"		WHERE c.conrelid = to_regclass(schemaname || '.\"' || tablename || '\"')::oid\n" +
 				"		and c1.relkind = 'r' AND c.contype = 'f'\n" +
-				"	)\n" +
+				"	)" +
 				"from pg_tables \n" +
 				"where upper(schemaname) = upper('"+schema+"') \n" +
 				"and upper(tablename) = upper('"+name+"')\n";
@@ -479,11 +479,11 @@ public class DBAdapterPostgres extends DBAdapter {
 			String query =
 				"select nsp.nspname as object_schema, cls.relname as object_name,  rol.rolname as owner, \n" +
 				"'create or replace view ' || nsp.nspname || '.' || cls.relname || ' as ' || pg_get_viewdef(cls.oid) as ddl, (\n" +
-				"	select array_agg(distinct source_ns.nspname || '.' || source_table.relname) as dependencySam\n" +
+				"	select array_agg(distinct source_ns.nspname || '/' || source_table.relname || '.vw') as dependencySam\n" +
 				"	from pg_depend \n" +
 				"	join pg_rewrite ON pg_depend.objid = pg_rewrite.oid \n" +
 				"	join pg_class as dependent_view ON pg_rewrite.ev_class = dependent_view.oid \n" +
-				"	join pg_class as source_table ON pg_depend.refobjid = source_table.oid \n" +
+				"	join pg_class as source_table ON pg_depend.refobjid = source_table.oid AND source_table.relkind = 'v'\n" +
 				"	join pg_attribute ON pg_attribute.attrelid  = pg_depend.refobjid \n" +
 				"		and pg_attribute.attnum = pg_depend.refobjsubid  \n" +
 				"	join pg_namespace dependent_ns ON dependent_ns.oid = dependent_view.relnamespace\n" +
@@ -534,11 +534,11 @@ public class DBAdapterPostgres extends DBAdapter {
 			String query =
 				"select nsp.nspname as object_schema, cls.relname as object_name,  rol.rolname as owner, \n" +
 				"'create or replace view ' || nsp.nspname || '.' || cls.relname || ' as ' || pg_get_viewdef(cls.oid) as ddl, (\n" +
-				"	select array_agg(distinct source_ns.nspname || '.' || source_table.relname) as dependencySam\n" +
+				"	select array_agg(distinct source_ns.nspname || '/' || source_table.relname || '.vw') as dependencySam\n" +
 				"	from pg_depend \n" +
 				"	join pg_rewrite ON pg_depend.objid = pg_rewrite.oid \n" +
 				"	join pg_class as dependent_view ON pg_rewrite.ev_class = dependent_view.oid \n" +
-				"	join pg_class as source_table ON pg_depend.refobjid = source_table.oid \n" +
+				"	join pg_class as source_table ON pg_depend.refobjid = source_table.oid AND source_table.relkind = 'v'\n" +
 				"	join pg_attribute ON pg_attribute.attrelid  = pg_depend.refobjid \n" +
 				"		and pg_attribute.attnum = pg_depend.refobjsubid  \n" +
 				"	join pg_namespace dependent_ns ON dependent_ns.oid = dependent_view.relnamespace\n" +
@@ -658,14 +658,14 @@ public class DBAdapterPostgres extends DBAdapter {
 	public Map<String, DBFunction> getFunctions(String schema) {
 		Map<String, DBFunction> listFunction = new HashMap<String, DBFunction>();
 		try {
-			String query = "SELECT n.nspname as \"schema\",u.rolname,\r\n" + 
-					"       p.proname as \"name\",\r\n" + 
-					"       pg_catalog.pg_get_function_arguments(p.oid) as \"arguments\",\r\n" + 
-					"	   pg_get_functiondef(p.oid) AS ddl\r\n" + 
-					"FROM pg_catalog.pg_proc p\r\n" + 
-					"  JOIN pg_catalog.pg_roles u ON u.oid = p.proowner\r\n" + 
-					"  LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace\r\n" + 
-					"WHERE pg_catalog.pg_function_is_visible(p.oid)\r\n" + 
+			String query = "SELECT n.nspname as \"schema\",u.rolname,\r\n" +
+					"       p.proname as \"name\",\r\n" +
+					"       pg_catalog.pg_get_function_arguments(p.oid) as \"arguments\",\r\n" +
+					"	   pg_get_functiondef(p.oid) AS ddl\r\n" +
+					"FROM pg_catalog.pg_proc p\r\n" +
+					"  JOIN pg_catalog.pg_roles u ON u.oid = p.proowner\r\n" +
+					"  LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace\r\n" +
+					"WHERE pg_catalog.pg_function_is_visible(p.oid)\r\n" +
 					"  AND n.nspname = \'"+schema+"\'";
 			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
@@ -691,16 +691,16 @@ public class DBAdapterPostgres extends DBAdapter {
 
 	@Override
 	public DBFunction getFunction(String schema, String name) {
-		
+
 		try {
-			String query = "SELECT n.nspname as \"schema\",u.rolname,\r\n" + 
-					"       p.proname as \"name\",\r\n" + 
-					"       pg_catalog.pg_get_function_arguments(p.oid) as \"arguments\",\r\n" + 
-					"	   pg_get_functiondef(p.oid) AS ddl\r\n" + 
-					"FROM pg_catalog.pg_proc p\r\n" + 
-					"  JOIN pg_catalog.pg_roles u ON u.oid = p.proowner\r\n" + 
-					"  LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace\r\n" + 
-					"WHERE pg_catalog.pg_function_is_visible(p.oid)\r\n" + 
+			String query = "SELECT n.nspname as \"schema\",u.rolname,\r\n" +
+					"       p.proname as \"name\",\r\n" +
+					"       pg_catalog.pg_get_function_arguments(p.oid) as \"arguments\",\r\n" +
+					"	   pg_get_functiondef(p.oid) AS ddl\r\n" +
+					"FROM pg_catalog.pg_proc p\r\n" +
+					"  JOIN pg_catalog.pg_roles u ON u.oid = p.proowner\r\n" +
+					"  LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace\r\n" +
+					"WHERE pg_catalog.pg_function_is_visible(p.oid)\r\n" +
 					"  AND n.nspname = \'"+schema+ "\' AND p.proname=\'"+name+"\'";
 			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();

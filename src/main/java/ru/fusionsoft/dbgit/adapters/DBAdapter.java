@@ -4,10 +4,7 @@ import java.io.OutputStream;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -118,10 +115,10 @@ public abstract class DBAdapter implements IDBAdapter {
 	@Override
 	public void restoreDataBase(IMapMetaObject updateObjs) throws Exception {
 		Connection connect = getConnection();
-		IMapMetaObject currStep = updateObjs;
-		
 		DBGitLang lang = DBGitLang.getInstance();
-		
+
+		IMapMetaObject currStep = updateObjs;
+
 		try {
 			List<MetaTable> tables = new ArrayList<MetaTable>();			
 			List<MetaTableData> tablesData = new ArrayList<MetaTableData>();
@@ -129,6 +126,27 @@ public abstract class DBAdapter implements IDBAdapter {
 			List<String> createdSchemas = new ArrayList<String>();
 			List<String> createdRoles = new ArrayList<String>();
 
+//			List<IMetaObject> restoreObjs = new ArrayList<>(updateObjs.values());
+//			restoreObjs.sort(imoDependenceComparator);
+//			restoreObjs .forEach( (x) -> {
+//				if (x instanceof MetaTable || x instanceof MetaSql) {
+//					String deps = x.getUnderlyingDbObject().getDependencies().stream().collect(Collectors.joining(", "));
+//					ConsoleWriter.detailsPrintlnGreen(MessageFormat.format(
+//						"{0}. {1} depends on ({2})"
+//						,restoreObjs.indexOf(x)
+//						,x.getName()
+//						,deps
+//					));
+//				} else {
+//					ConsoleWriter.detailsPrintlnGreen(MessageFormat.format(
+//						"{0}. {1}"
+//						,restoreObjs.indexOf(x)
+//						,x.getName()
+//					));
+//				}
+//			});
+
+			updateObjs.calculateImoCrossDependencies();
 			for (IMetaObject obj : updateObjs.values().stream().sorted(imoDependenceComparator).collect(Collectors.toList())) {
 				Integer step = 0;
 				
@@ -174,9 +192,11 @@ public abstract class DBAdapter implements IDBAdapter {
 						obj = convertAdapter.convert(getDbType(), getDbVersion(), obj);							
 					}
 
-					if (step == 0 && DBGitConfig.getInstance().getBoolean("core", "TO_MAKE_BACKUP", true) && schemaName != null &&
-							getBackupAdapterFactory().getBackupAdapter(this).isExists
-								(schemaName, obj.getName().substring(obj.getName().indexOf("/") + 1, obj.getName().indexOf(".")))) {
+					if (
+						step == 0
+						&& DBGitConfig.getInstance().getBoolean("core", "TO_MAKE_BACKUP", true) && schemaName != null
+						&& getBackupAdapterFactory().getBackupAdapter(this).isExists(schemaName, obj.getName().substring(obj.getName().indexOf("/") + 1, obj.getName().indexOf(".")))
+					) {
 						obj = getBackupAdapterFactory().getBackupAdapter(this).backupDBObject(obj);
 					}
 				}
@@ -213,7 +233,8 @@ public abstract class DBAdapter implements IDBAdapter {
 						if (!tables.contains(tableData))
 							tablesData.add(tableData);
 					}
-					
+
+					//call restoreAdapter.restoreMetaObject with the next 'step' until it returns true
 					res = getFactoryRestore().getAdapterRestore(obj.getType(), this).restoreMetaObject(obj, step);
 					step++;
 
@@ -225,7 +246,7 @@ public abstract class DBAdapter implements IDBAdapter {
     			Long diff = timestampAfter.getTime() - timestampBefore.getTime();
     			ConsoleWriter.println("(" + diff + " " + lang.getValue("general", "add", "ms") +")");
 			}
-			
+
 			for (MetaTable table : tables) {
 				getFactoryRestore().getAdapterRestore(DBGitMetaType.DBGitTable, this).restoreMetaObject(table, -1);
 			}
