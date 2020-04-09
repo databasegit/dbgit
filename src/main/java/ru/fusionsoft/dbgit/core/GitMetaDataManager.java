@@ -285,8 +285,8 @@ public class GitMetaDataManager {
 	    		if (DBGitPath.isServiceFile(filename)) continue;
 	    		ConsoleWriter.detailsPrint(filename + "...", 1);
 	    		
-	    		if (force) {			
-	    			IMetaObject obj = MetaObjectFactory.createMetaObject(filename);
+	    		if (force) {
+	    			IMetaObject obj = loadMetaFile(filename);
 
 		    		if (obj != null) 
 		    			objs.put(obj);

@@ -124,7 +124,7 @@ public interface IMetaObject {
 		FileInputStream fis = new FileInputStream(file);
 		IMetaObject meta = this.deSerialize(fis);
 		fis.close();
-		if (meta != null) {
+		if (meta != null && meta.getName().isEmpty()) {
 			meta.setName(this.getName());
 		}
 		
