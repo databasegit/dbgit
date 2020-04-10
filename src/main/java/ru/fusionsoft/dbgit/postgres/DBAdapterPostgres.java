@@ -774,7 +774,7 @@ public class DBAdapterPostgres extends DBAdapter {
 	
 	@Override
 	public DBTableData getTableData(String schema, String nameTable) {
-		String tableName = schema+"."+nameTable;
+		String tableName = schema+"."+ DBAdapterPostgres.escapeNameIfNeeded(nameTable);
 		try {
 			DBTableData data = new DBTableData();
 			
