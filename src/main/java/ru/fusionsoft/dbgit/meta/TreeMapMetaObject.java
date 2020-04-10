@@ -5,7 +5,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import ru.fusionsoft.dbgit.core.DBGitLang;
-import ru.fusionsoft.dbgit.core.ExceptionDBGit;
+import ru.fusionsoft.dbgit.dbobjects.DBSQLObject;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 import ru.fusionsoft.dbgit.utils.LoggerUtil;
 
@@ -49,49 +49,25 @@ public class TreeMapMetaObject extends TreeMap<String, IMetaObject> implements I
 		Timestamp timestampBefore = new Timestamp(System.currentTimeMillis());
 		List<MetaFunction> metaFunctions = this.values().stream().filter(x->x instanceof MetaFunction ).map(x -> (MetaFunction) x ).collect(Collectors.toList());
 
-		Map<String, String> realNamesToMeta = metaFunctions.stream().collect(Collectors.toMap(x->x.getUnderlyingDbObject().getName(), y->y.getName()));
+		Map<String, String> realNamesToMeta = metaFunctions.stream().collect(Collectors.toMap(
+			x->x.getUnderlyingDbObject().getSchema() + "." + x.getUnderlyingDbObject().getName(),
+			y->y.getName())
+		);
 		for(MetaSql msql : metaFunctions){
-			msql.getSqlObject().setDependencies(realNamesToMeta.keySet().stream()
-				.filter( x -> msql.getSqlObject().getSql().contains(x) && !msql.getSqlObject().getName().equals(x) )
+			DBSQLObject sqlo = msql.getSqlObject();
+			Set<String> deps = realNamesToMeta.keySet().stream()
+				.filter( x -> sqlo.getSql().contains(x) && !(sqlo.getSchema()+"."+sqlo.getName()).equals(x) )
 				.map(realNamesToMeta::get)
-				.collect(Collectors.toSet())
-			);
+				.collect(Collectors.toSet());
+			msql.getSqlObject().setDependencies(deps);
 		}
 
-		for (IMetaObject imo : this.values()){
-			if(imo instanceof MetaFunction){
-				getImoDepsRecursive(imo, new HashSet<>() );
-			}
-		}
 
 		Timestamp timestampAfter = new Timestamp(System.currentTimeMillis());
 		Long diff = timestampAfter.getTime() - timestampBefore.getTime();
 		ConsoleWriter.detailsPrintlnGreen(DBGitLang.getInstance().getValue("general", "time").withParams(diff.toString()));
 	}
 
-	private Set<IMetaObject> imoDepsCache = new HashSet<>();
-	public Set<String> getImoDepsRecursive(IMetaObject imo, Set<IMetaObject> path){
-
-		Set<String> dependencies = imo.getUnderlyingDbObject() != null
-			? imo.getUnderlyingDbObject().getDependencies()
-			: new HashSet<>();
-
-		if (imoDepsCache.contains(imo) || path.contains(imo)) { return dependencies; }
-
-		Set<String> newDependencies = new HashSet<>(dependencies);
-		Set<IMetaObject> newPath = new HashSet<>(path);
-		newPath.add(imo);
-
-		for (String dep : dependencies){
-			if(this.containsKey(dep)){
-				newDependencies.addAll(getImoDepsRecursive(this.get(dep), newPath));
-			}
-		}
-
-		imo.getUnderlyingDbObject().setDependencies(newDependencies);
-		imoDepsCache.add(imo);
-		return newDependencies;
-	}
 
 	public static int compareMeta(String nm1, String nm2) {
 		//тут порядок объектов
