@@ -665,7 +665,7 @@ public class DBAdapterPostgres extends DBAdapter {
 					"FROM pg_catalog.pg_proc p\r\n" +
 					"  JOIN pg_catalog.pg_roles u ON u.oid = p.proowner\r\n" +
 					"  LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace\r\n" +
-					"WHERE pg_catalog.pg_function_is_visible(p.oid)\r\n" +
+					"WHERE n.nspname not in('pg_catalog', 'information_schema')\r\n" +
 					"  AND n.nspname = \'"+schema+"\'";
 			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
@@ -700,7 +700,7 @@ public class DBAdapterPostgres extends DBAdapter {
 					"FROM pg_catalog.pg_proc p\r\n" +
 					"  JOIN pg_catalog.pg_roles u ON u.oid = p.proowner\r\n" +
 					"  LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace\r\n" +
-					"WHERE pg_catalog.pg_function_is_visible(p.oid)\r\n" +
+					"WHERE n.nspname not in('pg_catalog', 'information_schema')\r\n" +
 					"  AND n.nspname = \'"+schema+ "\' AND p.proname=\'"+name+"\'";
 			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
