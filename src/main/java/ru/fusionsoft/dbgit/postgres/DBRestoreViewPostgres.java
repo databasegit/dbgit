@@ -43,8 +43,9 @@ public class DBRestoreViewPostgres extends DBRestoreAdapter {
 				}
 				if(!exist){
 					String query = restoreView.getSqlObject().getSql();
-					
-					if (restoreView.getSqlObject().getName().contains(".")) {
+					String name = restoreView.getSqlObject().getName();
+					boolean nameShouldBeEscaped = name.contains(".") || Character.isUpperCase(name.codePointAt(0));
+					if (nameShouldBeEscaped) {
 						query = query.replace(
 								"create or replace view " + restoreView.getSqlObject().getSchema() + "." + restoreView.getSqlObject().getName(), 
 								"create or replace view " + restoreView.getSqlObject().getSchema() + ".\"" + restoreView.getSqlObject().getName() + "\"");
@@ -53,8 +54,11 @@ public class DBRestoreViewPostgres extends DBRestoreAdapter {
 					if (!query.endsWith(";")) query = query + ";";
 					query = query + "\n";
 					
-					query+= "ALTER VIEW "+ restoreView.getSqlObject().getSchema() + "." + (restoreView.getSqlObject().getName().contains(".")?("\"" + restoreView.getSqlObject().getName() + "\""):restoreView.getSqlObject().getName()) +" OWNER TO "+restoreView.getSqlObject().getOwner()+";\n";
-					st.execute(query); 
+					query+= "ALTER VIEW "+ restoreView.getSqlObject().getSchema() + "."
+							+ ( nameShouldBeEscaped  ?( "\"" + name + "\"") : name)
+							+ " OWNER TO "+restoreView.getSqlObject().getOwner()+";\n";
+					st.execute(query);
+					connect.commit();
 					//TODO Восстановление привилегий	
 				}
 			}

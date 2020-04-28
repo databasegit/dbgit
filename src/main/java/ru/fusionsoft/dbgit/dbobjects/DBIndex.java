@@ -26,7 +26,7 @@ public class DBIndex extends DBSQLObject {
 	public String getSql() {
 		return options.get("ddl") != null ? options.get("ddl").toString() : "";
 	}
-	
+
 	public String getHash() {
 		CalcHash ch = new CalcHash();
 		ch.addData(this.getName());

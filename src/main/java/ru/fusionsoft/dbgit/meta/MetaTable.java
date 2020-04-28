@@ -3,14 +3,8 @@ package ru.fusionsoft.dbgit.meta;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 import ru.fusionsoft.dbgit.adapters.AdapterFactory;
@@ -47,7 +41,7 @@ public class MetaTable extends MetaBase {
 	
 	@YamlOrder(4)
 	private Map<String, DBConstraint> constraints = new TreeMap<>();
-	
+
 	public MetaTable() {	
 		setDbType();
 		setDbVersion();
@@ -123,6 +117,10 @@ public class MetaTable extends MetaBase {
 		
 		if (constraints.size() == 0)
 			constraints.putAll(adapter.getConstraints(tbl.getSchema(), tbl.getName()));
+		/*
+		if (dependencies.size() == 0)
+			dependencies.addAll(adapter.getDependencies(tbl.getSchema(), tbl.getName()));
+		 */
 		return true;
 	}
 	

@@ -9,7 +9,7 @@ import ru.fusionsoft.dbgit.meta.IMetaObject;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
 public class DBGitIndex {
-	public static final String VERSION = "0.3.0";
+	public static final String VERSION = "0.3.1";
 	
 	private static DBGitIndex gitIndex = null;
 	private TreeMapItemIndex treeItems;
@@ -65,7 +65,24 @@ public class DBGitIndex {
 	public ItemIndex deleteItem(IMetaObject obj) {
 		return editItem(obj, true);
 	}
-	
+
+	public boolean removeItemFromIndex(IMetaObject obj) {
+		String name = obj.getName();
+		return removeItemFromIndex(name);
+	}
+
+	public boolean removeItemFromIndex(String name) {
+		try {
+			treeItems.remove(name);
+			addToGit();
+			saveDBIndex();
+			return true;
+		} catch (Exception ex){
+			ex.printStackTrace();
+			return false;
+		}
+	}
+
 	public void saveDBIndex() throws ExceptionDBGit {
 		try{				
 			File file = new File(DBGitPath.getFullPath(DBGitPath.INDEX_FILE));				

@@ -3,7 +3,8 @@ package ru.fusionsoft.dbgit.core.db;
 public enum DbType {
     ORACLE("oracle"),
     POSTGRES("postgresql"),
-    MYSQL("mysql");
+    MYSQL("mysql"),
+    MSSQL("mssql");
 
     private String dbName;
 

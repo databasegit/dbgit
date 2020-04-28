@@ -88,7 +88,7 @@ public class TableConverterMySql implements IDBConvertAdapter {
                 " add constraint " + constraint.getName() + " " + ddl;
     }
 
-    private String typeFromAnotherDB(DbType dbType, DBTableField field) {//TODO: change datatypes
+    private String typeFromAnotherDB(DbType dbType, DBTableField field) {
         ConsoleWriter.println("Converting table field " + field.getName() + " from " + dbType.toString().toLowerCase() + " to mysql...");
         String result = "";
         switch (field.getTypeUniversal()) {
@@ -96,20 +96,23 @@ public class TableConverterMySql implements IDBConvertAdapter {
                 result = "VARCHAR(" + field.getLength() + ")";
                 break;
             case NUMBER:
-                result = "NUMERIC";
+                result = "INT";
                 break;
             case DATE:
                 result = "TIMESTAMP";
                 break;
             case BINARY:
-                result = "BINARY";//(n)
+                result = "BLOB";
                 break;
             case TEXT:
                 result = "TEXT";
                 break;
-            case NATIVE:
-                result = "native";
+            case BOOLEAN:
+                result = "BOOLEAN";
                 break;
+            case NATIVE:
+            default:
+                result = "blob";
         }
         return result;
     }

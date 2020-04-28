@@ -82,7 +82,8 @@ public class StringProperties {
 	public Map<String, StringProperties> getChildren() {
 		return children;
 	}
-	
+
+	//TODO @Nullable
 	public StringProperties get(String name) {
 		if (children.containsKey(name)) {
 			return children.get(name);

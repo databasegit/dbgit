@@ -5,11 +5,7 @@ import java.sql.Timestamp;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 
-import ru.fusionsoft.dbgit.core.DBGit;
-import ru.fusionsoft.dbgit.core.DBGitIndex;
-import ru.fusionsoft.dbgit.core.DBGitPath;
-import ru.fusionsoft.dbgit.core.ExceptionDBGit;
-import ru.fusionsoft.dbgit.core.GitMetaDataManager;
+import ru.fusionsoft.dbgit.core.*;
 import ru.fusionsoft.dbgit.meta.IMapMetaObject;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
 import ru.fusionsoft.dbgit.meta.TreeMapMetaObject;
@@ -58,26 +54,35 @@ public class CmdRm implements IDBGitCommand {
 
 		GitMetaDataManager gmdm = GitMetaDataManager.getInctance();		
 		IMapMetaObject dbObjs = gmdm.loadFileMetaDataForce();
+		dbObjs.putAll(gmdm.loadDBMetaData());
+
 		IMapMetaObject deleteObjs = new TreeMapMetaObject();
 		
 		Integer countDelete = 0;
-		
+
 		ConsoleWriter.detailsPrintLn(getLang().getValue("general", "rm", "deleting"));
-		for (IMetaObject obj : dbObjs.values()) {
-			if (maskAdd.match(obj.getName())) {			
+		for (ItemIndex idxItem : index.getTreeItems().values()) {
+			if (maskAdd.match(idxItem.getName())) {
 				Timestamp timestampBefore = new Timestamp(System.currentTimeMillis());
-				ConsoleWriter.detailsPrintLn(getLang().getValue("general", "rm", "processing").withParams(obj.getName()));
-				
-				deleteObjs.put(obj);
-				ConsoleWriter.detailsPrint(getLang().getValue("general", "rm", "removingFromGit"), 2);				
-				countDelete += obj.removeFromGit();					
+				ConsoleWriter.detailsPrintLn(getLang().getValue("general", "rm", "processing").withParams(idxItem.getName()));
+
+				IMetaObject metaObject = dbObjs.get(idxItem.getName());
+				if(metaObject != null){
+					deleteObjs.put(metaObject);
+
+					ConsoleWriter.detailsPrint(getLang().getValue("general", "rm", "removingFromGit"), 2);
+					countDelete += metaObject.removeFromGit();
+					ConsoleWriter.detailsPrintlnGreen(getLang().getValue("general", "ok"));
+
+					ConsoleWriter.detailsPrint(getLang().getValue("general", "rm", "removingFromIndex"), 2);
+					index.deleteItem(metaObject);
+				} else {
+					ConsoleWriter.detailsPrintlnGreen(getLang().getValue("general", "ok"));
+				}
 				ConsoleWriter.detailsPrintlnGreen(getLang().getValue("general", "ok"));
-				
-				ConsoleWriter.detailsPrint(getLang().getValue("general", "rm", "removingFromIndex"), 2);
-				index.deleteItem(obj);
-				ConsoleWriter.detailsPrintlnGreen(getLang().getValue("general", "ok"));
-				
-    			Timestamp timestampAfter = new Timestamp(System.currentTimeMillis());
+
+
+				Timestamp timestampAfter = new Timestamp(System.currentTimeMillis());
     			Long diff = timestampAfter.getTime() - timestampBefore.getTime();
 				ConsoleWriter.detailsPrint(getLang().getValue("general", "time").withParams(diff.toString()), 2);
 				ConsoleWriter.detailsPrintLn("");
@@ -85,7 +90,7 @@ public class CmdRm implements IDBGitCommand {
 		}
 		if (cmdLine.hasOption("db")) {
 			ConsoleWriter.detailsPrint(getLang().getValue("general", "rm", "removingFromDb"), 2);
-			gmdm.deleteDataBase(deleteObjs);
+			gmdm.deleteDataBase(deleteObjs, true);
 			ConsoleWriter.detailsPrintlnGreen(getLang().getValue("general", "ok"));
 		}
 		

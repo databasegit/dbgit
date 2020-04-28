@@ -20,7 +20,7 @@ public class FactoryDBRestoreAdapterMySql implements IFactoryDBAdapterRestoteMet
         //aMap.put(DBGitMetaType.DBGitTableSpace.getValue(), new DBRestoreTableSpaceMySql());
         //aMap.put(DBGitMetaType.DBGitRole.getValue(), new DBRestoreRoleMySql());
         //aMap.put(DBGitMetaType.DBGitSequence.getValue(), new DBRestoreSequenceMySql());
-        //aMap.put(DBGitMetaType.DBGitTable.getValue(), new DBRestoreTableMySql());
+        aMap.put(DBGitMetaType.DBGitTable.getValue(), new DBRestoreTableMySql());
         //aMap.put(DBGitMetaType.DbGitTableData.getValue(), new DBRestoreTableDataMySql());
         //aMap.put(DBGitMetaType.DbGitProcedure.getValue(), new DBRestoreProcedureMySql());
         //aMap.put(DBGitMetaType.DbGitFunction.getValue(), new DBRestoreFunctionMySql());

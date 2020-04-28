@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringJoiner;
+import java.util.stream.Collectors;
 
 import ru.fusionsoft.dbgit.adapters.DBRestoreAdapter;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
@@ -138,17 +139,18 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 			
 			String fields = "";
 			if (restoreTableData.getmapRows().size() > 0)
-				fields = keysToString(restoreTableData.getmapRows().firstEntry().getValue().getData().keySet()) + " values ";
+				fields = keysToString(restoreTableData.getmapRows().firstEntry().getValue().getData().keySet().stream().map(DBAdapterPostgres::escapeNameIfNeeded).collect(Collectors.toSet())) + " values ";
 			MapDifference<String, RowData> diffTableData = Maps.difference(restoreTableData.getmapRows(),currentTableData.getmapRows());
 			String schema = getPhisicalSchema(restoreTableData.getTable().getSchema());
 			
 			schema = (SchemaSynonym.getInstance().getSchema(schema) == null) ? schema : SchemaSynonym.getInstance().getSchema(schema);
-			String tblName = schema + "." + restoreTableData.getTable().getName();
-			
-			ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "tableData").withParams(tblName) + "\n", 1);
+			String tblNameUnescaped = schema + "." + restoreTableData.getTable().getName();
+			String tblNameEscaped = schema + "." + DBAdapterPostgres.escapeNameIfNeeded(restoreTableData.getTable().getName());
+
+			ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "tableData").withParams(tblNameUnescaped) + "\n", 1);
 			
 			ResultSet rsTypes = st.executeQuery("select column_name, data_type from information_schema.columns \r\n" + 
-					"where lower(table_schema||'.'||table_name) = lower('" + tblName + "')");
+					"where lower(table_schema||'.'||table_name) = lower('" + tblNameUnescaped + "')");
 
 			HashMap<String, String> colTypes = new HashMap<String, String>();
 			while (rsTypes.next()) {
@@ -161,9 +163,9 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 				ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "inserting"), 2);
 				
 				for(RowData rowData:diffTableData.entriesOnlyOnLeft().values()) {
-					ArrayList<String> fieldsList = new ArrayList<String>(rowData.getData().keySet());
+					ArrayList<String> fieldsList = new ArrayList<String>(rowData.getData().keySet().stream().map(DBAdapterPostgres::escapeNameIfNeeded).collect(Collectors.toList()));
 
-					String insertQuery = "insert into "+tblName +
+					String insertQuery = "insert into " + tblNameEscaped +
 							fields+valuesToString(rowData.getData().values(), colTypes, fieldsList) + ";\n";
 					
 					ConsoleWriter.detailsPrintLn(insertQuery);
@@ -176,7 +178,7 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 						ConsoleWriter.detailsPrintLn(data.getSQLData());						
 						
 						ResultSet rs = st.executeQuery("select data_type from information_schema.columns \r\n" + 
-								"where lower(table_schema||'.'||table_name) = lower('" + tblName + "') and lower(column_name) = '" + fieldsList.get(i - 1) + "'");
+								"where lower(table_schema||'.'||table_name) = lower('" + tblNameUnescaped + "') and lower(column_name) = '" + fieldsList.get(i - 1) + "'");
 						
 						boolean isBoolean = false;
 						while (rs.next()) {							
@@ -226,7 +228,7 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 					delValues+=valuejoiner.toString()+")";
 					primarykeys.clear();
 					if (delValues.length() > 3)
-						deleteQuery+="delete from " + tblName+
+						deleteQuery+="delete from " + tblNameUnescaped+
 							" where " + delFields + " = " + delValues + ";\n";
 					if(deleteQuery.length() > 50000 ){
 						st.execute(deleteQuery);
@@ -286,7 +288,7 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 							updFields+=updfieldJoiner.toString()+")";
 							updValues+=updvaluejoiner.toString()+")";							
 							
-							updateQuery="update "+tblName+
+							updateQuery="update "+tblNameEscaped+
 									" set "+updFields + " = " + valuesToString(tempCols.values(), colTypes, fieldsList) + " where " + keyFields+ "=" +keyValues+";\n";							
 							
 							ConsoleWriter.detailsPrintLn(updateQuery);
@@ -300,7 +302,7 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 								ConsoleWriter.detailsPrintLn(data.getSQLData());						
 								
 								ResultSet rs = st.executeQuery("select data_type from information_schema.columns \r\n" + 
-										"where lower(table_schema||'.'||table_name) = lower('" + tblName + "') and lower(column_name) = '" + fieldsList.get(i - 1) + "'");
+										"where lower(table_schema||'.'||table_name) = lower('" + tblNameUnescaped + "') and lower(column_name) = '" + fieldsList.get(i - 1) + "'");
 								
 								boolean isBoolean = false;
 								while (rs.next()) {							

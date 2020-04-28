@@ -4,6 +4,9 @@ import ru.fusionsoft.dbgit.utils.CalcHash;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 import ru.fusionsoft.dbgit.utils.StringProperties;
 
+import java.util.HashSet;
+import java.util.Set;
+
 /**
  * Base class for all objects where meta info use sql
  * @author mikle
@@ -14,6 +17,7 @@ public class DBSQLObject extends DBSchemaObject {
 	protected String sql;
 	protected String owner;
 	private StringProperties options = new StringProperties();
+
 	public String getHash() {
 		CalcHash ch = new CalcHash();
 		ch.addData(getSchema());
@@ -43,5 +47,5 @@ public class DBSQLObject extends DBSchemaObject {
 	public void setOptions(StringProperties options) {
 		this.options = options;
 	}
-	
+
 }

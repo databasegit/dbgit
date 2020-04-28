@@ -25,7 +25,7 @@ public class MetaSequence extends MetaBase {
 	public MetaSequence(DBSequence seq) {
 		setDbType();
 		setDbVersion();
-		this.sequence = seq;
+		setSequence(seq);
 	}
 	
 	@Override
@@ -40,8 +40,7 @@ public class MetaSequence extends MetaBase {
 	
 	@Override
 	public void setName(String name) {
-		this.name = name; 
-		
+		this.name = name;
 	}
 	
 	@Override

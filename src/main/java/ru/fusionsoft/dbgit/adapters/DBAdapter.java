@@ -3,35 +3,20 @@ package ru.fusionsoft.dbgit.adapters;
 import java.io.OutputStream;
 import java.sql.Connection;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+import java.text.MessageFormat;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import com.axiomalaska.jdbc.NamedParameterPreparedStatement;
-
-import ru.fusionsoft.dbgit.core.DBConnection;
-import ru.fusionsoft.dbgit.core.DBGitConfig;
-import ru.fusionsoft.dbgit.core.DBGitLang;
-import ru.fusionsoft.dbgit.core.ExceptionDBGit;
-import ru.fusionsoft.dbgit.core.ExceptionDBGitRestore;
-import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
-import ru.fusionsoft.dbgit.core.SchemaSynonym;
+import com.google.common.collect.ImmutableList;
+import ru.fusionsoft.dbgit.core.*;
 import ru.fusionsoft.dbgit.core.db.FieldType;
 import ru.fusionsoft.dbgit.data_table.*;
-import ru.fusionsoft.dbgit.dbobjects.DBSequence;
+import ru.fusionsoft.dbgit.dbobjects.DBSQLObject;
+import ru.fusionsoft.dbgit.dbobjects.DBTable;
 import ru.fusionsoft.dbgit.dbobjects.DBTableField;
-import ru.fusionsoft.dbgit.meta.DBGitMetaType;
-import ru.fusionsoft.dbgit.meta.IMapMetaObject;
-import ru.fusionsoft.dbgit.meta.IMetaObject;
-import ru.fusionsoft.dbgit.meta.MetaSequence;
-import ru.fusionsoft.dbgit.meta.MetaSql;
-import ru.fusionsoft.dbgit.meta.MetaTable;
-import ru.fusionsoft.dbgit.meta.MetaTableData;
-import ru.fusionsoft.dbgit.meta.TreeMapMetaObject;
+import ru.fusionsoft.dbgit.meta.*;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 import ru.fusionsoft.dbgit.utils.StringProperties;
 
@@ -47,6 +32,31 @@ public abstract class DBAdapter implements IDBAdapter {
 	protected Boolean isExec = true;
 	protected OutputStream streamSql = null;	
 	protected DBGitLang lang = DBGitLang.getInstance();
+
+	public static Comparator<IMetaObject> imoTypeComparator = Comparator.comparing(x->x.getType().getPriority());
+	public static Comparator<IMetaObject> imoDependenceComparator = (o1, o2) -> {
+
+		int result = imoTypeComparator.compare(o1, o2);
+		if(result == 0){
+			if(o1 instanceof MetaSql || o1 instanceof MetaTable){
+				Set<String> leftDeps = o1.getUnderlyingDbObject().getDependencies();
+				Set<String> rightDeps = o2.getUnderlyingDbObject().getDependencies();
+
+				if (rightDeps.contains(o1.getName()) || (leftDeps.size()==0 && rightDeps.size()!=0)) return -1;
+				if (leftDeps.contains(o2.getName()) || (rightDeps.size()==0 && leftDeps.size()!=0)) return 1;
+			}
+			// dependant comes earlier than dependency
+		}
+		return result;
+	};
+	public static Comparator<DBSQLObject> dbsqlComparator = (o1, o2) -> {
+		if (o2.getDependencies().contains(o1.getSchema()+"."+o1.getName())) {
+			return -1; // left comes earlier than right if right depends on it
+		} else if (o1.getDependencies().contains(o2.getSchema()+"."+o2.getName())) {
+			return 1;
+		} else return 0;
+	};
+
 
 	@Override
 	public void setConnection(Connection conn) {
@@ -106,29 +116,39 @@ public abstract class DBAdapter implements IDBAdapter {
 	@Override
 	public void restoreDataBase(IMapMetaObject updateObjs) throws Exception {
 		Connection connect = getConnection();
-		IMapMetaObject currStep = updateObjs;
-		
 		DBGitLang lang = DBGitLang.getInstance();
-		
+
+		IMapMetaObject currStep = updateObjs;
+
 		try {
 			List<MetaTable> tables = new ArrayList<MetaTable>();			
 			List<MetaTableData> tablesData = new ArrayList<MetaTableData>();
 			
 			List<String> createdSchemas = new ArrayList<String>();
 			List<String> createdRoles = new ArrayList<String>();
-			
-			Comparator<IMetaObject> comparator = new Comparator<IMetaObject>() {
-				public int compare(IMetaObject o1, IMetaObject o2) {
-				    if (o1 instanceof MetaTable) 
-				    	return -1;
-				    else if (o1 instanceof MetaTableData)
-				    	return 1;
-				    else
-				    	return 0;
+
+
+			updateObjs.calculateImoCrossDependencies();
+			List<IMetaObject> restoreObjs = updateObjs.values().stream().sorted(imoDependenceComparator).collect(Collectors.toList());
+			restoreObjs .forEach( (x) -> {
+				if (x instanceof MetaTable || x instanceof MetaSql) {
+					String deps = x.getUnderlyingDbObject().getDependencies().stream().collect(Collectors.joining(", "));
+					ConsoleWriter.detailsPrintlnGreen(MessageFormat.format(
+							"{0}. {1} depends on ({2})"
+							,restoreObjs.indexOf(x)
+							,x.getName()
+							,deps
+					));
+				} else {
+					ConsoleWriter.detailsPrintlnGreen(MessageFormat.format(
+							"{0}. {1}"
+							,restoreObjs.indexOf(x)
+							,x.getName()
+					));
 				}
-			};
-			
-			for (IMetaObject obj : updateObjs.values().stream().sorted(comparator).collect(Collectors.toList())) {
+			});
+
+			for (IMetaObject obj : restoreObjs) {
 				Integer step = 0;
 				
 				String schemaName = getSchemaName(obj);
@@ -173,9 +193,11 @@ public abstract class DBAdapter implements IDBAdapter {
 						obj = convertAdapter.convert(getDbType(), getDbVersion(), obj);							
 					}
 
-					if (step == 0 && DBGitConfig.getInstance().getBoolean("core", "TO_MAKE_BACKUP", true) && schemaName != null &&
-							getBackupAdapterFactory().getBackupAdapter(this).isExists
-								(schemaName, obj.getName().substring(obj.getName().indexOf("/") + 1, obj.getName().indexOf(".")))) {
+					if (
+						step == 0
+						&& DBGitConfig.getInstance().getBoolean("core", "TO_MAKE_BACKUP", true) && schemaName != null
+						&& getBackupAdapterFactory().getBackupAdapter(this).isExists(schemaName, obj.getName().substring(obj.getName().indexOf("/") + 1, obj.getName().lastIndexOf(".")))
+					) {
 						obj = getBackupAdapterFactory().getBackupAdapter(this).backupDBObject(obj);
 					}
 				}
@@ -212,7 +234,8 @@ public abstract class DBAdapter implements IDBAdapter {
 						if (!tables.contains(tableData))
 							tablesData.add(tableData);
 					}
-					
+
+					//call restoreAdapter.restoreMetaObject with the next 'step' until it returns true
 					res = getFactoryRestore().getAdapterRestore(obj.getType(), this).restoreMetaObject(obj, step);
 					step++;
 
@@ -224,7 +247,7 @@ public abstract class DBAdapter implements IDBAdapter {
     			Long diff = timestampAfter.getTime() - timestampBefore.getTime();
     			ConsoleWriter.println("(" + diff + " " + lang.getValue("general", "add", "ms") +")");
 			}
-			
+
 			for (MetaTable table : tables) {
 				getFactoryRestore().getAdapterRestore(DBGitMetaType.DBGitTable, this).restoreMetaObject(table, -1);
 			}
@@ -236,6 +259,8 @@ public abstract class DBAdapter implements IDBAdapter {
 			connect.commit();
 		} catch (Exception e) {
 			connect.rollback();
+			ConsoleWriter.detailsPrintlnRed(e.getLocalizedMessage());
+			e.printStackTrace();
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "restoreError").toString(), e);
 		} finally {
 			//connect.setAutoCommit(false);
@@ -245,23 +270,31 @@ public abstract class DBAdapter implements IDBAdapter {
 	
 	@Override
 	public void deleteDataBase(IMapMetaObject deleteObjs)  throws Exception {
+		deleteDataBase(deleteObjs, false);
+	}
+
+	public void deleteDataBase(IMapMetaObject deleteObjs, boolean isDeleteFromIndex) throws Exception {
 		Connection connect = getConnection();
+		DBGitIndex index = DBGitIndex.getInctance();
+
 		try {
 			//start transaction
-			for (IMetaObject obj : deleteObjs.values()) {
-				if (DBGitConfig.getInstance().getBoolean("core", "TO_MAKE_BACKUP", true)) 
-					obj = getBackupAdapterFactory().getBackupAdapter(this).backupDBObject(obj);
+			boolean toMakeBackup = DBGitConfig.getInstance().getBoolean("core", "TO_MAKE_BACKUP", true);
 
+			deleteObjs.calculateImoCrossDependencies();
+			for (IMetaObject obj : deleteObjs.values().stream().sorted(imoDependenceComparator.reversed()).collect(Collectors.toList())) {
+				if (toMakeBackup) { obj = getBackupAdapterFactory().getBackupAdapter(this).backupDBObject(obj); }
 				getFactoryRestore().getAdapterRestore(obj.getType(), this).removeMetaObject(obj);
+				if(isDeleteFromIndex) index.removeItemFromIndex(obj);
 			}
+
 			connect.commit();
 		} catch (Exception e) {
 			connect.rollback();
 			throw new ExceptionDBGitRestore(DBGitLang.getInstance().getValue("errors", "restore", "removeError").toString(), e);
 		} finally {
 			//connect.setAutoCommit(false);
-		} 
-
+		}
 	}
 	
 	public String cleanString(String str) {

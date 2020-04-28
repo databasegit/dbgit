@@ -14,7 +14,9 @@ public class MetaView  extends MetaSql {
 	public MetaView(DBView vw) throws ExceptionDBGit {
 		super(vw);
 	}
-	
+
+
+
 	@Override
 	public DBGitMetaType getType() {
 		return DBGitMetaType.DbGitView;

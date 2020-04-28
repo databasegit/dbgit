@@ -1,15 +1,9 @@
 package ru.fusionsoft.dbgit.postgres;
 
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.sql.*;
+import java.text.MessageFormat;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import ru.fusionsoft.dbgit.adapters.AdapterFactory;
@@ -61,6 +55,7 @@ public class DBAdapterPostgres extends DBAdapter {
 	private FactoryDBAdapterRestorePostgres restoreFactory = new FactoryDBAdapterRestorePostgres();
 	private FactoryDbConvertAdapterPostgres convertFactory = new FactoryDbConvertAdapterPostgres();	
 	private FactoryDBBackupAdapterPostgres backupFactory = new FactoryDBBackupAdapterPostgres();
+	private static Set<String> reservedWords = new HashSet<>();
 
 	@Override
 	public IFactoryDBAdapterRestoteMetaData getFactoryRestore() {
@@ -212,10 +207,21 @@ public class DBAdapterPostgres extends DBAdapter {
 		Map<String, DBTable> listTable = new HashMap<String, DBTable>();
 		try {
 			String query = 
-					"select tablename as table_name,tableowner as owner,tablespace,hasindexes,hasrules,hastriggers "
-					+ ", obj_description(to_regclass(schemaname || '.\"' || tablename || '\"')::oid) table_comment "
-					+ "from pg_tables where schemaname not in ('information_schema', 'pg_catalog') "
-					+ "and schemaname not like 'pg_toast%' and upper(schemaname) = upper(:schema) ";
+					"select \n" +
+					"	tablename as table_name,\n" +
+					"	tableowner as owner,\n" +
+					"	tablespace,hasindexes,hasrules,hastriggers, \n" +
+					"	obj_description(to_regclass(schemaname || '.\"' || tablename || '\"')::oid) table_comment, ( \n" +
+					"		select array_agg(distinct n2.nspname || '/' || c2.relname || '.tbl') as dependencies\n" +
+					"	 	FROM pg_catalog.pg_constraint c  \n" +
+					"		JOIN ONLY pg_catalog.pg_class c1     ON c1.oid = c.conrelid\n" +
+					"		JOIN ONLY pg_catalog.pg_class c2     ON c2.oid = c.confrelid\n" +
+					"		JOIN ONLY pg_catalog.pg_namespace n2 ON n2.oid = c2.relnamespace\n" +
+					"		WHERE c.conrelid = to_regclass(schemaname || '.\"' || tablename || '\"')::oid\n" +
+					"		and c1.relkind = 'r' AND c.contype = 'f'\n" +
+					"	)\n" +
+					"from pg_tables \n" +
+					"where upper(schemaname) = upper(:schema)";
 			Connection connect = getConnection();
 			
 			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);			
@@ -227,6 +233,9 @@ public class DBAdapterPostgres extends DBAdapter {
 				DBTable table = new DBTable(nameTable);
 				table.setSchema(schema);
 				table.setComment(rs.getString("table_comment"));
+				if(rs.getArray("dependencies") != null){
+					table.setDependencies(new HashSet<>(Arrays.asList((String[])rs.getArray("dependencies").getArray())));
+				} else table.setDependencies(new HashSet<>());
 				rowToProperties(rs, table.getOptions());
 				listTable.put(nameTable, table);
 			}
@@ -241,12 +250,24 @@ public class DBAdapterPostgres extends DBAdapter {
 	@Override
 	public DBTable getTable(String schema, String name) {
 		try {
-			String query = 
-					"select tablename as table_name,tableowner as owner,tablespace,hasindexes,hasrules,hastriggers "
-					+ ", obj_description(to_regclass(schemaname || '.\"' || tablename || '\"')::oid) table_comment "
-					+ "from pg_tables "
-					+ "where schemaname not in ('information_schema', 'pg_catalog') "
-					+ "and schemaname not like 'pg_toast%' and upper(schemaname) = upper(\'"+schema+"\') and upper(tablename) = upper(\'"+name+"\') ";
+			String query =
+				"select \n" +
+				"	tablename as table_name,\n" +
+				"	tableowner as owner,\n" +
+				"	tablespace,hasindexes,hasrules,hastriggers, \n" +
+				"	obj_description(to_regclass(schemaname || '.\"' || tablename || '\"')::oid) table_comment, ( \n" +
+				"		select array_agg(distinct n2.nspname || '/' || c2.relname || '.tbl') as dependencies\n" +
+				"	 	FROM pg_catalog.pg_constraint c  \n" +
+				"		JOIN ONLY pg_catalog.pg_class c1     ON c1.oid = c.conrelid\n" +
+				"		JOIN ONLY pg_catalog.pg_class c2     ON c2.oid = c.confrelid\n" +
+				"		JOIN ONLY pg_catalog.pg_namespace n2 ON n2.oid = c2.relnamespace\n" +
+				"		WHERE c.conrelid = to_regclass(schemaname || '.\"' || tablename || '\"')::oid\n" +
+				"		and c1.relkind = 'r' AND c.contype = 'f'\n" +
+				"	)" +
+				"from pg_tables \n" +
+				"where upper(schemaname) = upper('"+schema+"') \n" +
+				"and upper(tablename) = upper('"+name+"')\n";
+
 			Connection connect = getConnection();
 			
 			Statement stmt = connect.createStatement();
@@ -260,6 +281,9 @@ public class DBAdapterPostgres extends DBAdapter {
 				table = new DBTable(nameTable);
 				table.setSchema(schema);
 				table.setComment(rs.getString("table_comment"));
+				if(rs.getArray("dependencies") != null){
+					table.setDependencies(new HashSet<>(Arrays.asList((String[])rs.getArray("dependencies").getArray())));
+				} else table.setDependencies(new HashSet<>());
 				rowToProperties(rs, table.getOptions());
 			}
 			stmt.close();
@@ -272,7 +296,7 @@ public class DBAdapterPostgres extends DBAdapter {
 	}
 
 	@Override
-	public Map<String, DBTableField> getTableFields(String schema, String nameTable) {
+	public Map<String, DBTableField>  getTableFields(String schema, String nameTable) {
 		
 		try {
 			Map<String, DBTableField> listField = new HashMap<String, DBTableField>();
@@ -452,27 +476,47 @@ public class DBAdapterPostgres extends DBAdapter {
 	public Map<String, DBView> getViews(String schema) {
 		Map<String, DBView> listView = new HashMap<String, DBView>();
 		try {
-			String query = "select nsp.nspname as object_schema, " + 
-				       "cls.relname as object_name,  rol.rolname as owner, 'create or replace view ' || nsp.nspname || '.' || cls.relname || ' as \n' || pg_get_viewdef(cls.oid) as ddl "+
-				       "from pg_class cls " + 
-				         " join pg_roles rol on rol.oid = cls.relowner" +
-				         " join pg_namespace nsp on nsp.oid = cls.relnamespace " + 
-				       " where nsp.nspname not in ('information_schema', 'pg_catalog') " + 
-				       " and nsp.nspname not like 'pg_toast%' " +
-				       "and cls.relkind = 'v' and nsp.nspname = '" + schema + "'";
+			String query =
+				"select nsp.nspname as object_schema, cls.relname as object_name,  rol.rolname as owner, \n" +
+				"'create or replace view ' || nsp.nspname || '.' || cls.relname || ' as ' || pg_get_viewdef(cls.oid) as ddl, (\n" +
+				"	select array_agg(distinct source_ns.nspname || '/' || source_table.relname || '.vw') as dependencySam\n" +
+				"	from pg_depend \n" +
+				"	join pg_rewrite ON pg_depend.objid = pg_rewrite.oid \n" +
+				"	join pg_class as dependent_view ON pg_rewrite.ev_class = dependent_view.oid \n" +
+				"	join pg_class as source_table ON pg_depend.refobjid = source_table.oid AND source_table.relkind = 'v'\n" +
+				"	join pg_attribute ON pg_attribute.attrelid  = pg_depend.refobjid \n" +
+				"		and pg_attribute.attnum = pg_depend.refobjsubid  \n" +
+				"	join pg_namespace dependent_ns ON dependent_ns.oid = dependent_view.relnamespace\n" +
+				"	join pg_namespace source_ns ON source_ns.oid = source_table.relnamespace\n" +
+				"	where pg_attribute.attnum > 0 \n" +
+				"	and dependent_view.relname = cls.relname\n" +
+				") as dependencies\n" +
+				"from pg_class cls  \n" +
+				"join pg_roles rol on rol.oid = cls.relowner \n" +
+				"join pg_namespace nsp on nsp.oid = cls.relnamespace  \n" +
+				"where nsp.nspname not in ('information_schema', 'pg_catalog')  \n" +
+				"and nsp.nspname not like 'pg_toast%' \n" +
+				"and cls.relkind = 'v' \n" +
+				"and nsp.nspname = '"+schema+"' \n";
+
 			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
+
 			while(rs.next()){
 				DBView view = new DBView(rs.getString("object_name"));
 				view.setSchema(rs.getString("object_schema"));
 				view.setOwner(rs.getString("owner"));
 				rowToProperties(rs, view.getOptions());
+				if(rs.getArray("dependencies") != null){
+					view.setDependencies(new HashSet<>(Arrays.asList((String[])rs.getArray("dependencies").getArray())));
+				}
 				listView.put(rs.getString("object_name"), view);
 			}
+
 			stmt.close();
 			return listView;
-		}catch(Exception e) {
+		} catch (Exception e) {
 			logger.error(e.getMessage());
 			System.out.println(lang.getValue("errors", "adapter", "views") + ": "+ e.getMessage());
 			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "views") + ": "+ e.getMessage());
@@ -483,23 +527,47 @@ public class DBAdapterPostgres extends DBAdapter {
 	public DBView getView(String schema, String name) {
 		DBView view = new DBView(name);
 		view.setSchema(schema);
+		view.setDependencies(new HashSet<>());
+
 		try {
-			String query = "select nsp.nspname as object_schema, " + 
-				       "cls.relname as object_name,  rol.rolname as owner, 'create or replace view ' || nsp.nspname || '.' || cls.relname || ' as \n' || pg_get_viewdef(cls.oid) as ddl "+
-				       "from pg_class cls " + 
-				         " join pg_roles rol on rol.oid = cls.relowner" +
-				         " join pg_namespace nsp on nsp.oid = cls.relnamespace " + 
-				       " where nsp.nspname not in ('information_schema', 'pg_catalog') " + 
-				       " and nsp.nspname not like 'pg_toast%' " +
-				       "and cls.relkind = 'v' and nsp.nspname = '" + schema + "' and cls.relname='"+name+"'";
+
+			String query =
+				"select nsp.nspname as object_schema, cls.relname as object_name,  rol.rolname as owner, \n" +
+				"'create or replace view ' || nsp.nspname || '.' || cls.relname || ' as ' || pg_get_viewdef(cls.oid) as ddl, (\n" +
+				"	select array_agg(distinct source_ns.nspname || '/' || source_table.relname || '.vw') as dependencySam\n" +
+				"	from pg_depend \n" +
+				"	join pg_rewrite ON pg_depend.objid = pg_rewrite.oid \n" +
+				"	join pg_class as dependent_view ON pg_rewrite.ev_class = dependent_view.oid \n" +
+				"	join pg_class as source_table ON pg_depend.refobjid = source_table.oid AND source_table.relkind = 'v'\n" +
+				"	join pg_attribute ON pg_attribute.attrelid  = pg_depend.refobjid \n" +
+				"		and pg_attribute.attnum = pg_depend.refobjsubid  \n" +
+				"	join pg_namespace dependent_ns ON dependent_ns.oid = dependent_view.relnamespace\n" +
+				"	join pg_namespace source_ns ON source_ns.oid = source_table.relnamespace\n" +
+				"	where pg_attribute.attnum > 0 \n" +
+				"	and dependent_view.relname = cls.relname\n" +
+				") as dependencies\n" +
+				"from pg_class cls  \n" +
+				"join pg_roles rol on rol.oid = cls.relowner \n" +
+				"join pg_namespace nsp on nsp.oid = cls.relnamespace  \n" +
+				"where nsp.nspname not in ('information_schema', 'pg_catalog')  \n" +
+				"and nsp.nspname not like 'pg_toast%' \n" +
+				"and cls.relkind = 'v' \n" +
+				"and nsp.nspname = '"+schema+"' \n" +
+				"and cls.relname='"+name+"'\n";
+
 			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
-			
+
 			while (rs.next()) {
 				view.setOwner(rs.getString("owner"));
+				if(rs.getArray("dependencies") != null){
+					view.setDependencies(new HashSet<>(Arrays.asList((String[])rs.getArray("dependencies").getArray())));
+				}
 				rowToProperties(rs, view.getOptions());
 			}
+
+
 			stmt.close();
 			return view;
 			
@@ -590,14 +658,14 @@ public class DBAdapterPostgres extends DBAdapter {
 	public Map<String, DBFunction> getFunctions(String schema) {
 		Map<String, DBFunction> listFunction = new HashMap<String, DBFunction>();
 		try {
-			String query = "SELECT n.nspname as \"schema\",u.rolname,\r\n" + 
-					"       p.proname as \"name\",\r\n" + 
-					"       pg_catalog.pg_get_function_arguments(p.oid) as \"arguments\",\r\n" + 
-					"	   pg_get_functiondef(p.oid) AS ddl\r\n" + 
-					"FROM pg_catalog.pg_proc p\r\n" + 
-					"  JOIN pg_catalog.pg_roles u ON u.oid = p.proowner\r\n" + 
-					"  LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace\r\n" + 
-					"WHERE pg_catalog.pg_function_is_visible(p.oid)\r\n" + 
+			String query = "SELECT n.nspname as \"schema\",u.rolname,\r\n" +
+					"       p.proname as \"name\",\r\n" +
+					"       pg_catalog.pg_get_function_arguments(p.oid) as \"arguments\",\r\n" +
+					"	   pg_get_functiondef(p.oid) AS ddl\r\n" +
+					"FROM pg_catalog.pg_proc p\r\n" +
+					"  JOIN pg_catalog.pg_roles u ON u.oid = p.proowner\r\n" +
+					"  LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace\r\n" +
+					"WHERE n.nspname not in('pg_catalog', 'information_schema')\r\n" +
 					"  AND n.nspname = \'"+schema+"\'";
 			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
@@ -623,16 +691,16 @@ public class DBAdapterPostgres extends DBAdapter {
 
 	@Override
 	public DBFunction getFunction(String schema, String name) {
-		
+
 		try {
-			String query = "SELECT n.nspname as \"schema\",u.rolname,\r\n" + 
-					"       p.proname as \"name\",\r\n" + 
-					"       pg_catalog.pg_get_function_arguments(p.oid) as \"arguments\",\r\n" + 
-					"	   pg_get_functiondef(p.oid) AS ddl\r\n" + 
-					"FROM pg_catalog.pg_proc p\r\n" + 
-					"  JOIN pg_catalog.pg_roles u ON u.oid = p.proowner\r\n" + 
-					"  LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace\r\n" + 
-					"WHERE pg_catalog.pg_function_is_visible(p.oid)\r\n" + 
+			String query = "SELECT n.nspname as \"schema\",u.rolname,\r\n" +
+					"       p.proname as \"name\",\r\n" +
+					"       pg_catalog.pg_get_function_arguments(p.oid) as \"arguments\",\r\n" +
+					"	   pg_get_functiondef(p.oid) AS ddl\r\n" +
+					"FROM pg_catalog.pg_proc p\r\n" +
+					"  JOIN pg_catalog.pg_roles u ON u.oid = p.proowner\r\n" +
+					"  LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace\r\n" +
+					"WHERE n.nspname not in('pg_catalog', 'information_schema')\r\n" +
 					"  AND n.nspname = \'"+schema+ "\' AND p.proname=\'"+name+"\'";
 			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
@@ -706,7 +774,7 @@ public class DBAdapterPostgres extends DBAdapter {
 	
 	@Override
 	public DBTableData getTableData(String schema, String nameTable) {
-		String tableName = schema+"."+nameTable;
+		String tableName = schema+"."+ DBAdapterPostgres.escapeNameIfNeeded(nameTable);
 		try {
 			DBTableData data = new DBTableData();
 			
@@ -841,14 +909,15 @@ public class DBAdapterPostgres extends DBAdapter {
 			rs.next();
 			if (rs.getInt("cnt") == 0) {
 				StatementLogging stLog = new StatementLogging(connect, getStreamOutputSqlCommand(), isExecSql());
-				stLog.execute("create schema " + schemaName);
+				stLog.execute("create schema " + schemaName + ";\n");
 
 				stLog.close();
 			}
-			
+
+			connect.commit();
 			rs.close();
 			st.close();
-		} catch (SQLException e) {			
+		} catch (SQLException e) {
 			throw new ExceptionDBGit(lang.getValue("errors", "adapter", "createSchema") + ": " + e.getLocalizedMessage());
 		}
 		
@@ -884,8 +953,17 @@ public class DBAdapterPostgres extends DBAdapter {
 
 	@Override
 	public boolean isReservedWord(String word) {
-		Set<String> reservedWords = new HashSet<>();
-		
+		return reservedWords.contains(word.toUpperCase());
+	}
+
+
+	public static String escapeNameIfNeeded(String name){
+		boolean shouldBeEscaped = !name.equals(name.toLowerCase()) || name.contains(".") || reservedWords.contains(name.toUpperCase()); //TODO maybe check on isReservedWord?
+		if(name.startsWith("\"") && name.endsWith("\"")) shouldBeEscaped = false;
+		return MessageFormat.format("{1}{0}{1}", name, shouldBeEscaped ? "\"" : "");
+	}
+
+	static {
 		reservedWords.add("A");
 		reservedWords.add("ABORT");
 		reservedWords.add("ABS");
@@ -1513,9 +1591,5 @@ public class DBAdapterPostgres extends DBAdapter {
 		reservedWords.add("WRITE");
 		reservedWords.add("YEAR");
 		reservedWords.add("ZONE");
-		
-		return reservedWords.contains(word.toUpperCase());
 	}
-
-
 }

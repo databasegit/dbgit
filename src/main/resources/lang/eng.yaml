@@ -49,6 +49,7 @@ general:
     seekingToRestore: Seeking objects to restore...
     toRestore: "Objects to restore:"
     toRemove: "Objects to remove:"
+    notExists: Object {0} not exists in db, it will be removed from index
     nothingToRemove: No objects to remove
     nothingToRestore: No objects to restore
     restoring: Restoring...
@@ -78,6 +79,9 @@ general:
     deleting: Deleteng...
     updating: Updating...
     unsupportedTypes: Table {0} contains unsupported types, it will be skipped
+    willMakeBackup: Backup option enabled, all objects will be backed up before making changes
+    toMakeChanges: Restore key specified, the operation will make changes to database
+    notMakeChanges: The operation will NOT make changes to database, a sql script was generated at {0}. Use "-r" key to make changes.
   rm:
     checking: Checking files
     deleteng: Deleting
@@ -146,7 +150,7 @@ errors:
     pkNotFound: PK not found for table {0}, cannot process row!
     cantConnect: Can't connect to db!
     errorLoadDelete: Error load and delete object
-  add: 
+  add:
     badCommand: Bad command. Not found object to add!
     cantFindObjectInDb: Can't find object {0} in database
   checkout:
@@ -173,6 +177,7 @@ errors:
     cantGetOtherUsersObjects: Can't show db objects of other users! Shown objects for current db user only!
     parseError: Error parse type metaObject {0}
     notFound: Not found object {0}
+    encrypted: Could not get ddl of database object {0}, the restoration is impossible
     tooManyRecords: Table {0} has more than {1} records. dbgit can't save this table data.
     compareMetaError: compareMeta Error! {0} to {1}
   dataTable:

@@ -21,6 +21,8 @@ import ru.fusionsoft.dbgit.dbobjects.DBSQLObject;
  *
  */
 public abstract class MetaSql extends MetaBase {
+
+
 	protected DBSQLObject sqlObject;
 	public MetaSql() {
 		setDbType();
@@ -41,7 +43,7 @@ public abstract class MetaSql extends MetaBase {
 		this.sqlObject = sqlObject;
 		setName(sqlObject.getSchema()+"/"+sqlObject.getName()+"."+getType().getValue());
 	}
-	
+
 	@Override
 	public boolean serialize(OutputStream stream) throws Exception {
 		/*

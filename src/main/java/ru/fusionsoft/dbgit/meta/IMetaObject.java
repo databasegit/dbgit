@@ -10,7 +10,7 @@ import java.io.OutputStream;
 import ru.fusionsoft.dbgit.core.DBGitPath;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.db.DbType;
-import ru.fusionsoft.dbgit.utils.ConsoleWriter;
+import ru.fusionsoft.dbgit.dbobjects.DBSchemaObject;
 
 /**
  * <div class="en">
@@ -31,7 +31,7 @@ import ru.fusionsoft.dbgit.utils.ConsoleWriter;
  *
  */
 public interface IMetaObject {
-	public static final String EMPTY_HASH = "<EMPTY>";
+	public static final String EMPTY_HASH = "<EMPTY>"; 
 	public static final int MAX_FILE_NAME_LENGTH = 130; 
 	/**
 	 * 
@@ -124,7 +124,7 @@ public interface IMetaObject {
 		FileInputStream fis = new FileInputStream(file);
 		IMetaObject meta = this.deSerialize(fis);
 		fis.close();
-		if (meta != null) {
+		if (meta != null && meta.getName().isEmpty()) {
 			meta.setName(this.getName());
 		}
 		
@@ -138,6 +138,12 @@ public interface IMetaObject {
 	public int addToGit() throws ExceptionDBGit;
 	
 	public int removeFromGit() throws ExceptionDBGit;
-	
-	
+
+
+	default DBSchemaObject getUnderlyingDbObject(){
+		//All in one place
+		if(this instanceof MetaSql) return ((MetaSql) this).getSqlObject();
+		if(this instanceof MetaTable) return ((MetaTable) this).getTable();
+		return null;
+	}
 }

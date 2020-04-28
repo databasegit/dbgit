@@ -5,6 +5,9 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.text.MessageFormat;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import ru.fusionsoft.dbgit.adapters.DBBackupAdapter;
 import ru.fusionsoft.dbgit.core.DBGitPath;
@@ -12,11 +15,7 @@ import ru.fusionsoft.dbgit.core.ExceptionDBGitRestore;
 import ru.fusionsoft.dbgit.core.SchemaSynonym;
 import ru.fusionsoft.dbgit.dbobjects.DBConstraint;
 import ru.fusionsoft.dbgit.dbobjects.DBIndex;
-import ru.fusionsoft.dbgit.dbobjects.DBTableField;
-import ru.fusionsoft.dbgit.meta.IMetaObject;
-import ru.fusionsoft.dbgit.meta.MetaSequence;
-import ru.fusionsoft.dbgit.meta.MetaSql;
-import ru.fusionsoft.dbgit.meta.MetaTable;
+import ru.fusionsoft.dbgit.meta.*;
 import ru.fusionsoft.dbgit.statement.StatementLogging;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
@@ -61,13 +60,15 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 				
 				MetaTable metaTable = (MetaTable) obj;
 				metaTable.loadFromDB();
-				String objectName = metaTable.getTable().getName();
+				String tableName = metaTable.getTable().getName();
 				String schema = metaTable.getTable().getSchema();
 				schema = (SchemaSynonym.getInstance().getSchema(schema) == null) ? schema : SchemaSynonym.getInstance().getSchema(schema);
-				String tableName = getFullDbName(schema, objectName);
-				
-				if(!isExists(schema, objectName)) {
-					File file = new File(DBGitPath.getFullPath() + metaTable.getFileName());	
+				String backupTableSam = getFullDbName(schema, tableName);
+				String backupTableSamRe = Matcher.quoteReplacement(backupTableSam);
+				String tableSamRe = schema + "\\.\\\"?" + Pattern.quote(tableName) + "\\\"?";
+
+				if(!isExists(schema, tableName)) {
+					File file = new File(DBGitPath.getFullPath() + metaTable.getFileName());
 					if (file.exists())
 						obj = metaTable.loadFromFile();
 					return obj;
@@ -77,43 +78,52 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 					createSchema(stLog, schema);
 				}
 
-				ConsoleWriter.detailsPrint(lang.getValue("general", "backup", "tryingToCopy").withParams(objectName, getFullDbName(schema, objectName)), 1);
+				ConsoleWriter.detailsPrint(lang.getValue("general", "backup", "tryingToCopy").withParams(tableName, getFullDbName(schema, tableName)), 1);
 				
-				dropIfExists(isSaveToSchema() ? PREFIX + schema : schema, 
-						isSaveToSchema() ? objectName : PREFIX + objectName, stLog);
+				dropIfExists(
+					isSaveToSchema() ? PREFIX + schema : schema,
+					isSaveToSchema() ? tableName : PREFIX + tableName, stLog
+				);
 				
-				String ddl = "";
-				if (isToSaveData()) {	
-					ddl = "create table " + tableName + " as (select * from " + schema + "." + objectName + ")" +
-							(metaTable.getTable().getOptions().getChildren().containsKey("tablespace") ? 
-									" tablespace " + metaTable.getTable().getOptions().get("tablespace").getData() : "") +";\n";
-					ddl += "alter table "+ tableName + " owner to "+ metaTable.getTable().getOptions().get("owner").getData()+";\n";
-				} else {					
-					
-					ddl ="create table " + tableName + "() " +
-						(metaTable.getTable().getOptions().getChildren().containsKey("tablespace") ? 
-								" tablespace " + metaTable.getTable().getOptions().get("tablespace").getData() : "") +";\n";
-					ddl += "alter table "+ tableName + " owner to "+ metaTable.getTable().getOptions().get("tableowner").getData()+";\n";
-						
-					
-					for (DBTableField field : metaTable.getFields().values()) {
-						ddl += "alter table " + tableName + " add " + field.getName() + " " + field.getTypeSQL() + ";\n";
-					}					
-					
-				}				
-				
-				for (DBConstraint constraint : metaTable.getConstraints().values()) {
-					ddl += "alter table "+ tableName +" add constraint " + PREFIX + constraint.getName() + " " + constraint.getSql() + ";\n";
-				}
-				
+				StringBuilder tableDdl = new StringBuilder(MessageFormat.format(
+					"create table {0} as (select * from {1}.{2} where 1={3}) {4};\n alter table {0} owner to {5};\n"
+					, backupTableSam
+					, schema
+					, DBAdapterPostgres.escapeNameIfNeeded(tableName)
+					, isToSaveData() ? "1" : "0"
+					, metaTable.getTable().getOptions().getChildren().containsKey("tablespace")
+							? " tablespace " + metaTable.getTable().getOptions().get("tablespace").getData()
+							: ""
+					, metaTable.getTable().getOptions().get("owner").getData()
+				));
+
 				for (DBIndex index : metaTable.getIndexes().values()) {
-					String indexDdl = index.getSql() + (metaTable.getTable().getOptions().getChildren().containsKey("tablespace") ? 
-							" tablespace "+index.getOptions().get("tablespace").getData() : "") + ";\n";
-					indexDdl = indexDdl.replace(index.getName(), PREFIX + index.getName());
-					if (indexDdl.length() > 3)
-						ddl += indexDdl;
+					String indexName = index.getName();
+					String indexNameRe = "\\\"?" + Pattern.quote(indexName) + "\\\"?";
+					String backupIndexNameRe = Matcher.quoteReplacement(DBAdapterPostgres.escapeNameIfNeeded(PREFIX + indexName));
+					String indexDdl = MessageFormat.format(
+						"{0} {1};\n"
+						, index.getSql().replaceAll(indexNameRe, backupIndexNameRe).replaceAll(tableSamRe, backupTableSamRe)
+						, metaTable.getTable().getOptions().getChildren().containsKey("tablespace")
+							?  " tablespace "+index.getOptions().get("tablespace").getData()
+							: ""
+					);
+					if (indexDdl.length() > 3) { tableDdl.append(indexDdl); }
 				}
-				stLog.execute(ddl);
+
+				for (DBConstraint constraint : metaTable.getConstraints().values()) {
+					String name = DBAdapterPostgres.escapeNameIfNeeded(PREFIX + constraint.getName());
+					String constrDdl = MessageFormat.format(
+						"alter table {0} add {1};\n"
+						,backupTableSam
+						,metaTable.getIndexes().containsKey(constraint.getName())
+							? "primary key using index " + name
+							: "constraint " + name + " " + constraint.getSql()
+					);
+					if (constrDdl.length() > 3) { tableDdl.append(constrDdl); }
+				}
+
+				stLog.execute(tableDdl.toString());
 				
 				File file = new File(DBGitPath.getFullPath() + metaTable.getFileName());				
 				if (file.exists())
@@ -143,8 +153,10 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 				
 				ddl += "alter sequence "+ sequenceName + " owner to "+ metaSequence.getSequence().getOptions().get("owner").getData()+";\n";
 				
-				dropIfExists(isSaveToSchema() ? PREFIX + schema : schema, 
-						isSaveToSchema() ? objectName : PREFIX + objectName, stLog);
+				dropIfExists(
+					isSaveToSchema() ? PREFIX + schema : schema,
+					isSaveToSchema() ? objectName : PREFIX + objectName, stLog
+				);
 				
 				stLog.execute(ddl);
 				
@@ -175,10 +187,13 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 	}
 	
 	private String getFullDbName(String schema, String objectName) {
-		if (isSaveToSchema())
-			return PREFIX + schema + "." + objectName;
-		else
-			return schema + "." + PREFIX + objectName;
+		if (isSaveToSchema()){
+			return PREFIX + schema + "." + DBAdapterPostgres.escapeNameIfNeeded(objectName);
+		}
+		else {
+			return schema + "." + DBAdapterPostgres.escapeNameIfNeeded(PREFIX + objectName);
+		}
+
 	}
 	
 	private void dropIfExists(String owner, String objectName, StatementLogging stLog) throws Exception {		
@@ -190,10 +205,10 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 				"	union select 'TRIGGER' tp, trigger_name obj_name, trigger_schema sch from information_schema.triggers\r\n" + 
 				"	union select 'FUNCTION' tp, routine_name obj_name, routine_schema sch from information_schema.routines\r\n" + 
 				") all_objects\r\n" + 
-				"where sch = '" + owner.toLowerCase() + "' and obj_name = '" + objectName.toLowerCase() + "'");
+				"where sch = '" + owner.toLowerCase() + "' and obj_name = '"+objectName+"'");
 		
 		while (rs.next()) {
-			stLog.execute("drop " + rs.getString("tp") + " " + owner + "." + objectName);
+			stLog.execute("drop " + rs.getString("tp") + " " + owner + "." + DBAdapterPostgres.escapeNameIfNeeded(objectName));
 		}
 		
 		rs.close();
@@ -238,5 +253,7 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 			return false;
 		}
 	}
+
+
 
 }

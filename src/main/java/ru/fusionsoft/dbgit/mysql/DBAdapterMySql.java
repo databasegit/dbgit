@@ -178,13 +178,10 @@ public class DBAdapterMySql extends DBAdapter {
 				table.setSchema(schema);
 				
 				Statement stmtDdl = connect.createStatement();
-				ResultSet rsDdl = stmtDdl.executeQuery("show create table " + schema + "." + nameTable);
+				ResultSet rsDdl = stmtDdl.executeQuery("show create table " + schema + ".`" + nameTable + "`");
 				rsDdl.next();
-				
 				table.getOptions().addChild("ddl", cleanString(rsDdl.getString(2)));
-				
 				rowToProperties(rs, table.getOptions());
-				
 				stmtDdl.close();
 				rsDdl.close();
 			}
@@ -309,15 +306,11 @@ public class DBAdapterMySql extends DBAdapter {
 			
 			Statement stmtDdl = connect.createStatement();
 			ResultSet rsDdl = stmtDdl.executeQuery("show create view " + schema + "." + name);
-			rsDdl.next();
-			
-			view.getOptions().addChild("ddl", cleanString(rsDdl.getString(2)));
-			
+			if(rsDdl.next())
+				view.getOptions().addChild("ddl", cleanString(rsDdl.getString(2)));
 			stmtDdl.close();
 			rsDdl.close();
-			
 			return view;
-			
 		}catch(Exception e) {
 			logger.error(e.getMessage());
 			throw new ExceptionDBGitRunTime(e.getMessage());
@@ -390,13 +383,14 @@ public class DBAdapterMySql extends DBAdapter {
                     "GROUP BY R.specific_name,1,2,5,P.ordinal_position ORDER BY P.ordinal_position";
             Statement stmt = getConnection().createStatement();
             ResultSet rs = stmt.executeQuery(query);
-            rs.next();
-            String owner = rs.getString("rolname");
-            String args = rs.getString("arguments");
-            function.setSchema(schema);
-            function.setOwner(owner);
-            rowToProperties(rs, function.getOptions());
-            //function.setArguments(args);
+            if(rs.next()) {
+				String owner = rs.getString("rolname");
+				String args = rs.getString("arguments");
+				function.setSchema(schema);
+				function.setOwner(owner);
+				rowToProperties(rs, function.getOptions());
+				//function.setArguments(args);
+			}
             stmt.close();
         } catch(Exception e) {
             throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "fnc").toString(), e);
