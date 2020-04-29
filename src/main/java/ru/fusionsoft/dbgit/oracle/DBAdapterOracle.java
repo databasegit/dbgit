@@ -331,9 +331,9 @@ public class DBAdapterOracle extends DBAdapter {
 			StringBuilder type = new StringBuilder(); 
 			type.append(rs.getString("DATA_TYPE"));
 			
-			Integer max_length = rs.getInt("CHAR_LENGTH");
+			int max_length = rs.getInt("CHAR_LENGTH");
 			if (!rs.wasNull() && !rs.getString("DATA_TYPE").contains("(")) {
-				type.append("("+max_length.toString()+")");
+				type.append("(" + max_length + ")");
 			}
 			
 			if (rs.getString("NULLABLE").equals("N")){

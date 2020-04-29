@@ -328,9 +328,9 @@ public class DBAdapterPostgres extends DBAdapter {
 			StringBuilder type = new StringBuilder(); 
 			type.append(rs.getString("data_type"));
 			
-			Integer max_length = rs.getInt("character_maximum_length");
+			int max_length = rs.getInt("character_maximum_length");
 			if (!rs.wasNull()) {
-				type.append("("+max_length.toString()+")");
+				type.append("(" + max_length + ")");
 			}
 			if (rs.getString("is_nullable").equals("NO")){
 				type.append(" NOT NULL");

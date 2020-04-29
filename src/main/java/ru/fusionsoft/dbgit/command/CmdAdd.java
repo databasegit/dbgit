@@ -10,13 +10,13 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 import org.apache.commons.csv.CSVPrinter;
 
-import ru.fusionsoft.dbgit.core.DBGit;
 import ru.fusionsoft.dbgit.core.DBGitConfig;
 import ru.fusionsoft.dbgit.core.DBGitIndex;
 import ru.fusionsoft.dbgit.core.DBGitPath;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.GitMetaDataManager;
 import ru.fusionsoft.dbgit.data_table.RowData;
+import ru.fusionsoft.dbgit.data_table.TreeMapRowData;
 import ru.fusionsoft.dbgit.meta.IMapMetaObject;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
 import ru.fusionsoft.dbgit.meta.MetaTable;
@@ -96,27 +96,32 @@ public class CmdAdd implements IDBGitCommand {
 				
 				if (obj instanceof MetaTable && maskAdd.match(obj.getName().replace(".tbl", ".csv"))) {
 					MetaTableData tblData = new MetaTableData(((MetaTable) obj).getTable());
-					tblData.setName(obj.getName().replace(".tbl", ".csv"));
-					File file = new File(DBGitPath.getFullPath(null)+"/"+obj.getFileName().replace(".tbl", ".csv"));
-					DBGitPath.createDir(file.getParent());
-
-					FileOutputStream out = new FileOutputStream(file.getAbsolutePath());
-					CSVPrinter csvPrinter = new CSVPrinter(new OutputStreamWriter(out), tblData.getCSVFormat());
 
 					gmdm.setCurrentPortion(DBGitConfig.getInstance().getInteger("core", "CURRENT_PORTION", 0));
 					boolean isFirstPortion = true;
 					
 					if (cmdLine.hasOption("c"))
 						isFirstPortion = (DBGitConfig.getInstance().getInteger("core", "CURRENT_PORTION", 0) == 0);
-					
+
+					int fileNumber = 0;
 					while (gmdm.loadNextPortion((MetaTable) obj)) {
+						String csvExtension = "." + fileNumber + ".csv";
+
+						tblData.setName(obj.getName().replace(".tbl", csvExtension));
+						tblData.setMapRows(new TreeMapRowData());
+
+						File file = new File(DBGitPath.getFullPath(null)+"/"+obj.getFileName().replace(".tbl", csvExtension));
+						DBGitPath.createDir(file.getParent());
+						FileOutputStream out = new FileOutputStream(file.getAbsolutePath());
+						CSVPrinter csvPrinter = new CSVPrinter(new OutputStreamWriter(out), tblData.getCSVFormat());
+
 						ConsoleWriter.println(getLang().getValue("general", "add", "writing").toString(), 2);
 						try {
 							//gmdm.getCurrent().serialize(out);
-							Integer count = 0;
+							int count = 0;
 							Set<String> fields = null;
 							
-							for (RowData rd : gmdm.getCurrent().getmapRows().values()) {
+							for (RowData rd : gmdm.getCurrent().getMapRows().values()) {
 								if (count == 0 && isFirstPortion) {
 									fields = rd.getData().keySet();
 									csvPrinter.printRecord(fields);
@@ -127,19 +132,19 @@ public class CmdAdd implements IDBGitCommand {
 								
 								count++;
 							}
-
-							
+							tblData.getMapRows().putAll(gmdm.getCurrent().getMapRows());
 						} catch (Exception e) {
 							e.printStackTrace();
 							throw new ExceptionDBGit(e);
 						}
+
+						csvPrinter.close();
+						out.close();
+						fileNumber++;
+						tblData.addToGit();
+						index.addItem(tblData);
+						isFirstPortion = true;
 					}
-					
-					csvPrinter.close();
-					out.close();
-					
-					tblData.addToGit();
-					index.addItem(tblData);
 				}
 			}
 		}

@@ -146,47 +146,23 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 			ResultSet rsTypes = st.executeQuery("select column_name, data_type from information_schema.columns \r\n" + 
 					"where lower(table_schema||'.'||table_name) = lower('" + tblName + "')");
 
-			HashMap<String, String> colTypes = new HashMap<String, String>();
+			HashMap<String, String> colTypes = new HashMap<>();
 			while (rsTypes.next()) {
 				colTypes.put(rsTypes.getString("column_name"), rsTypes.getString("data_type"));
 			}
 			
 			
-			if(!diffTableData.entriesOnlyOnLeft().isEmpty()) {
+			if (!diffTableData.entriesOnlyOnLeft().isEmpty()) {
 				
 				ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "inserting"), 2);
 				
-				for(RowData rowData:diffTableData.entriesOnlyOnLeft().values()) {
-					ArrayList<String> fieldsList = new ArrayList<String>(rowData.getData().keySet());
+				for (RowData rowData : diffTableData.entriesOnlyOnLeft().values()) {
+					ArrayList<String> fieldsList = new ArrayList<>(rowData.getData().keySet());
 
 					String insertQuery = "insert into "+tblName +
 							fields+valuesToString(rowData.getData().values(), colTypes, fieldsList) + ";\n";
 					
 					ConsoleWriter.detailsPrintLn(insertQuery);
-					
-					PrepareStatementLogging ps = new PrepareStatementLogging(connect, insertQuery, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
-					int i = 0;
-										
-					for (ICellData data : rowData.getData().values()) {
-						i++;
-						ConsoleWriter.detailsPrintLn(data.getSQLData());						
-						
-						ResultSet rs = st.executeQuery("select data_type from information_schema.columns \r\n" + 
-								"where lower(table_schema||'.'||table_name) = lower('" + tblName + "') and lower(column_name) = '" + fieldsList.get(i - 1) + "'");
-						
-						boolean isBoolean = false;
-						while (rs.next()) {							
-							if (rs.getString("data_type").contains("boolean")) {
-								isBoolean = true;
-							}
-						}
-
-						//ps = setValues(data, i, ps, isBoolean);
-					}
-					
-					//if (adapter.isExecSql())
-					//	ps.execute();
-					//ps.close();
 					
 					st.execute(insertQuery);
 				}

@@ -58,7 +58,7 @@ public class MetaObjectFactory  {
 			String tmp = name.substring(pos+1);
 			String[] partName = tmp.split("\\.");
 			nm.setName(partName[0]);
-			nm.setType(DBGitMetaType.valueByCode(partName[1]));
+			nm.setType(DBGitMetaType.valueByCode(partName[partName.length - 1]));
 
 			return nm;
 		} catch(Exception e) {
