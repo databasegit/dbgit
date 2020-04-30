@@ -47,7 +47,7 @@ public class CmdStatus implements IDBGitCommand {
 		
 		ConsoleWriter.setDetailedLog(cmdLine.hasOption("v"));
 		
-		GitMetaDataManager gmdm = GitMetaDataManager.getInctance();
+		GitMetaDataManager gmdm = GitMetaDataManager.getInstance();
 		
 		IMapMetaObject dbObjs = gmdm.loadDBMetaData();		
 		IMapMetaObject fileObjs = gmdm.loadFileMetaDataForce();

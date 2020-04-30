@@ -42,6 +42,9 @@ public class TableConverterMySql implements IDBConvertAdapter {
                     for (DBConstraint constraint : table.getConstraints().values())
                         constraint.getOptions().get("ddl").setData((constraintFromOracle(constraint)));
                     break;
+                case MSSQL:
+                    //FIXME
+                    break;
                 default:
                     return obj;
             }

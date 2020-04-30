@@ -13,7 +13,7 @@ import java.util.Set;
  *
  */
 public class DBSQLObject extends DBSchemaObject {
-	
+
 	protected String sql;
 	protected String owner;
 	private StringProperties options = new StringProperties();
@@ -22,21 +22,22 @@ public class DBSQLObject extends DBSchemaObject {
 		CalcHash ch = new CalcHash();
 		ch.addData(getSchema());
 		ch.addData(getName());
-		ch.addData(getSql().trim().replace("\n", ""));
+		ch.addData(getSql().trim().replaceAll("\\s+", ""));
 		if (getOwner() != null)
 			ch.addData(getOwner());
-				
+
 		return ch.calcHashStr();
 	}
 
 	public String getSql() {
 		return options.get("ddl") != null ? options.get("ddl").toString() : "";
 	}
-	
+	public void setSql(String ddl) { options.get("ddl").setData(ddl); }
+
 	public String getOwner() {
 		return owner;
 	}
-	
+
 	public void setOwner(String owner) {
 		this.owner=owner;
 	}

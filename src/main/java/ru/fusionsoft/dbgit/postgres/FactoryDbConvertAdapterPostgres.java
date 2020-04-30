@@ -16,21 +16,21 @@ import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 public class FactoryDbConvertAdapterPostgres implements IFactoryDBConvertAdapter {
 
 	private static final Map<String, IDBConvertAdapter> converters;
-	
+
 	static {
-        Map<String, IDBConvertAdapter> aMap = new HashMap<String, IDBConvertAdapter>();
-        aMap.put(DBGitMetaType.DBGitTable.getValue(), new TableConverterPostgresql());
-        aMap.put(DBGitMetaType.DbGitTableData.getValue(), new TableDataConverterPostgresql());
-        
+		Map<String, IDBConvertAdapter> aMap = new HashMap<String, IDBConvertAdapter>();
+		aMap.put(DBGitMetaType.DBGitTable.getValue(), new TableConverterPostgresql());
+		aMap.put(DBGitMetaType.DbGitTableData.getValue(), new TableDataConverterPostgresql());
+
 		converters = Collections.unmodifiableMap(aMap);
 	}
-	
+
 	@Override
 	public IDBConvertAdapter getConvertAdapter(String objectType) throws Exception {
 		if (!converters.containsKey(objectType)) {
-			ConsoleWriter.println("Cannot convert " + objectType + "!");
+			ConsoleWriter.detailsPrintlnRed("DBAdapterPostgres cannot convert " + objectType + "!");
 			return null;
-		} else		
+		} else
 			return converters.get(objectType);
 	}
 }

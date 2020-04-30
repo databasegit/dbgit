@@ -2,9 +2,9 @@ general:
   ok: OK
   done: Done!
   time: Time... {0} ms
-  addToGit: Adding to git...    
+  addToGit: Adding to git...
   add:
-    processingObject: Processing object
+    processingObject: Processing object {0}
     savingToFile: Saving to file...
     ms: ms
     writing: Writing portion...
@@ -54,6 +54,7 @@ general:
     nothingToRestore: No objects to restore
     restoring: Restoring...
     removing: Removing...
+    removingObject: Removing {0}...
     created: Created file {0}
     restoreView: Restoring view {0} ...
     restoreTrigger: Restoring trigger {0} ...
@@ -75,7 +76,7 @@ general:
     modifyColumns: Modifying columns...
     droppingColumns: Dropping columns...
     addPk: Adding PK...
-    inserting: Deleteng...
+    inserting: Inserting...
     deleting: Deleteng...
     updating: Updating...
     unsupportedTypes: Table {0} contains unsupported types, it will be skipped
@@ -89,12 +90,13 @@ general:
     removingFromGit: Removing from git...
     removingFromIndex: Removing from index...
     removingFromDb: Removing from db...
+    markingToDelete: Marking item as removing in index
   status:
-    repVersion: "Repository version: {0}" 
+    repVersion: "Repository version: {0}"
     dbgitVersion: "Dbgit version: {0}"
     differentVersions: Repository was created in different Dbgit version!
     conflicts: |
-      You have unmerged paths. 
+      You have unmerged paths.
         (fix conflicts and run "dbgit commit")
     usedSynonyms: "Used synonyms for real schemes:"
     synSchema: Synonym - schema
@@ -114,6 +116,7 @@ general:
   backup:
     tryingToCopy: Trying to copy {0} to {1}...
     creatingSchema: Creating schema {0}
+    droppingBackup: Dropping backup object {0}...
 errors:
   commandNotFound: Command {0} not found!
   executionError: Error execute dbgit
@@ -122,11 +125,11 @@ errors:
   gitPasswordNotFound: Can't find git password
   gitRemoteNotFound: Cannot find {0}
   dirNotFound: Dir not found!
-  emptyDbType: Can't get db type of object  
+  emptyDbType: Can't get db type of object
   incorrectVersion: |
     Versions of Dbgit ({0}) and repository({1}) are different!
     Please upgrade your repository!
-    (Note that this action will replace your local repository with actual db state) 
+    (Note that this action will replace your local repository with actual db state)
   paramsNumberIncorrect: Bad command. Number of parameters is not correct!
   connectionError: Error connection to database
   fileLoadError: Error load file {0}
@@ -138,12 +141,12 @@ errors:
     unsupportedEncode: UnsupportedEncodingException UTF-8
   link:
     emptyLink: Url database is empty
-    cantConnect: Test connection error    
+    cantConnect: Test connection error
   restore:
     restoreErrorDidNotReturnTrue: Error restore objects.... restoreMetaObject must return true if object restore
     restoreError: Restore objects error
     restoreNotSupport: Restore object {0} doesn't support
-    removeError: Remove objects error
+    removeError: Remove objects error {0}
     objectRestoreError: Error restore {0}
     objectRemoveError: Error remove {0}
     cannotRestore: Cannot restore {0}!
@@ -172,6 +175,7 @@ errors:
   meta:
     fail: FAIL
     okTime: OK ({0} ms)
+    ok: OK
     invalidFiles: There are invalid files
     cantGetCurrentSchema: Can't get current schema name
     cantGetOtherUsersObjects: Can't show db objects of other users! Shown objects for current db user only!
@@ -198,7 +202,7 @@ errors:
     seq: Error load sequences!
     pkg: Error load packages!
     users: Error load users!
-    roles: Error load roles!    
+    roles: Error load roles!
     rollback: Error while rollback!
     createSchema: Cannot create schema
   backup:
@@ -209,36 +213,36 @@ help:
   h: Shows this help
   v: Outputs full log of command execution
   common: |
-    usage: dbgit <command> [<args>]                                                  
-                                                                                    
-    These are common Dbgit commands used in various situations:                      
-                                                                                    
-    start a working area                                                             
-       clone      clone a repository into a new directory                           
-       init       create an empty Git repository or reinitialize an existing one    
-       link       establishes connection with database                              
-       synonym    specifies synonym for db scheme                                   
-       remote     let you bind your local repository with remote repository         
-                                                                                    
-    work on the current change                                                       
-       status     shows current status of db objects                                
-       add        adds db objects into the dbgit index                              
-       reset      reset current HEAD to the specified state                         
-       rm         removes objects from the dbgit index                              
-       restore    restores db from the dbgit repository                             
-       dump       dumps db objects into the dbgit repository                        
-                                                                                    
-    grow, mark and tweak your common history                                         
-       valid      checks if dbgit data files are valid                              
-       checkout   switch branches or restore working tree files                     
-       commit     makes git commit                                                  
-       merge      join two or more development histories together                   
-                                                                                    
-    collaborate                                                                      
+    usage: dbgit <command> [<args>]
+
+    These are common Dbgit commands used in various situations:
+
+    start a working area
+       clone      clone a repository into a new directory
+       init       create an empty Git repository or reinitialize an existing one
+       link       establishes connection with database
+       synonym    specifies synonym for db scheme
+       remote     let you bind your local repository with remote repository
+
+    work on the current change
+       status     shows current status of db objects
+       add        adds db objects into the dbgit index
+       reset      reset current HEAD to the specified state
+       rm         removes objects from the dbgit index
+       restore    restores db from the dbgit repository
+       dump       dumps db objects into the dbgit repository
+
+    grow, mark and tweak your common history
+       valid      checks if dbgit data files are valid
+       checkout   switch branches or restore working tree files
+       commit     makes git commit
+       merge      join two or more development histories together
+
+    collaborate
        pull       fetch from and integrate with another repository or a local branch
-       push       update remote refs along with associated objects                  
-       fetch      download objects and refs from another repository                 
-                                                                                    
+       push       update remote refs along with associated objects
+       fetch      download objects and refs from another repository
+
     See 'dbgit <command> -h' to read about a specific command
   link: |
     Example:
@@ -315,6 +319,7 @@ help:
     Example:
       dbgit rm <object_name>
   rm-db: Removes objects from index and from database
+  rm-idx: Removes objects from index, leaving db objects untouched
   fetch: _
   status: _
   synonym: |

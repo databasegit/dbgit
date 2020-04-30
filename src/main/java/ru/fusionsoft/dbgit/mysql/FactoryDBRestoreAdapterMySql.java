@@ -16,16 +16,15 @@ public class FactoryDBRestoreAdapterMySql implements IFactoryDBAdapterRestoteMet
     private static final Map<String, IDBAdapterRestoreMetaData> restoreAdapters;
     static {
         Map<String, IDBAdapterRestoreMetaData> aMap = new HashMap<String, IDBAdapterRestoreMetaData>();
-        //aMap.put(DBGitMetaType.DBGitSchema.getValue(), new DBRestoreSchemaMySql());
+        aMap.put(DBGitMetaType.DBGitSchema.getValue(), new DBRestoreSchemaMySql());
         //aMap.put(DBGitMetaType.DBGitTableSpace.getValue(), new DBRestoreTableSpaceMySql());
         //aMap.put(DBGitMetaType.DBGitRole.getValue(), new DBRestoreRoleMySql());
-        //aMap.put(DBGitMetaType.DBGitSequence.getValue(), new DBRestoreSequenceMySql());
         aMap.put(DBGitMetaType.DBGitTable.getValue(), new DBRestoreTableMySql());
-        //aMap.put(DBGitMetaType.DbGitTableData.getValue(), new DBRestoreTableDataMySql());
+        aMap.put(DBGitMetaType.DbGitTableData.getValue(), new DBRestoreTableDataMySql());
         //aMap.put(DBGitMetaType.DbGitProcedure.getValue(), new DBRestoreProcedureMySql());
         //aMap.put(DBGitMetaType.DbGitFunction.getValue(), new DBRestoreFunctionMySql());
         //aMap.put(DBGitMetaType.DbGitTrigger.getValue(), new DBRestoreTriggerMySql());
-        //aMap.put(DBGitMetaType.DbGitView.getValue(), new DBRestoreViewMySql());
+        //aMap.put(DBGitMetaType.DbGitView.getValue(), new DBRestoreViewMySql());//FIXME: permanently disabled
         aMap.put(DBGitMetaType.DBGitUser.getValue(), new DBRestoreUserMySql());
 
 

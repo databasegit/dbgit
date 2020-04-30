@@ -35,7 +35,7 @@ public class CmdValid implements IDBGitCommand {
 	
 	@Override
 	public void execute(CommandLine cmdLine) throws Exception {
-		GitMetaDataManager gmdm = GitMetaDataManager.getInctance();
+		GitMetaDataManager gmdm = GitMetaDataManager.getInstance();
 		ConsoleWriter.setDetailedLog(cmdLine.hasOption("v"));
 		
 		checkVersion();
