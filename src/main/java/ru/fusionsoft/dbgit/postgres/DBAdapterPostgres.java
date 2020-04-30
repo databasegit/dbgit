@@ -795,7 +795,7 @@ public class DBAdapterPostgres extends DBAdapter {
 			
 			Statement st = getConnection().createStatement();
 			String query = "    SELECT * FROM \r\n" + 
-					"   (SELECT f.*, ROW_NUMBER() OVER (ORDER BY ctid) DBGIT_ROW_NUM FROM " + schema + "." + (nameTable.contains(".")?("\"" + nameTable + "\""):nameTable) + " f) s\r\n" + 
+					"   (SELECT f.*, ROW_NUMBER() OVER (ORDER BY ctid) DBGIT_ROW_NUM FROM " + schema + "." + DBAdapterPostgres.escapeNameIfNeeded(nameTable) + " f) s\r\n" +
 					"   WHERE DBGIT_ROW_NUM BETWEEN " + begin  + " and " + end;
 			ResultSet rs = st.executeQuery(query);
 			
