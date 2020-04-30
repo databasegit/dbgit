@@ -1,12 +1,13 @@
 package ru.fusionsoft.dbgit.postgres;
 
+import com.diogonunes.jcdp.color.api.Ansi;
 import com.google.common.collect.MapDifference;
 import com.google.common.collect.MapDifference.ValueDifference;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import ru.fusionsoft.dbgit.adapters.DBRestoreAdapter;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRestore;
-import ru.fusionsoft.dbgit.core.SchemaSynonym;
 import ru.fusionsoft.dbgit.core.db.FieldType;
 import ru.fusionsoft.dbgit.dbobjects.*;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
@@ -17,11 +18,12 @@ import ru.fusionsoft.dbgit.utils.StringProperties;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.text.MessageFormat;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
+
 public class DBRestoreTablePostgres extends DBRestoreAdapter {
 
 	@Override
@@ -55,7 +57,6 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 				MetaTable existingTable = new MetaTable(restoreTable.getTable());
 
 				String schema = getPhisicalSchema(restoreTable.getTable().getSchema().toLowerCase());
-				schema = (SchemaSynonym.getInstance().getSchema(schema) == null) ? schema : SchemaSynonym.getInstance().getSchema(schema);
 				String tblName = DBAdapterPostgres.escapeNameIfNeeded(restoreTable.getTable().getName());
 
 				ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "restoreTable").withParams(schema+"."+tblName), 1);
@@ -102,14 +103,14 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 				//restore tabl fields
 //				Map<String, DBTableField> currentFileds = adapter.getTableFields(schema.toLowerCase(), restoreTable.getTable().getName().toLowerCase());
 				MapDifference<String, DBTableField> diffTableFields = Maps.difference(restoreTable.getFields(),existingTable.getFields());
-				String tblSam = schema + "." + tblName;
+				String tblSam = schema + "." + DBAdapterPostgres.escapeNameIfNeeded(tblName);
 
 				if(!diffTableFields.entriesOnlyOnLeft().isEmpty()){
 					ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "addColumns"), 2);
 
 					Comparator<DBTableField> comparator = Comparator.comparing(DBTableField::getOrder);
 
-					List<DBTableField> values = diffTableFields.entriesOnlyOnLeft().values().stream().collect(Collectors.toList());
+					List<DBTableField> values = new ArrayList<>(diffTableFields.entriesOnlyOnLeft().values());
 					values.sort(comparator);
 
 					for(DBTableField tblField : values) {
@@ -208,8 +209,7 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 			if (obj instanceof MetaTable) {
 				MetaTable restoreTable = (MetaTable)obj;	
 				String schema = getPhisicalSchema(restoreTable.getTable().getSchema());
-				schema = (SchemaSynonym.getInstance().getSchema(schema) == null) ? schema : SchemaSynonym.getInstance().getSchema(schema);
-				String tblName = schema+"."+restoreTable.getTable().getName();				
+				String tblName = schema+"."+restoreTable.getTable().getName();
 				Map<String, DBTable> tables = adapter.getTables(schema);
 				boolean exist = false;
 				if(!(tables == null || tables.isEmpty() )) {
@@ -310,12 +310,13 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 			if (obj instanceof MetaTable) {
 				MetaTable restoreTable = (MetaTable)obj;
 				MetaTable existingTable = new MetaTable(restoreTable.getTable());
-				String schema = getPhisicalSchema(restoreTable.getTable().getSchema());		
-				schema = (SchemaSynonym.getInstance().getSchema(schema) == null) ? schema : SchemaSynonym.getInstance().getSchema(schema);
+				String schema = getPhisicalSchema(restoreTable.getTable().getSchema());
+
 				if(existingTable.loadFromDB()){
 					MapDifference<String, DBIndex> diffInd = Maps.difference(restoreTable.getIndexes(), existingTable.getIndexes());
 
 					for(DBIndex ind:diffInd.entriesOnlyOnLeft().values()) {
+						if(restoreTable.getConstraints().containsKey(ind.getName())) {continue;}
 						st.execute(MessageFormat.format("{0} {1}"
 							,ind.getSql().replace(" INDEX ", " INDEX IF NOT EXISTS ")
 							,ind.getOptions().getChildren().containsKey("tablespace") ? " tablespace " + ind.getOptions().get("tablespace").getData() : ""
@@ -377,7 +378,6 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 				existingTable.loadFromDB();
 
 				String schema = getPhisicalSchema(restoreTable.getTable().getSchema());
-				schema = (SchemaSynonym.getInstance().getSchema(schema) == null) ? schema : SchemaSynonym.getInstance().getSchema(schema);
 
 				MapDifference<String, DBConstraint> diff = Maps.difference(existingTable.getConstraints(), restoreTable.getConstraints());
 
@@ -391,45 +391,19 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 					));
 				}
 
-				//restore not existing
-				for(DBConstraint constr : diff.entriesOnlyOnRight().values()) {
-					String constrDdl = "";
-					if(!constr.getConstraintType().equalsIgnoreCase("p")) {
-						constrDdl = MessageFormat.format(
-							"alter table {0}.{1} add constraint {2} {3};\n"
-							,schema
-							,DBAdapterPostgres.escapeNameIfNeeded(restoreTable.getTable().getName())
-							,DBAdapterPostgres.escapeNameIfNeeded(constr.getName())
-							,constr.getSql()
-								.replace(" " + constr.getSchema() + ".", " " + schema + ".")
-								.replace("REFERENCES ", "REFERENCES " + schema + ".")
-						);
-					} else {
-						if(existingTable.getIndexes().containsKey(constr.getName())){
-							constrDdl = MessageFormat.format(
-								"alter table {0}.{1} add primary key using index {2};\n"
-								,schema
-								,DBAdapterPostgres.escapeNameIfNeeded(restoreTable.getTable().getName())
-								,DBAdapterPostgres.escapeNameIfNeeded(existingTable.getIndexes().get(constr.getName()).getName())
-							);
-						} else {
-							constrDdl = MessageFormat.format(
-								"alter table {0}.{1} add constraint {2} {3};\n"
-								,schema
-								,DBAdapterPostgres.escapeNameIfNeeded(restoreTable.getTable().getName())
-								,DBAdapterPostgres.escapeNameIfNeeded(constr.getName())
-								,constr.getSql()
-									.replace(" " + constr.getSchema() + ".", " " + schema + ".")
-									.replace("REFERENCES ", "REFERENCES " + schema + ".")
-							);
-						}
-					}
-					st.execute(constrDdl);
+				// restore not existing
+				// not restore index if not exists and have the same named PK
+				Set<String> typesFirst = Sets.newHashSet("p", "u");
+				Comparator<DBConstraint> pksFirstComparator = Comparator.comparing(x->!typesFirst.contains(x.getConstraintType()));
+				for(DBConstraint constr : diff.entriesOnlyOnRight().values().stream().sorted(pksFirstComparator).collect(Collectors.toList()) )  {
+					createConstraint(restoreTable, constr, st, false);
 				}
 
 				//process intersects
 				for (ValueDifference<DBConstraint> constr : diff.entriesDiffering().values()){
 					MapDifference<String, StringProperties> propsDiff = Maps.difference(constr.leftValue().getOptions().getChildren(), constr.leftValue().getOptions().getChildren());
+					ConsoleWriter.printlnColor("Difference in constraints: " + propsDiff.toString(), Ansi.FColor.MAGENTA, 1);
+					createConstraint(restoreTable, constr.rightValue(), st, true);
 				}
 
 				ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
@@ -448,6 +422,23 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 		}			
 	}
 
+	private void createConstraint(MetaTable restoreTable, DBConstraint constr, StatementLogging st, boolean replaceExisting) throws Exception {
+		String schema = getPhisicalSchema(constr.getSchema());
+		String tableSam = schema + "." + DBAdapterPostgres.escapeNameIfNeeded(restoreTable.getTable().getName());
+		String constrName = DBAdapterPostgres.escapeNameIfNeeded(constr.getName());
+		String constrDdl = (replaceExisting) ? MessageFormat.format("alter table {0} drop constraint {1};\n", tableSam, constrName) : "";
+		constrDdl += MessageFormat.format(
+			"alter table {0} add constraint {1} {2};\n"
+			,tableSam
+			,constrName
+			,constr.getSql()
+				.replace(" " + constr.getSchema() + ".", " " + schema + ".")
+				.replace("REFERENCES ", "REFERENCES " + schema + ".")
+		);
+		st.execute(constrDdl);
+	}
+
+
 	public void removeTableConstraintsPostgres(IMetaObject obj) throws Exception {		
 		IDBAdapter adapter = getAdapter();
 		Connection connect = adapter.getConnection();
@@ -456,7 +447,6 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 			if (obj instanceof MetaTable) {
 				MetaTable table = (MetaTable)obj;
 				String schema = getPhisicalSchema(table.getTable().getSchema());
-				schema = (SchemaSynonym.getInstance().getSchema(schema) == null) ? schema : SchemaSynonym.getInstance().getSchema(schema);
 
 				Map<String, DBConstraint> constraints = table.getConstraints();
 				for(DBConstraint constrs :constraints.values()) {
@@ -483,7 +473,6 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 			if (obj instanceof MetaTable) {
 				MetaTable table = (MetaTable)obj;
 				String schema = getPhisicalSchema(table.getTable().getSchema());
-				schema = (SchemaSynonym.getInstance().getSchema(schema) == null) ? schema : SchemaSynonym.getInstance().getSchema(schema);
 
 				Map<String, DBIndex> constraints = table.getIndexes();
 				for(DBIndex constrs :constraints.values()) {
@@ -531,24 +520,43 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 		IDBAdapter adapter = getAdapter();
 		Connection connect = adapter.getConnection();
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
-		
-		try {			
+
+		try {
 			MetaTable tblMeta = (MetaTable)obj;
 			DBTable tbl = tblMeta.getTable();
-			
-			if (tbl == null) return;			
-			
+			if (tbl == null) return;
+
 			String schema = getPhisicalSchema(tbl.getSchema());
-			schema = (SchemaSynonym.getInstance().getSchema(schema) == null) ? schema : SchemaSynonym.getInstance().getSchema(schema);
-			st.execute("DROP TABLE IF EXISTS "+schema+"."+DBAdapterPostgres.escapeNameIfNeeded(tbl.getName()));
-		
-			// TODO Auto-generated method stub
+
+			freeTableSequences(tbl, connect, st);
+			st.execute("DROP TABLE "+schema+"."+DBAdapterPostgres.escapeNameIfNeeded(tbl.getName()));
+			connect.commit();
 		} catch (Exception e) {
 			ConsoleWriter.println(lang.getValue("errors", "restore", "objectRestoreError").withParams(e.getLocalizedMessage()));
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRemoveError").withParams(obj.getName()), e);
 		} finally {
 			st.close();
 		}
+	}
+
+	private void freeTableSequences(DBTable tbl, Connection conn, StatementLogging st) throws SQLException {
+		Statement stService = conn.createStatement();
+		ResultSet rsSequences = stService.executeQuery("SELECT n.nspname as schema, s.relname as sequence, t.relname as table\n" +
+				"	FROM pg_class s, pg_depend d, pg_class t, pg_attribute a, pg_namespace n \n" +
+				"	WHERE s.relkind   = 'S' \n" +
+				"	AND n.oid         = s.relnamespace \n" +
+				"	AND d.objid       = s.oid \n" +
+				"	AND d.refobjid    = t.oid \n" +
+				"	AND (d.refobjid, d.refobjsubid) = (a.attrelid, a.attnum)\n" +
+				"	AND n.nspname = '"+tbl.getSchema()+"' AND t.relname = '"+tbl.getName()+"'");
+
+		while (rsSequences.next()) st.execute(MessageFormat.format(
+			"ALTER SEQUENCE {0}.{1} OWNED BY NONE"
+			, rsSequences.getString("schema")
+			, rsSequences.getString("sequence"))
+		);
+
+		stService.close();
 	}
 
 }
