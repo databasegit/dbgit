@@ -6,7 +6,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.Constructor;
 
+import ru.fusionsoft.dbgit.core.DBGitLang;
 import ru.fusionsoft.dbgit.core.DBGitPath;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.db.DbType;
@@ -45,7 +47,7 @@ public interface IMetaObject {
 	 * @return
 	 */
 	public String getName();
-	
+
 	public void setName(String name) throws ExceptionDBGit;
 	
 	public DbType getDbType();
@@ -145,5 +147,29 @@ public interface IMetaObject {
 		if(this instanceof MetaSql) return ((MetaSql) this).getSqlObject();
 		if(this instanceof MetaTable) return ((MetaTable) this).getTable();
 		return null;
+	}
+
+	static IMetaObject create(String name) throws ExceptionDBGit {
+		NameMeta nm = new NameMeta(name);
+		if (nm.getType() == null) throw new ExceptionDBGit(DBGitLang.getInstance().getValue("errors", "meta", "parseError").withParams(name));
+
+		IMetaObject obj = create(nm.getType());
+		obj.setName(name);
+		return obj;
+	}
+
+	static IMetaObject create(IDBGitMetaType tp) throws ExceptionDBGit {
+		try {
+			Class<?> c = tp.getMetaClass();
+			Constructor<?> cons = c.getConstructor();
+			IMetaObject obj = (IMetaObject)cons.newInstance();
+
+			obj.setDbType();
+			obj.setDbVersion();
+
+			return obj;
+		} catch (Exception e) {
+			throw new ExceptionDBGit(e);
+		}
 	}
 }

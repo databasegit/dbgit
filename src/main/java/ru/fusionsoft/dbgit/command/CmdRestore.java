@@ -111,8 +111,7 @@ public class CmdRestore implements IDBGitCommand {
 							gmdm.loadFromDB(obj);
 							if (item.getHash().equals(obj.getHash())) {
 								deleteObjs.put(obj);
-								if (deleteObjs.size() == 1)
-									ConsoleWriter.println(getLang().getValue("general", "restore", "toRemove"));
+								if (deleteObjs.size() == 1) ConsoleWriter.println(getLang().getValue("general", "restore", "toRemove"));
 								ConsoleWriter.println("    " + obj.getName());
 							}
 						} catch(ExceptionDBGit e) {
@@ -121,24 +120,20 @@ public class CmdRestore implements IDBGitCommand {
 					}
 				}
 			}
-			if (deleteObjs.size() == 0)
+			if (deleteObjs.size() == 0){
 				ConsoleWriter.println(getLang().getValue("general", "restore", "nothingToRemove"));
-			
-			if (cmdLine.hasOption("r")) {
-				ConsoleWriter.println(getLang().getValue("general", "restore", "removing"));
+			} else {
+				if (cmdLine.hasOption("r")) ConsoleWriter.println(getLang().getValue("general", "restore", "removing"));
+				gmdm.deleteDataBase(deleteObjs, true);
 			}
-			gmdm.deleteDataBase(deleteObjs, true);
 
-			 ConsoleWriter.println(getLang().getValue("general", "restore", "seekingToRestore"));
-
+			ConsoleWriter.println(getLang().getValue("general", "restore", "seekingToRestore"));
 			for (IMetaObject obj : fileObjs.values()) {
 				Boolean isRestore = false;
 				try {
-					IMetaObject dbObj = MetaObjectFactory.createMetaObject(obj.getName());//IMetaObject.create(obj.getName());
+					IMetaObject dbObj = IMetaObject.create(obj.getName());
 					gmdm.loadFromDB(dbObj);
-					
 					isRestore = !dbObj.getHash().equals(obj.getHash());
-					
 				} catch (ExceptionDBGit e) {
 					isRestore = true;
 					e.printStackTrace();
@@ -150,20 +145,19 @@ public class CmdRestore implements IDBGitCommand {
 					//запомнили файл если хеш разный или объекта нет					
 					updateObjs.put(obj);
 					
-					if (updateObjs.size() == 1)
-						ConsoleWriter.println(getLang().getValue("general", "restore", "toRestore"));
+					if (updateObjs.size() == 1) ConsoleWriter.println(getLang().getValue("general", "restore", "toRestore"));
 					ConsoleWriter.println("    " + obj.getName());
 				}
 			}
-			
-			if (updateObjs.size() == 0)
+
+			if (updateObjs.size() == 0){
 				ConsoleWriter.println(getLang().getValue("general", "restore", "nothingToRestore"));
-			
+			}
 			if (cmdLine.hasOption("r")) {
 				ConsoleWriter.println(getLang().getValue("general", "restore", "restoring"));
 			}
 			gmdm.restoreDataBase(updateObjs);
-			
+
 		} finally {
 			if (fop != null) {
 				fop.flush();

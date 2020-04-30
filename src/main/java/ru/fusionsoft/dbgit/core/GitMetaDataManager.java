@@ -381,7 +381,7 @@ public class GitMetaDataManager {
 
 	public int removeFromGit(ItemIndex itemIndex) throws ExceptionDBGit {
 		DBGit dbGit = DBGit.getInstance();
-		IMetaObject dummyImo = MetaObjectFactory.createMetaObject(itemIndex.getName());//IMetaObject.create(itemIndex.getName());
+		IMetaObject dummyImo = IMetaObject.create(itemIndex.getName());
 		dbGit.removeFileFromIndexGit(DBGitPath.DB_GIT_PATH+"/"+ dummyImo.getFileName());
 		return 1;
 	}

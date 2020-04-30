@@ -9,6 +9,7 @@ import org.apache.commons.cli.Options;
 import ru.fusionsoft.dbgit.core.*;
 import ru.fusionsoft.dbgit.meta.IMapMetaObject;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
+import ru.fusionsoft.dbgit.meta.MetaObjectFactory;
 import ru.fusionsoft.dbgit.meta.TreeMapMetaObject;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 import ru.fusionsoft.dbgit.utils.MaskFilter;
@@ -76,7 +77,7 @@ public class CmdRm implements IDBGitCommand {
 					countDelete += metaObject.removeFromGit();
 				} else {
 					countDelete += gmdm.removeFromGit(idxItem);
-					metaObject = MetaObjectFactory.createMetaObject(idxItem.getName());//IMetaObject.create(idxItem.getName());
+					metaObject = IMetaObject.create(idxItem.getName());
 				}
 
 				ConsoleWriter.detailsPrintlnGreen(getLang().getValue("general", "ok"));
