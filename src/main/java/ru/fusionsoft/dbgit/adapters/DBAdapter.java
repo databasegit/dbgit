@@ -254,7 +254,7 @@ public abstract class DBAdapter implements IDBAdapter {
 			for (IMetaObject obj : deleteObjsSorted) {
 				if (toMakeBackup) { obj = getBackupAdapterFactory().getBackupAdapter(this).backupDBObject(obj); }
 				getFactoryRestore().getAdapterRestore(obj.getType(), this).removeMetaObject(obj);
-				if(isDeleteFromIndex) index.removeItemFromIndex(obj);
+				if(isDeleteFromIndex) index.removeItem(obj);
 			}
 
 			connect.commit();

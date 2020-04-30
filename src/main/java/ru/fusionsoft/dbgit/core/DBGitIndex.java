@@ -6,7 +6,6 @@ import java.io.FileReader;
 import java.io.FileWriter;
 
 import ru.fusionsoft.dbgit.meta.IMetaObject;
-import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
 public class DBGitIndex {
 	public static final String VERSION = "0.3.1";
@@ -62,16 +61,16 @@ public class DBGitIndex {
 		return editItem(obj, false);
 	}
 	
-	public ItemIndex deleteItem(IMetaObject obj) {
+	public ItemIndex markItemToDelete(IMetaObject obj) {
 		return editItem(obj, true);
 	}
 
-	public boolean removeItemFromIndex(IMetaObject obj) {
+	public boolean removeItem(IMetaObject obj) {
 		String name = obj.getName();
-		return removeItemFromIndex(name);
+		return removeItem(name);
 	}
 
-	public boolean removeItemFromIndex(String name) {
+	public boolean removeItem(String name) {
 		try {
 			treeItems.remove(name);
 			addToGit();
