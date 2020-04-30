@@ -1,24 +1,22 @@
 package ru.fusionsoft.dbgit.adapters;
 
+import ru.fusionsoft.dbgit.core.*;
+import ru.fusionsoft.dbgit.core.db.FieldType;
+import ru.fusionsoft.dbgit.data_table.*;
+import ru.fusionsoft.dbgit.dbobjects.DBTableField;
+import ru.fusionsoft.dbgit.meta.*;
+import ru.fusionsoft.dbgit.utils.ConsoleWriter;
+import ru.fusionsoft.dbgit.utils.StringProperties;
+
 import java.io.OutputStream;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
 import java.text.MessageFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
-import com.google.common.collect.ImmutableList;
-import ru.fusionsoft.dbgit.core.*;
-import ru.fusionsoft.dbgit.core.db.FieldType;
-import ru.fusionsoft.dbgit.data_table.*;
-import ru.fusionsoft.dbgit.dbobjects.DBSQLObject;
-import ru.fusionsoft.dbgit.dbobjects.DBTable;
-import ru.fusionsoft.dbgit.dbobjects.DBTableField;
-import ru.fusionsoft.dbgit.meta.*;
-import ru.fusionsoft.dbgit.utils.ConsoleWriter;
-import ru.fusionsoft.dbgit.utils.StringProperties;
 
 /**
  * <div class="en">The base adapter adapter class. Contains general solutions independent of a particular database</div>
@@ -32,31 +30,6 @@ public abstract class DBAdapter implements IDBAdapter {
 	protected Boolean isExec = true;
 	protected OutputStream streamSql = null;	
 	protected DBGitLang lang = DBGitLang.getInstance();
-
-	public static Comparator<IMetaObject> imoTypeComparator = Comparator.comparing(x->x.getType().getPriority());
-	public static Comparator<IMetaObject> imoDependenceComparator = (o1, o2) -> {
-
-		int result = imoTypeComparator.compare(o1, o2);
-		if(result == 0){
-			if(o1 instanceof MetaSql || o1 instanceof MetaTable){
-				Set<String> leftDeps = o1.getUnderlyingDbObject().getDependencies();
-				Set<String> rightDeps = o2.getUnderlyingDbObject().getDependencies();
-
-				if (rightDeps.contains(o1.getName()) || (leftDeps.size()==0 && rightDeps.size()!=0)) return -1;
-				if (leftDeps.contains(o2.getName()) || (rightDeps.size()==0 && leftDeps.size()!=0)) return 1;
-			}
-			// dependant comes earlier than dependency
-		}
-		return result;
-	};
-	public static Comparator<DBSQLObject> dbsqlComparator = (o1, o2) -> {
-		if (o2.getDependencies().contains(o1.getSchema()+"."+o1.getName())) {
-			return -1; // left comes earlier than right if right depends on it
-		} else if (o1.getDependencies().contains(o2.getSchema()+"."+o2.getName())) {
-			return 1;
-		} else return 0;
-	};
-
 
 	@Override
 	public void setConnection(Connection conn) {
