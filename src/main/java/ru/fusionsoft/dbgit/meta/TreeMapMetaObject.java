@@ -5,8 +5,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import ru.fusionsoft.dbgit.core.DBGitLang;
-import ru.fusionsoft.dbgit.dbobjects.DBSQLObject;
-import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 import ru.fusionsoft.dbgit.utils.LoggerUtil;
 
 /**
@@ -19,7 +17,7 @@ import ru.fusionsoft.dbgit.utils.LoggerUtil;
 public class TreeMapMetaObject extends TreeMap<String, IMetaObject> implements IMapMetaObject {
 	
 	private static final long serialVersionUID = -1939887173598208816L;
-	
+
 	public TreeMapMetaObject() {
 		/*
 		super(
@@ -37,6 +35,11 @@ public class TreeMapMetaObject extends TreeMap<String, IMetaObject> implements I
 		);
 					
 	}
+
+	public TreeMapMetaObject(List<IMetaObject> from){
+		this();
+		this.putAll(from.stream().collect(Collectors.toMap(IMetaObject::getName, key->key)));
+	}
 	
 	@Override
 	public IMapMetaObject put(IMetaObject obj) {
@@ -45,27 +48,8 @@ public class TreeMapMetaObject extends TreeMap<String, IMetaObject> implements I
 	}
 
 	@Override
-	public void calculateImoCrossDependencies() {
-		Timestamp timestampBefore = new Timestamp(System.currentTimeMillis());
-		List<MetaFunction> metaFunctions = this.values().stream().filter(x->x instanceof MetaFunction ).map(x -> (MetaFunction) x ).collect(Collectors.toList());
-
-		Map<String, String> realNamesToMeta = metaFunctions.stream().collect(Collectors.toMap(
-			x->x.getUnderlyingDbObject().getSchema() + "." + x.getUnderlyingDbObject().getName(),
-			y->y.getName())
-		);
-		for(MetaSql msql : metaFunctions){
-			DBSQLObject sqlo = msql.getSqlObject();
-			Set<String> deps = realNamesToMeta.keySet().stream()
-				.filter( x -> sqlo.getSql().contains(x) && !(sqlo.getSchema()+"."+sqlo.getName()).equals(x) )
-				.map(realNamesToMeta::get)
-				.collect(Collectors.toSet());
-			msql.getSqlObject().setDependencies(deps);
-		}
-
-
-		Timestamp timestampAfter = new Timestamp(System.currentTimeMillis());
-		Long diff = timestampAfter.getTime() - timestampBefore.getTime();
-		ConsoleWriter.detailsPrintlnGreen(DBGitLang.getInstance().getValue("general", "time").withParams(diff.toString()));
+	public SortedListMetaObject getSortedList() {
+		return new SortedListMetaObject(this.values());
 	}
 
 

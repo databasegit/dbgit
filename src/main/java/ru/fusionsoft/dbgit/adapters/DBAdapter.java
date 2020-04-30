@@ -126,35 +126,36 @@ public abstract class DBAdapter implements IDBAdapter {
 			
 			List<String> createdSchemas = new ArrayList<String>();
 			List<String> createdRoles = new ArrayList<String>();
-
-
-			updateObjs.calculateImoCrossDependencies();
-			List<IMetaObject> restoreObjs = updateObjs.values().stream().sorted(imoDependenceComparator).collect(Collectors.toList());
-			restoreObjs .forEach( (x) -> {
-				if (x instanceof MetaTable || x instanceof MetaSql) {
-					String deps = x.getUnderlyingDbObject().getDependencies().stream().collect(Collectors.joining(", "));
-					ConsoleWriter.detailsPrintlnGreen(MessageFormat.format(
-							"{0}. {1} depends on ({2})"
-							,restoreObjs.indexOf(x)
-							,x.getName()
-							,deps
-					));
-				} else {
-					ConsoleWriter.detailsPrintlnGreen(MessageFormat.format(
-							"{0}. {1}"
-							,restoreObjs.indexOf(x)
-							,x.getName()
-					));
-				}
+			SortedListMetaObject restoreObjs = updateObjs.getSortedList();
+/*
+			restoreObjs.sortFromFree().forEach( (x) -> {
+				ConsoleWriter.detailsPrintlnGreen(MessageFormat.format(
+					"{0}. {1} {2}"
+					,restoreObjs.sortFromFree().indexOf(x)
+					,x.getName()
+					,(x.getUnderlyingDbObject() != null) && (x.getUnderlyingDbObject().getDependencies() != null) && (x.getUnderlyingDbObject().getDependencies().size() > 0)
+						? "depends on (" + String.join(", ", x.getUnderlyingDbObject().getDependencies()) + ")"
+						: ""
+				));
 			});
+*/
 
-			for (IMetaObject obj : restoreObjs) {
+			if(toMakeBackup){
+				IDBBackupAdapter ba = getBackupAdapterFactory().getBackupAdapter(this);
+				ba.backupDatabase(updateObjs);
+			}
+
+
+			for (IMetaObject obj : restoreObjs.sortFromFree()) {
 				Integer step = 0;
 				
 				String schemaName = getSchemaName(obj);
-				if (schemaName != null)
-					schemaName = (SchemaSynonym.getInstance().getSchema(schemaName) == null) ? schemaName : SchemaSynonym.getInstance().getSchema(schemaName);
-				
+				if (schemaName != null) {
+					schemaName = (SchemaSynonym.getInstance().getSchema(schemaName) != null)
+						? SchemaSynonym.getInstance().getSchema(schemaName)
+						: schemaName;
+				}
+
 				boolean res = false;
 				Timestamp timestampBefore = new Timestamp(System.currentTimeMillis());
 
@@ -163,14 +164,8 @@ public abstract class DBAdapter implements IDBAdapter {
 					
 					boolean isContainsNative = false;
 					if (obj instanceof MetaTable) {						
-						MetaTable table = (MetaTable) obj;		
-						
-						for (DBTableField field : table.getFields().values()) {
-							if (field.getTypeUniversal().equals("native")) {
-								isContainsNative = true;
-								break;
-							}
-						}
+						MetaTable table = (MetaTable) obj;
+						for (DBTableField field : table.getFields().values()) { if (field.getTypeUniversal().equals("native")) { isContainsNative = true; break; } }
 					}
 					
 					if (isContainsNative) {
@@ -281,8 +276,9 @@ public abstract class DBAdapter implements IDBAdapter {
 			//start transaction
 			boolean toMakeBackup = DBGitConfig.getInstance().getBoolean("core", "TO_MAKE_BACKUP", true);
 
-			deleteObjs.calculateImoCrossDependencies();
-			for (IMetaObject obj : deleteObjs.values().stream().sorted(imoDependenceComparator.reversed()).collect(Collectors.toList())) {
+			List<IMetaObject> deleteObjsSorted = deleteObjs.getSortedList().sortFromDependant();
+
+			for (IMetaObject obj : deleteObjsSorted) {
 				if (toMakeBackup) { obj = getBackupAdapterFactory().getBackupAdapter(this).backupDBObject(obj); }
 				getFactoryRestore().getAdapterRestore(obj.getType(), this).removeMetaObject(obj);
 				if(isDeleteFromIndex) index.removeItemFromIndex(obj);
@@ -291,7 +287,7 @@ public abstract class DBAdapter implements IDBAdapter {
 			connect.commit();
 		} catch (Exception e) {
 			connect.rollback();
-			throw new ExceptionDBGitRestore(DBGitLang.getInstance().getValue("errors", "restore", "removeError").toString(), e);
+			throw new ExceptionDBGitRestore(DBGitLang.getInstance().getValue("errors", "restore", "removeError").withParams(e.getLocalizedMessage()), e);
 		} finally {
 			//connect.setAutoCommit(false);
 		}
