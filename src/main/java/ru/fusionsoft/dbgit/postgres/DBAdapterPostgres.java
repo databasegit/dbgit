@@ -249,8 +249,7 @@ public class DBAdapterPostgres extends DBAdapter {
 
 	@Override
 	public DBTable getTable(String schema, String name) {
-		try {
-			String query =
+		String query =
 				"select \n" +
 				"	tablename as table_name,\n" +
 				"	tableowner as owner,\n" +
@@ -266,7 +265,8 @@ public class DBAdapterPostgres extends DBAdapter {
 				"	)" +
 				"from pg_tables \n" +
 				"where upper(schemaname) = upper('"+schema+"') \n" +
-				"and upper(tablename) = upper('"+name+"')\n";
+				"and tablename = '"+name+"'\n";
+		try {
 
 			Connection connect = getConnection();
 			
@@ -320,7 +320,7 @@ public class DBAdapterPostgres extends DBAdapter {
 					"left join information_schema.table_constraints tc on col.table_schema = kc.table_schema and col.table_name = kc.table_name and kc.constraint_name = tc.constraint_name and tc.constraint_type = 'PRIMARY KEY' " + 
 					"left join pg_catalog.pg_statio_all_tables st on st.schemaname = col.table_schema and st.relname = col.table_name " +
 					"left join pg_catalog.pg_description pgd on (pgd.objoid=st.relid and pgd.objsubid=col.ordinal_position) " +
-					"where upper(col.table_schema) = upper(:schema) and upper(col.table_name) = upper(:table) " + 
+					"where upper(col.table_schema) = upper(:schema) and col.table_name = :table " +
 					"order by col.column_name ";
 			Connection connect = getConnection();			
 			
