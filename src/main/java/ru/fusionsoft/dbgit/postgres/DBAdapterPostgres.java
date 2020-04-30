@@ -644,29 +644,86 @@ public class DBAdapterPostgres extends DBAdapter {
 
 	@Override
 	public Map<String, DBProcedure> getProcedures(String schema) {
-		// TODO Auto-generated method stub
-		return null;
+		Map<String, DBProcedure> mapProcs = new HashMap<>();
+		try {
+			String query =
+				"SELECT n.nspname AS \"schema\", u.rolname, p.proname AS \"name\", \n" +
+				"	pg_catalog.pg_get_function_arguments(p.oid) AS \"arguments\",\n" +
+				"	pg_get_functiondef(p.oid) AS ddl\n" +
+				"FROM pg_catalog.pg_proc p\n" +
+				"	JOIN pg_catalog.pg_roles u ON u.oid = p.proowner\n" +
+				"	LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace\n" +
+				"WHERE p.prokind = 'p' \n" +
+				"	AND n.nspname not in('pg_catalog', 'information_schema')\n" +
+				"	AND n.nspname = '"+schema+"'";
+
+			Connection connect = getConnection();
+			Statement stmt = connect.createStatement();
+			ResultSet rs = stmt.executeQuery(query);
+			while(rs.next()){
+				String name = rs.getString("name");
+				String owner = rs.getString("rolname");
+				DBProcedure proc = new DBProcedure(name);
+				proc.setSchema(schema);
+				proc.setOwner(owner);
+				rowToProperties(rs,proc.getOptions());
+
+				mapProcs.put(mapProcs.containsKey(name) ? name + "_" + proc.getHash() : name, proc);
+			}
+			stmt.close();
+		}catch(Exception e) {
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "prc").toString(), e);
+		}
+		return mapProcs;
 	}
 
 	@Override
 	public DBProcedure getProcedure(String schema, String name) {
-		// TODO Auto-generated method stub
-		return null;
+		DBProcedure proc = null;
+		try {
+			String query =
+				"SELECT n.nspname AS \"schema\", u.rolname, p.proname AS \"name\", \n" +
+				"	pg_catalog.pg_get_function_arguments(p.oid) AS \"arguments\",\n" +
+				"	pg_get_functiondef(p.oid) AS ddl\n" +
+				"FROM pg_catalog.pg_proc p\n" +
+				"	JOIN pg_catalog.pg_roles u ON u.oid = p.proowner\n" +
+				"	LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace\n" +
+				"WHERE p.prokind = 'p' \n" +
+				"	AND n.nspname not in('pg_catalog', 'information_schema')\n" +
+				"	AND n.nspname = '"+schema+"'" +
+				"	AND p.proname = '"+name+"'";
+
+			Connection connect = getConnection();
+			Statement stmt = connect.createStatement();
+			ResultSet rs = stmt.executeQuery(query);
+			while(rs.next()){
+				proc = new DBProcedure(rs.getString("name"));
+				proc.setOwner(rs.getString("rolname"));
+				proc.setSchema(schema);
+				rowToProperties(rs,proc.getOptions());
+			}
+			stmt.close();
+		}catch(Exception e) {
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "prc").toString(), e);
+		}
+		return proc;
 	}
 
 	@Override
 	public Map<String, DBFunction> getFunctions(String schema) {
 		Map<String, DBFunction> listFunction = new HashMap<String, DBFunction>();
 		try {
-			String query = "SELECT n.nspname as \"schema\",u.rolname,\r\n" +
-					"       p.proname as \"name\",\r\n" +
-					"       pg_catalog.pg_get_function_arguments(p.oid) as \"arguments\",\r\n" +
-					"	   pg_get_functiondef(p.oid) AS ddl\r\n" +
-					"FROM pg_catalog.pg_proc p\r\n" +
-					"  JOIN pg_catalog.pg_roles u ON u.oid = p.proowner\r\n" +
-					"  LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace\r\n" +
-					"WHERE n.nspname not in('pg_catalog', 'information_schema')\r\n" +
-					"  AND n.nspname = \'"+schema+"\'";
+			String query =
+				"SELECT n.nspname AS \"schema\", u.rolname, p.proname AS \"name\", \n" +
+				"	pg_catalog.pg_get_function_arguments(p.oid) AS \"arguments\",\n" +
+				"	pg_get_functiondef(p.oid) AS ddl\n" +
+				"FROM pg_catalog.pg_proc p\n" +
+				"	JOIN pg_catalog.pg_roles u ON u.oid = p.proowner\n" +
+				"	LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace\n" +
+				"WHERE p.prokind = 'f' \n" +
+				"	AND n.nspname not in('pg_catalog', 'information_schema')\n" +
+				"	AND n.nspname = '"+schema+"'";
+
 			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
@@ -693,15 +750,16 @@ public class DBAdapterPostgres extends DBAdapter {
 	public DBFunction getFunction(String schema, String name) {
 
 		try {
-			String query = "SELECT n.nspname as \"schema\",u.rolname,\r\n" +
-					"       p.proname as \"name\",\r\n" +
-					"       pg_catalog.pg_get_function_arguments(p.oid) as \"arguments\",\r\n" +
-					"	   pg_get_functiondef(p.oid) AS ddl\r\n" +
-					"FROM pg_catalog.pg_proc p\r\n" +
-					"  JOIN pg_catalog.pg_roles u ON u.oid = p.proowner\r\n" +
-					"  LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace\r\n" +
-					"WHERE n.nspname not in('pg_catalog', 'information_schema')\r\n" +
-					"  AND n.nspname = \'"+schema+ "\' AND p.proname=\'"+name+"\'";
+			String query = 
+				"SELECT n.nspname AS \"schema\", u.rolname, p.proname AS \"name\", \n" +
+				"	pg_catalog.pg_get_function_arguments(p.oid) AS \"arguments\",\n" +
+				"	pg_get_functiondef(p.oid) AS ddl\n" +
+				"FROM pg_catalog.pg_proc p\n" +
+				"	JOIN pg_catalog.pg_roles u ON u.oid = p.proowner\n" +
+				"	LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace\n" +
+				"WHERE p.prokind = 'f' \n" +
+				"	AND n.nspname not in('pg_catalog', 'information_schema')\n" +
+				"	AND n.nspname = '"+schema+"' AND p.proname = '"+name+"'";
 			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
