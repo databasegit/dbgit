@@ -76,7 +76,7 @@ public class CmdRm implements IDBGitCommand {
 					countDelete += metaObject.removeFromGit();
 				} else {
 					countDelete += gmdm.removeFromGit(idxItem);
-					metaObject = IMetaObject.create(idxItem.getName());
+					metaObject = MetaObjectFactory.createMetaObject(idxItem.getName());//IMetaObject.create(idxItem.getName());
 				}
 
 				ConsoleWriter.detailsPrintlnGreen(getLang().getValue("general", "ok"));

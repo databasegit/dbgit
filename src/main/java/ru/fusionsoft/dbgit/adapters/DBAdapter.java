@@ -113,10 +113,10 @@ public abstract class DBAdapter implements IDBAdapter {
 			});
 */
 
-			if(toMakeBackup){
-				IDBBackupAdapter ba = getBackupAdapterFactory().getBackupAdapter(this);
-				ba.backupDatabase(updateObjs);
-			}
+//			if(toMakeBackup){
+//				IDBBackupAdapter ba = getBackupAdapterFactory().getBackupAdapter(this);
+//				ba.backupDatabase(updateObjs);
+//			}
 
 
 			for (IMetaObject obj : restoreObjs.sortFromFree()) {

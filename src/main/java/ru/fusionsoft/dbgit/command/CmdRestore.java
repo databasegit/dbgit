@@ -90,11 +90,11 @@ public class CmdRestore implements IDBGitCommand {
 				file.createNewFile();
 				ConsoleWriter.detailsPrintLn(getLang().getValue("general", "restore", "created").withParams(scriptName));
 			}
-			
 			fop = new FileOutputStream(file);
 		}
+
+		//delete that not present in HEAD
 		try {
-			//delete obj
 			DBGitIndex index = DBGitIndex.getInctance();
 			DBGitIgnore ignore = DBGitIgnore.getInctance();
 
@@ -104,6 +104,7 @@ public class CmdRestore implements IDBGitCommand {
 				if (item.getIsDelete()) {
 					if( !dbObjs.containsKey(item.getName()) ) {
 						ConsoleWriter.println(getLang().getValue("general", "restore", "notExists").withParams(item.getName()));
+						index.removeItem(item.getName());
 					} else {
 						try {
 							IMetaObject obj = MetaObjectFactory.createMetaObject(item.getName());
@@ -133,7 +134,7 @@ public class CmdRestore implements IDBGitCommand {
 			for (IMetaObject obj : fileObjs.values()) {
 				Boolean isRestore = false;
 				try {
-					IMetaObject dbObj = MetaObjectFactory.createMetaObject(obj.getName());				
+					IMetaObject dbObj = MetaObjectFactory.createMetaObject(obj.getName());//IMetaObject.create(obj.getName());
 					gmdm.loadFromDB(dbObj);
 					
 					isRestore = !dbObj.getHash().equals(obj.getHash());

@@ -4,7 +4,7 @@ general:
   time: Time... {0} ms
   addToGit: Adding to git...    
   add:
-    processingObject: Processing object
+    processingObject: Processing object {0}
     savingToFile: Saving to file...
     ms: ms
     writing: Writing portion...
@@ -54,6 +54,7 @@ general:
     nothingToRestore: No objects to restore
     restoring: Restoring...
     removing: Removing...
+    removingObject: Removing {0}...
     created: Created file {0}
     restoreView: Restoring view {0} ...
     restoreTrigger: Restoring trigger {0} ...
@@ -75,7 +76,7 @@ general:
     modifyColumns: Modifying columns...
     droppingColumns: Dropping columns...
     addPk: Adding PK...
-    inserting: Deleteng...
+    inserting: Inserting...
     deleting: Deleteng...
     updating: Updating...
     unsupportedTypes: Table {0} contains unsupported types, it will be skipped
@@ -89,6 +90,7 @@ general:
     removingFromGit: Removing from git...
     removingFromIndex: Removing from index...
     removingFromDb: Removing from db...
+    markingToDelete: Marking item as removing in index
   status:
     repVersion: "Repository version: {0}" 
     dbgitVersion: "Dbgit version: {0}"
@@ -114,6 +116,7 @@ general:
   backup:
     tryingToCopy: Trying to copy {0} to {1}...
     creatingSchema: Creating schema {0}
+    droppingBackup: Dropping backup object {0}...
 errors:
   commandNotFound: Command {0} not found!
   executionError: Error execute dbgit
@@ -143,7 +146,7 @@ errors:
     restoreErrorDidNotReturnTrue: Error restore objects.... restoreMetaObject must return true if object restore
     restoreError: Restore objects error
     restoreNotSupport: Restore object {0} doesn't support
-    removeError: Remove objects error
+    removeError: Remove objects error {0}
     objectRestoreError: Error restore {0}
     objectRemoveError: Error remove {0}
     cannotRestore: Cannot restore {0}!
@@ -172,6 +175,7 @@ errors:
   meta:
     fail: FAIL
     okTime: OK ({0} ms)
+    ok: OK
     invalidFiles: There are invalid files
     cantGetCurrentSchema: Can't get current schema name
     cantGetOtherUsersObjects: Can't show db objects of other users! Shown objects for current db user only!
@@ -315,6 +319,7 @@ help:
     Example:
       dbgit rm <object_name>
   rm-db: Removes objects from index and from database
+  rm-idx: Removes objects from index, leaving db objects untouched
   fetch: _
   status: _
   synonym: |
