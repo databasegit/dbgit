@@ -29,7 +29,7 @@ public class DBTable extends DBSchemaObject {
 	public String getHash() {
 		CalcHash ch = new CalcHash();
 		ch.addData(this.getName());
-		ch.addData(this.getOptions().toString().replace("\n", ""));
+		ch.addData(this.getOptions().toString().replaceAll("\\s+", ""));
 
 		return ch.calcHashStr();
 	}

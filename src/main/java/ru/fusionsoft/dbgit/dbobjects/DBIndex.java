@@ -29,8 +29,9 @@ public class DBIndex extends DBSQLObject {
 
 	public String getHash() {
 		CalcHash ch = new CalcHash();
-		ch.addData(this.getName());
-		ch.addData(this.getOptions().toString());
+		ch.addData(getSchema());
+		ch.addData(getName());
+		ch.addData(getSql().replaceAll("\\s+", "").toLowerCase());
 		return ch.calcHashStr();
 	}
 	

@@ -22,10 +22,10 @@ public class DBSQLObject extends DBSchemaObject {
 		CalcHash ch = new CalcHash();
 		ch.addData(getSchema());
 		ch.addData(getName());
-		ch.addData(getSql().trim().replace("\n", ""));
+		ch.addData(getSql().trim().replaceAll("\\s+", ""));
 		if (getOwner() != null)
 			ch.addData(getOwner());
-				
+
 		return ch.calcHashStr();
 	}
 
