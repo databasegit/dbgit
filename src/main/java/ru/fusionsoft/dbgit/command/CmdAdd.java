@@ -81,9 +81,11 @@ public class CmdAdd implements IDBGitCommand {
 				Timestamp timestampBefore = new Timestamp(System.currentTimeMillis());
 				ConsoleWriter.detailsPrintLn(getLang().getValue("general", "add", "processingObject") + " " + obj.getName());
 				ConsoleWriter.detailsPrint(getLang().getValue("general", "add", "savingToFile"), 2);
+
+				//TODO
 				obj.saveToFile();
+
 				ConsoleWriter.detailsPrintlnGreen(getLang().getValue("general", "ok"));
-								
 				ConsoleWriter.detailsPrint(getLang().getValue("general", "addToGit"), 2);
 				countSave += obj.addToGit();				
 				ConsoleWriter.detailsPrintlnGreen(getLang().getValue("general", "ok"));
@@ -114,7 +116,7 @@ public class CmdAdd implements IDBGitCommand {
 						isFirstPortion = (DBGitConfig.getInstance().getInteger("core", "CURRENT_PORTION", 0) == 0);
 					
 					while (gmdm.loadNextPortion((MetaTable) obj)) {
-						ConsoleWriter.println(getLang().getValue("general", "add", "writing").toString(), 2);
+						ConsoleWriter.detailsPrint(getLang().getValue("general", "add", "writing").toString(), 2);
 						try {
 							//gmdm.getCurrent().serialize(out);
 							Integer count = 0;

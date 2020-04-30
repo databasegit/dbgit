@@ -131,7 +131,7 @@ public class DBGitConfig {
 		try {
 			if (global) {
 				if (!iniGlobal.get("core").containsKey(parameter))
-					ConsoleWriter.println(DBGitLang.getInstance().getValue("errors", "config", "noParameter").withParams(parameter));
+					ConsoleWriter.detailsPrintLn(DBGitLang.getInstance().getValue("errors", "config", "noParameter").withParams(parameter));
 				else {			
 					iniGlobal.get("core").put(parameter, value);
 					iniGlobal.store(iniGlobal.getFile());		
@@ -141,7 +141,7 @@ public class DBGitConfig {
 					throw new ExceptionDBGit(DBGitLang.getInstance().getValue("errors", "gitRepNotFound"));
 				
 				if (!ini.get("core").containsKey(parameter))
-					ConsoleWriter.println(DBGitLang.getInstance().getValue("errors", "config", "noParameter").withParams(parameter));
+					ConsoleWriter.detailsPrintLn(DBGitLang.getInstance().getValue("errors", "config", "noParameter").withParams(parameter));
 				else {			
 					ini.get("core").put(parameter, value);
 					ini.store(new File(DBGitPath.getFullPath() + "/" + DBGitPath.DBGIT_CONFIG));

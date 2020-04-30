@@ -28,7 +28,7 @@ public class FactoryDbConvertAdapterPostgres implements IFactoryDBConvertAdapter
 	@Override
 	public IDBConvertAdapter getConvertAdapter(String objectType) throws Exception {
 		if (!converters.containsKey(objectType)) {
-			ConsoleWriter.println("Cannot convert " + objectType + "!");
+			ConsoleWriter.detailsPrintlnRed("DBAdapterPostgres cannot convert " + objectType + "!");
 			return null;
 		} else		
 			return converters.get(objectType);
