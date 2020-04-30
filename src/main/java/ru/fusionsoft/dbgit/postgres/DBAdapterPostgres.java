@@ -394,7 +394,7 @@ public class DBAdapterPostgres extends DBAdapter {
 					"	on i.indexname = cl.relname\r\n" + 
 					"JOIN pg_index AS idx \r\n" + 
 					"	ON cl.oid = idx.indexrelid\r\n" + 
-					"where i.tablename not like 'pg%' and i.schemaname = :schema and i.tablename = :table --and idx.indisprimary = false and idx.indisunique=false ";
+					"where i.tablename not like 'pg%' and i.schemaname = :schema and i.tablename = :table and idx.indisprimary = false -- and idx.indisunique=false ";
 			
 			Connection connect = getConnection();
 			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);			
@@ -808,13 +808,7 @@ public class DBAdapterPostgres extends DBAdapter {
 			throw new ExceptionDBGitRunTime(e.getMessage());
 		}
 	}
-/*
-	@Override
-	public DBTableRow getTableRow(DBTable tbl, Object id) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-*/
+
 	@Override
 	public Map<String, DBUser> getUsers() {
 		Map<String, DBUser> listUser = new HashMap<String, DBUser>();
