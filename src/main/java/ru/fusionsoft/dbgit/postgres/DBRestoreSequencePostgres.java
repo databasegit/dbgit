@@ -5,9 +5,12 @@ import java.util.Map;
 
 import ru.fusionsoft.dbgit.adapters.DBRestoreAdapter;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
+import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRestore;
+import ru.fusionsoft.dbgit.dbobjects.DBFunction;
 import ru.fusionsoft.dbgit.dbobjects.DBSequence;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
+import ru.fusionsoft.dbgit.meta.MetaFunction;
 import ru.fusionsoft.dbgit.meta.MetaSequence;
 import ru.fusionsoft.dbgit.statement.StatementLogging;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
@@ -109,7 +112,25 @@ public class DBRestoreSequencePostgres extends DBRestoreAdapter {
 
 	@Override
 	public void removeMetaObject(IMetaObject obj) throws Exception {
-		// TODO Auto-generated method stub
+		IDBAdapter adapter = getAdapter();
+		Connection connect = adapter.getConnection();
+		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
+
+		try {
+			if(! (obj instanceof MetaSequence)) throw new ExceptionDBGit("Wrong IMetaObject type, expected: seq, was: " + obj.getType().getValue());
+			MetaSequence seqMeta = (MetaSequence) obj;
+			DBSequence seq = seqMeta.getSequence();
+			if (seq == null) return;
+
+			String schema = getPhisicalSchema(seq.getSchema());
+			st.execute("DROP SEQUENCE IF EXISTS "+schema+"."+DBAdapterPostgres.escapeNameIfNeeded(seq.getName()));
+
+		} catch (Exception e) {
+			ConsoleWriter.println(lang.getValue("errors", "restore", "objectRestoreError").withParams(e.getLocalizedMessage()));
+			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRemoveError").withParams(obj.getName()), e);
+		} finally {
+			st.close();
+		}
 
 	}
 

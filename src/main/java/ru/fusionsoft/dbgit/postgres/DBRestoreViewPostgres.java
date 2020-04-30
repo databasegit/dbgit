@@ -5,9 +5,12 @@ import java.util.Map;
 
 import ru.fusionsoft.dbgit.adapters.DBRestoreAdapter;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
+import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRestore;
+import ru.fusionsoft.dbgit.dbobjects.DBTable;
 import ru.fusionsoft.dbgit.dbobjects.DBView;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
+import ru.fusionsoft.dbgit.meta.MetaTable;
 import ru.fusionsoft.dbgit.meta.MetaView;
 import ru.fusionsoft.dbgit.statement.StatementLogging;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
@@ -79,8 +82,25 @@ public class DBRestoreViewPostgres extends DBRestoreAdapter {
 	
 	@Override
 	public void removeMetaObject(IMetaObject obj) throws Exception {
-		// TODO Auto-generated method stub
+		IDBAdapter adapter = getAdapter();
+		Connection connect = adapter.getConnection();
+		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
 
+		try {
+			if(! (obj instanceof MetaView)) throw new ExceptionDBGit("Wrong IMetaObject type, expected: vw, was: " + obj.getType().getValue());
+			MetaView vwMeta = (MetaView) obj;
+			DBView vw = (DBView) vwMeta.getSqlObject();
+			if (vw == null) return;
+
+			String schema = getPhisicalSchema(vw.getSchema());
+			st.execute("DROP VIEW "+schema+"."+DBAdapterPostgres.escapeNameIfNeeded(vw.getName()));
+			connect.commit();
+		} catch (Exception e) {
+			ConsoleWriter.println(lang.getValue("errors", "restore", "objectRestoreError").withParams(e.getLocalizedMessage()));
+			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRemoveError").withParams(obj.getName()), e);
+		} finally {
+			st.close();
+		}
 	}
 
 }

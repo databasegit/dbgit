@@ -5,6 +5,7 @@ import java.util.Map;
 
 import ru.fusionsoft.dbgit.adapters.DBRestoreAdapter;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
+import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRestore;
 import ru.fusionsoft.dbgit.dbobjects.DBTrigger;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
@@ -75,8 +76,25 @@ public class DBRestoreTriggerPostgres extends DBRestoreAdapter {
 
 	@Override
 	public void removeMetaObject(IMetaObject obj) throws Exception {
-		// TODO Auto-generated method stub
+		IDBAdapter adapter = getAdapter();
+		Connection connect = adapter.getConnection();
+		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
 
+		try {
+			if(! (obj instanceof MetaTrigger)) throw new ExceptionDBGit("Wrong IMetaObject type, expected: trg, was: " + obj.getType().getValue());
+			MetaTrigger trgMeta = (MetaTrigger) obj;
+			DBTrigger trg = (DBTrigger) trgMeta.getSqlObject();
+			if (trg == null) return;
+
+			String schema = getPhisicalSchema(trg.getSchema());
+			st.execute("DROP FUNCTION IF EXISTS "+schema+"."+DBAdapterPostgres.escapeNameIfNeeded(trg.getName()));
+
+		} catch (Exception e) {
+			ConsoleWriter.println(lang.getValue("errors", "restore", "objectRestoreError").withParams(e.getLocalizedMessage()));
+			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRemoveError").withParams(obj.getName()), e);
+		} finally {
+			st.close();
+		}
 	}
 
 }
