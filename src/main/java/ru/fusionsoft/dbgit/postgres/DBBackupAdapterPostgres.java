@@ -1,18 +1,19 @@
 package ru.fusionsoft.dbgit.postgres;
 
 import java.io.File;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.lang.reflect.Type;
+import java.sql.*;
 import java.text.MessageFormat;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
+import ru.fusionsoft.dbgit.adapters.DBAdapter;
 import ru.fusionsoft.dbgit.adapters.DBBackupAdapter;
-import ru.fusionsoft.dbgit.core.DBGitPath;
-import ru.fusionsoft.dbgit.core.ExceptionDBGitRestore;
-import ru.fusionsoft.dbgit.core.SchemaSynonym;
+import ru.fusionsoft.dbgit.core.*;
 import ru.fusionsoft.dbgit.dbobjects.DBConstraint;
 import ru.fusionsoft.dbgit.dbobjects.DBIndex;
 import ru.fusionsoft.dbgit.meta.*;
@@ -22,7 +23,7 @@ import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 public class DBBackupAdapterPostgres extends DBBackupAdapter {
 
 	@Override
-	public IMetaObject backupDBObject(IMetaObject obj) throws Exception {
+	public IMetaObject backupDBObject(IMetaObject obj) throws SQLException, ExceptionDBGit {
 		
 		Connection connection = adapter.getConnection();
 		StatementLogging stLog = new StatementLogging(connection, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
@@ -85,7 +86,7 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 					isSaveToSchema() ? tableName : PREFIX + tableName, stLog
 				);
 				
-				StringBuilder tableDdl = new StringBuilder(MessageFormat.format(
+				StringBuilder tableDdlSb = new StringBuilder(MessageFormat.format(
 					"create table {0} as (select * from {1}.{2} where 1={3}) {4};\n alter table {0} owner to {5};\n"
 					, backupTableSam
 					, schema
@@ -97,33 +98,58 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 					, metaTable.getTable().getOptions().get("owner").getData()
 				));
 
+
+				Map<String, String> fkRefReplaces = new HashMap<>();
+				for (String fk : metaTable.getTable().getDependencies()){
+					String fkname = fk.substring(fk.indexOf('/')+1,fk.lastIndexOf('.')) ;
+					String fkschema = fk.substring(0,fk.indexOf('/')) ;
+
+					String nameDb = "("+fkschema+ "\\.)?" + "\\\"?" + Pattern.quote(DBAdapterPostgres.escapeNameIfNeeded(fkname)) + "\\\"?(?=\\()";
+					String nameReplacement = Matcher.quoteReplacement(fkschema + "." + DBAdapterPostgres.escapeNameIfNeeded(PREFIX+fkname));
+					fkRefReplaces.put(nameDb, nameReplacement);
+				}
+
+
 				for (DBIndex index : metaTable.getIndexes().values()) {
 					String indexName = index.getName();
 					String indexNameRe = "\\\"?" + Pattern.quote(indexName) + "\\\"?";
 					String backupIndexNameRe = Matcher.quoteReplacement(DBAdapterPostgres.escapeNameIfNeeded(PREFIX + indexName));
+
+					String indexSql = index.getSql().replaceAll(indexNameRe, backupIndexNameRe).replaceAll(tableSamRe, backupTableSamRe);
+
 					String indexDdl = MessageFormat.format(
 						"{0} {1};\n"
-						, index.getSql().replaceAll(indexNameRe, backupIndexNameRe).replaceAll(tableSamRe, backupTableSamRe)
+						, indexSql
 						, metaTable.getTable().getOptions().getChildren().containsKey("tablespace")
 							?  " tablespace "+index.getOptions().get("tablespace").getData()
 							: ""
 					);
-					if (indexDdl.length() > 3) { tableDdl.append(indexDdl); }
+					if (indexDdl.length() > 3) { tableDdlSb.append(indexDdl); }
 				}
 
-				for (DBConstraint constraint : metaTable.getConstraints().values()) {
+				for (DBConstraint constraint : metaTable.getConstraints().values().stream().sorted(Comparator.comparing(x->!x.getName().toLowerCase().contains("pk"))).collect(Collectors.toList())) {
 					String name = DBAdapterPostgres.escapeNameIfNeeded(PREFIX + constraint.getName());
+					String constrName = constraint.getName();
+					String constrNameRe = "\\\"?" + Pattern.quote(constrName) + "\\\"?";
+					String backupConstrNameRe = Matcher.quoteReplacement(DBAdapterPostgres.escapeNameIfNeeded(PREFIX + constrName));
+					String constrDef = constraint.getSql().replaceAll(constrNameRe, backupConstrNameRe);
+					for(String reference : fkRefReplaces.keySet()){ constrDef = constrDef.replaceAll(reference, fkRefReplaces.get(reference)); }
+
+
 					String constrDdl = MessageFormat.format(
 						"alter table {0} add {1};\n"
 						,backupTableSam
 						,metaTable.getIndexes().containsKey(constraint.getName())
+						&& constraint.getOptions().get("constraint_type").getData().equals("p")
 							? "primary key using index " + name
-							: "constraint " + name + " " + constraint.getSql()
+							: "constraint " + name + " " + constrDef
 					);
-					if (constrDdl.length() > 3) { tableDdl.append(constrDdl); }
+					if (constrDdl.length() > 3) { tableDdlSb.append(constrDdl); }
 				}
 
-				stLog.execute(tableDdl.toString());
+				String tableDdl = tableDdlSb.toString();
+
+				stLog.execute(tableDdl);
 				
 				File file = new File(DBGitPath.getFullPath() + metaTable.getFileName());				
 				if (file.exists())
@@ -167,7 +193,7 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 			}			
 			
 		} catch (SQLException e1) {
-			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").
+			throw new ExceptionDBGit(lang.getValue("errors", "backup", "backupError").
 					withParams(obj.getName() + ": " + e1.getLocalizedMessage()));
 		} catch (Exception e) {
 			ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
@@ -196,7 +222,7 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 
 	}
 	
-	private void dropIfExists(String owner, String objectName, StatementLogging stLog) throws Exception {		
+	public void dropIfExists(String owner, String objectName, StatementLogging stLog) throws SQLException {
 		Statement st = 	adapter.getConnection().createStatement();
 		ResultSet rs = st.executeQuery("select * from (\r\n" + 
 				"	SELECT 'TABLE' tp, table_name obj_name, table_schema sch FROM information_schema.tables \r\n" + 
@@ -214,9 +240,37 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 		rs.close();
 		st.close();
 	}
+	public void dropIfExists(IMetaObject imo, StatementLogging stLog) throws Exception {
+		NameMeta nm = new NameMeta(imo);
+		DBGitMetaType type = (DBGitMetaType) nm.getType();
+
+		Statement st = 	adapter.getConnection().createStatement();
+		ResultSet rs = st.executeQuery(MessageFormat.format("select * from (\r\n" +
+				"	SELECT 'TABLE' tp, table_name obj_name, table_schema sch FROM information_schema.tables WHERE 1={0}\r\n" +
+				"	union select 'VIEW' tp, table_name obj_name, table_schema sch from information_schema.views WHERE 1={1}\r\n" +
+				"	union select 'SEQUENCE' tp, sequence_name obj_name, sequence_schema sch from information_schema.sequences WHERE 1={2}\r\n" +
+				"	union select 'TRIGGER' tp, trigger_name obj_name, trigger_schema sch from information_schema.triggers WHERE 1={3}\r\n" +
+				"	union select 'FUNCTION' tp, routine_name obj_name, routine_schema sch from information_schema.routines WHERE 1={4}\r\n" +
+				") all_objects\r\n" +
+				"where lower(sch) = lower('{5}') and obj_name = '{6}'",
+				type.equals(DBGitMetaType.DBGitTable) ? "1" : "0",
+				type.equals(DBGitMetaType.DbGitView) ? "1" : "0",
+				type.equals(DBGitMetaType.DBGitSequence) ? "1" : "0",
+				type.equals(DBGitMetaType.DbGitTrigger) ? "1" : "0",
+				type.equals(DBGitMetaType.DbGitFunction) ? "1" : "0",
+				nm.getSchema(), nm.getName()
+		));
+
+		while (rs.next()) {
+			stLog.execute("drop " + rs.getString("tp") + " " + nm.getSchema() + "." + DBAdapterPostgres.escapeNameIfNeeded(nm.getName()));
+		}
+
+		rs.close();
+		st.close();
+	}
 
 	@Override
-	public boolean isExists(String owner, String objectName) throws Exception {		
+	public boolean isExists(String owner, String objectName) throws SQLException {
 		Statement st = 	adapter.getConnection().createStatement();
 		ResultSet rs = st.executeQuery("select count(*) cnt from (\r\n" + 
 				"	SELECT 'TABLE' tp, table_name obj_name, table_schema sch FROM information_schema.tables \r\n" + 

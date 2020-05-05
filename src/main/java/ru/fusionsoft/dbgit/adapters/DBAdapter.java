@@ -90,6 +90,7 @@ public abstract class DBAdapter implements IDBAdapter {
 	public void restoreDataBase(IMapMetaObject updateObjs) throws Exception {
 		Connection connect = getConnection();
 		DBGitLang lang = DBGitLang.getInstance();
+		boolean toMakeBackup = DBGitConfig.getInstance().getBoolean("core", "TO_MAKE_BACKUP", true);
 
 		IMapMetaObject currStep = updateObjs;
 
@@ -113,15 +114,14 @@ public abstract class DBAdapter implements IDBAdapter {
 			});
 */
 
-//			if(toMakeBackup){
-//				IDBBackupAdapter ba = getBackupAdapterFactory().getBackupAdapter(this);
-//				ba.backupDatabase(updateObjs);
-//			}
-
+			if(toMakeBackup){
+				IDBBackupAdapter ba = getBackupAdapterFactory().getBackupAdapter(this);
+				ba.backupDatabase(updateObjs);
+			}
 
 			for (IMetaObject obj : restoreObjs.sortFromFree()) {
 				Integer step = 0;
-				
+
 				String schemaName = getSchemaName(obj);
 				if (schemaName != null) {
 					schemaName = (SchemaSynonym.getInstance().getSchema(schemaName) != null)
@@ -159,14 +159,6 @@ public abstract class DBAdapter implements IDBAdapter {
 						}					
 
 						obj = convertAdapter.convert(getDbType(), getDbVersion(), obj);							
-					}
-
-					if (
-						step == 0
-						&& DBGitConfig.getInstance().getBoolean("core", "TO_MAKE_BACKUP", true) && schemaName != null
-						&& getBackupAdapterFactory().getBackupAdapter(this).isExists(schemaName, obj.getName().substring(obj.getName().indexOf("/") + 1, obj.getName().indexOf(".")))
-					) {
-						obj = getBackupAdapterFactory().getBackupAdapter(this).backupDBObject(obj);
 					}
 				}
 				

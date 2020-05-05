@@ -6,6 +6,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -58,6 +59,23 @@ public class DBAdapterMySql extends DBAdapter {
 	private FactoryDBRestoreAdapterMySql restoreFactory = new FactoryDBRestoreAdapterMySql();
 	private FactoryDBConvertAdapterMySql convertFactory = new FactoryDBConvertAdapterMySql();
 	private FactoryDBBackupAdapterMySql backupFactory = new FactoryDBBackupAdapterMySql();
+	public static Set<String> reservedWords;
+
+	public static Object escapeNameIfNeeded(String name) {
+		boolean shouldBeEscaped = false;
+		//TODO Permitted characters in unquoted identifiers:
+		//ASCII: [0-9,a-z,A-Z$_] (basic Latin letters, digits 0-9, dollar, underscore)
+		//Extended: U+0080 .. U+FFFF
+		//Permitted characters in quoted identifiers include the full Unicode Basic Multilingual Plane (BMP), except U+0000:
+		//ASCII: U+0001 .. U+007F
+		//Extended: U+0080 .. U+FFFF
+		if(reservedWords.contains(name.toUpperCase())) shouldBeEscaped = true;
+		if(name.charAt(0) == '`' || name.charAt(name.length()-1) == '`') shouldBeEscaped = false;
+		if(shouldBeEscaped){
+			return MessageFormat.format("`{0}`", name);
+		}
+		return name;
+	}
 
 	@Override
 	public IFactoryDBAdapterRestoteMetaData getFactoryRestore() {
@@ -622,7 +640,54 @@ public class DBAdapterMySql extends DBAdapter {
 
 	@Override
 	public boolean isReservedWord(String word) {
-		Set<String> reservedWords = new HashSet<>();
+		return reservedWords.contains(word.toUpperCase());
+	}
+
+	@Override
+	public DBTableData getTableDataPortion(String schema, String nameTable, int portionIndex, int tryNumber) {
+		DBTableData data = new DBTableData();
+		try {
+			int portionSize = DBGitConfig.getInstance().getInteger("core", "PORTION_SIZE", DBGitConfig.getInstance().getIntegerGlobal("core", "PORTION_SIZE", 1000));
+
+			int begin = 1 + portionSize * portionIndex;
+			int end = portionSize + portionSize * portionIndex;
+
+			Statement st = getConnection().createStatement();
+			ResultSet rs = st.executeQuery("SELECT * FROM \r\n" +
+					"(SELECT f.*, ROW_NUMBER() OVER (ORDER BY (select group_concat(column_name separator ', ') from information_schema.columns where \r\n" +
+					"table_schema='" + schema + "' and table_name='" + nameTable + "' and upper(column_key)='PRI')) DBGIT_ROW_NUM FROM " + schema + "." + nameTable + " f) s \r\n" +
+					"WHERE DBGIT_ROW_NUM BETWEEN " + begin + " and " + end);
+			data.setResultSet(rs);
+			return data;
+		} catch(Exception e) {
+			logger.error(lang.getValue("errors", "adapter", "tableData").toString(), e);
+
+			try {
+				if (tryNumber <= DBGitConfig.getInstance().getInteger("core", "TRY_COUNT", DBGitConfig.getInstance().getIntegerGlobal("core", "TRY_COUNT", 1000))) {
+					try {
+						TimeUnit.SECONDS.sleep(DBGitConfig.getInstance().getInteger("core", "TRY_DELAY", DBGitConfig.getInstance().getIntegerGlobal("core", "TRY_DELAY", 1000)));
+					} catch (InterruptedException e1) {
+						throw new ExceptionDBGitRunTime(e1.getMessage());
+					}
+					ConsoleWriter.println("Error while getting portion of data, try " + tryNumber);
+					getTableDataPortion(schema, nameTable, portionIndex, tryNumber++);
+				}
+			} catch (Exception e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+
+			try {
+				getConnection().rollback();
+			} catch (Exception e2) {
+				logger.error(lang.getValue("errors", "adapter", "rollback").toString(), e2);
+			}
+			throw new ExceptionDBGitRunTime(e.getMessage());
+		}
+	}
+
+	static {
+		reservedWords = new HashSet<>();
 		reservedWords.add("ACCESSIBLE");
 		reservedWords.add("ACCOUNT");
 		reservedWords.add("ACTION");
@@ -1408,49 +1473,5 @@ public class DBAdapterMySql extends DBAdapter {
 		reservedWords.add("VCPU");
 		reservedWords.add("VISIBLE");
 		reservedWords.add("WINDOW");
-		return reservedWords.contains(word.toUpperCase());
-	}
-
-	@Override
-	public DBTableData getTableDataPortion(String schema, String nameTable, int portionIndex, int tryNumber) {
-		DBTableData data = new DBTableData();
-		try {
-			int portionSize = DBGitConfig.getInstance().getInteger("core", "PORTION_SIZE", DBGitConfig.getInstance().getIntegerGlobal("core", "PORTION_SIZE", 1000));
-
-			int begin = 1 + portionSize * portionIndex;
-			int end = portionSize + portionSize * portionIndex;
-
-			Statement st = getConnection().createStatement();
-			ResultSet rs = st.executeQuery("SELECT * FROM \r\n" +
-					"(SELECT f.*, ROW_NUMBER() OVER (ORDER BY (select group_concat(column_name separator ', ') from information_schema.columns where \r\n" +
-					"table_schema='" + schema + "' and table_name='" + nameTable + "' and upper(column_key)='PRI')) DBGIT_ROW_NUM FROM " + schema + "." + nameTable + " f) s \r\n" +
-					"WHERE DBGIT_ROW_NUM BETWEEN " + begin + " and " + end);
-			data.setResultSet(rs);
-			return data;
-		} catch(Exception e) {
-			logger.error(lang.getValue("errors", "adapter", "tableData").toString(), e);
-
-			try {
-				if (tryNumber <= DBGitConfig.getInstance().getInteger("core", "TRY_COUNT", DBGitConfig.getInstance().getIntegerGlobal("core", "TRY_COUNT", 1000))) {
-					try {
-						TimeUnit.SECONDS.sleep(DBGitConfig.getInstance().getInteger("core", "TRY_DELAY", DBGitConfig.getInstance().getIntegerGlobal("core", "TRY_DELAY", 1000)));
-					} catch (InterruptedException e1) {
-						throw new ExceptionDBGitRunTime(e1.getMessage());
-					}
-					ConsoleWriter.println("Error while getting portion of data, try " + tryNumber);
-					getTableDataPortion(schema, nameTable, portionIndex, tryNumber++);
-				}
-			} catch (Exception e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			}
-
-			try {
-				getConnection().rollback();
-			} catch (Exception e2) {
-				logger.error(lang.getValue("errors", "adapter", "rollback").toString(), e2);
-			}
-			throw new ExceptionDBGitRunTime(e.getMessage());
-		}
 	}
 }
