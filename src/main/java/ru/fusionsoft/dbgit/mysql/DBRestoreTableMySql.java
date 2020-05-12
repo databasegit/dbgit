@@ -30,7 +30,7 @@ public class DBRestoreTableMySql extends DBRestoreAdapter {
                 restoreTableMySql(obj);
                 break;
             case 1:
-                restoreTableIndexesMySql(obj);
+                //restoreTableIndexesMySql(obj);//FIXME: permanently disabled
                 break;
             case -1:
                 //restoreTableConstraintMySql(obj);
@@ -86,7 +86,9 @@ public class DBRestoreTableMySql extends DBRestoreAdapter {
                             return "`" + f.getName() + "` "
                                             + f.getTypeSQL() + (f.getFixed() ? "(" + f.getLength() + ")" : "")
                                             + (f.getIsNullable() ? "" : " NOT NULL")
-                                            + (f.getDefaultValue() == null ? "" : " default " + f.getDefaultValue())
+                                            + (f.getDefaultValue() == null ? "" :
+                                                    (f.getDefaultValue().toLowerCase().contains("nextval(") ? " AUTO_INCREMENT" : ""))
+                                            //+ (f.getDefaultValue() == null ? "" : " default " + f.getDefaultValue())
                                             + (f.getDescription() == null ? "" : " comment '" + f.getDescription() + "'");
                                 }
                         ).collect(Collectors.joining(", "))

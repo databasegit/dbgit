@@ -114,13 +114,57 @@ public class DBAdapterMySql extends DBAdapter {
 	@Override
 	public Map<String, DBSequence> getSequences(String schema) {
 		Map<String, DBSequence> sequences = new HashMap<String, DBSequence>();
+		try {
+			String query = "select column_name, table_name, column_type, extra from information_schema.columns" +
+					" where extra like '%auto_increment%' and table_schema='" + schema + "'";
+			Connection connect = getConnection();
+			Statement stmt = connect.createStatement();
+			ResultSet rs = stmt.executeQuery(query);
+			while(rs.next()) {
+				String name = rs.getString("column_name");
+				DBSequence seq = new DBSequence(name);
+				Statement stmtValue = connect.createStatement();
+				ResultSet rsValue = stmtValue.executeQuery("select coalesce(max(" + rs.getString("column_name") + "), 0) as nextval" +
+						" from " + schema + ".`" + rs.getString("table_name") + "`");
+				rsValue.next();
+				seq.setSchema(schema);
+				seq.setValue(rsValue.getLong("nextval"));
+				sequences.put(name, seq);
+				stmtValue.close();
+			}
+			stmt.close();
+		} catch(Exception e) {
+			logger.error(lang.getValue("errors", "adapter", "seq").toString(), e);
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "seq").toString(), e);
+		}
 		return sequences;
 	}
 
 	@Override
 	public DBSequence getSequence(String schema, String name) {
-		// TODO Auto-generated method stub
-		return null;
+		DBSequence seq = null;
+		try {
+			String query = "select column_name, table_name, column_type, extra from information_schema.columns" +
+					" where extra like '%auto_increment%' and table_schema='" + schema + "' and column_name='" + name + "'";
+			Connection connect = getConnection();
+			Statement stmt = connect.createStatement();
+			ResultSet rs = stmt.executeQuery(query);
+			if(rs.next()) {
+				seq = new DBSequence(name);
+				Statement stmtValue = connect.createStatement();
+				ResultSet rsValue = stmtValue.executeQuery("select coalesce(max(" + rs.getString("column_name") + "), 0) as nextval" +
+						" from " + schema + ".`" + rs.getString("table_name") + "`");
+				rsValue.next();
+				seq.setSchema(schema);
+				seq.setValue(rsValue.getLong("nextval"));
+				stmtValue.close();
+			}
+			stmt.close();
+		} catch (Exception e) {
+			logger.error(lang.getValue("errors", "adapter", "seq").toString(), e);
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "seq").toString(), e);
+		}
+		return seq;
 	}
 
 	@Override
@@ -483,7 +527,7 @@ public class DBAdapterMySql extends DBAdapter {
 
 	@Override
 	public DBTableData getTableData(String schema, String nameTable) {
-		String tableName = schema + "." + nameTable;
+		String tableName = schema + ".`" + nameTable + "`";
 		try {
 			DBTableData data = new DBTableData();
 			

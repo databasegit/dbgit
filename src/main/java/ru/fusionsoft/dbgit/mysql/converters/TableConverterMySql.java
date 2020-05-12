@@ -93,13 +93,16 @@ public class TableConverterMySql implements IDBConvertAdapter {
 
     private String typeFromAnotherDB(DbType dbType, DBTableField field) {
         ConsoleWriter.println("Converting table field " + field.getName() + " from " + dbType.toString().toLowerCase() + " to mysql...");
-        String result = "";
+        String result;
         switch (field.getTypeUniversal()) {
             case STRING:
-                result = "VARCHAR(" + field.getLength() + ")";
+                if(field.getLength() > 16383 || field.getLength() == 0)
+                    result = "MEDIUMTEXT";
+                else
+                    result = "VARCHAR(" + field.getLength() + ")";
                 break;
             case NUMBER:
-                result = "INT";
+                result = "BIGINT";
                 break;
             case DATE:
                 result = "TIMESTAMP";
@@ -108,7 +111,7 @@ public class TableConverterMySql implements IDBConvertAdapter {
                 result = "BLOB";
                 break;
             case TEXT:
-                result = "TEXT";
+                result = "MEDIUMTEXT";
                 break;
             case BOOLEAN:
                 result = "BOOLEAN";

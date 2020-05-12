@@ -32,7 +32,7 @@ public class DBSQLObject extends DBSchemaObject {
 	public String getSql() {
 		return options.get("ddl") != null ? options.get("ddl").toString() : "";
 	}
-	public void setSql(String ddl) { options.get("ddl").setData(ddl); }
+	public void setSql(String ddl) { if(options.get("ddl") != null) options.get("ddl").setData(ddl); }
 
 	public String getOwner() {
 		return owner;

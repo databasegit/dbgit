@@ -1,23 +1,27 @@
 package ru.fusionsoft.dbgit.mysql;
 
 import com.google.common.collect.MapDifference;
+import com.google.common.collect.MapDifference.ValueDifference;
 import com.google.common.collect.Maps;
 import ru.fusionsoft.dbgit.adapters.DBRestoreAdapter;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
+import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRestore;
 import ru.fusionsoft.dbgit.core.GitMetaDataManager;
 import ru.fusionsoft.dbgit.core.SchemaSynonym;
-import ru.fusionsoft.dbgit.data_table.RowData;
-import ru.fusionsoft.dbgit.data_table.TreeMapRowData;
+import ru.fusionsoft.dbgit.data_table.*;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
 import ru.fusionsoft.dbgit.meta.MetaTable;
 import ru.fusionsoft.dbgit.meta.MetaTableData;
 import ru.fusionsoft.dbgit.statement.StatementLogging;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class DBRestoreTableDataMySql extends DBRestoreAdapter {
@@ -92,118 +96,74 @@ public class DBRestoreTableDataMySql extends DBRestoreAdapter {
         try {
             if (restoreTableData.getmapRows() == null)
                 restoreTableData.setMapRows(new TreeMapRowData());
-            String fields = "";
-            if (restoreTableData.getmapRows().size() > 0)
-                fields = restoreTableData.getmapRows().firstEntry().getValue().getData().keySet().stream().map(K -> "`" + K + "`").collect(Collectors.joining(", "));
-ConsoleWriter.printlnRed("---FIELDS:" + fields);
-                //fields = keysToString(restoreTableData.getmapRows().firstEntry().getValue().getData().keySet().stream().map(DBAdapterPostgres::escapeNameIfNeeded).collect(Collectors.toSet())) + " values ";
-            MapDifference<String, RowData> diffTableData = Maps.difference(restoreTableData.getmapRows(),currentTableData.getmapRows());
+            MapDifference<String, RowData> diffTableData = Maps.difference(restoreTableData.getmapRows(), currentTableData.getmapRows());
             String schema = getPhisicalSchema(restoreTableData.getTable().getSchema());
             schema = (SchemaSynonym.getInstance().getSchema(schema) == null) ? schema : SchemaSynonym.getInstance().getSchema(schema);
             String tblName = schema + ".`" + restoreTableData.getTable().getName() + "`";
             ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "tableData").withParams(tblName) + "\n", 1);
-            ResultSet rsTypes = st.executeQuery("select column_name, data_type from information_schema.columns "
-                    + "where table_schema = " + schema + " and table_name = '" + restoreTableData.getTable().getName() + "'");
-            HashMap<String, String> colTypes = new HashMap<String, String>();
-            while (rsTypes.next()) {
-                colTypes.put(rsTypes.getString("column_name"), rsTypes.getString("data_type"));
+            if (!diffTableData.entriesOnlyOnLeft().isEmpty()) {
+                ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "inserting"), 2);
+                for (RowData rowData : diffTableData.entriesOnlyOnLeft().values()) {
+                    String fields = String.join("`, `", rowData.getData().keySet());
+                    String values = String.join(", ", rowData.getData().values().stream().map(row -> valueToString(row)).collect(Collectors.toList()));
+                    String insertQuery = "insert into " + tblName + "(`" + fields + "`) values (" + values + ");";
+                    ConsoleWriter.detailsPrintLn(insertQuery);
+                    st.execute(insertQuery);
+                }
+                ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
             }
-            //if(!diffTableData.entriesOnlyOnLeft().isEmpty()) {
-                //ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "inserting"), 2);
-                //for(RowData rowData:diffTableData.entriesOnlyOnLeft().values()) {
-                    //ArrayList<String> fieldsList = new ArrayList<String>(rowData.getData().keySet().stream().map(DBAdapterPostgres::escapeNameIfNeeded).collect(Collectors.toList()));
-                    //String insertQuery = "insert into " + tblNameEscaped +
-                            //fields+valuesToString(rowData.getData().values(), colTypes, fieldsList) + ";\n";
-                    //ConsoleWriter.detailsPrintLn(insertQuery);
-                    //PrepareStatementLogging ps = new PrepareStatementLogging(connect, insertQuery, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
-                    //int i = 0;
-                    //for (ICellData data : rowData.getData().values()) {
-                        //i++;
-                        //ConsoleWriter.detailsPrintLn(data.getSQLData());
-                        //ResultSet rs = st.executeQuery("select data_type from information_schema.columns \r\n" +
-                                //"where lower(table_schema||'.'||table_name) = lower('" + tblNameUnescaped + "') and lower(column_name) = '" + fieldsList.get(i - 1) + "'");
-                        //boolean isBoolean = false;
-                        //while (rs.next()) {
-                            //if (rs.getString("data_type").contains("boolean")) {
-                                //isBoolean = true;
-                            //}
-                        //}
-                        ////ps = setValues(data, i, ps, isBoolean);
-                    //}
-                    ////if (adapter.isExecSql())
-                    ////	ps.execute();
-                    ////ps.close();
-                    //st.execute(insertQuery);
-                //}
-                //ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
-            //}
-            //if(!diffTableData.entriesOnlyOnRight().isEmpty()){
-                //ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "deleting"), 2);
-                //String deleteQuery="";
+            if (!diffTableData.entriesOnlyOnRight().isEmpty()) {
+                ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "deleting"), 2);
+                String ddl = "";
+                for (RowData rowData : diffTableData.entriesOnlyOnRight().values()) {
+                    Map<String, String> primarykeys = new HashMap();
+                    Map<String, ICellData> tempcols = rowData.getData();
+                    String[] keysArray = rowData.getKey().split("_");
+                    for (String key : keysArray) {
+                        for (String o : tempcols.keySet()) {
+                            if (tempcols.get(o) == null || tempcols.get(o).convertToString() == null)
+                                continue;
+                            if (tempcols.get(o).convertToString().equals(key)) {
+                                primarykeys.put(o, tempcols.get(o).convertToString());
+                                tempcols.remove(o);
+                                break;
+                            }
+                        }
+                    }
+                    ddl = primarykeys.entrySet().stream()
+                            .map(e -> "`" + e.getKey() + "` = \'" + e.getValue() + "\'")
+                            .collect(Collectors.joining(" and "));
+                    if (!ddl.isEmpty())
+                        st.execute("delete from " + tblName + " where " + ddl);
+                }
+                ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+            }
+            if (!diffTableData.entriesDiffering().isEmpty()) {
+                ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "updating"), 2);
+                String updateQuery = "";
                 //Map<String,String> primarykeys = new HashMap();
-                //for(RowData rowData:diffTableData.entriesOnlyOnRight().values()) {
-                    //Map<String, ICellData> tempcols = rowData.getData();
-                    //String[] keysArray = rowData.getKey().split("_");
-                    //for(String key:keysArray) {
-                        //for (String o : tempcols.keySet()) {
-                            //if (tempcols.get(o) == null || tempcols.get(o).convertToString() == null) continue;
-                            //if (tempcols.get(o).convertToString().equals(key)) {
-                                //primarykeys.put(o, tempcols.get(o).convertToString());
-                                //tempcols.remove(o);
-                                //break;
-                            //}
-                        //}
-                    //}
-                    //String delFields="(";
-                    //String delValues="(";
-                    //StringJoiner fieldJoiner = new StringJoiner(",");
-                    //StringJoiner valuejoiner = new StringJoiner(",");
-                    //for (Map.Entry<String, String> entry : primarykeys.entrySet()) {
-                        //fieldJoiner.add("\""+entry.getKey()+"\"");
-                        //valuejoiner.add("\'"+entry.getValue()+"\'");
-                    //}
-                    //delFields+=fieldJoiner.toString()+")";
-                    //delValues+=valuejoiner.toString()+")";
-                    //primarykeys.clear();
-                    //if (delValues.length() > 3)
-                        //deleteQuery+="delete from " + tblNameUnescaped+
-                                //" where " + delFields + " = " + delValues + ";\n";
-                    //if(deleteQuery.length() > 50000 ){
-                        //st.execute(deleteQuery);
-                        //deleteQuery = "";
-                    //}
-                //}
-                //if(deleteQuery.length()>1) {
-                    //st.execute(deleteQuery);
-                //}
-                //ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
-            //}
-            //if(!diffTableData.entriesDiffering().isEmpty()) {
-                //ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "updating"), 2);
-                //String updateQuery="";
-                //Map<String,String> primarykeys = new HashMap();
-                //for(ValueDifference<RowData> diffRowData:diffTableData.entriesDiffering().values()) {
-                    //if(!diffRowData.leftValue().getHashRow().equals(diffRowData.rightValue().getHashRow())) {
-                        //Map<String, ICellData> tempCols = diffRowData.leftValue().getData();
+                for (ValueDifference<RowData> diffRowData : diffTableData.entriesDiffering().values()) {
+                    if (!diffRowData.leftValue().getHashRow().equals(diffRowData.rightValue().getHashRow())) {
+                        Map<String, ICellData> tempCols = diffRowData.leftValue().getData();
                         //String[] keysArray = diffRowData.leftValue().getKey().split("_");
                         //for(String key:keysArray) {
-                            //for (String o : tempCols.keySet()) {
-                                //if (tempCols.get(o) == null || tempCols.get(o).convertToString() == null) continue;
-                                //if (tempCols.get(o).convertToString().equals(key)) {
-                                    //primarykeys.put(o, tempCols.get(o).convertToString());
-                                    //tempCols.remove(o);
-                                    //break;
-                                //}
-                            //}
+                        //for (String o : tempCols.keySet()) {
+                        //if (tempCols.get(o) == null || tempCols.get(o).convertToString() == null) continue;
+                        //if (tempCols.get(o).convertToString().equals(key)) {
+                        //primarykeys.put(o, tempCols.get(o).convertToString());
+                        //tempCols.remove(o);
+                        //break;
                         //}
-                        //if(!tempCols.isEmpty()) {
+                        //}
+                        //}
+                        if (!tempCols.isEmpty()) {
                             //String keyFields="(";
                             //String keyValues="(";
                             //StringJoiner fieldJoiner = new StringJoiner(",");
                             //StringJoiner valuejoiner = new StringJoiner(",");
                             //for (Map.Entry<String, String> entry : primarykeys.entrySet()) {
-                                //fieldJoiner.add("\""+entry.getKey()+"\"");
-                                //valuejoiner.add("\'"+entry.getValue()+"\'");
+                            //fieldJoiner.add("\""+entry.getKey()+"\"");
+                            //valuejoiner.add("\'"+entry.getValue()+"\'");
                             //}
                             //keyFields+=fieldJoiner.toString()+")";
                             //keyValues+=valuejoiner.toString()+")";
@@ -213,56 +173,79 @@ ConsoleWriter.printlnRed("---FIELDS:" + fields);
                             //String updFields="(";
                             //String updValues="(";
                             //for (Map.Entry<String, ICellData> entry : tempCols.entrySet()) {
-                                //updfieldJoiner.add("\""+entry.getKey()+"\"");
-                                ////updvaluejoiner.add("\'"+entry.getValue().convertToString()+"\'");
-                                ////updvaluejoiner.add("?");
+                            //updfieldJoiner.add("\""+entry.getKey()+"\"");
+                            ////updvaluejoiner.add("\'"+entry.getValue().convertToString()+"\'");
+                            ////updvaluejoiner.add("?");
                             //}
                             //ArrayList<String> fieldsList = new ArrayList<String>(diffRowData.leftValue().getData().keySet());
                             //updFields+=updfieldJoiner.toString()+")";
                             //updValues+=updvaluejoiner.toString()+")";
                             //updateQuery="update "+tblNameEscaped+
-                                    //" set "+updFields + " = " + valuesToString(tempCols.values(), colTypes, fieldsList) + " where " + keyFields+ "=" +keyValues+";\n";
+                            //" set "+updFields + " = " + valuesToString(tempCols.values(), colTypes, fieldsList) + " where " + keyFields+ "=" +keyValues+";\n";
                             //ConsoleWriter.detailsPrintLn(updateQuery);
                             //PrepareStatementLogging ps = new PrepareStatementLogging(connect, updateQuery, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
                             //int i = 0;
                             //ConsoleWriter.detailsPrintLn("vals for " + keyValues + ":" + diffRowData.leftValue().getData().values());
                             //for (ICellData data : diffRowData.leftValue().getData().values()) {
-                                //i++;
-                                //ConsoleWriter.detailsPrintLn(data.getSQLData());
-                                //ResultSet rs = st.executeQuery("select data_type from information_schema.columns \r\n" +
-                                        //"where lower(table_schema||'.'||table_name) = lower('" + tblNameUnescaped + "') and lower(column_name) = '" + fieldsList.get(i - 1) + "'");
-                                //boolean isBoolean = false;
-                                //while (rs.next()) {
-                                    //if (rs.getString("data_type").toLowerCase().contains("boolean")) {
-                                        //isBoolean = true;
-                                    //}
-                                //}
-                                ////ps = setValues(data, i, ps, isBoolean);
+                            //i++;
+                            //ConsoleWriter.detailsPrintLn(data.getSQLData());
+                            //ResultSet rs = st.executeQuery("select data_type from information_schema.columns \r\n" +
+                            //"where lower(table_schema||'.'||table_name) = lower('" + tblNameUnescaped + "') and lower(column_name) = '" + fieldsList.get(i - 1) + "'");
+                            //boolean isBoolean = false;
+                            //while (rs.next()) {
+                            //if (rs.getString("data_type").toLowerCase().contains("boolean")) {
+                            //isBoolean = true;
                             //}
-							///*
-							//if (adapter.isExecSql())
-								//ps.execute();
-							//ps.close();
-							//updateQuery = "";
-							//*/
+                            //}
+                            ////ps = setValues(data, i, ps, isBoolean);
+                            //}
+                            ///*
+                            //if (adapter.isExecSql())
+                            //ps.execute();
+                            //ps.close();
+                            //updateQuery = "";
+                            //*/
                             ////if(updateQuery.length() > 50000 ){
                             //st.execute(updateQuery);
                             //updateQuery = "";
                             ////}
-                        //}
-                    //}
-                //}
-                //ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
-                //if(updateQuery.length()>1) {
-                    //ConsoleWriter.println(updateQuery);
+                        }
+                    }
+                }
+                ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+                if (!updateQuery.isEmpty()) {
+                    ConsoleWriter.println(updateQuery);
                     //st.execute(updateQuery);
-                //}
-            //}
+                }
+            }
         } catch (Exception e) {
             ConsoleWriter.println(lang.getValue("errors", "restore", "objectRestoreError").withParams(e.getLocalizedMessage()));
             throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(restoreTableData.getTable().getSchema() + "." + restoreTableData.getTable().getName()), e);
         } finally {
             st.close();
         }
+    }
+
+    private static String valueToString(ICellData cell) {
+        String value = "";
+        if(cell instanceof BooleanData)
+            value += ((BooleanData) cell).getValue();
+        else if(cell instanceof LongData)
+            value += ((LongData) cell).getValue() != null ? String.valueOf(((LongData) cell).getValue()) : "";
+        else if(cell instanceof StringData)
+            value += ((StringData) cell).getValue() != null ? ("'" + ((StringData) cell).getValue()
+                    .replace("\\", "\\\\")
+                    .replace("'", "\\'") + "'") : "";
+        else if(cell instanceof DateData) {
+            value += ((DateData) cell).getDate() != null ? ("'" + ((DateData) cell).getDate() + "'"): "";
+        } else if(cell instanceof TextFileData) {
+            try {
+                value = "'" + new String(Files.readAllBytes(((TextFileData) cell).getFile().toPath()))
+                        .replace("\\", "\\\\")
+                        .replace("'", "\\'") + "'";
+            } catch(ExceptionDBGit | IOException ex) {}
+        } else
+            value += cell.getClass().getSimpleName();
+        return value.isEmpty() ? "null" : value;
     }
 }

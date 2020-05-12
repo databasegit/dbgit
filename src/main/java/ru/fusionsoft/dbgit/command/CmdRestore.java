@@ -2,6 +2,7 @@ package ru.fusionsoft.dbgit.command;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.nio.file.Files;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -78,18 +79,6 @@ public class CmdRestore implements IDBGitCommand {
 		IDBAdapter adapter = AdapterFactory.createAdapter();
 		adapter.setDumpSqlCommand(scriptOutputStream, cmdLine.hasOption("r"));
 
-		if (cmdLine.hasOption("s")) {
-			String scriptName = cmdLine.getOptionValue("s");
-			ConsoleWriter.detailsPrintLn(getLang().getValue("general", "restore", "scriptWillSaveTo").withParams(scriptName));
-
-			File file = new File(scriptName);
-			if (!file.exists()) {
-				file.createNewFile();
-				ConsoleWriter.detailsPrintLn(getLang().getValue("general", "restore", "created").withParams(scriptName));
-			}
-			fop = new FileOutputStream(file);
-		}
-
 		//delete that not present in HEAD
 		try {
 			DBGitIndex index = DBGitIndex.getInctance();
@@ -156,13 +145,19 @@ public class CmdRestore implements IDBGitCommand {
 			gmdm.restoreDataBase(updateObjs);
 
 		} finally {
-			if (fop != null) {
-				fop.flush();
-				fop.close();
-			}
 			if (scriptOutputStream != null) {
 				scriptOutputStream.flush();
 				scriptOutputStream.close();
+			}
+			if (cmdLine.hasOption("s")) {
+				String scriptName = cmdLine.getOptionValue("s");
+				ConsoleWriter.detailsPrintLn(getLang().getValue("general", "restore", "scriptWillSaveTo").withParams(scriptName));
+
+				File file = new File(scriptName);
+				if (!file.exists()) {
+					Files.copy(scriptFile.toPath(), file.toPath());
+					ConsoleWriter.detailsPrintLn(getLang().getValue("general", "restore", "created").withParams(scriptName));
+				}
 			}
 		}
 		ConsoleWriter.println(getLang().getValue("general", "done"));

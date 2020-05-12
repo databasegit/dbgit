@@ -10,6 +10,7 @@ import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 public class ViewConverterMySql implements IDBConvertAdapter {
     @Override
     public IMetaObject convert(DbType dbType, String dbVersion, IMetaObject obj) throws ExceptionDBGit {
+        //FIXME: Если не указана схема для таблицы, то она берётся из конфига, при этом она может не быть основной (например, public в pg) и ещё не создана
         DbType objDbType = obj.getDbType();
         if (dbType == objDbType)
             return obj;
