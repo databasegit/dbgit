@@ -152,8 +152,10 @@ public abstract class DBAdapter implements IDBAdapter {
 							createdSchemas.add(schemaName);
 						}
 						
+						DBGitIgnore ignore = DBGitIgnore.getInctance(); 
+
 						String ownerName = getOwnerName(obj);
-						if (!getRoles().containsKey(ownerName) && !createdRoles.contains(ownerName) && ownerName != null) {
+						if (!ignore.matchOne("*." + DBGitMetaType.DBGitRole.getValue()) && !getRoles().containsKey(ownerName) && !createdRoles.contains(ownerName) && ownerName != null) {
 							createRoleIfNeed(ownerName);
 							createdRoles.add(ownerName);
 						}					
