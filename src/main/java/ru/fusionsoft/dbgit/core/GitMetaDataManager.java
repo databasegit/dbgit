@@ -129,10 +129,10 @@ public class GitMetaDataManager {
 		ConsoleWriter.detailsPrint(DBGitLang.getInstance().getValue("general", "add", "loading") + " " + currentPortionIndex + ", ", 2);
 		currentPortion = new MetaTableData(tbl.getTable());
 		
-		if (currentPortion != null && currentPortion.getmapRows() != null)
+		if (currentPortion.getmapRows() != null)
 			currentPortion.getmapRows().clear();
 				
-		currentPortion.loadPortionFromDB(currentPortionIndex); 
+		if (!currentPortion.loadPortionFromDB(currentPortionIndex)) return false;
 		ConsoleWriter.detailsPrint(DBGitLang.getInstance().getValue("general", "add", "size") + " " + currentPortion.getmapRows().size() + "\n", 2);
 
 		currentPortionIndex++;
@@ -142,7 +142,7 @@ public class GitMetaDataManager {
 			throw new ExceptionDBGit(e);
 		}
 		
-		return currentPortion.getmapRows().size() > 0 ? true : false;
+		return currentPortion.getmapRows().size() > 0;
 	}
 	
 	public MetaTableData getCurrent() {

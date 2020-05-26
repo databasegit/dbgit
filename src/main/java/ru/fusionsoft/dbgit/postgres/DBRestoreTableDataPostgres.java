@@ -13,13 +13,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.StringJoiner;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import ru.fusionsoft.dbgit.adapters.DBRestoreAdapter;
@@ -38,6 +32,7 @@ import ru.fusionsoft.dbgit.data_table.StringData;
 import ru.fusionsoft.dbgit.data_table.TextFileData;
 import ru.fusionsoft.dbgit.data_table.TreeMapRowData;
 import ru.fusionsoft.dbgit.dbobjects.DBConstraint;
+import ru.fusionsoft.dbgit.dbobjects.DBTableField;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
 import ru.fusionsoft.dbgit.meta.MetaTable;
 import ru.fusionsoft.dbgit.meta.MetaTableData;
@@ -138,8 +133,18 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 				restoreTableData.setMapRows(new TreeMapRowData());
 			
 			String fields = "";
-			if (restoreTableData.getmapRows().size() > 0)
-				fields = keysToString(restoreTableData.getmapRows().firstEntry().getValue().getData().keySet().stream().map(DBAdapterPostgres::escapeNameIfNeeded).collect(Collectors.toSet())) + " values ";
+			if (restoreTableData.getmapRows().size() > 0) {
+				//fields = keysToString(restoreTableData.getmapRows().firstEntry().getValue().getData().keySet().stream().map(DBAdapterPostgres::escapeNameIfNeeded).collect(Collectors.toSet())) + " values ";
+
+				Comparator<DBTableField> comparator = Comparator.comparing(DBTableField::getOrder);
+				fields = "(" + restoreTableData.getMetaTableFromFile().getFields().entrySet().stream()
+						.sorted(Comparator.comparing(e -> e.getValue().getOrder()))
+						.map(entry -> DBAdapterPostgres.escapeNameIfNeeded(entry.getValue().getName()))
+						.collect(Collectors.joining(", "))
+				+ ") values ";
+
+			}
+
 			MapDifference<String, RowData> diffTableData = Maps.difference(restoreTableData.getmapRows(),currentTableData.getmapRows());
 			String schema = getPhisicalSchema(restoreTableData.getTable().getSchema());
 			

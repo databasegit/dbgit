@@ -131,7 +131,7 @@ public abstract class DBAdapter implements IDBAdapter {
 
 				boolean res = false;
 				Timestamp timestampBefore = new Timestamp(System.currentTimeMillis());
-
+				DBGitIgnore ignore = DBGitIgnore.getInctance();
 				if (step == 0) {
 					IDBConvertAdapter convertAdapter = getConvertAdapterFactory().getConvertAdapter(obj.getType().getValue());
 					
@@ -151,8 +151,6 @@ public abstract class DBAdapter implements IDBAdapter {
 							createSchemaIfNeed(schemaName);
 							createdSchemas.add(schemaName);
 						}
-						
-						DBGitIgnore ignore = DBGitIgnore.getInctance(); 
 
 						String ownerName = getOwnerName(obj);
 						if (!ignore.matchOne("*." + DBGitMetaType.DBGitRole.getValue()) && !getRoles().containsKey(ownerName) && !createdRoles.contains(ownerName) && ownerName != null) {
@@ -188,7 +186,7 @@ public abstract class DBAdapter implements IDBAdapter {
 					}
 					
 					String ownerName = getOwnerName(obj);
-					if (!getRoles().containsKey(ownerName) && !createdRoles.contains(ownerName) && ownerName != null) {
+					if (!ignore.matchOne("*." + DBGitMetaType.DBGitRole.getValue()) && !getRoles().containsKey(ownerName) && !createdRoles.contains(ownerName) && ownerName != null) {
 						createRoleIfNeed(ownerName);
 						createdRoles.add(ownerName);
 					}	

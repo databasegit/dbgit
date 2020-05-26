@@ -788,6 +788,20 @@ public class DBAdapterPostgres extends DBAdapter {
 		DBTableData data = new DBTableData();
 		
 		try {
+			int maxRowsCount = DBGitConfig.getInstance().getInteger("core", "MAX_ROW_COUNT_FETCH", DBGitConfig.getInstance().getIntegerGlobal("core", "MAX_ROW_COUNT_FETCH", MAX_ROW_COUNT_FETCH));
+
+			if (DBGitConfig.getInstance().getBoolean("core", "LIMIT_FETCH", DBGitConfig.getInstance().getBooleanGlobal("core", "LIMIT_FETCH", true))) {
+				Statement st = getConnection().createStatement();
+				String query = "select COALESCE(count(*), 0) kolvo from ( select 1 from "+
+						DBAdapterPostgres.escapeNameIfNeeded(nameTable) + " limit " + (maxRowsCount + 1) + " ) tbl";
+				ResultSet rs = st.executeQuery(query);
+				rs.next();
+				if (rs.getInt("kolvo") > maxRowsCount) {
+					data.setErrorFlag(DBTableData.ERROR_LIMIT_ROWS);
+					return data;
+				}
+			}
+
 			int portionSize = DBGitConfig.getInstance().getInteger("core", "PORTION_SIZE", DBGitConfig.getInstance().getIntegerGlobal("core", "PORTION_SIZE", 1000));
 			
 			int begin = 1 + portionSize*portionIndex;

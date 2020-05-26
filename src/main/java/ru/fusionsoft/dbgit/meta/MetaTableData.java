@@ -207,7 +207,13 @@ public class MetaTableData extends MetaBase {
 			dataTable = adapter.getTableDataPortion(table.getSchema(), table.getName(), currentPortionIndex, 0);
 			
 			ResultSet rs = dataTable.getResultSet();
-			
+
+			if (dataTable.getErrorFlag() > 0) {
+				ConsoleWriter.printlnColor(DBGitLang.getInstance().getValue("errors", "meta", "tooManyRecords").
+						withParams(getName(), String.valueOf(IDBAdapter.MAX_ROW_COUNT_FETCH)), FColor.RED, 0);
+				return false;
+			}
+
 			mapRows = new TreeMapRowData(); 
 			
 			while(rs.next()){
