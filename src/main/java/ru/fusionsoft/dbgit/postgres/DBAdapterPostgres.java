@@ -793,7 +793,7 @@ public class DBAdapterPostgres extends DBAdapter {
 			if (DBGitConfig.getInstance().getBoolean("core", "LIMIT_FETCH", DBGitConfig.getInstance().getBooleanGlobal("core", "LIMIT_FETCH", true))) {
 				Statement st = getConnection().createStatement();
 				String query = "select COALESCE(count(*), 0) kolvo from ( select 1 from "+
-						DBAdapterPostgres.escapeNameIfNeeded(nameTable) + " limit " + (maxRowsCount + 1) + " ) tbl";
+						schema + "." + DBAdapterPostgres.escapeNameIfNeeded(nameTable) + " limit " + (maxRowsCount + 1) + " ) tbl";
 				ResultSet rs = st.executeQuery(query);
 				rs.next();
 				if (rs.getInt("kolvo") > maxRowsCount) {
