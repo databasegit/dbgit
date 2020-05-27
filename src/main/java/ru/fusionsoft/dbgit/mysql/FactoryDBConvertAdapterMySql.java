@@ -15,6 +15,7 @@ public class FactoryDBConvertAdapterMySql implements IFactoryDBConvertAdapter {
 
     static {
         Map<String, IDBConvertAdapter> aMap = new HashMap<String, IDBConvertAdapter>();
+        aMap.put(DBGitMetaType.DBGitSchema.getValue(), new SchemaConverterMySql());
         aMap.put(DBGitMetaType.DBGitTable.getValue(), new TableConverterMySql());
         aMap.put(DBGitMetaType.DbGitTableData.getValue(), new TableDataConverterMySql());
         //aMap.put(DBGitMetaType.DbGitFunction.getValue(), new FunctionConverterMySql());

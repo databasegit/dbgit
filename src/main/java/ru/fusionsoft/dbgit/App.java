@@ -29,7 +29,7 @@ import ru.fusionsoft.dbgit.utils.LoggerUtil;
 public class App 
 {
 	public static void executeDbGitCommand(String[] args) throws Exception {
-		RequestCmd cmd = RequestCmd.getInctance();
+		RequestCmd cmd = RequestCmd.getInstance();
 		
 		CommandLine cmdLine = cmd.parseCommand(args);
 		

@@ -52,10 +52,10 @@ public abstract class DBAdapter implements IDBAdapter {
 					TimeUnit.SECONDS.sleep(pauseTimeSeconds);
 					currentTry++;
 					ConsoleWriter.println("Try " + currentTry);
-					DBConnection conn = DBConnection.getInctance(false);
+					DBConnection conn = DBConnection.getInstance(false);
 					if (conn.testingConnection()) {
 						conn.flushConnection();
-						conn = DBConnection.getInctance(true);
+						conn = DBConnection.getInstance(true);
 						ConsoleWriter.println("Successful reconnect");
 						connect = conn.getConnect();
 						return connect;
@@ -131,7 +131,7 @@ public abstract class DBAdapter implements IDBAdapter {
 
 				boolean res = false;
 				Timestamp timestampBefore = new Timestamp(System.currentTimeMillis());
-
+				DBGitIgnore ignore = DBGitIgnore.getInstance();
 				if (step == 0) {
 					IDBConvertAdapter convertAdapter = getConvertAdapterFactory().getConvertAdapter(obj.getType().getValue());
 
@@ -153,7 +153,7 @@ public abstract class DBAdapter implements IDBAdapter {
 						}
 
 						String ownerName = getOwnerName(obj);
-						if (!getRoles().containsKey(ownerName) && !createdRoles.contains(ownerName) && ownerName != null) {
+						if (!ignore.matchOne("*." + DBGitMetaType.DBGitRole.getValue()) && !getRoles().containsKey(ownerName) && !createdRoles.contains(ownerName) && ownerName != null) {
 							createRoleIfNeed(ownerName);
 							createdRoles.add(ownerName);
 						}
@@ -186,7 +186,7 @@ public abstract class DBAdapter implements IDBAdapter {
 					}
 
 					String ownerName = getOwnerName(obj);
-					if (!getRoles().containsKey(ownerName) && !createdRoles.contains(ownerName) && ownerName != null) {
+					if (!ignore.matchOne("*." + DBGitMetaType.DBGitRole.getValue()) && !getRoles().containsKey(ownerName) && !createdRoles.contains(ownerName) && ownerName != null) {
 						createRoleIfNeed(ownerName);
 						createdRoles.add(ownerName);
 					}
