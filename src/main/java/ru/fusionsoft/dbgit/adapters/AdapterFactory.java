@@ -50,6 +50,6 @@ public class AdapterFactory {
 	}
 	
 	public static IDBAdapter createAdapter() throws ExceptionDBGit {
-		return createAdapter(DBConnection.getInctance().getConnect());
+		return createAdapter(DBConnection.getInstance().getConnect());
 	}
 }

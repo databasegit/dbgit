@@ -53,7 +53,7 @@ public class DBGitIgnore {
 	    }
 	}
 	
-	public static DBGitIgnore getInctance()  throws ExceptionDBGit {
+	public static DBGitIgnore getInstance()  throws ExceptionDBGit {
 		if (ignore == null) {
 			ignore = new DBGitIgnore();
 		}

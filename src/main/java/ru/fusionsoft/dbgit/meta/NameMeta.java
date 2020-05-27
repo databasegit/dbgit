@@ -26,9 +26,9 @@ public class NameMeta {
 	}
 	public NameMeta(){};
 	public NameMeta(String metaName){
-		 schema = metaName.substring(0, metaName.indexOf("/"));
-		 name = metaName.substring(metaName.indexOf("/") + 1, metaName.lastIndexOf("."));
-		 type = DBGitMetaType.valueByCode(metaName.substring(metaName.lastIndexOf(".") + 1));
+		schema = metaName.substring(0, metaName.indexOf("/"));
+		name = metaName.substring(metaName.indexOf("/") + 1, metaName.lastIndexOf("."));
+		type = DBGitMetaType.valueByCode(metaName.substring(metaName.lastIndexOf(".") + 1));
 	}
 	public NameMeta(String schema, String name, DBGitMetaType type){
 		setSchema(schema);

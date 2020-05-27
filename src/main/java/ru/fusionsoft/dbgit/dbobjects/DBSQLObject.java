@@ -13,7 +13,7 @@ import java.util.Set;
  *
  */
 public class DBSQLObject extends DBSchemaObject {
-	
+
 	protected String sql;
 	protected String owner;
 	private StringProperties options = new StringProperties();
@@ -32,11 +32,12 @@ public class DBSQLObject extends DBSchemaObject {
 	public String getSql() {
 		return options.get("ddl") != null ? options.get("ddl").toString() : "";
 	}
-	
+	public void setSql(String ddl) { if(options.get("ddl") != null) options.get("ddl").setData(ddl); }
+
 	public String getOwner() {
 		return owner;
 	}
-	
+
 	public void setOwner(String owner) {
 		this.owner=owner;
 	}

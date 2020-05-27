@@ -119,7 +119,7 @@ public class MetaTableData extends MetaBase {
 	
 	public MetaTable getMetaTable() throws ExceptionDBGit {
 		String metaTblName = table.getSchema()+"/"+table.getName()+"."+DBGitMetaType.DBGitTable.getValue();
-		GitMetaDataManager gmdm = GitMetaDataManager.getInctance();
+		GitMetaDataManager gmdm = GitMetaDataManager.getInstance();
 		
 		IMapMetaObject dbObjs = gmdm.getCacheDBMetaData();
 		MetaTable metaTable = (MetaTable) dbObjs.get(metaTblName);
@@ -132,7 +132,7 @@ public class MetaTableData extends MetaBase {
 		
 	public MetaTable getMetaTableFromFile() throws ExceptionDBGit {
 		String metaTblName = table.getSchema()+"/"+table.getName()+"."+DBGitMetaType.DBGitTable.getValue();
-		GitMetaDataManager gmdm = GitMetaDataManager.getInctance();
+		GitMetaDataManager gmdm = GitMetaDataManager.getInstance();
 		
 		MetaTable metaTable = (MetaTable)gmdm.loadMetaFile(metaTblName);		
 		if (metaTable != null) 

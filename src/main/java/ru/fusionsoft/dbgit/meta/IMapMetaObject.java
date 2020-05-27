@@ -4,7 +4,7 @@ import java.util.Map;
 
 /**
  * Interface Map Meta Object
- * 
+ *
  * @author mikle
  *
  */

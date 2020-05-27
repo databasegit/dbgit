@@ -14,29 +14,29 @@ public class DBGitIndex {
 	private TreeMapItemIndex treeItems;
 	private boolean hasConflicts = false;
 	private String version = "";
-	
+
 	private DBGitIndex() throws ExceptionDBGit {
 		treeItems = new TreeMapItemIndex();
 		loadDBIndex();
 	}
-	
+
 	public static DBGitIndex getInctance() throws ExceptionDBGit {
 		if (gitIndex == null) {
 			gitIndex = new DBGitIndex();
 		}
 		return gitIndex;
 	}
-	
+
 	protected ItemIndex getItemIndexExistsOrNew(String name) {
 		if (treeItems.containsKey(name)) {
 			return treeItems.get(name);
 		}
-		
+
 		ItemIndex item = new ItemIndex();
 		item.setName(name);
 		return item;
 	}
-	
+
 	public ItemIndex getItemIndex(String name) {
 		return treeItems.get(name);
 	}
@@ -44,11 +44,11 @@ public class DBGitIndex {
 	public TreeMapItemIndex getTreeItems() {
 		return treeItems;
 	}
-	
+
 	public String getRepoVersion() {
 		return version;
 	}
-	
+
 	protected ItemIndex editItem(IMetaObject obj, Boolean isDelete) {
 		ItemIndex item = getItemIndexExistsOrNew(obj.getName());
 		item.setIsDelete(isDelete);
@@ -56,7 +56,7 @@ public class DBGitIndex {
 		treeItems.put(obj.getName(), item);
 		return item;
 	}
-	
+
 	public ItemIndex addItem(IMetaObject obj) {
 		return editItem(obj, false);
 	}
@@ -83,70 +83,70 @@ public class DBGitIndex {
 	}
 
 	public void saveDBIndex() throws ExceptionDBGit {
-		try{				
-			File file = new File(DBGitPath.getFullPath(DBGitPath.INDEX_FILE));				
-			DBGitPath.createDir(file.getParent());
-			FileWriter writer = new FileWriter(file.getAbsolutePath());		
-			writer.write("version=" + VERSION + "\n");
-		    for (ItemIndex item : treeItems.values()) {
-		    	writer.write(item.toString()+"\n");
-		    }			
-			writer.close();		    
-	    } catch(Exception e) {
-	    	throw new ExceptionDBGit(e);
-	    }
-	}
-	
-	public void loadDBIndex() throws ExceptionDBGit {
-		try{				
+		try{
 			File file = new File(DBGitPath.getFullPath(DBGitPath.INDEX_FILE));
-			
+			DBGitPath.createDir(file.getParent());
+			FileWriter writer = new FileWriter(file.getAbsolutePath());
+			writer.write("version=" + VERSION + "\n");
+			for (ItemIndex item : treeItems.values()) {
+				writer.write(item.toString()+"\n");
+			}
+			writer.close();
+		} catch(Exception e) {
+			throw new ExceptionDBGit(e);
+		}
+	}
+
+	public void loadDBIndex() throws ExceptionDBGit {
+		try{
+			File file = new File(DBGitPath.getFullPath(DBGitPath.INDEX_FILE));
+
 			if (!file.exists()) {
 				version = "new";
 				return ;
 			}
-			BufferedReader br = new BufferedReader(new FileReader(file));			
+			BufferedReader br = new BufferedReader(new FileReader(file));
 			for(String line; (line = br.readLine()) != null; ) {
-				
+
 				if (line.startsWith("<<<<<<<") || line.startsWith("=======") || line.startsWith(">>>>>>>")) {
 					hasConflicts = true;
 					continue;
 				}
-				
+
 				if (line.startsWith("version=")) {
 					version = line.substring(8);
-				} else {				
-				    ItemIndex item = ItemIndex.parseString(line);
-				    treeItems.put(item.getName(), item);
+				} else {
+					ItemIndex item = ItemIndex.parseString(line);
+					treeItems.put(item.getName(), item);
 				}
 			}
-			    
-			br.close();		    
-	    } catch(Exception e) {
-	    	throw new ExceptionDBGit(e);
-	    }
+
+			br.close();
+		} catch(Exception e) {
+			throw new ExceptionDBGit(e);
+		}
 	}
-	
+
 	public void addToGit() throws ExceptionDBGit {
 		DBGit dbGit = DBGit.getInstance();
 		dbGit.addFileToIndexGit(DBGitPath.DB_GIT_PATH+"/"+DBGitPath.INDEX_FILE);
 		dbGit.addFileToIndexGit(DBGitPath.DB_GIT_PATH+"/"+DBGitPath.DB_LINK_FILE);
 	}
-	
+
 	public void addLinkToGit() throws ExceptionDBGit {
 		File file = new File(DBGitPath.DB_GIT_PATH+"/"+DBGitPath.DB_LINK_DEF_FILE);
 		if (file.exists())
 			DBGit.getInstance().addFileToIndexGit(DBGitPath.DB_GIT_PATH+"/"+DBGitPath.DB_LINK_DEF_FILE);
 	}
-	
+
 	public void addIgnoreToGit() throws ExceptionDBGit {
 		DBGit.getInstance().addFileToIndexGit(DBGitPath.DB_GIT_PATH+"/"+DBGitPath.DB_IGNORE_FILE);
 	}
-	
+
 	public boolean hasConflicts() {
 		return hasConflicts;
 	}
-	
+
 	public boolean isCorrectVersion() {
 		if (version.equals("new"))
 			return true;

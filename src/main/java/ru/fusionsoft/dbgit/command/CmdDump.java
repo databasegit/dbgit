@@ -46,7 +46,7 @@ public class CmdDump implements IDBGitCommand {
 		
 		ConsoleWriter.setDetailedLog(cmdLine.hasOption("v"));
 		
-		GitMetaDataManager gmdm = GitMetaDataManager.getInctance();
+		GitMetaDataManager gmdm = GitMetaDataManager.getInstance();
 				
 		DBGitIndex index = DBGitIndex.getInctance();
 		

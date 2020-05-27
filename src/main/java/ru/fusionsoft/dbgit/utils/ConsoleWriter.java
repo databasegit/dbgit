@@ -78,7 +78,7 @@ public class ConsoleWriter {
 		*/
 		cp.println(tab+msg, Attribute.NONE, color, BColor.BLACK);
 		cp.clear();
-		logger.info(msg);
+		//logger.info(msg);
 	}
 	
 	public static void printColor(String msg, FColor color, Integer level) {
@@ -89,7 +89,7 @@ public class ConsoleWriter {
 		*/
 		cp.print(tab+msg, Attribute.NONE, color, BColor.BLACK);
 		cp.clear();
-		logger.info(msg);		
+		//logger.info(msg);
 	}
 	
 	public static void println(Object msg) {
@@ -108,7 +108,7 @@ public class ConsoleWriter {
 		*/
 		cp.println(tab+msg);
 		cp.clear();
-		logger.info(msg);
+		//logger.info(msg);
 	}
 	
 	public static void print(String msg, Integer level) {
@@ -119,7 +119,7 @@ public class ConsoleWriter {
 		*/
 		cp.print(tab+msg);
 		cp.clear();
-		logger.info(msg);
+		//logger.info(msg);
 	}
 	
 	public static void setDetailedLog(boolean toShowLog) {

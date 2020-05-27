@@ -28,56 +28,56 @@ import ru.fusionsoft.dbgit.utils.MaskFilter;
 public class CmdAdd implements IDBGitCommand {
 
 	private Options opts = new Options();
-	
+
 	public CmdAdd() {
 		opts.addOption("c", false, getLang().getValue("help", "add-c").toString());
 	}
-	
+
 	public String getCommandName() {
 		return "add";
 	}
-	
+
 	public String getParams() {
 		return "<file_mask>";
 	}
-	
+
 	public String getHelperInfo() {
-			return getLang().getValue("help", "add").toString();
+		return getLang().getValue("help", "add").toString();
 	}
-	
+
 	public Options getOptions() {
 		return opts;
 	}
-	
-	public void execute(CommandLine cmdLine)  throws Exception {			
+
+	public void execute(CommandLine cmdLine)  throws Exception {
 		if (cmdLine.getArgs().length == 0) {
 			throw new ExceptionDBGit(getLang().getValue("errors", "add", "badCommand"));
 		}
-		
+
 		checkVersion();
 		ConsoleWriter.setDetailedLog(cmdLine.hasOption("v"));
-						
+
 		String nameObj = cmdLine.getArgs()[0];
 		MaskFilter maskAdd = new MaskFilter(nameObj);
-		
+
 		DBGitIndex index = DBGitIndex.getInctance();
-		
-		GitMetaDataManager gmdm = GitMetaDataManager.getInctance();		
-		IMapMetaObject dbObjs = gmdm.loadDBMetaData();			
-		
+
+		GitMetaDataManager gmdm = GitMetaDataManager.getInstance();
+		IMapMetaObject dbObjs = gmdm.loadDBMetaData();
+
 		Integer countSave = 0;
 		for (IMetaObject obj : dbObjs.values()) {
-			if (cmdLine.hasOption("c") 
-					&& !obj.getName().equalsIgnoreCase(DBGitConfig.getInstance().getString("core", "CURRENT_OBJECT", "")) 
+			if (cmdLine.hasOption("c")
+					&& !obj.getName().equalsIgnoreCase(DBGitConfig.getInstance().getString("core", "CURRENT_OBJECT", ""))
 					&& !DBGitConfig.getInstance().getString("core", "CURRENT_OBJECT", "").equals("") ) {
-			
+
 				continue;
 			}
-			
-			if ((maskAdd.match(obj.getName()) && !obj.getName().contains(".csv"))) {			
-				
+
+			if ((maskAdd.match(obj.getName()) && !obj.getName().contains(".csv"))) {
+
 				DBGitConfig.getInstance().setValue("CURRENT_OBJECT", obj.getName().replace(".csv", ".tbl"));
-				
+
 				Timestamp timestampBefore = new Timestamp(System.currentTimeMillis());
 				ConsoleWriter.detailsPrintLn(getLang().getValue("general", "add", "processingObject") + " " + obj.getName());
 				ConsoleWriter.detailsPrint(getLang().getValue("general", "add", "savingToFile"), 2);
@@ -87,18 +87,18 @@ public class CmdAdd implements IDBGitCommand {
 
 				ConsoleWriter.detailsPrintlnGreen(getLang().getValue("general", "ok"));
 				ConsoleWriter.detailsPrint(getLang().getValue("general", "addToGit"), 2);
-				countSave += obj.addToGit();				
+				countSave += obj.addToGit();
 				ConsoleWriter.detailsPrintlnGreen(getLang().getValue("general", "ok"));
-				
-    			Timestamp timestampAfter = new Timestamp(System.currentTimeMillis());
-    			Long diff = timestampAfter.getTime() - timestampBefore.getTime();
+
+				Timestamp timestampAfter = new Timestamp(System.currentTimeMillis());
+				Long diff = timestampAfter.getTime() - timestampBefore.getTime();
 				ConsoleWriter.detailsPrint(getLang().getValue("general", "time").withParams(diff.toString()), 2);
 				ConsoleWriter.detailsPrintLn("");
-				
-				index.addItem(obj);		
-				
-				DBGitIgnore ignore = DBGitIgnore.getInctance(); 
-				
+
+				index.addItem(obj);
+
+				DBGitIgnore ignore = DBGitIgnore.getInstance();
+
 				if (obj instanceof MetaTable && maskAdd.match(obj.getName().replace(".tbl", ".csv"))
 						&& !ignore.matchOne(obj.getName().replace(".tbl", ".csv"))) {
 					MetaTableData tblData = new MetaTableData(((MetaTable) obj).getTable());
@@ -111,39 +111,39 @@ public class CmdAdd implements IDBGitCommand {
 
 					gmdm.setCurrentPortion(DBGitConfig.getInstance().getInteger("core", "CURRENT_PORTION", 0));
 					boolean isFirstPortion = true;
-					
+
 					if (cmdLine.hasOption("c"))
 						isFirstPortion = (DBGitConfig.getInstance().getInteger("core", "CURRENT_PORTION", 0) == 0);
-					
+
 					while (gmdm.loadNextPortion((MetaTable) obj)) {
 						ConsoleWriter.detailsPrint(getLang().getValue("general", "add", "writing").toString(), 2);
 						try {
 							//gmdm.getCurrent().serialize(out);
 							Integer count = 0;
 							Set<String> fields = null;
-							
+
 							for (RowData rd : gmdm.getCurrent().getmapRows().values()) {
 								if (count == 0 && isFirstPortion) {
 									fields = rd.getData().keySet();
 									csvPrinter.printRecord(fields);
 									isFirstPortion = false;
 								}
-											
+
 								rd.saveDataToCsv(csvPrinter, tblData.getTable());
-								
+
 								count++;
 							}
 
-							
+
 						} catch (Exception e) {
 							e.printStackTrace();
 							throw new ExceptionDBGit(e);
 						}
 					}
-					
+
 					csvPrinter.close();
 					out.close();
-					
+
 					tblData.addToGit();
 					index.addItem(tblData);
 				}

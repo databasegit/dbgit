@@ -14,7 +14,7 @@ import ru.fusionsoft.dbgit.statement.StatementLogging;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
 public class DBRestoreFunctionPostgres extends DBRestoreAdapter {
-	
+
 	@Override
 	public boolean restoreMetaObject(IMetaObject obj, int step) throws Exception {
 		IDBAdapter adapter = getAdapter();
@@ -60,18 +60,18 @@ public class DBRestoreFunctionPostgres extends DBRestoreAdapter {
 							}						
 							//TODO Восстановление привилегий							
 						}
-					}					
+					}
 				}
 				if(!exist){
 					st.execute(restoreFunction.getSqlObject().getSql());
-					//TODO Восстановление привилегий	
+					//TODO Восстановление привилегий
 				}
 			}
 			else
 			{
 				ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
 				throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()));
-			}			
+			}
 		} catch (Exception e) {
 			ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
 			ConsoleWriter.detailsPrintlnRed(e.getLocalizedMessage());

@@ -42,6 +42,9 @@ public class TableConverterMySql implements IDBConvertAdapter {
                     for (DBConstraint constraint : table.getConstraints().values())
                         constraint.getOptions().get("ddl").setData((constraintFromOracle(constraint)));
                     break;
+                case MSSQL:
+                    //FIXME
+                    break;
                 default:
                     return obj;
             }
@@ -88,28 +91,34 @@ public class TableConverterMySql implements IDBConvertAdapter {
                 " add constraint " + constraint.getName() + " " + ddl;
     }
 
-    private String typeFromAnotherDB(DbType dbType, DBTableField field) {//TODO: change datatypes
+    private String typeFromAnotherDB(DbType dbType, DBTableField field) {
         ConsoleWriter.println("Converting table field " + field.getName() + " from " + dbType.toString().toLowerCase() + " to mysql...");
-        String result = "";
+        String result;
         switch (field.getTypeUniversal()) {
             case STRING:
-                result = "VARCHAR(" + field.getLength() + ")";
+                if(field.getLength() > 16383 || field.getLength() == 0)
+                    result = "MEDIUMTEXT";
+                else
+                    result = "VARCHAR(" + field.getLength() + ")";
                 break;
             case NUMBER:
-                result = "NUMERIC";
+                result = "BIGINT";
                 break;
             case DATE:
                 result = "TIMESTAMP";
                 break;
             case BINARY:
-                result = "BINARY";//(n)
+                result = "BLOB";
                 break;
             case TEXT:
-                result = "TEXT";
+                result = "MEDIUMTEXT";
+                break;
+            case BOOLEAN:
+                result = "BOOLEAN";
                 break;
             case NATIVE:
-                result = "native";
-                break;
+            default:
+                result = "blob";
         }
         return result;
     }
