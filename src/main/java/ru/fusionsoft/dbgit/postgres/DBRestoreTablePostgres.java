@@ -428,22 +428,6 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 		String constrName = DBAdapterPostgres.escapeNameIfNeeded(constr.getName());
 		String constrDdl = (replaceExisting) ? MessageFormat.format("alter table {0} drop constraint {1};\n", tableSam, constrName) : "";
 		constrDdl += MessageFormat.format(
-				"alter table {0} add constraint {1} {2};\n"
-				,tableSam
-				,constrName
-				,constr.getSql()
-						.replace(" " + constr.getSchema() + ".", " " + schema + ".")
-						.replace("REFERENCES ", "REFERENCES " + schema + ".")
-		);
-		st.execute(constrDdl);
-	}
-
-	private void createConstraint(MetaTable restoreTable, DBConstraint constr, StatementLogging st, boolean replaceExisting) throws Exception {
-		String schema = getPhisicalSchema(constr.getSchema());
-		String tableSam = schema + "." + DBAdapterPostgres.escapeNameIfNeeded(restoreTable.getTable().getName());
-		String constrName = DBAdapterPostgres.escapeNameIfNeeded(constr.getName());
-		String constrDdl = (replaceExisting) ? MessageFormat.format("alter table {0} drop constraint {1};\n", tableSam, constrName) : "";
-		constrDdl += MessageFormat.format(
 			"alter table {0} add constraint {1} {2};\n"
 			,tableSam
 			,constrName
