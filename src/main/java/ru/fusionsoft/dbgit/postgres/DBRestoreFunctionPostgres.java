@@ -97,7 +97,7 @@ public class DBRestoreFunctionPostgres extends DBRestoreAdapter {
 			if (fnc == null) return;
 
 			String schema = getPhisicalSchema(fnc.getSchema());
-			st.execute("DROP FUNCTION "+schema+"."+DBAdapterPostgres.escapeNameIfNeeded(fnc.getName()));
+			st.execute("DROP FUNCTION "+DBAdapterPostgres.escapeNameIfNeeded(schema)+"."+DBAdapterPostgres.escapeNameIfNeeded(fnc.getName()));
 			connect.commit();
 		} catch (Exception e) {
 			ConsoleWriter.println(lang.getValue("errors", "restore", "objectRestoreError").withParams(e.getLocalizedMessage()));

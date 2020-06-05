@@ -211,13 +211,13 @@ public class DBAdapterPostgres extends DBAdapter {
 					"	tablename as table_name,\n" +
 					"	tableowner as owner,\n" +
 					"	tablespace,hasindexes,hasrules,hastriggers, \n" +
-					"	obj_description(to_regclass(schemaname || '.\"' || tablename || '\"')::oid) table_comment, ( \n" +
+					"	obj_description(to_regclass('\"' || schemaname || '\".\"' || tablename || '\"')::oid) table_comment, ( \n" +
 					"		select array_agg(distinct n2.nspname || '/' || c2.relname || '.tbl') as dependencies\n" +
 					"	 	FROM pg_catalog.pg_constraint c  \n" +
 					"		JOIN ONLY pg_catalog.pg_class c1     ON c1.oid = c.conrelid\n" +
 					"		JOIN ONLY pg_catalog.pg_class c2     ON c2.oid = c.confrelid\n" +
 					"		JOIN ONLY pg_catalog.pg_namespace n2 ON n2.oid = c2.relnamespace\n" +
-					"		WHERE c.conrelid = to_regclass(schemaname || '.\"' || tablename || '\"')::oid\n" +
+					"		WHERE c.conrelid = to_regclass('\"' || schemaname || '\".\"' || tablename || '\"')::oid\n" +
 					"		and c1.relkind = 'r' AND c.contype = 'f'\n" +
 					"	)\n" +
 					"from pg_tables \n" +
@@ -254,13 +254,13 @@ public class DBAdapterPostgres extends DBAdapter {
 				"	tablename as table_name,\n" +
 				"	tableowner as owner,\n" +
 				"	tablespace,hasindexes,hasrules,hastriggers, \n" +
-				"	obj_description(to_regclass(schemaname || '.\"' || tablename || '\"')::oid) table_comment, ( \n" +
+				"	obj_description(to_regclass('\"' || schemaname || '\".\"' || tablename || '\"')::oid) table_comment, ( \n" +
 				"		select array_agg(distinct n2.nspname || '/' || c2.relname || '.tbl') as dependencies\n" +
 				"	 	FROM pg_catalog.pg_constraint c  \n" +
 				"		JOIN ONLY pg_catalog.pg_class c1     ON c1.oid = c.conrelid\n" +
 				"		JOIN ONLY pg_catalog.pg_class c2     ON c2.oid = c.confrelid\n" +
 				"		JOIN ONLY pg_catalog.pg_namespace n2 ON n2.oid = c2.relnamespace\n" +
-				"		WHERE c.conrelid = to_regclass(schemaname || '.\"' || tablename || '\"')::oid\n" +
+				"		WHERE c.conrelid = to_regclass('\"' || schemaname || '\".\"' || tablename || '\"')::oid\n" +
 				"		and c1.relkind = 'r' AND c.contype = 'f'\n" +
 				"	)" +
 				"from pg_tables \n" +
@@ -793,7 +793,7 @@ public class DBAdapterPostgres extends DBAdapter {
 			if (DBGitConfig.getInstance().getBoolean("core", "LIMIT_FETCH", DBGitConfig.getInstance().getBooleanGlobal("core", "LIMIT_FETCH", true))) {
 				Statement st = getConnection().createStatement();
 				String query = "select COALESCE(count(*), 0) kolvo from ( select 1 from "+
-						schema + "." + DBAdapterPostgres.escapeNameIfNeeded(nameTable) + " limit " + (maxRowsCount + 1) + " ) tbl";
+						DBAdapterPostgres.escapeNameIfNeeded(schema) + "." + DBAdapterPostgres.escapeNameIfNeeded(nameTable) + " limit " + (maxRowsCount + 1) + " ) tbl";
 				ResultSet rs = st.executeQuery(query);
 				rs.next();
 				if (rs.getInt("kolvo") > maxRowsCount) {
@@ -809,7 +809,7 @@ public class DBAdapterPostgres extends DBAdapter {
 			
 			Statement st = getConnection().createStatement();
 			String query = "    SELECT * FROM \r\n" + 
-					"   (SELECT f.*, ROW_NUMBER() OVER (ORDER BY ctid) DBGIT_ROW_NUM FROM " + schema + "." + DBAdapterPostgres.escapeNameIfNeeded(nameTable) + " f) s\r\n" +
+					"   (SELECT f.*, ROW_NUMBER() OVER (ORDER BY ctid) DBGIT_ROW_NUM FROM " + DBAdapterPostgres.escapeNameIfNeeded(schema) + "." + DBAdapterPostgres.escapeNameIfNeeded(nameTable) + " f) s\r\n" +
 					"   WHERE DBGIT_ROW_NUM BETWEEN " + begin  + " and " + end;
 			ResultSet rs = st.executeQuery(query);
 			
@@ -846,7 +846,7 @@ public class DBAdapterPostgres extends DBAdapter {
 	
 	@Override
 	public DBTableData getTableData(String schema, String nameTable) {
-		String tableName = schema+"."+ DBAdapterPostgres.escapeNameIfNeeded(nameTable);
+		String tableName = DBAdapterPostgres.escapeNameIfNeeded(schema)+"."+ DBAdapterPostgres.escapeNameIfNeeded(nameTable);
 		try {
 			DBTableData data = new DBTableData();
 			
@@ -1024,7 +1024,7 @@ public class DBAdapterPostgres extends DBAdapter {
 
 
 	public static String escapeNameIfNeeded(String name){
-		boolean shouldBeEscaped = !name.equals(name.toLowerCase()) || name.contains(".") || reservedWords.contains(name.toUpperCase()); //TODO maybe check on isReservedWord?
+		boolean shouldBeEscaped = !name.equals(name.toLowerCase()) || name.contains(".") || name.contains(".") || reservedWords.contains(name.toUpperCase()); //TODO maybe check on isReservedWord?
 		if(name.startsWith("\"") && name.endsWith("\"")) shouldBeEscaped = false;
 		return MessageFormat.format("{1}{0}{1}", name, shouldBeEscaped ? "\"" : "");
 	}

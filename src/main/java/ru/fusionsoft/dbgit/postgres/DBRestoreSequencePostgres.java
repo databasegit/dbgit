@@ -123,7 +123,7 @@ public class DBRestoreSequencePostgres extends DBRestoreAdapter {
 			if (seq == null) return;
 
 			String schema = getPhisicalSchema(seq.getSchema());
-			st.execute("DROP SEQUENCE IF EXISTS "+schema+"."+DBAdapterPostgres.escapeNameIfNeeded(seq.getName()));
+			st.execute("DROP SEQUENCE IF EXISTS "+DBAdapterPostgres.escapeNameIfNeeded(schema)+"."+DBAdapterPostgres.escapeNameIfNeeded(seq.getName()));
 
 		} catch (Exception e) {
 			ConsoleWriter.println(lang.getValue("errors", "restore", "objectRestoreError").withParams(e.getLocalizedMessage()));

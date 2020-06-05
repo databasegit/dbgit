@@ -86,7 +86,7 @@ public class DBGitIgnore {
 		}
 
 		for (MaskFilter mask : filters.values()) {
-			if (mask.getMask().indexOf("/") == -1) return true;
+			if (mask.getMask().indexOf("/") == -1) return false;
 			if (mask.match(schemaName) || mask.getMask().toUpperCase().substring(0, mask.getMask().indexOf("/")).equals(schemaName.toUpperCase())) {
 				return true;
 			}

@@ -150,7 +150,7 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 			
 			schema = (SchemaSynonym.getInstance().getSchema(schema) == null) ? schema : SchemaSynonym.getInstance().getSchema(schema);
 			String tblNameUnescaped = schema + "." + restoreTableData.getTable().getName();
-			String tblNameEscaped = schema + "." + DBAdapterPostgres.escapeNameIfNeeded(restoreTableData.getTable().getName());
+			String tblNameEscaped = DBAdapterPostgres.escapeNameIfNeeded(schema) + "." + DBAdapterPostgres.escapeNameIfNeeded(restoreTableData.getTable().getName());
 
 			ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "tableData").withParams(tblNameUnescaped) + "\n", 1);
 			

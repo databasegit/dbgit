@@ -93,7 +93,7 @@ public class DBRestoreViewPostgres extends DBRestoreAdapter {
 			if (vw == null) return;
 
 			String schema = getPhisicalSchema(vw.getSchema());
-			st.execute("DROP VIEW "+schema+"."+DBAdapterPostgres.escapeNameIfNeeded(vw.getName()));
+			st.execute("DROP VIEW "+DBAdapterPostgres.escapeNameIfNeeded(schema)+"."+DBAdapterPostgres.escapeNameIfNeeded(vw.getName()));
 			connect.commit();
 		} catch (Exception e) {
 			ConsoleWriter.println(lang.getValue("errors", "restore", "objectRestoreError").withParams(e.getLocalizedMessage()));
