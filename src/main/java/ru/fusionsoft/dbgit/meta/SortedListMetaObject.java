@@ -1,5 +1,6 @@
 package ru.fusionsoft.dbgit.meta;
 
+import com.diogonunes.jcdp.color.api.Ansi;
 import com.google.common.collect.Sets;
 import ru.fusionsoft.dbgit.core.DBGitLang;
 import ru.fusionsoft.dbgit.dbobjects.DBSQLObject;
@@ -72,18 +73,26 @@ public class SortedListMetaObject {
 
                     List<IMetaObject> objectsOfType = collection.stream().filter(x -> x.getType().equals(tp)).collect(Collectors.toList());
                     if (!objectsOfType.isEmpty()) {
-
                         if (tp.equals(DBGitMetaType.DBGitTable ) || (objectsOfType.get(0) instanceof MetaSql)) {
-                            List<IMetaObject> objectsL0 = objectsOfType.stream().filter(x -> x.getUnderlyingDbObject().getDependencies().size() == 0).collect(Collectors.toList());
+
+                            Set<String> namesAllOfType = objectsOfType.stream().map(IMetaObject::getName).collect(Collectors.toSet());
+                            List<IMetaObject> objectsL0 = objectsOfType.stream()
+                                .filter(x -> x.getUnderlyingDbObject().getDependencies().size() == 0)
+                                .collect(Collectors.toList());
 
                             objectsOfType.removeAll(objectsL0);
                             while (!objectsOfType.isEmpty()) {
                                 Set<String> namesL0 = objectsL0.stream().map(IMetaObject::getName).collect(Collectors.toSet());
                                 List<IMetaObject> objectsL1 = objectsOfType
                                         .stream()
-                                        .filter(x -> namesL0.containsAll(x.getUnderlyingDbObject().getDependencies()))
+                                        .filter(x -> {
+                                            Set<String> actualDeps = new HashSet<>(x.getUnderlyingDbObject().getDependencies());
+                                            actualDeps.retainAll(namesAllOfType);
+                                            return namesL0.containsAll( actualDeps );
+                                        })
                                         .sorted(imoDependenceComparator.reversed())
                                         .collect(Collectors.toList());
+                                if(objectsL1.isEmpty()) warnNotAdded(objectsOfType);
                                 objectsOfType.removeAll(objectsL1);
                                 objectsL0.addAll(0, objectsL1);
                             }
@@ -107,8 +116,8 @@ public class SortedListMetaObject {
 
                     List<IMetaObject> objectsOfType = collection.stream().filter(x -> x.getType().equals(tp)).collect(Collectors.toList());
                     if (!objectsOfType.isEmpty()) {
-
                         if (tp.equals(DBGitMetaType.DBGitTable) || objectsOfType.get(0) instanceof MetaSql) {
+                            Set<String> namesAllOfType = objectsOfType.stream().map(IMetaObject::getName).collect(Collectors.toSet());
                             List<IMetaObject> objectsL0 = objectsOfType.stream().filter(x -> x.getUnderlyingDbObject().getDependencies().size() == 0).collect(Collectors.toList());
 
                             objectsOfType.removeAll(objectsL0);
@@ -116,9 +125,14 @@ public class SortedListMetaObject {
                                 Set<String> namesL0 = objectsL0.stream().map(IMetaObject::getName).collect(Collectors.toSet());
                                 List<IMetaObject> objectsL1 = objectsOfType
                                         .stream()
-                                        .filter(x -> namesL0.containsAll(x.getUnderlyingDbObject().getDependencies()))
+                                        .filter(x -> {
+                                            Set<String> actualDeps = new HashSet<>(x.getUnderlyingDbObject().getDependencies());
+                                            actualDeps.retainAll(namesAllOfType);
+                                            return namesL0.containsAll( actualDeps );
+                                        })
                                         .sorted(imoDependenceComparator)
                                         .collect(Collectors.toList());
+                                if(objectsL1.isEmpty()) warnNotAdded(objectsOfType);
                                 objectsOfType.removeAll(objectsL1);
                                 objectsL0.addAll(objectsL1);
                             }
@@ -151,5 +165,11 @@ public class SortedListMetaObject {
         }
         return result;
     };
+
+    public void warnNotAdded(List<IMetaObject> remained){
+        ConsoleWriter.detailsPrintlnRed("There were objects with unsatisfied dependencies, " +
+                "they will NOT be included in restore list!\n");
+        remained.forEach( x -> ConsoleWriter.printlnColor(x.getName(), Ansi.FColor.MAGENTA, 1) );
+    }
 
 }
