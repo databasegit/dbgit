@@ -92,7 +92,10 @@ public class SortedListMetaObject {
                                         })
                                         .sorted(imoDependenceComparator.reversed())
                                         .collect(Collectors.toList());
-                                if(objectsL1.isEmpty()) warnNotAdded(objectsOfType);
+                                if(objectsL1.isEmpty()) {
+                                    warnNotAdded(objectsOfType);
+                                    break;
+                                }
                                 objectsOfType.removeAll(objectsL1);
                                 objectsL0.addAll(0, objectsL1);
                             }
@@ -132,7 +135,10 @@ public class SortedListMetaObject {
                                         })
                                         .sorted(imoDependenceComparator)
                                         .collect(Collectors.toList());
-                                if(objectsL1.isEmpty()) warnNotAdded(objectsOfType);
+                                if(objectsL1.isEmpty()) {
+                                    warnNotAdded(objectsOfType);
+                                    break;
+                                }
                                 objectsOfType.removeAll(objectsL1);
                                 objectsL0.addAll(objectsL1);
                             }
