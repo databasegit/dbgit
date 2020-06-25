@@ -235,13 +235,14 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 	public boolean createSchema(StatementLogging stLog, String schema) {
 		try {
 			Statement st = 	adapter.getConnection().createStatement();
-			ResultSet rs = st.executeQuery("select count(*) cnt from information_schema.schemata where upper(schema_name) = '" + 
-					PREFIX + schema.toUpperCase() + "'");
+			ResultSet rs = st.executeQuery("select count(*) cnt from information_schema.schemata where schema_name = '" +
+					DBAdapterPostgres.escapeNameIfNeeded(PREFIX + schema.toUpperCase())
+			+ "'");
 			
 			rs.next();
 			if (rs.getInt("cnt") == 0) {
 				ConsoleWriter.detailsPrintLn(lang.getValue("general", "backup", "creatingSchema").withParams(PREFIX + schema));
-				stLog.execute("create schema " + PREFIX + schema);
+				stLog.execute("create schema " + DBAdapterPostgres.escapeNameIfNeeded(PREFIX + schema));
 			}
 			
 			rs.close();

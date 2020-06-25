@@ -1024,7 +1024,10 @@ public class DBAdapterPostgres extends DBAdapter {
 
 
 	public static String escapeNameIfNeeded(String name){
-		boolean shouldBeEscaped = !name.equals(name.toLowerCase()) || name.contains(".") || name.contains(".") || reservedWords.contains(name.toUpperCase()); //TODO maybe check on isReservedWord?
+		boolean shouldBeEscaped = !name.equals(name.toLowerCase())
+			|| name.contains(".")
+			|| name.contains(".")
+			|| reservedWords.contains(name.toUpperCase());
 		if(name.startsWith("\"") && name.endsWith("\"")) shouldBeEscaped = false;
 		return MessageFormat.format("{1}{0}{1}", name, shouldBeEscaped ? "\"" : "");
 	}
@@ -1456,7 +1459,7 @@ public class DBAdapterPostgres extends DBAdapter {
 		reservedWords.add("PRIVILEGES");
 		reservedWords.add("PROCEDURAL");
 		reservedWords.add("PROCEDURE");
-		reservedWords.add("PUBLIC");
+//		reservedWords.add("PUBLIC");
 		reservedWords.add("QUOTE");
 		reservedWords.add("RANGE");
 		reservedWords.add("RANK");
