@@ -283,7 +283,7 @@ public class GitMetaDataManager {
 			for (int i = 0; i < files.size(); i++) {
 	    		String filename = files.get(i);
 	    		if (DBGitPath.isServiceFile(filename)) continue;
-//	    		ConsoleWriter.detailsPrint(filename + "...", 1);
+	    		ConsoleWriter.detailsPrint("\nLoading file " + filename + "...", 1);
 	    		
 	    		if (force) {
 	    			IMetaObject obj = loadMetaFile(filename);
@@ -341,7 +341,7 @@ public class GitMetaDataManager {
 			}
 			return obj;
 		} catch(Exception e) {
-			throw new ExceptionDBGit(e);
+			throw new ExceptionDBGit(e.getLocalizedMessage(), e);
 		}
 	}
 	
