@@ -45,7 +45,7 @@ public class RequestCmd {
         commands.put(new CmdConfig());
 	}
 	
-	public static RequestCmd getInctance()  throws ExceptionDBGit {
+	public static RequestCmd getInstance()  throws ExceptionDBGit {
 		if (cmdReq == null) {
 			cmdReq = new RequestCmd();
 		}

@@ -89,7 +89,7 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 				StringBuilder tableDdlSb = new StringBuilder(MessageFormat.format(
 					"create table {0} as (select * from {1}.{2} where 1={3}) {4};\n alter table {0} owner to {5};\n"
 					, backupTableSam
-					, schema
+					, DBAdapterPostgres.escapeNameIfNeeded(schema)
 					, DBAdapterPostgres.escapeNameIfNeeded(tableName)
 					, isToSaveData() ? "1" : "0"
 					, metaTable.getTable().getOptions().getChildren().containsKey("tablespace")
@@ -214,10 +214,10 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 	
 	private String getFullDbName(String schema, String objectName) {
 		if (isSaveToSchema()){
-			return PREFIX + schema + "." + DBAdapterPostgres.escapeNameIfNeeded(objectName);
+			return PREFIX + DBAdapterPostgres.escapeNameIfNeeded(schema) + "." + DBAdapterPostgres.escapeNameIfNeeded(objectName);
 		}
 		else {
-			return schema + "." + DBAdapterPostgres.escapeNameIfNeeded(PREFIX + objectName);
+			return DBAdapterPostgres.escapeNameIfNeeded(schema) + "." + DBAdapterPostgres.escapeNameIfNeeded(PREFIX + objectName);
 		}
 
 	}
@@ -234,7 +234,7 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 				"where sch = '" + owner.toLowerCase() + "' and obj_name = '"+objectName+"'");
 		
 		while (rs.next()) {
-			stLog.execute("drop " + rs.getString("tp") + " " + owner + "." + DBAdapterPostgres.escapeNameIfNeeded(objectName));
+			stLog.execute("drop " + rs.getString("tp") + " " + DBAdapterPostgres.escapeNameIfNeeded(owner) + "." + DBAdapterPostgres.escapeNameIfNeeded(objectName));
 		}
 		
 		rs.close();
@@ -289,13 +289,14 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 	public boolean createSchema(StatementLogging stLog, String schema) {
 		try {
 			Statement st = 	adapter.getConnection().createStatement();
-			ResultSet rs = st.executeQuery("select count(*) cnt from information_schema.schemata where upper(schema_name) = '" + 
-					PREFIX + schema.toUpperCase() + "'");
+			ResultSet rs = st.executeQuery("select count(*) cnt from information_schema.schemata where schema_name = '" +
+					DBAdapterPostgres.escapeNameIfNeeded(PREFIX + schema.toUpperCase())
+			+ "'");
 			
 			rs.next();
 			if (rs.getInt("cnt") == 0) {
 				ConsoleWriter.detailsPrintLn(lang.getValue("general", "backup", "creatingSchema").withParams(PREFIX + schema));
-				stLog.execute("create schema " + PREFIX + schema);
+				stLog.execute("create schema " + DBAdapterPostgres.escapeNameIfNeeded(PREFIX + schema));
 			}
 			
 			rs.close();

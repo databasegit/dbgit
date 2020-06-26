@@ -132,13 +132,57 @@ public class DBAdapterMySql extends DBAdapter {
 	@Override
 	public Map<String, DBSequence> getSequences(String schema) {
 		Map<String, DBSequence> sequences = new HashMap<String, DBSequence>();
+		try {
+			String query = "select column_name, table_name, column_type, extra from information_schema.columns" +
+					" where extra like '%auto_increment%' and table_schema='" + schema + "'";
+			Connection connect = getConnection();
+			Statement stmt = connect.createStatement();
+			ResultSet rs = stmt.executeQuery(query);
+			while(rs.next()) {
+				String name = rs.getString("column_name");
+				DBSequence seq = new DBSequence(name);
+				Statement stmtValue = connect.createStatement();
+				ResultSet rsValue = stmtValue.executeQuery("select coalesce(max(" + rs.getString("column_name") + "), 0) as nextval" +
+						" from " + schema + ".`" + rs.getString("table_name") + "`");
+				rsValue.next();
+				seq.setSchema(schema);
+				seq.setValue(rsValue.getLong("nextval"));
+				sequences.put(name, seq);
+				stmtValue.close();
+			}
+			stmt.close();
+		} catch(Exception e) {
+			logger.error(lang.getValue("errors", "adapter", "seq").toString(), e);
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "seq").toString(), e);
+		}
 		return sequences;
 	}
 
 	@Override
 	public DBSequence getSequence(String schema, String name) {
-		// TODO Auto-generated method stub
-		return null;
+		DBSequence seq = null;
+		try {
+			String query = "select column_name, table_name, column_type, extra from information_schema.columns" +
+					" where extra like '%auto_increment%' and table_schema='" + schema + "' and column_name='" + name + "'";
+			Connection connect = getConnection();
+			Statement stmt = connect.createStatement();
+			ResultSet rs = stmt.executeQuery(query);
+			if(rs.next()) {
+				seq = new DBSequence(name);
+				Statement stmtValue = connect.createStatement();
+				ResultSet rsValue = stmtValue.executeQuery("select coalesce(max(" + rs.getString("column_name") + "), 0) as nextval" +
+						" from " + schema + ".`" + rs.getString("table_name") + "`");
+				rsValue.next();
+				seq.setSchema(schema);
+				seq.setValue(rsValue.getLong("nextval"));
+				stmtValue.close();
+			}
+			stmt.close();
+		} catch (Exception e) {
+			logger.error(lang.getValue("errors", "adapter", "seq").toString(), e);
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "seq").toString(), e);
+		}
+		return seq;
 	}
 
 	@Override
@@ -159,7 +203,7 @@ public class DBAdapterMySql extends DBAdapter {
 				rowToProperties(rs, table.getOptions());
 				
 				Statement stmtDdl = connect.createStatement();
-				ResultSet rsDdl = stmtDdl.executeQuery("show create table " + schema + "." + nameTable);
+				ResultSet rsDdl = stmtDdl.executeQuery("show create table " + schema + ".`" + nameTable + "`");
 				rsDdl.next();
 				
 				table.getOptions().addChild("ddl", cleanString(rsDdl.getString(2)));
@@ -196,13 +240,10 @@ public class DBAdapterMySql extends DBAdapter {
 				table.setSchema(schema);
 				
 				Statement stmtDdl = connect.createStatement();
-				ResultSet rsDdl = stmtDdl.executeQuery("show create table " + schema + "." + nameTable);
+				ResultSet rsDdl = stmtDdl.executeQuery("show create table " + schema + ".`" + nameTable + "`");
 				rsDdl.next();
-				
 				table.getOptions().addChild("ddl", cleanString(rsDdl.getString(2)));
-				
 				rowToProperties(rs, table.getOptions());
-				
 				stmtDdl.close();
 				rsDdl.close();
 			}
@@ -274,8 +315,36 @@ public class DBAdapterMySql extends DBAdapter {
 
 	@Override
 	public Map<String, DBIndex> getIndexes(String schema, String nameTable) {
-		Map<String, DBIndex> indexes = new HashMap<>();
-		return indexes;
+		try {
+			Map<String, DBIndex> indexes = new HashMap<>();
+			String query = "select TABLE_NAME, INDEX_NAME, INDEX_TYPE, NON_UNIQUE, GROUP_CONCAT(COLUMN_NAME separator '`, `') as FIELDS "
+					+ "from INFORMATION_SCHEMA.STATISTICS where TABLE_SCHEMA = '" + schema + "' and INDEX_NAME != 'PRIMARY' "
+					+ "group by TABLE_NAME, INDEX_NAME, INDEX_TYPE, NON_UNIQUE order by TABLE_NAME, INDEX_NAME;";
+			Connection connect = getConnection();
+			Statement stmt = connect.createStatement();
+			ResultSet rs = stmt.executeQuery(query);
+			while(rs.next()) {
+				DBIndex index = new DBIndex(rs.getString("INDEX_NAME"));
+				index.setSchema(schema);
+				index.setOwner(schema);
+				rowToProperties(rs, index.getOptions());
+
+				String ddl = "create " + (rs.getInt("NON_UNIQUE") == 1 ? "" : "unique ")
+						+ "index `" + rs.getString("INDEX_NAME")
+						+ "` using " + rs.getString("INDEX_TYPE")
+						+ " on " + schema + ".`" + rs.getString("TABLE_NAME") + "`"
+						+ "(`" + rs.getString("FIELDS") + "`)";
+
+				index.getOptions().addChild("ddl", cleanString(ddl));
+				indexes.put(rs.getString("INDEX_NAME"), index);
+			}
+			stmt.close();
+			return indexes;
+		} catch(Exception e) {
+			logger.error(e.getMessage());
+			System.out.println(e.getMessage());
+			throw new ExceptionDBGitRunTime(e.getMessage());
+		}
 	}
 
 	@Override
@@ -321,21 +390,15 @@ public class DBAdapterMySql extends DBAdapter {
 	public DBView getView(String schema, String name) {
 		DBView view = new DBView(name);
 		view.setSchema(schema);
+		view.setOwner(schema);
 		try {
-			view.setSchema(schema);
-			view.setOwner(schema);
-			
 			Statement stmtDdl = connect.createStatement();
-			ResultSet rsDdl = stmtDdl.executeQuery("show create view " + schema + "." + name);
-			rsDdl.next();
-			
-			view.getOptions().addChild("ddl", cleanString(rsDdl.getString(2)));
-			
+			ResultSet rsDdl = stmtDdl.executeQuery("show create view " + schema + ".`" + name + "`");
+			if(rsDdl.next())
+				view.getOptions().addChild("ddl", cleanString(rsDdl.getString(2)));
 			stmtDdl.close();
 			rsDdl.close();
-			
 			return view;
-			
 		}catch(Exception e) {
 			logger.error(e.getMessage());
 			throw new ExceptionDBGitRunTime(e.getMessage());
@@ -408,13 +471,14 @@ public class DBAdapterMySql extends DBAdapter {
                     "GROUP BY R.specific_name,1,2,5,P.ordinal_position ORDER BY P.ordinal_position";
             Statement stmt = getConnection().createStatement();
             ResultSet rs = stmt.executeQuery(query);
-            rs.next();
-            String owner = rs.getString("rolname");
-            String args = rs.getString("arguments");
-            function.setSchema(schema);
-            function.setOwner(owner);
-            rowToProperties(rs, function.getOptions());
-            //function.setArguments(args);
+            if(rs.next()) {
+				String owner = rs.getString("rolname");
+				String args = rs.getString("arguments");
+				function.setSchema(schema);
+				function.setOwner(owner);
+				rowToProperties(rs, function.getOptions());
+				//function.setArguments(args);
+			}
             stmt.close();
         } catch(Exception e) {
             throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "fnc").toString(), e);
@@ -481,7 +545,7 @@ public class DBAdapterMySql extends DBAdapter {
 
 	@Override
 	public DBTableData getTableData(String schema, String nameTable) {
-		String tableName = schema + "." + nameTable;
+		String tableName = schema + ".`" + nameTable + "`";
 		try {
 			DBTableData data = new DBTableData();
 			

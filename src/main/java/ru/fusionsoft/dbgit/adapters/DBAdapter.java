@@ -52,40 +52,37 @@ public abstract class DBAdapter implements IDBAdapter {
 					TimeUnit.SECONDS.sleep(pauseTimeSeconds);
 					currentTry++;
 					ConsoleWriter.println("Try " + currentTry);
-					DBConnection conn = DBConnection.getInctance(false);
+					DBConnection conn = DBConnection.getInstance(false);
 					if (conn.testingConnection()) {
 						conn.flushConnection();
-						conn = DBConnection.getInctance(true);
+						conn = DBConnection.getInstance(true);
 						ConsoleWriter.println("Successful reconnect");
 						connect = conn.getConnect();
 						return connect;
 					}
-				} 
+				}
 				throw new ExceptionDBGit(lang.getValue("errors", "connectionError").toString());
-				
-				
+
+
 			}
 		} catch (Exception e) {
 			throw new ExceptionDBGitRunTime(e);
 		}
-	} 
-	
+	}
+
 	@Override
 	public void setDumpSqlCommand(OutputStream stream, Boolean isExec) {
 		this.streamSql = stream;
 		this.isExec = isExec;
 	}
-	
 	@Override
 	public OutputStream getStreamOutputSqlCommand() {
 		return streamSql;
 	}
-	
 	@Override
 	public Boolean isExecSql() {
 		return isExec;
 	}
-	
 	@Override
 	public void restoreDataBase(IMapMetaObject updateObjs) throws Exception {
 		Connection connect = getConnection();
@@ -125,35 +122,34 @@ public abstract class DBAdapter implements IDBAdapter {
 				String schemaName = getSchemaName(obj);
 				if (schemaName != null) {
 					schemaName = (SchemaSynonym.getInstance().getSchema(schemaName) != null)
-						? SchemaSynonym.getInstance().getSchema(schemaName)
-						: schemaName;
+							? SchemaSynonym.getInstance().getSchema(schemaName)
+							: schemaName;
 				}
 
 				boolean res = false;
 				Timestamp timestampBefore = new Timestamp(System.currentTimeMillis());
-
+				DBGitIgnore ignore = DBGitIgnore.getInstance();
 				if (step == 0) {
 					IDBConvertAdapter convertAdapter = getConvertAdapterFactory().getConvertAdapter(obj.getType().getValue());
-					
+
 					boolean isContainsNative = false;
-					if (obj instanceof MetaTable) {						
+					if (obj instanceof MetaTable) {
 						MetaTable table = (MetaTable) obj;
 						for (DBTableField field : table.getFields().values()) { if (field.getTypeUniversal().equals("native")) { isContainsNative = true; break; } }
 					}
-					
+
 					if (isContainsNative) {
 						ConsoleWriter.println(DBGitLang.getInstance().getValue("general", "restore", "unsupportedTypes").withParams(obj.getName()));
 						continue;
 					}
-					
 					if (convertAdapter != null) {
 						if (!createdSchemas.contains(schemaName) && schemaName != null) {
 							createSchemaIfNeed(schemaName);
 							createdSchemas.add(schemaName);
 						}
-						
+
 						String ownerName = getOwnerName(obj);
-						if (!getRoles().containsKey(ownerName) && !createdRoles.contains(ownerName) && ownerName != null) {
+						if (!ignore.matchOne("*." + DBGitMetaType.DBGitRole.getValue()) && !getRoles().containsKey(ownerName) && !createdRoles.contains(ownerName) && ownerName != null) {
 							createRoleIfNeed(ownerName);
 							createdRoles.add(ownerName);
 						}					
@@ -178,7 +174,7 @@ public abstract class DBAdapter implements IDBAdapter {
 					}
 					
 					String ownerName = getOwnerName(obj);
-					if (!getRoles().containsKey(ownerName) && !createdRoles.contains(ownerName) && ownerName != null) {
+					if (!ignore.matchOne("*." + DBGitMetaType.DBGitRole.getValue()) && !getRoles().containsKey(ownerName) && !createdRoles.contains(ownerName) && ownerName != null) {
 						createRoleIfNeed(ownerName);
 						createdRoles.add(ownerName);
 					}	

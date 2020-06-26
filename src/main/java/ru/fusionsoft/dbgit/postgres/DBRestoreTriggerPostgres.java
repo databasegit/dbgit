@@ -22,38 +22,38 @@ public class DBRestoreTriggerPostgres extends DBRestoreAdapter {
 		Connection connect = adapter.getConnection();
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
 		ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "restoreTrigger").withParams(obj.getName()), 1);
-		try {						
+		try {
 			if (obj instanceof MetaTrigger) {
-				MetaTrigger restoreTrigger = (MetaTrigger)obj;								
+				MetaTrigger restoreTrigger = (MetaTrigger)obj;
 				Map<String, DBTrigger> trgs = adapter.getTriggers(restoreTrigger.getSqlObject().getSchema());
 				boolean exist = false;
 				if(!(trgs.isEmpty() || trgs == null)) {
 					for(DBTrigger trg:trgs.values()) {
 						if(restoreTrigger.getSqlObject().getName().equals(trg.getName())){
-							exist = true;					
+							exist = true;
 							if(!restoreTrigger.getSqlObject().getSql().equals(trg.getSql())) {
 								String query = "DROP TRIGGER IF EXISTS "+restoreTrigger.getSqlObject().getName()+" ON "+restoreTrigger.getSqlObject().getOptions().get("trigger_table")+";\n";
 								query+=restoreTrigger.getSqlObject().getSql()+";";
 								st.execute(query);
 							}
-							//TODO Восстановление привилегий							
+							//TODO Восстановление привилегий
 						}
 					}
 				}
 				if(!exist){
 					st.execute(restoreTrigger.getSqlObject().getSql());
-					//TODO Восстановление привилегий	
+					//TODO Восстановление привилегий
 				}
 			}
 			else
 			{
 				ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
 				throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()));
-			}			
-			
-			
-			
-			
+			}
+
+
+
+
 		}
 		catch (Exception e) {
 			ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
@@ -62,15 +62,15 @@ public class DBRestoreTriggerPostgres extends DBRestoreAdapter {
 			ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
 			st.close();
 		}
-		
-		
-		
-		
-		
-		
-		
-		
-		
+
+
+
+
+
+
+
+
+
 		return true;
 	}
 
@@ -87,7 +87,7 @@ public class DBRestoreTriggerPostgres extends DBRestoreAdapter {
 			if (trg == null) return;
 
 			String schema = getPhisicalSchema(trg.getSchema());
-			st.execute("DROP FUNCTION IF EXISTS "+schema+"."+DBAdapterPostgres.escapeNameIfNeeded(trg.getName()));
+			st.execute("DROP FUNCTION IF EXISTS "+DBAdapterPostgres.escapeNameIfNeeded(schema)+"."+DBAdapterPostgres.escapeNameIfNeeded(trg.getName()));
 
 		} catch (Exception e) {
 			ConsoleWriter.println(lang.getValue("errors", "restore", "objectRestoreError").withParams(e.getLocalizedMessage()));

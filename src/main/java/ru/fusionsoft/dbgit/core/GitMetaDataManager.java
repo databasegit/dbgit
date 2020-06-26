@@ -50,7 +50,7 @@ public class GitMetaDataManager {
 		fileObjs = new TreeMapMetaObject();
 	}
 	
-	public static GitMetaDataManager getInctance() {
+	public static GitMetaDataManager getInstance() {
 		if (manager == null) {
 			manager = new GitMetaDataManager();
 		}
@@ -64,7 +64,7 @@ public class GitMetaDataManager {
 	) throws ExceptionDBGit {
 		if (map == null) return ;
 		
-		DBGitIgnore ignore = DBGitIgnore.getInctance(); 
+		DBGitIgnore ignore = DBGitIgnore.getInstance();
 		
 		for (DBOptionsObject item : map.values()) {
 			MetaObjOptions obj = (MetaObjOptions)MetaObjectFactory.createMetaObject(type);
@@ -83,7 +83,7 @@ public class GitMetaDataManager {
 	) throws ExceptionDBGit {
 		if (map == null) return ;
 		
-		DBGitIgnore ignore = DBGitIgnore.getInctance(); 
+		DBGitIgnore ignore = DBGitIgnore.getInstance();
 		
 		for (DBSQLObject item : map.values()) {
 			MetaSql obj = (MetaSql)MetaObjectFactory.createMetaObject(type);
@@ -129,10 +129,10 @@ public class GitMetaDataManager {
 		ConsoleWriter.detailsPrint(DBGitLang.getInstance().getValue("general", "add", "loading") + " " + currentPortionIndex + ", ", 2);
 		currentPortion = new MetaTableData(tbl.getTable());
 		
-		if (currentPortion != null && currentPortion.getmapRows() != null)
+		if (currentPortion.getmapRows() != null)
 			currentPortion.getmapRows().clear();
 				
-		currentPortion.loadPortionFromDB(currentPortionIndex); 
+		if (!currentPortion.loadPortionFromDB(currentPortionIndex)) return false;
 		ConsoleWriter.detailsPrint(DBGitLang.getInstance().getValue("general", "add", "size") + " " + currentPortion.getmapRows().size() + "\n", 2);
 
 		currentPortionIndex++;
@@ -142,7 +142,7 @@ public class GitMetaDataManager {
 			throw new ExceptionDBGit(e);
 		}
 		
-		return currentPortion.getmapRows().size() > 0 ? true : false;
+		return currentPortion.getmapRows().size() > 0;
 	}
 	
 	public MetaTableData getCurrent() {
@@ -160,7 +160,7 @@ public class GitMetaDataManager {
 	public IMapMetaObject loadDBMetaData() throws ExceptionDBGit {		
 		IDBAdapter adapter = AdapterFactory.createAdapter();
 		
-		DBGitIgnore ignore = DBGitIgnore.getInctance(); 
+		DBGitIgnore ignore = DBGitIgnore.getInstance();
 		
 		dbObjs.clear();
 		Map<String, MetaTable> tbls = new HashMap<String, MetaTable>();
@@ -283,7 +283,7 @@ public class GitMetaDataManager {
 			for (int i = 0; i < files.size(); i++) {
 	    		String filename = files.get(i);
 	    		if (DBGitPath.isServiceFile(filename)) continue;
-//	    		ConsoleWriter.detailsPrint(filename + "...", 1);
+	    		ConsoleWriter.detailsPrint("\nLoading file " + filename + "...", 1);
 	    		
 	    		if (force) {
 	    			IMetaObject obj = loadMetaFile(filename);
@@ -341,7 +341,7 @@ public class GitMetaDataManager {
 			}
 			return obj;
 		} catch(Exception e) {
-			throw new ExceptionDBGit(e);
+			throw new ExceptionDBGit(e.getLocalizedMessage(), e);
 		}
 	}
 	

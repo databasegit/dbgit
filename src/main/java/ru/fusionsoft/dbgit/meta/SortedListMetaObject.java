@@ -1,7 +1,9 @@
 package ru.fusionsoft.dbgit.meta;
 
+import com.diogonunes.jcdp.color.api.Ansi;
 import com.google.common.collect.Sets;
 import ru.fusionsoft.dbgit.core.DBGitLang;
+import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.dbobjects.DBSQLObject;
 import ru.fusionsoft.dbgit.dbobjects.DBTable;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
@@ -63,72 +65,95 @@ public class SortedListMetaObject {
         ConsoleWriter.detailsPrintlnGreen(DBGitLang.getInstance().getValue("general", "time").withParams(diff.toString()));
     };
 
-    public List<IMetaObject> sortFromDependant(){
+    public List<IMetaObject> sortFromDependant() throws ExceptionDBGit {
         if (listFromDependant == null) {
             listFromDependant = new ArrayList<>();
-            Arrays.stream(DBGitMetaType.values())
+            List<DBGitMetaType> types = Arrays
+                .stream(DBGitMetaType.values())
                 .sorted(Comparator.comparing(DBGitMetaType::getPriority).reversed())
-                .forEach(tp -> {
+                .collect(Collectors.toList());
 
-                    List<IMetaObject> objectsOfType = collection.stream().filter(x -> x.getType().equals(tp)).collect(Collectors.toList());
-                    if (!objectsOfType.isEmpty()) {
+            for (DBGitMetaType tp : types) {
 
-                        if (tp.equals(DBGitMetaType.DBGitTable ) || (objectsOfType.get(0) instanceof MetaSql)) {
-                            List<IMetaObject> objectsL0 = objectsOfType.stream().filter(x -> x.getUnderlyingDbObject().getDependencies().size() == 0).collect(Collectors.toList());
+                List<IMetaObject> objectsOfType = collection.stream().filter(x -> x.getType().equals(tp)).collect(Collectors.toList());
+                if (!objectsOfType.isEmpty()) {
+                    if (tp.equals(DBGitMetaType.DBGitTable) || (objectsOfType.get(0) instanceof MetaSql)) {
 
-                            objectsOfType.removeAll(objectsL0);
-                            while (!objectsOfType.isEmpty()) {
-                                Set<String> namesL0 = objectsL0.stream().map(IMetaObject::getName).collect(Collectors.toSet());
-                                List<IMetaObject> objectsL1 = objectsOfType
-                                        .stream()
-                                        .filter(x -> namesL0.containsAll(x.getUnderlyingDbObject().getDependencies()))
-                                        .sorted(imoDependenceComparator.reversed())
-                                        .collect(Collectors.toList());
-                                objectsOfType.removeAll(objectsL1);
-                                objectsL0.addAll(0, objectsL1);
+                        Set<String> namesAllOfType = objectsOfType.stream().map(IMetaObject::getName).collect(Collectors.toSet());
+                        List<IMetaObject> objectsL0 = objectsOfType.stream()
+                                .filter(x -> x.getUnderlyingDbObject().getDependencies().size() == 0)
+                                .collect(Collectors.toList());
+
+                        objectsOfType.removeAll(objectsL0);
+                        while (!objectsOfType.isEmpty()) {
+                            Set<String> namesL0 = objectsL0.stream().map(IMetaObject::getName).collect(Collectors.toSet());
+                            List<IMetaObject> objectsL1 = objectsOfType
+                                    .stream()
+                                    .filter(x -> {
+                                        Set<String> actualDeps = new HashSet<>(x.getUnderlyingDbObject().getDependencies());
+                                        actualDeps.retainAll(namesAllOfType);
+                                        return namesL0.containsAll(actualDeps);
+                                    })
+                                    .sorted(imoDependenceComparator.reversed())
+                                    .collect(Collectors.toList());
+                            if (objectsL1.isEmpty()) {
+                                warnNotAdded(objectsOfType);
+                                throw new ExceptionDBGit("infinite loop");
                             }
-                            listFromDependant.addAll(objectsL0);
-                        } else {
-                            listFromDependant.addAll(objectsOfType);
+                            objectsOfType.removeAll(objectsL1);
+                            objectsL0.addAll(0, objectsL1);
                         }
+                        listFromDependant.addAll(objectsL0);
+                    } else {
+                        listFromDependant.addAll(objectsOfType);
                     }
-                });
+                }
+            }
 
         }
         return listFromDependant;
 
     };
-    public List<IMetaObject> sortFromFree(){
+    public List<IMetaObject> sortFromFree() throws ExceptionDBGit {
         if (listFromFree == null) {
             listFromFree = new ArrayList<>();
-            Arrays.stream(DBGitMetaType.values())
-                .sorted(Comparator.comparing(DBGitMetaType::getPriority))
-                .forEach(tp -> {
+            List<DBGitMetaType> types = Arrays.stream(DBGitMetaType.values())
+                    .sorted(Comparator.comparing(DBGitMetaType::getPriority))
+                    .collect(Collectors.toList());
 
-                    List<IMetaObject> objectsOfType = collection.stream().filter(x -> x.getType().equals(tp)).collect(Collectors.toList());
-                    if (!objectsOfType.isEmpty()) {
+            for (DBGitMetaType tp : types) {
+                List<IMetaObject> objectsOfType = collection.stream().filter(x -> x.getType().equals(tp)).collect(Collectors.toList());
+                if (!objectsOfType.isEmpty()) {
+                    if (tp.equals(DBGitMetaType.DBGitTable) || objectsOfType.get(0) instanceof MetaSql) {
+                        Set<String> namesAllOfType = objectsOfType.stream().map(IMetaObject::getName).collect(Collectors.toSet());
+                        List<IMetaObject> objectsL0 = objectsOfType.stream().filter(x -> x.getUnderlyingDbObject().getDependencies().size() == 0).collect(Collectors.toList());
 
-                        if (tp.equals(DBGitMetaType.DBGitTable) || objectsOfType.get(0) instanceof MetaSql) {
-                            List<IMetaObject> objectsL0 = objectsOfType.stream().filter(x -> x.getUnderlyingDbObject().getDependencies().size() == 0).collect(Collectors.toList());
-
-                            objectsOfType.removeAll(objectsL0);
-                            while (!objectsOfType.isEmpty()) {
-                                Set<String> namesL0 = objectsL0.stream().map(IMetaObject::getName).collect(Collectors.toSet());
-                                List<IMetaObject> objectsL1 = objectsOfType
-                                        .stream()
-                                        .filter(x -> namesL0.containsAll(x.getUnderlyingDbObject().getDependencies()))
-                                        .sorted(imoDependenceComparator)
-                                        .collect(Collectors.toList());
-                                objectsOfType.removeAll(objectsL1);
-                                objectsL0.addAll(objectsL1);
+                        objectsOfType.removeAll(objectsL0);
+                        while (!objectsOfType.isEmpty()) {
+                            Set<String> namesL0 = objectsL0.stream().map(IMetaObject::getName).collect(Collectors.toSet());
+                            List<IMetaObject> objectsL1 = objectsOfType
+                                    .stream()
+                                    .filter(x -> {
+                                        Set<String> actualDeps = new HashSet<>(x.getUnderlyingDbObject().getDependencies());
+                                        actualDeps.retainAll(namesAllOfType);
+                                        return namesL0.containsAll(actualDeps);
+                                    })
+                                    .sorted(imoDependenceComparator)
+                                    .collect(Collectors.toList());
+                            if (objectsL1.isEmpty()) {
+                                warnNotAdded(objectsOfType);
+                                throw new ExceptionDBGit("infinite loop");
                             }
-                            listFromFree.addAll(objectsL0);
-                        } else {
-                            listFromFree.addAll(objectsOfType);
+                            objectsOfType.removeAll(objectsL1);
+                            objectsL0.addAll(objectsL1);
                         }
+                        listFromFree.addAll(objectsL0);
+                    } else {
+                        listFromFree.addAll(objectsOfType);
                     }
+                }
 
-                });
+            }
         }
         return listFromFree;
     };
@@ -151,5 +176,11 @@ public class SortedListMetaObject {
         }
         return result;
     };
+
+    public void warnNotAdded(List<IMetaObject> remained){
+        ConsoleWriter.detailsPrintlnRed("There were objects with unsatisfied dependencies, " +
+                "they will NOT be included in restore list!\n");
+        remained.forEach( x -> ConsoleWriter.printlnColor(x.getName(), Ansi.FColor.MAGENTA, 1) );
+    }
 
 }

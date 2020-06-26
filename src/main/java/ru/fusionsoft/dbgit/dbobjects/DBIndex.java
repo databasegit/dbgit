@@ -8,13 +8,13 @@ public class DBIndex extends DBSQLObject {
 	private StringProperties options = new StringProperties();
 	public DBIndex() {
 		super();
-	}	
+	}
 	public DBIndex(String name) {
 		super();
 		this.name = name;
 	}
-	
-	
+
+
 	public StringProperties getOptions() {
 		return options;
 	}
@@ -22,7 +22,7 @@ public class DBIndex extends DBSQLObject {
 	public void setOptions(StringProperties options) {
 		this.options = options;
 	}
-	
+
 	public String getSql() {
 		return options.get("ddl") != null ? options.get("ddl").toString() : "";
 	}
@@ -34,5 +34,5 @@ public class DBIndex extends DBSQLObject {
 		ch.addData(getSql().replaceAll("\\s+", "").toLowerCase());
 		return ch.calcHashStr();
 	}
-	
+
 }

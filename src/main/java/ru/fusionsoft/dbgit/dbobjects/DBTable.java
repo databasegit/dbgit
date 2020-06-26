@@ -7,11 +7,11 @@ import ru.fusionsoft.dbgit.utils.StringProperties;
 public class DBTable extends DBSchemaObject {
 	private StringProperties options = new StringProperties();
 	private String comment = "";
-	
+
 	public DBTable() {
 		super();
 	}
-	
+
 	public DBTable(String name) {
 		super();
 		this.name = name;
@@ -33,7 +33,7 @@ public class DBTable extends DBSchemaObject {
 
 		return ch.calcHashStr();
 	}
-	
+
 	public void setComment(String comment) {
 		this.comment = comment;
 	}

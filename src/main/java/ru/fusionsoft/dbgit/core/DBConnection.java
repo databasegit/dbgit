@@ -25,7 +25,7 @@ public class DBConnection {
 	private Connection connect = null;
 	private Logger logger = LoggerUtil.getLogger(this.getClass());
 	private DBGitLang lang = DBGitLang.getInstance();
-	
+
 	private DBConnection(Boolean isConnect) throws ExceptionDBGit {
 		try {
 			Properties props = new Properties();
@@ -34,7 +34,6 @@ public class DBConnection {
 			if (url != null && isConnect) {
 				props.put("characterEncoding", "UTF-8");
 				connect = DriverManager.getConnection(url, props);
-				
 				connect.setAutoCommit(false);
 			}
 		} catch(Exception e) {
@@ -48,11 +47,11 @@ public class DBConnection {
 		dbGitConnection = null;
 	}
 	
-	public static DBConnection getInctance()  throws ExceptionDBGit {
-		return getInctance(true);
+	public static DBConnection getInstance()  throws ExceptionDBGit {
+		return getInstance(true);
 	}
 	
-	public static DBConnection getInctance(Boolean isConnect)  throws ExceptionDBGit {
+	public static DBConnection getInstance(Boolean isConnect)  throws ExceptionDBGit {
 		if (dbGitConnection == null) {
 			dbGitConnection = new DBConnection(isConnect);
 		}

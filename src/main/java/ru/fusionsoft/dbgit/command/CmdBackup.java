@@ -59,7 +59,7 @@ public class CmdBackup implements IDBGitCommand {
 		String nameObj = cmdLine.getArgs()[0];
 		MaskFilter mask = new MaskFilter(nameObj);
 		
-		GitMetaDataManager gmdm = GitMetaDataManager.getInctance();		
+		GitMetaDataManager gmdm = GitMetaDataManager.getInstance();
 		IMapMetaObject dbObjs = gmdm.loadDBMetaData();	
 		
 		SimpleDateFormat format = new SimpleDateFormat("yyyyMMddHHmmss");

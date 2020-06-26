@@ -31,7 +31,7 @@ public class DBRestoreTableDataMssql extends DBRestoreAdapter {
 		if (obj instanceof MetaTableData) {
 			MetaTableData currentTableData;
 			MetaTableData restoreTableData = (MetaTableData)obj;
-			GitMetaDataManager gitMetaMng = GitMetaDataManager.getInctance();
+			GitMetaDataManager gitMetaMng = GitMetaDataManager.getInstance();
 			//TODO не факт что в кеше есть мета описание нашей таблицы, точнее ее не будет если при старте ресторе таблицы в бд не было совсем
 
 			IMetaObject currentMetaObj = gitMetaMng.getCacheDBMetaObject(obj.getName());

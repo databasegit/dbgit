@@ -52,7 +52,7 @@ public class CmdLink implements IDBGitCommand {
 		String url = args[0];
 		Properties props = CreateProperties(Arrays.copyOfRange(args, 1, args.length));
 		
-		DBConnection conn = DBConnection.getInctance(false);
+		DBConnection conn = DBConnection.getInstance(false);
 
 		if(conn.testingConnection(url, props)) {
 			DBConnection.createFileDBLink(url, props, cmdLine.hasOption("d"));	

@@ -61,7 +61,7 @@ public class DBRestoreTableDataOracle extends DBRestoreAdapter {
 			String schema = getPhisicalSchema(restoreTableData.getTable().getSchema());					
 			schema = (SchemaSynonym.getInstance().getSchema(schema) == null) ? schema : SchemaSynonym.getInstance().getSchema(schema);
 			
-			IMetaObject currentMetaObj = GitMetaDataManager.getInctance().getCacheDBMetaObject(obj.getName());
+			IMetaObject currentMetaObj = GitMetaDataManager.getInstance().getCacheDBMetaObject(obj.getName());
 			MetaTableData currentTableData = (MetaTableData) currentMetaObj;
 						
 			if(Integer.valueOf(step).equals(0)) {

@@ -7,6 +7,10 @@ public class DBSequence extends DBSchemaObject {
 	protected Long value;
 	private StringProperties options = new StringProperties();
 
+	public DBSequence() { }
+
+	public DBSequence(String name) { this.name = name; }
+
 	public Long getValue() {
 		return value;
 	}

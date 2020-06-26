@@ -16,28 +16,28 @@ import ru.fusionsoft.dbgit.utils.MaskFilter;
 
 public class CmdRm implements IDBGitCommand {
 	private Options opts = new Options();
-	
+
 	public CmdRm() {
 		opts.addOption("db", false, getLang().getValue("help", "rm-db").toString());
 		opts.addOption("idx", false, getLang().getValue("help", "rm-idx").toString());
 	}
-	
+
 	public String getCommandName() {
 		return "rm";
 	}
-	
+
 	public String getParams() {
 		return "<object>";
 	}
-	
+
 	public String getHelperInfo() {
 		return getLang().getValue("help", "rm").toString();
 	}
-	
+
 	public Options getOptions() {
 		return opts;
 	}
-	
+
 	@Override
 	public void execute(CommandLine cmdLine) throws Exception {
 		if (cmdLine.getArgs().length == 0) {
@@ -56,7 +56,7 @@ public class CmdRm implements IDBGitCommand {
 
 		ConsoleWriter.detailsPrintLn(getLang().getValue("general", "rm", "checking"));
 
-		GitMetaDataManager gmdm = GitMetaDataManager.getInctance();
+		GitMetaDataManager gmdm = GitMetaDataManager.getInstance();
 		IMapMetaObject dbObjs = gmdm.loadFileMetaDataForce();
 		dbObjs.putAll(gmdm.loadDBMetaData());
 
@@ -105,7 +105,7 @@ public class CmdRm implements IDBGitCommand {
 			gmdm.deleteDataBase(deleteObjs, true);
 			ConsoleWriter.detailsPrintlnGreen(getLang().getValue("general", "ok"));
 		}
-		
+
 		if (countDelete > 0) {
 			index.saveDBIndex();
 			index.addToGit();
