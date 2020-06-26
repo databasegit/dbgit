@@ -17,7 +17,7 @@ public interface IDBBackupAdapter {
 
 	public IDBAdapter getAdapter();
 	
-	public IMetaObject backupDBObject(IMetaObject obj) throws SQLException, ExceptionDBGit;
+	public IMetaObject backupDBObject(IMetaObject obj) throws  Exception;
 
 	public void backupDatabase(IMapMetaObject backupObjs) throws Exception;
 
