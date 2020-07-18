@@ -98,18 +98,6 @@ public abstract class DBAdapter implements IDBAdapter {
 			List<String> createdSchemas = new ArrayList<String>();
 			List<String> createdRoles = new ArrayList<String>();
 			SortedListMetaObject restoreObjs = updateObjs.getSortedList();
-/*
-			restoreObjs.sortFromFree().forEach( (x) -> {
-				ConsoleWriter.detailsPrintlnGreen(MessageFormat.format(
-					"{0}. {1} {2}"
-					,restoreObjs.sortFromFree().indexOf(x)
-					,x.getName()
-					,(x.getUnderlyingDbObject() != null) && (x.getUnderlyingDbObject().getDependencies() != null) && (x.getUnderlyingDbObject().getDependencies().size() > 0)
-						? "depends on (" + String.join(", ", x.getUnderlyingDbObject().getDependencies()) + ")"
-						: ""
-				));
-			});
-*/
 
 			if(toMakeBackup){
 				IDBBackupAdapter ba = getBackupAdapterFactory().getBackupAdapter(this);

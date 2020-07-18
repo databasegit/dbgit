@@ -23,7 +23,7 @@ public class DBGitIgnore {
 	
 	private Map<String, MaskFilter> exclusions = new HashMap<>();
 	
-	private DBGitIgnore() throws ExceptionDBGit {
+	DBGitIgnore() throws ExceptionDBGit {
 		// load file DBIgnore
 		loadFileDBIgnore();		
 	}

@@ -65,9 +65,7 @@ public class DBBackupAdapterOracle extends DBBackupAdapter {
 					return obj;
 				
 				ConsoleWriter.detailsPrint(lang.getValue("general", "backup", "tryingToCopy").withParams(objectName, getFullDbName(schema, objectName)), 1);
-				
-				dropIfExists(isSaveToSchema() ? PREFIX + schema : schema, 
-						isSaveToSchema() ? objectName : PREFIX + objectName, stLog);
+
 				
 				if (isToSaveData()) {					
 					String ddl = "create table " +  (isSaveToSchema() ? "" : schema + ".") + 

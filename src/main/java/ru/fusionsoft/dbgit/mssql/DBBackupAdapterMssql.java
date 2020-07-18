@@ -45,11 +45,6 @@ public class DBBackupAdapterMssql extends DBBackupAdapter {
 
 				ConsoleWriter.detailsPrint(lang.getValue("general", "backup", "tryingToCopy").withParams(objectName, getFullDbName(schema, objectName)), 1);
 
-				dropIfExists(
-					isSaveToSchema() ? PREFIX + schema : schema,
-					isSaveToSchema() ? objectName : PREFIX + objectName, stLog
-				);
-
 				ddl = ddl.replace(schema + "." + objectName, getFullDbName(schema, objectName));
 
 				stLog.execute(ddl);

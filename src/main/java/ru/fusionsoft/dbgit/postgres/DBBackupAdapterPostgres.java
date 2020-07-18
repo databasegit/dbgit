@@ -4,9 +4,7 @@ import java.io.File;
 import java.lang.reflect.Type;
 import java.sql.*;
 import java.text.MessageFormat;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -61,7 +59,7 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 			} else if (obj instanceof MetaTable) {
 				
 				MetaTable metaTable = (MetaTable) obj;
-				metaTable.loadFromDB();
+
 				String tableName = metaTable.getTable().getName();
 				String schema = metaTable.getTable().getSchema();
 				schema = (SchemaSynonym.getInstance().getSchema(schema) == null) ? schema : SchemaSynonym.getInstance().getSchema(schema);
@@ -81,11 +79,7 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 				}
 
 				ConsoleWriter.detailsPrint(lang.getValue("general", "backup", "tryingToCopy").withParams(tableName, getFullDbName(schema, tableName)), 1);
-				
-				dropIfExists(
-					isSaveToSchema() ? PREFIX + schema : schema,
-					isSaveToSchema() ? tableName : PREFIX + tableName, stLog
-				);
+
 				
 				StringBuilder tableDdlSb = new StringBuilder(MessageFormat.format(
 					"create table {0} as (select * from {1}.{2} where 1={3}) {4};\n alter table {0} owner to {5};\n"
@@ -280,8 +274,9 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 	@Override
 	public boolean isExists(String owner, String objectName) throws SQLException {
 		Statement st = 	adapter.getConnection().createStatement();
-		ResultSet rs = st.executeQuery("select count(*) cnt from (\r\n" + 
-				"	SELECT 'TABLE' tp, table_name obj_name, table_schema sch FROM information_schema.tables \r\n" + 
+		ResultSet rs = st.executeQuery(
+				"select count(*) cnt from (\r\n" +
+				"	SELECT 'TABLE' tp, table_name obj_name, table_schema sch FROM information_schema.tables \r\n" +
 				"	union select 'VIEW' tp, table_name obj_name, table_schema sch from information_schema.views\r\n" + 
 				"	union select 'SEQUENCE' tp, sequence_name obj_name, sequence_schema sch from information_schema.sequences\r\n" + 
 				"	union select 'TRIGGER' tp, trigger_name obj_name, trigger_schema sch from information_schema.triggers\r\n" + 
