@@ -57,6 +57,7 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 					obj = metaSql.loadFromFile();
 		
 				ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+
 			} else if (obj instanceof MetaTable) {
 				
 				MetaTable metaTable = (MetaTable) obj;
@@ -105,7 +106,9 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 					String fkschema = fk.substring(0,fk.indexOf('/')) ;
 
 					String nameDb = "("+fkschema+ "\\.)?" + "\\\"?" + Pattern.quote(DBAdapterPostgres.escapeNameIfNeeded(fkname)) + "\\\"?(?=\\()";
-					String nameReplacement = Matcher.quoteReplacement(fkschema + "." + DBAdapterPostgres.escapeNameIfNeeded(PREFIX+fkname));
+					String nameReplacement = isSaveToSchema()
+						? Matcher.quoteReplacement(DBAdapterPostgres.escapeNameIfNeeded(PREFIX+fkschema) + "." + fkname)
+						: Matcher.quoteReplacement(fkschema + "." + DBAdapterPostgres.escapeNameIfNeeded(PREFIX+fkname));
 					fkRefReplaces.put(nameDb, nameReplacement);
 				}
 
@@ -113,7 +116,10 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 				for (DBIndex index : metaTable.getIndexes().values()) {
 					String indexName = index.getName();
 					String indexNameRe = "\\\"?" + Pattern.quote(indexName) + "\\\"?";
-					String backupIndexNameRe = Matcher.quoteReplacement(DBAdapterPostgres.escapeNameIfNeeded(PREFIX + indexName));
+					String backupIndexNameRe = Matcher.quoteReplacement(DBAdapterPostgres.escapeNameIfNeeded(
+						PREFIX + indexName
+						+ ((metaTable.getConstraints().containsKey(index.getName())) ? "_idx" : "")
+					));
 
 					String indexSql = index.getSql().replaceAll(indexNameRe, backupIndexNameRe).replaceAll(tableSamRe, backupTableSamRe);
 
@@ -147,11 +153,10 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 					if (constrDdl.length() > 3) { tableDdlSb.append(constrDdl); }
 				}
 
-				String tableDdl = tableDdlSb.toString();
 
-				stLog.execute(tableDdl);
+				stLog.execute(tableDdlSb.toString());
 				
-				File file = new File(DBGitPath.getFullPath() + metaTable.getFileName());				
+				File file = new File(DBGitPath.getFullPath() + metaTable.getFileName());
 				if (file.exists())
 					obj = metaTable.loadFromFile();
 				ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
@@ -214,7 +219,7 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 	
 	private String getFullDbName(String schema, String objectName) {
 		if (isSaveToSchema()){
-			return PREFIX + DBAdapterPostgres.escapeNameIfNeeded(schema) + "." + DBAdapterPostgres.escapeNameIfNeeded(objectName);
+			return DBAdapterPostgres.escapeNameIfNeeded(PREFIX + schema) + "." + DBAdapterPostgres.escapeNameIfNeeded(objectName);
 		}
 		else {
 			return DBAdapterPostgres.escapeNameIfNeeded(schema) + "." + DBAdapterPostgres.escapeNameIfNeeded(PREFIX + objectName);
@@ -246,13 +251,13 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 
 		Statement st = 	adapter.getConnection().createStatement();
 		ResultSet rs = st.executeQuery(MessageFormat.format("select * from (\r\n" +
-				"	SELECT 'TABLE' tp, table_name obj_name, table_schema sch FROM information_schema.tables WHERE 1={0}\r\n" +
-				"	union select 'VIEW' tp, table_name obj_name, table_schema sch from information_schema.views WHERE 1={1}\r\n" +
-				"	union select 'SEQUENCE' tp, sequence_name obj_name, sequence_schema sch from information_schema.sequences WHERE 1={2}\r\n" +
-				"	union select 'TRIGGER' tp, trigger_name obj_name, trigger_schema sch from information_schema.triggers WHERE 1={3}\r\n" +
-				"	union select 'FUNCTION' tp, routine_name obj_name, routine_schema sch from information_schema.routines WHERE 1={4}\r\n" +
+				"	SELECT ''TABLE'' tp, table_name obj_name, table_schema sch FROM information_schema.tables WHERE 1={0}\r\n" +
+				"	union select ''VIEW'' tp, table_name obj_name, table_schema sch from information_schema.views WHERE 1={1}\r\n" +
+				"	union select ''SEQUENCE'' tp, sequence_name obj_name, sequence_schema sch from information_schema.sequences WHERE 1={2}\r\n" +
+				"	union select ''TRIGGER'' tp, trigger_name obj_name, trigger_schema sch from information_schema.triggers WHERE 1={3}\r\n" +
+				"	union select ''FUNCTION'' tp, routine_name obj_name, routine_schema sch from information_schema.routines WHERE 1={4}\r\n" +
 				") all_objects\r\n" +
-				"where lower(sch) = lower('{5}') and obj_name = '{6}'",
+				"where sch = ''{5}'' and obj_name = ''{6}''",
 				type.equals(DBGitMetaType.DBGitTable) ? "1" : "0",
 				type.equals(DBGitMetaType.DbGitView) ? "1" : "0",
 				type.equals(DBGitMetaType.DBGitSequence) ? "1" : "0",
@@ -262,7 +267,11 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 		));
 
 		while (rs.next()) {
-			stLog.execute("drop " + rs.getString("tp") + " " + nm.getSchema() + "." + DBAdapterPostgres.escapeNameIfNeeded(nm.getName()));
+			stLog.execute(MessageFormat.format("DROP {0} {1}.{2}",
+				rs.getString("tp"),
+				DBAdapterPostgres.escapeNameIfNeeded(nm.getSchema()),
+				DBAdapterPostgres.escapeNameIfNeeded(nm.getName())
+			));
 		}
 
 		rs.close();
@@ -287,11 +296,14 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 
 	@Override
 	public boolean createSchema(StatementLogging stLog, String schema) {
+		if(createdSchemas.contains(schema)) return true;
 		try {
 			Statement st = 	adapter.getConnection().createStatement();
-			ResultSet rs = st.executeQuery("select count(*) cnt from information_schema.schemata where schema_name = '" +
-					DBAdapterPostgres.escapeNameIfNeeded(PREFIX + schema.toUpperCase())
-			+ "'");
+			String query = MessageFormat.format(
+				"select count(*) cnt from information_schema.schemata where schema_name = ''{0}{1}''",
+				PREFIX, schema
+			);
+			ResultSet rs = st.executeQuery(query);
 			
 			rs.next();
 			if (rs.getInt("cnt") == 0) {
@@ -301,7 +313,8 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 			
 			rs.close();
 			st.close();
-			
+			createdSchemas.add(schema);
+
 			return true;
 		} catch (SQLException e) {
 			ConsoleWriter.println(lang.getValue("errors", "backup", "cannotCreateSchema").withParams(e.getLocalizedMessage()));
@@ -309,6 +322,6 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 		}
 	}
 
-
+	private Set<String> createdSchemas = new HashSet();
 
 }
