@@ -32,8 +32,9 @@ public class DBTableField implements IDBObject, Comparable<DBTableField> {
 		CalcHash ch = new CalcHash();
 		ch.addData(this.getName());
 		ch.addData(this.getTypeSQL());
-		
-		ch.addData(isPrimaryKey.toString());		
+		if( this.getDefaultValue()!=null ) ch.addData(this.getDefaultValue());
+//		if( this.getOrder()!=null ) ch.addData(String.valueOf(this.getOrder()));
+		ch.addData(isPrimaryKey.toString());
 
 		return ch.calcHashStr();
 	}
