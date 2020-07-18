@@ -63,15 +63,23 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 
 				//find existing table and set tablespace or create
 				if(existingTable.loadFromDB()){
-					String restoreTablespaceSam = MessageFormat.format(
-						"alter table {0}.{1} set tablespace {2}"
-						,schema
-						,tblName
-						,restoreTable.getTable().getOptions().getChildren().containsKey("tablespace")
-							? restoreTable.getTable().getOptions().get("tablespace").getData()
-							: "pg_default"
-					);
-					st.execute(restoreTablespaceSam);
+					StringProperties exTablespace = existingTable.getTable().getOptions().get("tablespace");
+					StringProperties restoreTablespace = restoreTable.getTable().getOptions().get("tablespace");
+					if(
+						restoreTablespace != null && ( exTablespace == null || !exTablespace.getData().equals(restoreTablespace.getData()) )
+					){
+						//TODO For now in postgres context tablespace is always missing!
+						String restoreTablespaceSam = MessageFormat.format(
+								"alter table {0}.{1} set tablespace {2}"
+								,schema
+								,tblName
+								,restoreTable.getTable().getOptions().getChildren().containsKey("tablespace")
+										? restoreTable.getTable().getOptions().get("tablespace").getData()
+										: "pg_default"
+						);
+						st.execute(restoreTablespaceSam);
+					}
+
 					ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
 				} else {
 					ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "createTable"), 2);
@@ -183,6 +191,16 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 									+ " set not null"
 								);
 							}
+
+						}
+
+						if (
+							tblField.leftValue().getDefaultValue() != null
+							&& tblField.leftValue().getDefaultValue().length() > 0
+							&& !tblField.leftValue().getDefaultValue().equals(tblField.rightValue().getDefaultValue())
+						) {
+							st.execute("alter table " + tblSam + " alter column " + DBAdapterPostgres.escapeNameIfNeeded(tblField.leftValue().getName())
+									+ " SET DEFAULT " + tblField.leftValue().getDefaultValue());
 						}
 					}
 					ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
@@ -325,28 +343,31 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 
 					for(DBIndex ind:diffInd.entriesOnlyOnRight().values()) {
 						if(existingTable.getConstraints().containsKey(ind.getName())) continue;
-						st.execute("drop index if exists "+DBAdapterPostgres.escapeNameIfNeeded(schema)+"."+ DBAdapterPostgres.escapeNameIfNeeded(ind.getName()));
+						st.execute(MessageFormat.format("drop index if exists {0}.{1}"
+							, DBAdapterPostgres.escapeNameIfNeeded(schema)
+							, DBAdapterPostgres.escapeNameIfNeeded(ind.getName())
+						));
 					}
 
 					for(ValueDifference<DBIndex> ind : diffInd.entriesDiffering().values()) {
 						DBIndex restoreIndex = ind.leftValue();
 						DBIndex existingIndex = ind.rightValue();
 						if(!restoreIndex.getSql().equalsIgnoreCase(existingIndex.getSql())) {
-							st.execute(MessageFormat.format("drop index {0}.{1};\n{2};\n",
+							st.execute(MessageFormat.format(
+								"DROP INDEX {0}.{1} CASCADE;\n" + "{2};\n", //TODO discuss CASCADE
 								DBAdapterPostgres.escapeNameIfNeeded(schema)
 								, DBAdapterPostgres.escapeNameIfNeeded(existingIndex.getName())
-								, restoreIndex.getSql()
+								, restoreIndex.getSql() //drop and re-create using full DDL from .getSql()
+							));
+							st.execute(MessageFormat.format(
+								"alter index {0}.{1} set tablespace {2}"
+								,DBAdapterPostgres.escapeNameIfNeeded(schema)
+								,DBAdapterPostgres.escapeNameIfNeeded(restoreIndex.getName())
+								,restoreIndex.getOptions().getChildren().containsKey("tablespace")
+									? restoreIndex.getOptions().get("tablespace").getData()
+									: "pg_default"
 							));
 						}
-
-						st.execute(MessageFormat.format(
-							"alter index {0}.{1} set tablespace {2}"
-							,DBAdapterPostgres.escapeNameIfNeeded(schema)
-							,DBAdapterPostgres.escapeNameIfNeeded(existingIndex.getName())
-							,restoreIndex.getOptions().getChildren().containsKey("tablespace")
-								? restoreIndex.getOptions().get("tablespace").getData()
-								: "pg_default"
-						));
 					}
 					connect.commit();
 				} else {
