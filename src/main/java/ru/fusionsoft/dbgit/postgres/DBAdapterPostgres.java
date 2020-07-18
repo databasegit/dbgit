@@ -980,7 +980,6 @@ public class DBAdapterPostgres extends DBAdapter {
 				stLog.close();
 			}
 
-			connect.commit();
 			rs.close();
 			st.close();
 		} catch (SQLException e) {
@@ -1004,7 +1003,6 @@ public class DBAdapterPostgres extends DBAdapter {
 				stLog.close();
 			}
 			
-			connect.commit();
 			rs.close();
 			st.close();
 		} catch (SQLException e) {			

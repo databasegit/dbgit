@@ -205,7 +205,6 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 			connection.rollback();
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "backup", "backupError").withParams(obj.getName()), e);
 		} finally {
-			connection.commit();
 			stLog.close();
 		}	
 		return obj;

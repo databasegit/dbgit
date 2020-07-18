@@ -214,7 +214,6 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 			ConsoleWriter.println(lang.getValue("errors", "restore", "objectRestoreError").withParams(e.getLocalizedMessage()));
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()), e);
 		} finally {
-			connect.commit();
 			st.close();
 		}
 	}
@@ -369,7 +368,6 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 							));
 						}
 					}
-					connect.commit();
 				} else {
 					// TODO error if not exists
 				}
@@ -551,7 +549,6 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 
 			freeTableSequences(tbl, connect, st);
 			st.execute("DROP TABLE "+DBAdapterPostgres.escapeNameIfNeeded(schema)+"."+DBAdapterPostgres.escapeNameIfNeeded(tbl.getName()));
-			connect.commit();
 		} catch (Exception e) {
 			ConsoleWriter.println(lang.getValue("errors", "restore", "objectRestoreError").withParams(e.getLocalizedMessage()));
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRemoveError").withParams(obj.getName()), e);

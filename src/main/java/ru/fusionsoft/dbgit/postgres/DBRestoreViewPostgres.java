@@ -61,8 +61,7 @@ public class DBRestoreViewPostgres extends DBRestoreAdapter {
 							+ ( nameShouldBeEscaped  ?( "\"" + name + "\"") : name)
 							+ " OWNER TO "+restoreView.getSqlObject().getOwner()+";\n";
 					st.execute(query);
-					connect.commit();
-					//TODO Восстановление привилегий	
+					//TODO Восстановление привилегий
 				}
 			}
 			else
@@ -94,7 +93,6 @@ public class DBRestoreViewPostgres extends DBRestoreAdapter {
 
 			String schema = getPhisicalSchema(vw.getSchema());
 			st.execute("DROP VIEW "+DBAdapterPostgres.escapeNameIfNeeded(schema)+"."+DBAdapterPostgres.escapeNameIfNeeded(vw.getName()));
-			connect.commit();
 		} catch (Exception e) {
 			ConsoleWriter.println(lang.getValue("errors", "restore", "objectRestoreError").withParams(e.getLocalizedMessage()));
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRemoveError").withParams(obj.getName()), e);
