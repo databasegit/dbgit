@@ -8,19 +8,17 @@ import java.sql.Statement;
 
 import ru.fusionsoft.dbgit.adapters.DBBackupAdapter;
 import ru.fusionsoft.dbgit.core.DBGitPath;
+import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRestore;
 import ru.fusionsoft.dbgit.dbobjects.DBConstraint;
-import ru.fusionsoft.dbgit.meta.IMetaObject;
-import ru.fusionsoft.dbgit.meta.MetaSequence;
-import ru.fusionsoft.dbgit.meta.MetaSql;
-import ru.fusionsoft.dbgit.meta.MetaTable;
+import ru.fusionsoft.dbgit.meta.*;
 import ru.fusionsoft.dbgit.statement.StatementLogging;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
 public class DBBackupAdapterOracle extends DBBackupAdapter {
 	
 	@Override
-	public IMetaObject backupDBObject(IMetaObject obj) throws Exception {		
+	public IMetaObject backupDBObject(IMetaObject obj) throws SQLException, ExceptionDBGit {
 		Connection connection = adapter.getConnection();
 		StatementLogging stLog = new StatementLogging(connection, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
 		
@@ -67,9 +65,7 @@ public class DBBackupAdapterOracle extends DBBackupAdapter {
 					return obj;
 				
 				ConsoleWriter.detailsPrint(lang.getValue("general", "backup", "tryingToCopy").withParams(objectName, getFullDbName(schema, objectName)), 1);
-				
-				dropIfExists(isSaveToSchema() ? PREFIX + schema : schema, 
-						isSaveToSchema() ? objectName : PREFIX + objectName, stLog);
+
 				
 				if (isToSaveData()) {					
 					String ddl = "create table " +  (isSaveToSchema() ? "" : schema + ".") + 
@@ -147,7 +143,7 @@ public class DBBackupAdapterOracle extends DBBackupAdapter {
 
 	}
 	
-	private void dropIfExists(String owner, String objectName, StatementLogging stLog) throws Exception {		
+	public void dropIfExists(String owner, String objectName, StatementLogging stLog) throws SQLException {
 		Statement st = 	adapter.getConnection().createStatement();
 		ResultSet rs = st.executeQuery("select * from all_objects where owner = '" + owner + "' and object_name = '" + objectName + "' and OBJECT_TYPE not like 'PACKAGE BODY'");
 		
@@ -159,9 +155,24 @@ public class DBBackupAdapterOracle extends DBBackupAdapter {
 		rs.close();
 		st.close();
 	}
-	
+
 	@Override
-	public boolean isExists(String owner, String objectName) throws Exception {		
+	public void dropIfExists(IMetaObject imo, StatementLogging stLog) throws SQLException, Exception {
+		NameMeta nm = new NameMeta(imo);
+		Statement st = 	adapter.getConnection().createStatement();
+		ResultSet rs = st.executeQuery("select * from all_objects where owner = '" + nm.getSchema() + "' and object_name = '" + nm.getName() + "' and OBJECT_TYPE not like 'PACKAGE BODY'");
+
+		while (rs.next()) {
+			//ConsoleWriter.detailsPrintLn("Dropping " + owner + "." + objectName);
+			stLog.execute("drop " + rs.getString("OBJECT_TYPE") + " " + nm.getSchema() + "." + nm.getName());
+		}
+
+		rs.close();
+		st.close();
+	}
+
+	@Override
+	public boolean isExists(String owner, String objectName) throws SQLException {
 		Statement st = 	adapter.getConnection().createStatement();
 		ResultSet rs = st.executeQuery("select count(*) cnt from all_objects where owner = '" + owner + "' and object_name = '" + objectName + "' and OBJECT_TYPE not like 'PACKAGE BODY'");
 		

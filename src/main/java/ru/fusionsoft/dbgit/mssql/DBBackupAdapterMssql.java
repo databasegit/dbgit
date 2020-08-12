@@ -2,15 +2,13 @@ package ru.fusionsoft.dbgit.mssql;
 
 import ru.fusionsoft.dbgit.adapters.DBBackupAdapter;
 import ru.fusionsoft.dbgit.core.DBGitPath;
+import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRestore;
 import ru.fusionsoft.dbgit.core.SchemaSynonym;
 import ru.fusionsoft.dbgit.dbobjects.DBConstraint;
 import ru.fusionsoft.dbgit.dbobjects.DBIndex;
 import ru.fusionsoft.dbgit.dbobjects.DBTableField;
-import ru.fusionsoft.dbgit.meta.IMetaObject;
-import ru.fusionsoft.dbgit.meta.MetaSequence;
-import ru.fusionsoft.dbgit.meta.MetaSql;
-import ru.fusionsoft.dbgit.meta.MetaTable;
+import ru.fusionsoft.dbgit.meta.*;
 import ru.fusionsoft.dbgit.statement.StatementLogging;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 import ru.fusionsoft.dbgit.utils.StringProperties;
@@ -27,7 +25,7 @@ import java.util.Objects;
 public class DBBackupAdapterMssql extends DBBackupAdapter {
 
 	@Override
-	public IMetaObject backupDBObject(IMetaObject obj) throws Exception {
+	public IMetaObject backupDBObject(IMetaObject obj) throws SQLException, ExceptionDBGit {
 
 		Connection connection = adapter.getConnection();
 		StatementLogging stLog = new StatementLogging(connection, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
@@ -46,11 +44,6 @@ public class DBBackupAdapterMssql extends DBBackupAdapter {
 				}
 
 				ConsoleWriter.detailsPrint(lang.getValue("general", "backup", "tryingToCopy").withParams(objectName, getFullDbName(schema, objectName)), 1);
-
-				dropIfExists(
-					isSaveToSchema() ? PREFIX + schema : schema,
-					isSaveToSchema() ? objectName : PREFIX + objectName, stLog
-				);
 
 				ddl = ddl.replace(schema + "." + objectName, getFullDbName(schema, objectName));
 
@@ -73,7 +66,7 @@ public class DBBackupAdapterMssql extends DBBackupAdapter {
                 String origTableName = schema + "." + objectName;
 
 
-                if(!isExists(schema, objectName)) {
+				if(!isExists(schema, objectName)) {
 					File file = new File(DBGitPath.getFullPath() + metaTable.getFileName());
 					if (file.exists())
 						obj = metaTable.loadFromFile();
@@ -196,7 +189,7 @@ public class DBBackupAdapterMssql extends DBBackupAdapter {
 		} catch (Exception e) {
 			ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
 			connection.rollback();
-			throw new ExceptionDBGitRestore(lang.getValue("errors", "backup", "backupError").withParams(obj.getName()), e);
+			throw new ExceptionDBGit(lang.getValue("errors", "backup", "backupError").withParams(obj.getName()), e);
 		} finally {
             stLog.close();
             connection.commit();
@@ -217,7 +210,7 @@ public class DBBackupAdapterMssql extends DBBackupAdapter {
 			return schema + "." + PREFIX + objectName;
 	}
 
-	private void dropIfExists(String owner, String objectName, StatementLogging stLog) throws Exception {
+	public void dropIfExists(String owner, String objectName, StatementLogging stLog) throws SQLException {
 		String query =
 			"SELECT CASE \n" +
 			"WHEN type IN ('PC', 'P') THEN 'PROCEDURE'\n" +
@@ -241,7 +234,44 @@ public class DBBackupAdapterMssql extends DBBackupAdapter {
 	}
 
 	@Override
-	public boolean isExists(String owner, String objectName) throws Exception {
+	public void dropIfExists(IMetaObject imo, StatementLogging stLog) throws SQLException {
+		NameMeta nm = new NameMeta(imo);
+		String typeString = "'none'";
+		switch((DBGitMetaType) nm.getType()){
+			case DBGitTable: 	typeString = "'TABLE'"; break;
+			case DbGitFunction: typeString = "'FUNCTION'"; break;
+			case DbGitProcedure:typeString = "'PROCEDURE'"; break;
+			case DbGitView: 	typeString = "'VIEW'"; break;
+			case DBGitSequence: typeString = "'SEQUENCE'"; break;
+		}
+
+		String query = MessageFormat.format(
+			"SELECT CASE \n" +
+				"WHEN type IN ('PC', 'P') THEN 'PROCEDURE'\n" +
+				"WHEN type IN ('FN', 'FS', 'FT', 'IF', 'TF', 'AF') THEN 'FUNCTION' \n" +
+				"WHEN type = 'U' THEN 'TABLE' \n" +
+				"WHEN type = 'V' THEN 'VIEW' \n" +
+				"WHEN type IN ('SQ', 'SO') THEN 'SEQUENCE' \n" +
+			"END type\n" +
+			"FROM sys.objects so\n" +
+			"WHERE lower(SCHEMA_NAME(schema_id)) = lower('{0}') \n" +
+			"AND lower(name) = lower('{1}') \n" +
+			"AND type IN ({2})",
+			nm.getSchema(),
+			nm.getName(),
+			typeString
+		);
+
+		try(Statement st = 	adapter.getConnection().createStatement(); ResultSet rs = st.executeQuery(query)) {
+			while (rs.next()) {
+				String type = rs.getString("type");
+				stLog.execute(MessageFormat.format("DROP {0} {1}.{2}", type, nm.getSchema(), nm.getName()));
+			}
+		}
+	}
+
+	@Override
+	public boolean isExists(String owner, String objectName) throws SQLException {
 		Statement st = 	adapter.getConnection().createStatement();
 		ResultSet rs = st.executeQuery(
 			"SELECT CASE WHEN OBJECT_ID('"+owner+"."+objectName+"') IS NOT NULL THEN 1 ELSE 0 END"

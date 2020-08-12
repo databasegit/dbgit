@@ -87,6 +87,7 @@ public abstract class DBAdapter implements IDBAdapter {
 	public void restoreDataBase(IMapMetaObject updateObjs) throws Exception {
 		Connection connect = getConnection();
 		DBGitLang lang = DBGitLang.getInstance();
+		boolean toMakeBackup = DBGitConfig.getInstance().getBoolean("core", "TO_MAKE_BACKUP", true);
 
 		try {
 			List<MetaTable> tables = new ArrayList<MetaTable>();			
@@ -95,24 +96,11 @@ public abstract class DBAdapter implements IDBAdapter {
 			List<String> createdSchemas = new ArrayList<String>();
 			List<String> createdRoles = new ArrayList<String>();
 			SortedListMetaObject restoreObjs = updateObjs.getSortedList();
-/*
-			restoreObjs.sortFromFree().forEach( (x) -> {
-				ConsoleWriter.detailsPrintlnGreen(MessageFormat.format(
-					"{0}. {1} {2}"
-					,restoreObjs.sortFromFree().indexOf(x)
-					,x.getName()
-					,(x.getUnderlyingDbObject() != null) && (x.getUnderlyingDbObject().getDependencies() != null) && (x.getUnderlyingDbObject().getDependencies().size() > 0)
-						? "depends on (" + String.join(", ", x.getUnderlyingDbObject().getDependencies()) + ")"
-						: ""
-				));
-			});
-*/
 
-//			if(toMakeBackup){
-//				IDBBackupAdapter ba = getBackupAdapterFactory().getBackupAdapter(this);
-//				ba.backupDatabase(updateObjs);
-//			}
-
+			if(toMakeBackup){
+				IDBBackupAdapter ba = getBackupAdapterFactory().getBackupAdapter(this);
+				ba.backupDatabase(updateObjs);
+			}
 
 			for (IMetaObject obj : restoreObjs.sortFromFree()) {
 				Integer step = 0;
@@ -153,14 +141,6 @@ public abstract class DBAdapter implements IDBAdapter {
 						}					
 
 						obj = convertAdapter.convert(getDbType(), getDbVersion(), obj);							
-					}
-
-					if (
-						step == 0
-						&& DBGitConfig.getInstance().getBoolean("core", "TO_MAKE_BACKUP", true) && schemaName != null
-						&& getBackupAdapterFactory().getBackupAdapter(this).isExists(schemaName, obj.getName().substring(obj.getName().indexOf("/") + 1, obj.getName().indexOf(".")))
-					) {
-						obj = getBackupAdapterFactory().getBackupAdapter(this).backupDBObject(obj);
 					}
 				}
 				

@@ -79,7 +79,6 @@ public class DBRestoreFunctionPostgres extends DBRestoreAdapter {
 		} finally {
 			ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
 			st.close();
-			connect.commit();
 		}
 		return true;
 	}
@@ -98,7 +97,6 @@ public class DBRestoreFunctionPostgres extends DBRestoreAdapter {
 
 			String schema = getPhisicalSchema(fnc.getSchema());
 			st.execute("DROP FUNCTION "+DBAdapterPostgres.escapeNameIfNeeded(schema)+"."+DBAdapterPostgres.escapeNameIfNeeded(fnc.getName()));
-			connect.commit();
 		} catch (Exception e) {
 			ConsoleWriter.println(lang.getValue("errors", "restore", "objectRestoreError").withParams(e.getLocalizedMessage()));
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRemoveError").withParams(obj.getName()), e);

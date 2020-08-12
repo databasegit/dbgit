@@ -23,7 +23,7 @@ public class SortedListMetaObject {
     private List<IMetaObject> listFromFree;
     private Collection<IMetaObject> collection;
 
-    SortedListMetaObject(Collection<IMetaObject> fromCollection){
+    public SortedListMetaObject(Collection<IMetaObject> fromCollection){
         collection = new ArrayList<>(fromCollection);
         calculateImoCrossDependencies();
     }

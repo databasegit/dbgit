@@ -157,26 +157,27 @@ public class GitMetaDataManager {
 	 * Load meta data from DB
 	 * @return
 	 */
-	public IMapMetaObject loadDBMetaData() throws ExceptionDBGit {		
+	public IMapMetaObject loadDBMetaData(boolean toIgnore) throws ExceptionDBGit {
 		IDBAdapter adapter = AdapterFactory.createAdapter();
-		
-		DBGitIgnore ignore = DBGitIgnore.getInstance();
-		
+
+		DBGitIgnore ignore = (toIgnore)
+			? DBGitIgnore.getInstance()
+			: new DBGitIgnore() { @Override protected void loadFileDBIgnore() { }};
 		dbObjs.clear();
 		Map<String, MetaTable> tbls = new HashMap<String, MetaTable>();
-		
-		if (!ignore.matchOne("*." + DBGitMetaType.DBGitUser.getValue())) 		
+
+		if (!ignore.matchOne("*." + DBGitMetaType.DBGitUser.getValue()))
 			addToMapDBOptionsObject(dbObjs, adapter.getUsers(), DBGitMetaType.DBGitUser);
-		
+
 		if (!ignore.matchOne("*." + DBGitMetaType.DBGitRole.getValue()))
 			addToMapDBOptionsObject(dbObjs, adapter.getRoles(), DBGitMetaType.DBGitRole);
 		//addToMapDBOptionsObject(dbObjs, adapter.getTableSpaces(), DBGitMetaType.DBGitTableSpace);
-		
+
 		Map<String, DBSchema> schemes;
 		if (adapter.userHasRightsToGetDdlOfOtherUsers()) {
 			schemes = adapter.getSchemes();
 		} else {
-			schemes = new HashMap<String, DBSchema>();			
+			schemes = new HashMap<String, DBSchema>();
 			try {
 				schemes.put(adapter.getConnection().getSchema(), new DBSchema(adapter.getConnection().getSchema()));
 				ConsoleWriter.println(DBGitLang.getInstance().getValue("errors", "meta", "cantGetOtherUsersObjects"));
@@ -184,10 +185,10 @@ public class GitMetaDataManager {
 				throw new ExceptionDBGit(DBGitLang.getInstance().getValue("errors", "meta", "cantGetCurrentSchema"));
 			}
 		}
-		
+
 		addToMapDBOptionsObject(dbObjs, schemes, DBGitMetaType.DBGitSchema);
-		
-		//load sequence		
+
+		//load sequence
 		for (DBSchema schema : schemes.values()) {
 			if (ignore.matchSchema(schema.getName())) continue;
 			if (!ignore.matchOne(schema.getName() + "/*." + DBGitMetaType.DBGitSequence.getValue())) {
@@ -198,14 +199,14 @@ public class GitMetaDataManager {
 					dbObjs.put(metaSeq);
 				}
 			}
-			
+
 		}
-		
-			
+
+
 		//load tables
 		for (DBSchema sch : schemes.values()) {
 			if (ignore.matchSchema(sch.getName())) continue;
-			
+
 			if (!ignore.matchOne(sch.getName() + "/*." + DBGitMetaType.DBGitTable.getValue())) {
 				for (DBTable tbl : adapter.getTables(sch.getName()).values()) {
 					MetaTable tblMeta = new MetaTable(tbl);
@@ -219,11 +220,11 @@ public class GitMetaDataManager {
 				}
 			}
 		}
-		
+
 		//triggers, packages, functions, procedures, views
 		for (DBSchema schema : schemes.values()) {
 			if (ignore.matchSchema(schema.getName())) continue;
-			
+
 			if (!ignore.matchOne(schema.getName() + "/*." + DBGitMetaType.DbGitTrigger.getValue()))
 				addToMapSqlObject(dbObjs, adapter.getTriggers(schema.getName()), DBGitMetaType.DbGitTrigger);
 			if (!ignore.matchOne(schema.getName() + "/*." + DBGitMetaType.DbGitPackage.getValue()))
@@ -235,15 +236,15 @@ public class GitMetaDataManager {
 			if (!ignore.matchOne(schema.getName() + "/*." + DBGitMetaType.DbGitView.getValue()))
 				addToMapSqlObject(dbObjs, adapter.getViews(schema.getName()), DBGitMetaType.DbGitView);
 		}
-		
+
 		//data tables
 		/*
 		for (MetaTable tbl : tbls.values()) {
 			MetaTableData data = new MetaTableData(tbl.getTable());
-			
+
 			if (ignore.matchOne(data.getName())) continue ;
-			
-			if (data.loadFromDB()) 
+
+			if (data.loadFromDB())
 				dbObjs.put(data);
 		}
 		*/
@@ -252,14 +253,19 @@ public class GitMetaDataManager {
 			IMapMetaObject customObjsNoIgnore = new TreeMapMetaObject();
 			for (IMetaObject item : customObjs.values()) {
 				if (ignore.matchOne(item.getName())) continue ;
-				customObjsNoIgnore.put(item);				
+				customObjsNoIgnore.put(item);
 			}
 			dbObjs.putAll(customObjs);
 		}
-		
+
 		return dbObjs;
 	}
-	
+
+	public IMapMetaObject loadDBMetaData() throws ExceptionDBGit {		
+		return loadDBMetaData(true);
+	}
+
+
 	public IMapMetaObject loadFileMetaData() throws ExceptionDBGit {
 		return loadFileMetaData(false);
 	}
@@ -283,7 +289,7 @@ public class GitMetaDataManager {
 			for (int i = 0; i < files.size(); i++) {
 	    		String filename = files.get(i);
 	    		if (DBGitPath.isServiceFile(filename)) continue;
-//	    		ConsoleWriter.detailsPrint(filename + "...", 1);
+	    		ConsoleWriter.detailsPrint("\nLoading file " + filename + "...", 1);
 	    		
 	    		if (force) {
 	    			IMetaObject obj = loadMetaFile(filename);
@@ -341,7 +347,7 @@ public class GitMetaDataManager {
 			}
 			return obj;
 		} catch(Exception e) {
-			throw new ExceptionDBGit(e);
+			throw new ExceptionDBGit(e.getLocalizedMessage(), e);
 		}
 	}
 	

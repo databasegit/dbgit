@@ -1,10 +1,13 @@
 package ru.fusionsoft.dbgit.mysql;
 
 import ru.fusionsoft.dbgit.adapters.DBBackupAdapter;
+import ru.fusionsoft.dbgit.meta.DBGitMetaType;
 import ru.fusionsoft.dbgit.core.DBGitPath;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRestore;
 import ru.fusionsoft.dbgit.core.SchemaSynonym;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
+import ru.fusionsoft.dbgit.meta.NameMeta;
+import ru.fusionsoft.dbgit.postgres.DBAdapterPostgres;
 import ru.fusionsoft.dbgit.meta.MetaSequence;
 import ru.fusionsoft.dbgit.meta.MetaSql;
 import ru.fusionsoft.dbgit.meta.MetaTable;
@@ -16,6 +19,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.text.MessageFormat;
 
 public class DBBackupAdapterMySql extends DBBackupAdapter {
     @Override
@@ -158,7 +162,7 @@ public class DBBackupAdapterMySql extends DBBackupAdapter {
             return schema + "." + PREFIX + objectName;
     }
 
-    private void dropIfExists(String owner, String objectName, StatementLogging stLog) throws Exception {
+    public void dropIfExists(String owner, String objectName, StatementLogging stLog) throws SQLException {
         Statement st = 	adapter.getConnection().createStatement();
         ResultSet rs = st.executeQuery("select * from (\r\n" +
                 "	SELECT 'TABLE' tp, table_name obj_name, table_schema sch FROM information_schema.tables \r\n" +
@@ -174,6 +178,40 @@ public class DBBackupAdapterMySql extends DBBackupAdapter {
 
         rs.close();
         st.close();
+    }
+
+    @Override
+    public void dropIfExists(IMetaObject imo, StatementLogging stLog) throws SQLException {
+
+        NameMeta nm = new NameMeta(imo);
+        DBGitMetaType type = (DBGitMetaType) nm.getType();
+
+        Statement st = 	adapter.getConnection().createStatement();
+        ResultSet rs = st.executeQuery(MessageFormat.format("select * from (\r\n" +
+                    "	SELECT 'TABLE' tp, table_name obj_name, table_schema sch FROM information_schema.tables WHERE 1={0}\r\n" +
+                    "	union select 'VIEW' tp, table_name obj_name, table_schema sch from information_schema.views WHERE 1={1}\r\n" +
+                    "	union select 'TRIGGER' tp, trigger_name obj_name, trigger_schema sch from information_schema.triggers WHERE 1={2}\r\n" +
+                    "	union select 'FUNCTION' tp, routine_name obj_name, routine_schema sch from information_schema.routines WHERE 1={3}\r\n" +
+                    ") all_objects\r\n" +
+                    "where sch = '{4}' and obj_name = '{5}'",
+                type.equals(DBGitMetaType.DBGitTable) ? "1" : "0",
+                type.equals(DBGitMetaType.DbGitView) ? "1" : "0",
+                type.equals(DBGitMetaType.DbGitTrigger) ? "1" : "0",
+                type.equals(DBGitMetaType.DbGitFunction) ? "1" : "0",
+                nm.getSchema(), nm.getName()
+        ));
+
+        while (rs.next()) {
+            stLog.execute(MessageFormat.format("DROP {0} {1}.{2}",
+                rs.getString("tp"),
+                nm.getSchema(),
+                DBAdapterMySql.escapeNameIfNeeded(nm.getName()))
+            );
+        }
+
+        rs.close();
+        st.close();
+
     }
 
     @Override
@@ -200,7 +238,7 @@ public class DBBackupAdapterMySql extends DBBackupAdapter {
     }
 
     @Override
-    public boolean isExists(String owner, String objectName) throws Exception {
+    public boolean isExists(String owner, String objectName) throws SQLException {
         Statement st = 	adapter.getConnection().createStatement();
         ResultSet rs = st.executeQuery("select count(*) cnt from (\r\n" +
                 "	SELECT 'TABLE' tp, table_name obj_name, table_schema sch FROM information_schema.tables \r\n" +
