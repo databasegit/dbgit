@@ -6,13 +6,14 @@ import ru.fusionsoft.dbgit.dbobjects.DBTable;
 
 
 public class LongData implements ICellData {
-	private Long value;
+	private double value;
+	private boolean isNull = false;
 	
 	@Override
 	public boolean loadFromDB(ResultSet rs, String fieldname) throws Exception {		
-		value = rs.getLong(fieldname);
+		value = rs.getDouble(fieldname);
 		if (rs.wasNull()) {
-			value = null;
+			isNull = true;
 	    }
 		return true;
 	}
@@ -24,7 +25,14 @@ public class LongData implements ICellData {
 	
 	@Override
 	public void deserialize(String data) throws Exception {
-		this.value = (data == null) ? null : Long.decode(data);
+		if (data == null) {
+			isNull = true;
+			value = 0;
+		} else {
+			isNull = false;
+			value = Double.parseDouble(data);
+		}
+		//this.value = (data == null) ? null : Long.decode(data);
 		//this.value = Long.decode(data);
 		/*
 		try {
@@ -37,14 +45,14 @@ public class LongData implements ICellData {
 	
 	@Override
 	public String convertToString() {		 
-		return value != null ?  value.toString() : null;
+		return !isNull ?  String.valueOf(value) : null;
 	}
 	
-	public Long getValue() {
+	public double getValue() {
 		return value;
 	}
 
-	public void setValue(Long value) {
+	public void setValue(double value) {
 		this.value = value;
 	}
 
@@ -62,7 +70,10 @@ public class LongData implements ICellData {
 
 	@Override
 	public String getSQLData() {		
-		return (value == null) ? "''" : "\'"+value.toString()+"\'";
+		return (isNull) ? "''" : "\'"+String.valueOf(value)+"\'";
 	}
-	
+
+	public boolean isNull() {
+		return isNull;
+	}
 }

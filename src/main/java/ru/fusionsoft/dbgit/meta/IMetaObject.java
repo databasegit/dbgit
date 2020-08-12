@@ -78,45 +78,49 @@ public interface IMetaObject {
 	 * @throws IOException
 	 */
 	public IMetaObject deSerialize(InputStream stream) throws Exception;
-	
+
+	public default IMetaObject deSerialize(File file) throws Exception {
+		return this;
+	};
+
 	/**
 	 * load current object from DB
 	 */
 	public boolean loadFromDB() throws ExceptionDBGit;
-		
+
 	public String getHash();
-	
+
 	/**
 	 * Save meta file to base path
 	 * Example - .dbgit/basePath/path_and_filename_meta_object
-	 * 
+	 *
 	 * @param basePath
 	 * @throws IOException
 	 */
 	default boolean saveToFile(String basePath) throws ExceptionDBGit {
 		File file = new File(DBGitPath.getFullPath(basePath)+"/"+getFileName());
 		DBGitPath.createDir(file.getParent());
-				
+
 		try {
 			FileOutputStream out = new FileOutputStream(file.getAbsolutePath());
 			boolean res = this.serialize(out);
 			out.close();
-			
+
 			return res;
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new ExceptionDBGit(e);
 		}
 	}
-	
+
 	default boolean saveToFile() throws ExceptionDBGit {
 		return saveToFile(null);
 	}
-	
+
 	/**
 	 * Load meta file to base path
 	 * Example - .dbgit/basePath/path_and_filename_meta_object
-	 * 
+	 *
 	 * @param basePath
 	 * @throws IOException
 	 */
@@ -124,7 +128,11 @@ public interface IMetaObject {
 		String filename = DBGitPath.getFullPath(basePath);
 		File file = new File(filename+"/"+getFileName());
 		FileInputStream fis = new FileInputStream(file);
-		IMetaObject meta = this.deSerialize(fis);
+		IMetaObject meta;
+		if (!file.getPath().endsWith(".csv"))
+			meta = this.deSerialize(fis);
+		else
+			meta = this.deSerialize(file);
 		fis.close();
 		if (meta != null && meta.getName().isEmpty()) {
 			meta.setName(this.getName());

@@ -7,13 +7,14 @@ import ru.fusionsoft.dbgit.dbobjects.DBTable;
 
 public class BooleanData implements ICellData {
 
-	private Boolean value;
+	private boolean value;
+	private boolean isNull = false;
 	
 	@Override
-	public boolean loadFromDB(ResultSet rs, String fieldname) throws Exception {
-		value = rs.getBoolean(fieldname);
+	public boolean loadFromDB(ResultSet rs, String fieldName) throws Exception {
+		value = rs.getBoolean(fieldName);
 		if (rs.wasNull()) {
-			value = null;
+			isNull = true;
 	    }
 		return true;
 	}
@@ -25,7 +26,14 @@ public class BooleanData implements ICellData {
 
 	@Override
 	public void deserialize(String data) throws Exception {
-		this.value = (data == null) ? null : Boolean.valueOf(data);
+		//this.value = (data == null) ? null : Boolean.valueOf(data);
+		if (data == null) {
+			isNull = true;
+			value = false;
+		} else {
+			isNull = false;
+			value = Boolean.parseBoolean(data);
+		}
 	}
 
 	@Override
@@ -40,7 +48,7 @@ public class BooleanData implements ICellData {
 
 	@Override
 	public String convertToString() throws Exception {
-		return value != null ?  value.toString() : null;
+		return !isNull ? String.valueOf(value) : null;
 	}
 
 	@Override
@@ -49,12 +57,13 @@ public class BooleanData implements ICellData {
 	}
 	
 	public Boolean getValue() {
+		if (isNull) return null;
 		return value;
 	}
 
 	@Override
 	public String getSQLData() {
-		return (value == null) ? "''" : "\'"+value.toString()+"\'";
+		return (isNull) ? "''" : "\'"+String.valueOf(value)+"\'";
 	}
 
 }

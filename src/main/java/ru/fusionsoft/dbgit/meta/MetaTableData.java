@@ -1,10 +1,8 @@
 package ru.fusionsoft.dbgit.meta;
 
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
+import java.io.*;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -14,11 +12,16 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 
+import de.siegmar.fastcsv.reader.CsvParser;
+import de.siegmar.fastcsv.reader.CsvReader;
+import de.siegmar.fastcsv.reader.CsvRow;
 import org.apache.commons.codec.binary.Base64;
+
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.csv.CSVRecord;
+
 import org.apache.commons.csv.QuoteMode;
 
 import com.diogonunes.jcdp.color.api.Ansi.FColor;
@@ -48,21 +51,22 @@ import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 public class MetaTableData extends MetaBase {
 	 protected DBTable table = null;
 	 private DBTableData dataTable = null;
-	 
+
 	 private TreeMapRowData mapRows = null;
+	 private List<String> fields = new ArrayList<>();
 
 	 public MetaTableData() {
 		 setDbType();
 		 setDbVersion();
 	 }
-	 
+
 	 public MetaTableData(DBTable tbl) throws ExceptionDBGit {
 		 setDbType();
 		 setDbVersion();
 		 setTable(tbl);
 	 }
-	 
-	
+
+
 	public DBTable getTable() {
 		return table;
 	}
@@ -70,26 +74,26 @@ public class MetaTableData extends MetaBase {
 	public TreeMap<String, RowData> getmapRows() {
 		return mapRows;
 	}
-	
+
 	public DBTableData getDataTable() {
 		return dataTable;
 	}
-	
+
 	public void setMapRows(TreeMapRowData mapRows) {
 		this.mapRows = mapRows;
 	}
-	
+
 	public void setDataTable(DBTableData dataTable) {
 		this.dataTable = dataTable;
 	}
-	
+
 	public void setTable(DBTable table) throws ExceptionDBGit {
 		this.table = table;
 		setName(table.getSchema()+"/"+table.getName()+"."+getType().getValue());
 	}
 
-	
-	
+
+
 	@Override
 	public void setName(String name) throws ExceptionDBGit {
 		if (table == null) {
@@ -98,7 +102,7 @@ public class MetaTableData extends MetaBase {
 			table.setSchema(nm.getSchema());
 			table.setName(nm.getName());
 		}
-		
+
 		super.setName(name);
 	}
 
@@ -114,13 +118,13 @@ public class MetaTableData extends MetaBase {
 				.withNullString("<!NULL!>")
 				.withQuote('"')
 				//.withQuoteMode(QuoteMode.ALL)
-				;	
+				;
 	}
-	
+
 	public MetaTable getMetaTable() throws ExceptionDBGit {
 		String metaTblName = table.getSchema()+"/"+table.getName()+"."+DBGitMetaType.DBGitTable.getValue();
 		GitMetaDataManager gmdm = GitMetaDataManager.getInstance();
-		
+
 		IMapMetaObject dbObjs = gmdm.getCacheDBMetaData();
 		MetaTable metaTable = (MetaTable) dbObjs.get(metaTblName);
 		if (metaTable == null ) {
@@ -129,38 +133,38 @@ public class MetaTableData extends MetaBase {
 		}
 		return metaTable;
 	}
-		
+
 	public MetaTable getMetaTableFromFile() throws ExceptionDBGit {
 		String metaTblName = table.getSchema()+"/"+table.getName()+"."+DBGitMetaType.DBGitTable.getValue();
 		GitMetaDataManager gmdm = GitMetaDataManager.getInstance();
-		
-		MetaTable metaTable = (MetaTable)gmdm.loadMetaFile(metaTblName);		
-		if (metaTable != null) 
+
+		MetaTable metaTable = (MetaTable)gmdm.loadMetaFile(metaTblName);
+		if (metaTable != null)
 			return metaTable;
-		
+
 		return getMetaTable();
 	}
-	
-	
+
+
 	@Override
 	public boolean serialize(OutputStream stream) throws Exception {
 		Integer count = 0;
 		Set<String> fields = null;
-		
+
 		if (mapRows == null) {
 			return false;
 		}
-		
+
 		CSVPrinter csvPrinter = new CSVPrinter(new OutputStreamWriter(stream), getCSVFormat());
-		
+
 		for (RowData rd : mapRows.values()) {
 			if (count == 0) {
-				fields = rd.getData().keySet();
-				csvPrinter.printRecord(fields);					
+				fields = rd.getData(this.fields).keySet();
+				csvPrinter.printRecord(fields);
 			}
-						
+
 			rd.saveDataToCsv(csvPrinter, getTable());
-			
+
 			count++;
 		}
 		csvPrinter.close();
@@ -168,23 +172,62 @@ public class MetaTableData extends MetaBase {
 	}
 
 	@Override
+	public IMetaObject deSerialize(File file) throws Exception {
+		MetaTable metaTable = getMetaTableFromFile();
+
+		CsvReader csvReader = new CsvReader();
+		csvReader.setFieldSeparator(';');
+
+		try (CsvParser csvParser = csvReader.parse(file, StandardCharsets.UTF_8)) {
+			CsvRow row;
+			boolean flag = false;
+			mapRows = new TreeMapRowData();
+			CsvRow titleColumns = null;
+			int i = 1;
+
+
+			while ((row = csvParser.nextRow()) != null) {
+				if (!flag) {
+					titleColumns = row;
+					fields = row.getFields();
+				} else {
+					RowData rd = new RowData(row, metaTable, titleColumns);
+					mapRows.put(rd);
+					ConsoleWriter.detailsPrintLn(DBGitLang.getInstance().getValue("general", "meta", "loadRow") + ": "+ i);
+					System.out.println("row: " + i);
+					i++;
+				}
+				flag = true;
+			}
+		}
+        System.out.println("TableData loaded!");
+		return this;
+	}
+
+
+	@Override
 	public IMetaObject deSerialize(InputStream stream) throws Exception {
-		
-		MetaTable metaTable = getMetaTableFromFile();		
-	
+
+		MetaTable metaTable = getMetaTableFromFile();
+
 		CSVParser csvParser = new CSVParser(new InputStreamReader(stream), getCSVFormat());
-		List<CSVRecord> csvRecords = csvParser.getRecords(); 
-		
+		List<CSVRecord> csvRecords = csvParser.getRecords();
+
 		if (csvRecords.size() > 0) {
 			CSVRecord titleColumns = csvRecords.get(0);
-				
+            fields.clear();
+			for (int i = 0; i < csvRecords.get(0).size(); i++) {
+			    fields.add(csvRecords.get(0).get(i));
+            }
+
 			mapRows = new TreeMapRowData(); 
 			
 			for (int i = 1; i < csvRecords.size(); i++) {	
 				RowData rd = new RowData(csvRecords.get(i), metaTable, titleColumns);
-				mapRows.put(rd);			
+				mapRows.put(rd);
 			}
 		}
+
 
 		csvParser.close();
 		
@@ -214,12 +257,28 @@ public class MetaTableData extends MetaBase {
 				return false;
 			}
 
-			mapRows = new TreeMapRowData(); 
-			
+			mapRows = new TreeMapRowData();
+
+			boolean flag = false;
 			while(rs.next()){
+
+			    if (!flag) {
+			        fields.clear();
+                    for (int i = 0; i < rs.getMetaData().getColumnCount(); i++) {
+                        String columnName = rs.getMetaData().getColumnName(i + 1);
+                        if (columnName.equalsIgnoreCase("DBGIT_ROW_NUM"))
+                            continue;
+                        fields.add(columnName);
+                    }
+                }
+
+			    flag = true;
 				RowData rd = new RowData(rs, metaTable);
 				mapRows.put(rd);
 			}
+
+
+
 			return true;
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -256,8 +315,6 @@ public class MetaTableData extends MetaBase {
 		
 			if (metaTable.getFields().size() == 0)
 				return false;
-			
-			List<String> idColumns = metaTable.getIdColumns();
 
 			dataTable = adapter.getTableData(table.getSchema(), table.getName());
 			
@@ -299,20 +356,20 @@ public class MetaTableData extends MetaBase {
 			RowData r2 = ob.mapRows.get(rowHash);
 			
 			System.out.println(rowHash);
-			System.out.println(r1.getData()+ " "+ r2.getData());
+			System.out.println(r1.getData(fields)+ " "+ r2.getData(ob.fields));
 			
-			if (r1.getData().size() != r2.getData().size()) {
+			if (r1.getData(fields).size() != r2.getData(ob.fields).size()) {
 				System.out.println(DBGitLang.getInstance().getValue("general", "meta", "diffSize2").withParams(rowHash));
 			}
 			
-			for (String col : r1.getData().keySet()) {
-				String d1 = r1.getData().get(col).convertToString();
-				String d2 = r2.getData().get(col).convertToString();
+			for (String col : r1.getData(fields).keySet()) {
+				String d1 = r1.getData(fields).get(col).convertToString();
+				String d2 = r2.getData(ob.fields).get(col).convertToString();
 				
 				if (d1 != d2) {				
-					if (!d1.equals(r2.getData().get(col))) {
+					if (!d1.equals(r2.getData(ob.fields).get(col))) {
 						System.out.println(DBGitLang.getInstance().getValue("general", "meta", "diffDataRow").
-								withParams(rowHash, col, r1.getData().get(col).toString(), r2.getData().get(col).toString()));
+								withParams(rowHash, col, r1.getData(fields).get(col).toString(), r2.getData(ob.fields).get(col).toString()));
 					}
 				}
 			}
@@ -347,7 +404,7 @@ public class MetaTableData extends MetaBase {
 		if (mapRows == null) return count;
 		
 		for (RowData rd : mapRows.values()) {
-			for (ICellData cd : rd.getData().values()) {
+			for (ICellData cd : rd.getData(fields).values()) {
 				count += cd.addToGit();
 			}			
 		}
@@ -363,7 +420,7 @@ public class MetaTableData extends MetaBase {
 			return 1;
 		
 		for (RowData rd : mapRows.values()) {
-			for (ICellData cd : rd.getData().values()) {
+			for (ICellData cd : rd.getData(fields).values()) {
 				count += cd.removeFromGit();
 			}			
 		}
@@ -371,4 +428,7 @@ public class MetaTableData extends MetaBase {
 		return count;
 	}
 
+    public List<String> getFields() {
+        return fields;
+    }
 }

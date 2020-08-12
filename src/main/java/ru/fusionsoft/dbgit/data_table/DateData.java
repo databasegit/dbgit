@@ -10,27 +10,41 @@ import ru.fusionsoft.dbgit.dbobjects.DBTable;
 import ru.fusionsoft.dbgit.utils.Convertor;
 
 public class DateData implements ICellData {
-	Date value;
-	SimpleDateFormat format = new SimpleDateFormat("yyyyMMddHHmmss");
+	//private Date value;
+	private long value;
+	private boolean isNull = false;
+	public static SimpleDateFormat format = new SimpleDateFormat("yyyyMMddHHmmss");
 
 	@Override
 	public boolean loadFromDB(ResultSet rs, String fieldname) throws Exception {
-		value = rs.getDate(fieldname);
+		if (rs.getDate(fieldname) == null) {
+			isNull = true;
+			value = 0;
+		} else
+			value = rs.getDate(fieldname).getTime();
+
 		return true;
 	}
 
 	@Override
 	public String serialize(DBTable tbl) throws Exception {
-		return value == null ? null : format.format(value);
+		return isNull ? null : format.format(new Date(value));
 	}
 
 	@Override
 	public void deserialize(String data) throws Exception {
-		value = (data == null) ? null :new Date(format.parse(data).getTime());
+		//value = (data == null) ? null :new Date(format.parse(data).getTime());
+		if (data == null) {
+			isNull = true;
+			value = 0;
+		} else {
+			isNull = false;
+			value = format.parse(data).getTime();
+		}
 	}
 
 	public void setValue(Date value) {
-		this.value = value;
+		this.value = value.getTime();
 	}
 	
 	@Override
@@ -45,7 +59,7 @@ public class DateData implements ICellData {
 
 	@Override
 	public String convertToString() throws Exception {
-		return (value == null) ? null : format.format(value);
+		return isNull ? null : format.format(new Date(value));
 	}
 
 	@Override
@@ -55,11 +69,11 @@ public class DateData implements ICellData {
 
 	@Override
 	public String getSQLData() {
-		return (value == null) ? "''" : "\'"+format.format(value)+"\'";
+		return isNull ? "''" : "\'"+format.format(new Date(value))+"\'";
 	}
 	
 	public Date getDate() {
-		return value;
+		return new Date(value);
 	}
 
 }

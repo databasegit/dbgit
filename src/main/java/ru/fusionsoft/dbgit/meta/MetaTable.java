@@ -23,43 +23,43 @@ import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 import ru.fusionsoft.dbgit.yaml.YamlOrder;
 
 /**
- * Meta class for db Table 
+ * Meta class for db Table
  * @author mikle
  *
  */
-public class MetaTable extends MetaBase {	
+public class MetaTable extends MetaBase {
 
 	@YamlOrder(1)
 	private DBTable table;
-	
+
 	@YamlOrder(2)
 	//private IMapFields fields = new TreeMapFields();
 	private Map<String, DBTableField> fields = new TreeMap<>();
-	
+
 	@YamlOrder(3)
 	private Map<String, DBIndex> indexes = new TreeMap<>();
-	
+
 	@YamlOrder(4)
 	private Map<String, DBConstraint> constraints = new TreeMap<>();
 
-	public MetaTable() {	
+	public MetaTable() {
 		setDbType();
 		setDbVersion();
 	}
-	
+
 	public MetaTable(String namePath) {
 		setDbType();
 		setDbVersion();
 
 		this.name = namePath;
 	}
-	
+
 	public MetaTable(DBTable tbl) {
 		setDbType();
 		setDbVersion();
 		setTable(tbl);
 	}
-	
+
 	@Override
 	public DBGitMetaType getType() {
 		return DBGitMetaType.DBGitTable;
@@ -213,13 +213,16 @@ public class MetaTable extends MetaBase {
 		this.constraints.putAll(constraints);
 	}
 	
-	public List<String> getIdColumns() {
-		List<String> idColumns = new ArrayList<>();
-		
+	public List<Integer> getIdColumns() {
+		List<Integer> idColumns = new ArrayList<>();
+
+		int i = 0;
 		for (DBTableField field : fields.values()) {
 			if (field.getIsPrimaryKey()) {
-				idColumns.add(field.getName());
+				//idColumns.add(field.getName());
+				idColumns.add(i);
 			}
+			i++;
 		}
 		
 		return idColumns;

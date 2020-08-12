@@ -29,6 +29,9 @@ public class MetaProcedure extends MetaSql {
 	@Override
 	public String getFileName(){
 		String res = name.replace(".prc", "");
+		String schemaName = "";
+		if (res.contains("/"))
+			schemaName = res.substring(0, res.indexOf("/"));
 
 		if (this.getSqlObject() != null && this.getSqlObject().getOptions() != null && this.getSqlObject().getOptions().get("arguments") != null)
 			res = res + "_" + this.getSqlObject().getOptions().get("arguments").getData()
@@ -41,7 +44,7 @@ public class MetaProcedure extends MetaSql {
 					.replace("::", "");
 
 		if (res.endsWith("_")) res = res.substring(0, res.length() - 1);
-		if (res.length() > MAX_FILE_NAME_LENGTH) {
+		if (res.length() > (schemaName.length() + 1 + MAX_FILE_NAME_LENGTH)) {
 			String resTemp = res.substring(0, MAX_FILE_NAME_LENGTH);
 			int resInt = res.length() - MAX_FILE_NAME_LENGTH;
 			res = resTemp + "_" + resInt;

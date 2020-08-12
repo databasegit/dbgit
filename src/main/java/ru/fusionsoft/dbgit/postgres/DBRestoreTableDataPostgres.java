@@ -145,6 +145,8 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 
 			}
 
+			List<String> fieldsList = restoreTableData.getFields();
+
 			MapDifference<String, RowData> diffTableData = Maps.difference(restoreTableData.getmapRows(),currentTableData.getmapRows());
 			String schema = getPhisicalSchema(restoreTableData.getTable().getSchema());
 			
@@ -168,37 +170,15 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 				ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "inserting"), 2);
 				
 				for(RowData rowData:diffTableData.entriesOnlyOnLeft().values()) {
-					ArrayList<String> fieldsList = new ArrayList<String>(rowData.getData().keySet().stream().map(DBAdapterPostgres::escapeNameIfNeeded).collect(Collectors.toList()));
+					//ArrayList<String> fieldsList = new ArrayList<String>(rowData.getData().keySet().stream().map(DBAdapterPostgres::escapeNameIfNeeded).collect(Collectors.toList()));
 
 					String insertQuery = "insert into " + tblNameEscaped +
-							fields+valuesToString(rowData.getData().values(), colTypes, fieldsList) + ";\n";
+							fields+valuesToString(rowData.getData(fieldsList).values(), colTypes, fieldsList) + ";\n";
 					
 					ConsoleWriter.detailsPrintLn(insertQuery);
 					
 					PrepareStatementLogging ps = new PrepareStatementLogging(connect, insertQuery, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
-					int i = 0;
-										
-					for (ICellData data : rowData.getData().values()) {
-						i++;
-						ConsoleWriter.detailsPrintLn(data.getSQLData());						
-						
-						ResultSet rs = st.executeQuery("select data_type from information_schema.columns \r\n" + 
-								"where lower(table_schema||'.'||table_name) = lower('" + tblNameUnescaped + "') and lower(column_name) = '" + fieldsList.get(i - 1) + "'");
-						
-						boolean isBoolean = false;
-						while (rs.next()) {							
-							if (rs.getString("data_type").contains("boolean")) {
-								isBoolean = true;
-							}
-						}
 
-						//ps = setValues(data, i, ps, isBoolean);
-					}
-					
-					//if (adapter.isExecSql())
-					//	ps.execute();
-					//ps.close();
-					
 					st.execute(insertQuery);
 				}
 				ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
@@ -209,7 +189,7 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 				String deleteQuery="";
 				Map<String,String> primarykeys = new HashMap();
 				for(RowData rowData:diffTableData.entriesOnlyOnRight().values()) {
-					Map<String, ICellData> tempcols = rowData.getData();
+					Map<String, ICellData> tempcols = rowData.getData(fieldsList);
 					String[] keysArray = rowData.getKey().split("_");
 					for(String key:keysArray) {
 						for (String o : tempcols.keySet()) {
@@ -252,7 +232,7 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 				Map<String,String> primarykeys = new HashMap();
 				for(ValueDifference<RowData> diffRowData:diffTableData.entriesDiffering().values()) {	
 					if(!diffRowData.leftValue().getHashRow().equals(diffRowData.rightValue().getHashRow())) {
-						Map<String, ICellData> tempCols = diffRowData.leftValue().getData();
+						Map<String, ICellData> tempCols = diffRowData.leftValue().getData(fieldsList);
 						String[] keysArray = diffRowData.leftValue().getKey().split("_");
 						for(String key:keysArray) {
 							for (String o : tempCols.keySet()) {
@@ -288,7 +268,7 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 								//updvaluejoiner.add("?");
 							}
 							
-							ArrayList<String> fieldsList = new ArrayList<String>(diffRowData.leftValue().getData().keySet());
+							//ArrayList<String> fieldsList = new ArrayList<String>(diffRowData.leftValue().getData().keySet());
 							
 							updFields+=updfieldJoiner.toString()+")";
 							updValues+=updvaluejoiner.toString()+")";							
@@ -299,33 +279,7 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 							ConsoleWriter.detailsPrintLn(updateQuery);
 							
 							PrepareStatementLogging ps = new PrepareStatementLogging(connect, updateQuery, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
-							int i = 0;
-							
-							ConsoleWriter.detailsPrintLn("vals for " + keyValues + ":" + diffRowData.leftValue().getData().values());
-							for (ICellData data : diffRowData.leftValue().getData().values()) {
-								i++;
-								ConsoleWriter.detailsPrintLn(data.getSQLData());						
-								
-								ResultSet rs = st.executeQuery("select data_type from information_schema.columns \r\n" + 
-										"where lower(table_schema||'.'||table_name) = lower('" + tblNameUnescaped + "') and lower(column_name) = '" + fieldsList.get(i - 1) + "'");
-								
-								boolean isBoolean = false;
-								while (rs.next()) {							
-									if (rs.getString("data_type").toLowerCase().contains("boolean")) {
-										isBoolean = true;
-									}
-								}
-								//ps = setValues(data, i, ps, isBoolean);
-							}
-							/*
-							if (adapter.isExecSql())
-								ps.execute();
-							ps.close();
-							updateQuery = "";
-							*/
-							
-							
-							
+
 							//if(updateQuery.length() > 50000 ){
 								st.execute(updateQuery);
 								updateQuery = "";
@@ -350,7 +304,7 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 		}
 	}
 	
-	public String valuesToString(Collection<ICellData> datas, HashMap<String, String> colTypes, ArrayList<String> fieldsList) throws ExceptionDBGit, IOException {
+	public String valuesToString(Collection<ICellData> datas, HashMap<String, String> colTypes, List<String> fieldsList) throws ExceptionDBGit, IOException {
 		String values="(";
 		StringJoiner joiner = new StringJoiner(",");
 		int i = 0;

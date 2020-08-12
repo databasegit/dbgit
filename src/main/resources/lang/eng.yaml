@@ -113,6 +113,7 @@ general:
     diffSize1: MetaTableData diff size!!! {0} {1}
     diffSize2: MetaTableData diff size row {0}!!!
     diffDataRow: MetaTableData diff data row {0} {1}  {2}  {3}
+    loadRow: Loading row
   backup:
     tryingToCopy: Trying to copy {0} to {1}...
     creatingSchema: Creating schema {0}

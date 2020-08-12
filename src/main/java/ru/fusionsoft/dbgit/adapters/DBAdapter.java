@@ -88,8 +88,6 @@ public abstract class DBAdapter implements IDBAdapter {
 		Connection connect = getConnection();
 		DBGitLang lang = DBGitLang.getInstance();
 
-		IMapMetaObject currStep = updateObjs;
-
 		try {
 			List<MetaTable> tables = new ArrayList<MetaTable>();			
 			List<MetaTableData> tablesData = new ArrayList<MetaTableData>();

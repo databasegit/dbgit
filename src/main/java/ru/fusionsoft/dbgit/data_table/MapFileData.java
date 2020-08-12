@@ -18,7 +18,7 @@ import ru.fusionsoft.dbgit.utils.Convertor;
 public class MapFileData implements ICellData {
 	private String srcFile = null;
 	private File tmpFile = null;
-	private String hash = null;
+	//private String hash = null;
 		
 	public InputStream getBlobData(ResultSet rs, String fieldname) throws Exception {
 		return rs.getBinaryStream(fieldname);
@@ -68,7 +68,8 @@ public class MapFileData implements ICellData {
 	}
 	
 	public String getHash() throws Exception {
-		if (hash == null) {
+		//if (hash == null) {
+			String hash;
 			String path = null;
 			if (tmpFile != null) path = tmpFile.getAbsolutePath();
 			if (srcFile != null) path = DBGitPath.getFullPath()+"/"+srcFile;
@@ -78,7 +79,7 @@ public class MapFileData implements ICellData {
 			CalcHash ch = new CalcHash();
 			ch.addDataFile(path);
 			hash = ch.calcHashStr();
-		}
+		//}
 		
 		return hash;
 	}

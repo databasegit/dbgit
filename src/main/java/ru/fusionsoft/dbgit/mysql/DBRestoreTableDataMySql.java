@@ -231,7 +231,7 @@ public class DBRestoreTableDataMySql extends DBRestoreAdapter {
         if(cell instanceof BooleanData)
             value += ((BooleanData) cell).getValue();
         else if(cell instanceof LongData)
-            value += ((LongData) cell).getValue() != null ? String.valueOf(((LongData) cell).getValue()) : "";
+            value += !((LongData) cell).isNull() ? String.valueOf(((LongData) cell).getValue()) : "";
         else if(cell instanceof StringData)
             value += ((StringData) cell).getValue() != null ? ("'" + ((StringData) cell).getValue()
                     .replace("\\", "\\\\")

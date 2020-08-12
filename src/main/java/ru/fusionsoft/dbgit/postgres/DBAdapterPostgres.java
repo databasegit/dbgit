@@ -17,13 +17,6 @@ import ru.fusionsoft.dbgit.core.ExceptionDBGitObjectNotFound;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
 import ru.fusionsoft.dbgit.core.db.DbType;
 import ru.fusionsoft.dbgit.core.db.FieldType;
-import ru.fusionsoft.dbgit.data_table.MapFileData;
-import ru.fusionsoft.dbgit.data_table.BooleanData;
-import ru.fusionsoft.dbgit.data_table.DateData;
-import ru.fusionsoft.dbgit.data_table.FactoryCellData;
-import ru.fusionsoft.dbgit.data_table.LongData;
-import ru.fusionsoft.dbgit.data_table.StringData;
-import ru.fusionsoft.dbgit.data_table.TextFileData;
 import ru.fusionsoft.dbgit.dbobjects.DBConstraint;
 import ru.fusionsoft.dbgit.dbobjects.DBFunction;
 import ru.fusionsoft.dbgit.dbobjects.DBIndex;
@@ -360,7 +353,7 @@ public class DBAdapterPostgres extends DBAdapter {
 		}		
 	}
 
-	protected String getFieldType(ResultSet rs) {
+	private String getFieldType(ResultSet rs) {
 		try {
 			StringBuilder type = new StringBuilder(); 
 			type.append(rs.getString("dtype"));
@@ -495,6 +488,7 @@ public class DBAdapterPostgres extends DBAdapter {
 				"join pg_roles rol on rol.oid = cls.relowner \n" +
 				"join pg_namespace nsp on nsp.oid = cls.relnamespace  \n" +
 				"where nsp.nspname not in ('information_schema', 'pg_catalog')  \n" +
+				"and cls.relname not in ('pg_buffercache', 'pg_stat_statements') \n" +
 				"and nsp.nspname not like 'pg_toast%' \n" +
 				"and cls.relkind = 'v' \n" +
 				"and nsp.nspname = '"+schema+"' \n";
