@@ -67,7 +67,7 @@ public abstract class DBBackupAdapter implements IDBBackupAdapter {
 		//	collect yet existing backups of restore objects
 		Timestamp timestampBefore = new Timestamp(System.currentTimeMillis());
 		StatementLogging stLog = new StatementLogging(adapter.getConnection(), adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
-		IMapMetaObject dbObjs = GitMetaDataManager.getInstance().loadDBMetaData(false);
+		IMapMetaObject dbObjs = GitMetaDataManager.getInstance().loadDBMetaData(true);
 
 		IMapMetaObject backupList = new TreeMapMetaObject(dbObjs.values().stream()
 			.filter( x-> backupObjs.containsKey(x.getName()) )
