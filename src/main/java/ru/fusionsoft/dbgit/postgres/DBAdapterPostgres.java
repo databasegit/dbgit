@@ -335,6 +335,7 @@ public class DBAdapterPostgres extends DBAdapter {
 				field.setTypeSQL(typeSQL);
 				field.setIsNullable( !typeSQL.toLowerCase().contains("not null"));
 				field.setTypeUniversal(FieldType.fromString(rs.getString("tp")));
+				if(field.getTypeUniversal() == FieldType.TEXT) field.setTypeUniversal(FieldType.STRING);
 				field.setFixed(false);
 				field.setLength(rs.getInt("character_maximum_length"));
 				field.setPrecision(rs.getInt("numeric_precision"));

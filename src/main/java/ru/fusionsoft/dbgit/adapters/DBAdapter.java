@@ -200,6 +200,7 @@ public abstract class DBAdapter implements IDBAdapter {
 */
 			connect.commit();
 		} catch (Exception e) {
+			//TODO wont work with ExceptionDBGit*, cause they call System.exit(1) in ctor;
 			connect.rollback();
 			ConsoleWriter.detailsPrintlnRed(e.getLocalizedMessage());
 			e.printStackTrace();

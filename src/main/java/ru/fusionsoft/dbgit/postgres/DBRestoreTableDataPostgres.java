@@ -329,7 +329,7 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 					fis.close();
 					String res = "'" + sb.toString().replace("'", "''")
 							.replace("\\", "\\\\")
-							.replace("\n", "' || chr(10) || '")
+//							.replace("\n", "' || chr(10) || '")
 							.replace("\0", "' || '\\000' || '")
 							+ "'";
 					

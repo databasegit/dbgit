@@ -84,12 +84,12 @@ public class DBRestoreSequencePostgres extends DBRestoreAdapter {
 					}
 					else {
 						query+="create sequence \"" + schema + "\".\"" + seqName+"\"" +
-								"no cycle \n"+
+								" no cycle \n"+
 								"increment " + restoreSeq.getSequence().getOptions().get("increment")+"\n"+
 								"start " + restoreSeq.getSequence().getOptions().get("start_value")+"\n"+
 								"minvalue "+ restoreSeq.getSequence().getOptions().get("minimum_value")+"\n"+
 								"maxvalue " + restoreSeq.getSequence().getOptions().get("maximum_value")+";\n";
-						query+="alter sequence \""+ schema + "\".\"" + seqName+"\" owner to\""+ restoreSeq.getSequence().getOptions().get("owner")+"\";";
+						query+="alter sequence \""+ schema + "\".\"" + seqName+"\" owner to \""+ restoreSeq.getSequence().getOptions().get("owner")+"\";";
 					}
 					st.execute(query);
 					//TODO Восстановление привилегий

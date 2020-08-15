@@ -194,7 +194,7 @@ public class MetaTableData extends MetaBase {
 					RowData rd = new RowData(row, metaTable, titleColumns);
 					mapRows.put(rd);
 					ConsoleWriter.detailsPrintLn(DBGitLang.getInstance().getValue("general", "meta", "loadRow") + ": "+ i);
-					System.out.println("row: " + i);
+//					System.out.println("row: " + i);
 					i++;
 				}
 				flag = true;

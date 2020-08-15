@@ -4,8 +4,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStreamWriter;
 import java.sql.Timestamp;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.List;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
@@ -121,12 +120,12 @@ public class CmdAdd implements IDBGitCommand {
 						try {
 							//gmdm.getCurrent().serialize(out);
 							Integer count = 0;
-							Set<String> fields = null;
+							List<String> fields = null;
 
 							for (RowData rd : gmdm.getCurrent().getmapRows().values()) {
 								if (count == 0 && isFirstPortion) {
 									//fields = rd.getData().keySet();
-									fields = new HashSet<>(gmdm.getCurrent().getFields());
+									fields = gmdm.getCurrent().getFields();
 									csvPrinter.printRecord(fields);
 									isFirstPortion = false;
 								}
