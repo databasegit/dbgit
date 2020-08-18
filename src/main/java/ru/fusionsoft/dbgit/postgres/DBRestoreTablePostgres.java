@@ -101,7 +101,7 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 				//restore comment
 				if (restoreTable.getTable().getComment() != null && restoreTable.getTable().getComment().length() > 0){
 					st.execute(MessageFormat.format(
-						"COMMENT ON TABLE {0}.{1} IS '{2}'"
+						"COMMENT ON TABLE {0}.{1} IS ''{2}''"
 						,schema
 						,tblName
 						,restoreTable.getTable().getComment()
