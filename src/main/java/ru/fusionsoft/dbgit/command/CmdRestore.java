@@ -2,6 +2,7 @@ package ru.fusionsoft.dbgit.command;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -43,41 +44,33 @@ public class CmdRestore implements IDBGitCommand {
 
 	@Override
 	public void execute(CommandLine cmdLine) throws Exception {
+		IDBAdapter adapter = null;
+		File autoScriptFile = createScriptFile();
+		FileOutputStream scriptOutputStream = new FileOutputStream(autoScriptFile);
+		GitMetaDataManager gmdm = GitMetaDataManager.getInstance();
+
+		ConsoleWriter.setDetailedLog(cmdLine.hasOption("v"));
+		ConsoleWriter.println("");
+		boolean toMakeChanges = cmdLine.hasOption("r");
+		boolean toMakeBackup = DBGitConfig.getInstance().getBoolean("core", "TO_MAKE_BACKUP", true);
 
 		try {
-			AdapterFactory.createAdapter();
+			adapter = AdapterFactory.createAdapter();
+			adapter.setDumpSqlCommand(scriptOutputStream, toMakeChanges);
 		} catch (NullPointerException e) {
 			ConsoleWriter.println(getLang().getValue("errors", "restore", "cantConnect"));
 			System.exit(0);
 		}
-		GitMetaDataManager gmdm = GitMetaDataManager.getInstance();
+
 		IMapMetaObject dbObjs = gmdm.loadDBMetaData();
 		IMapMetaObject fileObjs = gmdm.loadFileMetaData();
 		IMapMetaObject updateObjs = new TreeMapMetaObject();
 		IMapMetaObject deleteObjs = new TreeMapMetaObject();
 
-		SimpleDateFormat format = new SimpleDateFormat("yyyyMMddHHmmss");
-		File scriptFile = new File(DBGitPath.getScriptsPath() + "script-" + format.format(new Date()) + ".sql");
-
-		//Console output
-		ConsoleWriter.setDetailedLog(cmdLine.hasOption("v"));
-
-		boolean toMakeBackup = DBGitConfig.getInstance().getBoolean("core", "TO_MAKE_BACKUP", true);
-		if(toMakeBackup) ConsoleWriter.println(getLang().getValue("general", "restore", "willMakeBackup").toString());
-
-		if (cmdLine.hasOption("r")) { ConsoleWriter.println(getLang().getValue("general", "restore", "toMakeChanges").toString()); }
-		else { ConsoleWriter.println(getLang().getValue("general", "restore", "notMakeChanges").withParams(scriptFile.getAbsolutePath())); }
-
-		//File output
-		FileOutputStream fop = null;
-		FileOutputStream scriptOutputStream = null;
-
-		DBGitPath.createScriptsDir();
-		if (!scriptFile.exists()) { scriptFile.createNewFile(); }
-		scriptOutputStream = new FileOutputStream(scriptFile);
-
-		IDBAdapter adapter = AdapterFactory.createAdapter();
-		adapter.setDumpSqlCommand(scriptOutputStream, cmdLine.hasOption("r"));
+		ConsoleWriter.println("");
+		if (toMakeBackup) { ConsoleWriter.printlnGreen(getLang().getValue("general", "restore", "willMakeBackup").toString()); }
+		if (toMakeChanges) { ConsoleWriter.printlnGreen(getLang().getValue("general", "restore", "toMakeChanges").toString()); }
+		else { ConsoleWriter.printlnGreen(getLang().getValue("general", "restore", "notMakeChanges").withParams(autoScriptFile.getAbsolutePath())); }
 
 		//delete that not present in HEAD
 		try {
@@ -85,10 +78,10 @@ public class CmdRestore implements IDBGitCommand {
 			DBGitIgnore ignore = DBGitIgnore.getInstance();
 
 			ConsoleWriter.println(getLang().getValue("general", "restore", "seekingToRemove"));
-			for (ItemIndex item : Lists.newArrayList(index.getTreeItems().values())) {
-				if (ignore.matchOne(item.getName())) continue;
-				if (item.getIsDelete()) {
-					if( !dbObjs.containsKey(item.getName()) ) {
+			for ( ItemIndex item : index.getTreeItems().values() ) {
+				if ( ignore.matchOne(item.getName()) ) continue;
+				if ( item.getIsDelete() ) {
+					if ( !dbObjs.containsKey(item.getName()) ) {
 						ConsoleWriter.println(getLang().getValue("general", "restore", "notExists").withParams(item.getName()));
 						index.removeItem(item.getName());
 					} else {
@@ -106,43 +99,42 @@ public class CmdRestore implements IDBGitCommand {
 					}
 				}
 			}
-			if (deleteObjs.size() == 0){
-				ConsoleWriter.println(getLang().getValue("general", "restore", "nothingToRemove"));
-			} else {
-				if (cmdLine.hasOption("r")) ConsoleWriter.println(getLang().getValue("general", "restore", "removing"));
-				gmdm.deleteDataBase(deleteObjs, true);
-			}
 
 			ConsoleWriter.println(getLang().getValue("general", "restore", "seekingToRestore"));
 			for (IMetaObject obj : fileObjs.values()) {
-				Boolean isRestore = false;
-				try {
-					IMetaObject dbObj = IMetaObject.create(obj.getName());
-					gmdm.loadFromDB(dbObj);
-					isRestore = !dbObj.getHash().equals(obj.getHash());
-				} catch (ExceptionDBGit e) {
-					isRestore = true;
-					e.printStackTrace();
-				} catch (ExceptionDBGitRunTime e) {
-					isRestore = true;
-					e.printStackTrace();
-				}
-				if (isRestore) {
-					//запомнили файл если хеш разный или объекта нет
-					updateObjs.put(obj);
 
-					if (updateObjs.size() == 1) ConsoleWriter.println(getLang().getValue("general", "restore", "toRestore"));
+				//запомнили файл если хеш разный или объекта нет
+				if (checkNeedsRestore(obj)) {
+					updateObjs.put(obj);
+					if (updateObjs.size() == 1){
+						ConsoleWriter.println(getLang().getValue("general", "restore", "toRestore"));
+					}
 					ConsoleWriter.println("    " + obj.getName());
 				}
+			}
+
+			if(toMakeBackup && toMakeChanges) {
+				IMapMetaObject backupObjs = new TreeMapMetaObject();
+				backupObjs.putAll(deleteObjs);
+				backupObjs.putAll(updateObjs);
+				adapter.getBackupAdapterFactory().getBackupAdapter(adapter).backupDatabase(backupObjs);
+			}
+
+			if (deleteObjs.size() == 0){
+				ConsoleWriter.println(getLang().getValue("general", "restore", "nothingToRemove"));
+			} else {
+				if (toMakeChanges) ConsoleWriter.println(getLang().getValue("general", "restore", "removing"));
+				gmdm.deleteDataBase(deleteObjs, true);
 			}
 
 			if (updateObjs.size() == 0){
 				ConsoleWriter.println(getLang().getValue("general", "restore", "nothingToRestore"));
 			}
-			if (cmdLine.hasOption("r")) {
+			if (toMakeChanges) {
 				ConsoleWriter.println(getLang().getValue("general", "restore", "restoring"));
 			}
 			gmdm.restoreDataBase(updateObjs);
+
 
 		} finally {
 			if (scriptOutputStream != null) {
@@ -151,17 +143,40 @@ public class CmdRestore implements IDBGitCommand {
 			}
 			if (cmdLine.hasOption("s")) {
 				String scriptName = cmdLine.getOptionValue("s");
-				ConsoleWriter.detailsPrintLn(getLang().getValue("general", "restore", "scriptWillSaveTo").withParams(scriptName));
-
 				File file = new File(scriptName);
+
 				if (!file.exists()) {
-					Files.copy(scriptFile.toPath(), file.toPath());
-					ConsoleWriter.detailsPrintLn(getLang().getValue("general", "restore", "created").withParams(scriptName));
+					ConsoleWriter.detailsPrintLn(getLang().getValue("general", "restore", "scriptWillSaveTo").withParams(scriptName));
+					Files.copy(autoScriptFile.toPath(), file.toPath());
+				} else {
+					ConsoleWriter.detailsPrintLn(getLang().getValue("errors", "restore", "fileAlreadyExists").withParams(scriptName));
 				}
 			}
 		}
 		ConsoleWriter.println(getLang().getValue("general", "done"));
 	}
 
+	private boolean checkNeedsRestore(IMetaObject obj){
+		boolean isRestore = false;
+		try {
+			IMetaObject dbObj = IMetaObject.create(obj.getName());
+			GitMetaDataManager.getInstance().loadFromDB(dbObj);
+			isRestore = !dbObj.getHash().equals(obj.getHash());
+		} catch (ExceptionDBGit e) {
+			isRestore = true;
+			e.printStackTrace();
+		} catch (ExceptionDBGitRunTime e) {
+			isRestore = true;
+			e.printStackTrace();
+		}
+		return isRestore;
+	}
+	private File createScriptFile() throws ExceptionDBGit, IOException {
+		DBGitPath.createScriptsDir();
+		SimpleDateFormat format = new SimpleDateFormat("yyyyMMddHHmmss");
+		File scriptFile = new File(DBGitPath.getScriptsPath() + "script-" + format.format(new Date()) + ".sql");
+		if (!scriptFile.exists()) { scriptFile.createNewFile(); }
+		return scriptFile;
+	}
 
 }

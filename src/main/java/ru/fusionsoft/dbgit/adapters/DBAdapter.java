@@ -3,6 +3,8 @@ package ru.fusionsoft.dbgit.adapters;
 import ru.fusionsoft.dbgit.core.*;
 import ru.fusionsoft.dbgit.core.db.FieldType;
 import ru.fusionsoft.dbgit.data_table.*;
+import ru.fusionsoft.dbgit.dbobjects.DBOptionsObject;
+import ru.fusionsoft.dbgit.dbobjects.DBRole;
 import ru.fusionsoft.dbgit.dbobjects.DBTableField;
 import ru.fusionsoft.dbgit.meta.*;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
@@ -15,6 +17,7 @@ import java.sql.Timestamp;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -35,7 +38,6 @@ public abstract class DBAdapter implements IDBAdapter {
 	public void setConnection(Connection conn) {
 		connect = conn;
 	}
-	
 	@Override
 	public Connection getConnection() {		
 		try {
@@ -83,155 +85,70 @@ public abstract class DBAdapter implements IDBAdapter {
 	public Boolean isExecSql() {
 		return isExec;
 	}
+
 	@Override
 	public void restoreDataBase(IMapMetaObject updateObjs) throws Exception {
 		Connection connect = getConnection();
 		DBGitLang lang = DBGitLang.getInstance();
-		boolean toMakeBackup = DBGitConfig.getInstance().getBoolean("core", "TO_MAKE_BACKUP", true);
 
 		try {
-			List<MetaTable> tables = new ArrayList<MetaTable>();			
-			List<MetaTableData> tablesData = new ArrayList<MetaTableData>();
-			
-			List<String> createdSchemas = new ArrayList<String>();
-			List<String> createdRoles = new ArrayList<String>();
-			SortedListMetaObject restoreObjs = updateObjs.getSortedList();
+			List<MetaTable> tables = new ArrayList<>();
+			Set<String> createdSchemas = getSchemes().values().stream().map(DBOptionsObject::getName).collect(Collectors.toSet());
+			Set<String> createdRoles = getRoles().values().stream().map(DBRole::getName).collect(Collectors.toSet());
 
-			if(toMakeBackup){
-				IDBBackupAdapter ba = getBackupAdapterFactory().getBackupAdapter(this);
-				ba.backupDatabase(updateObjs);
-			}
-
-			for (IMetaObject obj : restoreObjs.sortFromFree()) {
-				Integer step = 0;
-
-				String schemaName = getSchemaName(obj);
-				if (schemaName != null) {
-					schemaName = (SchemaSynonym.getInstance().getSchema(schemaName) != null)
-							? SchemaSynonym.getInstance().getSchema(schemaName)
-							: schemaName;
-				}
-
-				boolean res = false;
+			for (IMetaObject obj : updateObjs.getSortedList().sortFromFree()) {
 				Timestamp timestampBefore = new Timestamp(System.currentTimeMillis());
-				DBGitIgnore ignore = DBGitIgnore.getInstance();
-				if (step == 0) {
-					IDBConvertAdapter convertAdapter = getConvertAdapterFactory().getConvertAdapter(obj.getType().getValue());
+				int step = 0;
+				boolean res = false;
 
-					boolean isContainsNative = false;
-					if (obj instanceof MetaTable) {
-						MetaTable table = (MetaTable) obj;
-						for (DBTableField field : table.getFields().values()) { if (field.getTypeUniversal().equals("native")) { isContainsNative = true; break; } }
-					}
+				IDBAdapterRestoreMetaData restoreAdapter = getFactoryRestore().getAdapterRestore(obj.getType(), this) ;
+				if(restoreAdapter == null) throw new Exception("restore adapter is null");
+//				ConsoleWriter.printlnGreen(lang.getValue("general", "restore", "restoreType").withParams(obj.getType().toString().substring(5), obj.getName()));
 
-					if (isContainsNative) {
-						ConsoleWriter.println(DBGitLang.getInstance().getValue("general", "restore", "unsupportedTypes").withParams(obj.getName()));
-						continue;
-					}
-					if (convertAdapter != null) {
-						if (!createdSchemas.contains(schemaName) && schemaName != null) {
-							createSchemaIfNeed(schemaName);
-							createdSchemas.add(schemaName);
-						}
+				obj = tryConvert(obj);
+				createRoleIfNeed(obj, createdRoles);
+				createSchemaIfNeed(obj, createdSchemas);
 
-						String ownerName = getOwnerName(obj);
-						if (!ignore.matchOne("*." + DBGitMetaType.DBGitRole.getValue()) && !getRoles().containsKey(ownerName) && !createdRoles.contains(ownerName) && ownerName != null) {
-							createRoleIfNeed(ownerName);
-							createdRoles.add(ownerName);
-						}					
+				while (!res) {
+					res = restoreAdapter.restoreMetaObject(obj, step++);
 
-						obj = convertAdapter.convert(getDbType(), getDbVersion(), obj);							
-					}
+					if (step > 100) { throw new Exception(lang.getValue("errors", "restore", "restoreErrorDidNotReturnTrue").toString()); }
+					if (obj instanceof MetaTable){ tables.add((MetaTable) obj); }
 				}
-				
-				while (!res) {						
-					if (obj.getDbType() == null) {
-						ConsoleWriter.println(lang.getValue("errors", "emptyDbType"));
-						break;
-					}
-					
-					if (getFactoryRestore().getAdapterRestore(obj.getType(), this) == null ||
-							!obj.getDbType().equals(getDbType()))
-						break;					
-					
-					if (!createdSchemas.contains(schemaName) && schemaName != null) {
-						createSchemaIfNeed(schemaName);
-						createdSchemas.add(schemaName);
-					}
-					
-					String ownerName = getOwnerName(obj);
-					if (!ignore.matchOne("*." + DBGitMetaType.DBGitRole.getValue()) && !getRoles().containsKey(ownerName) && !createdRoles.contains(ownerName) && ownerName != null) {
-						createRoleIfNeed(ownerName);
-						createdRoles.add(ownerName);
-					}	
-					
-					if (obj instanceof MetaTable) {
-						MetaTable table = (MetaTable) obj;
-						if (!tables.contains(table))
-							tables.add(table);
-					}
-					
-					if (obj instanceof MetaTableData) {
-						MetaTableData tableData = (MetaTableData) obj;
-						if (!tables.contains(tableData))
-							tablesData.add(tableData);
-					}
 
-					//call restoreAdapter.restoreMetaObject with the next 'step' until it returns true
-					res = getFactoryRestore().getAdapterRestore(obj.getType(), this).restoreMetaObject(obj, step);
-					step++;
-
-					if (step > 100) {
-						throw new Exception(lang.getValue("errors", "restore", "restoreErrorDidNotReturnTrue").toString());
-					}
-				}
-    			Timestamp timestampAfter = new Timestamp(System.currentTimeMillis());
-    			Long diff = timestampAfter.getTime() - timestampBefore.getTime();
-    			ConsoleWriter.println("(" + diff + " " + lang.getValue("general", "add", "ms") +")");
+    			Long timeDiff = new Timestamp(System.currentTimeMillis()).getTime() - timestampBefore.getTime();
+				ConsoleWriter.detailsPrintlnGreen(MessageFormat.format("({1} {2})",  obj.getName(), timeDiff, lang.getValue("general", "add", "ms")));
 			}
 
+			// restore table constraints, which is step(-1) of restoreMetaObject(MetaTable)
 			for (MetaTable table : tables) {
 				getFactoryRestore().getAdapterRestore(DBGitMetaType.DBGitTable, this).restoreMetaObject(table, -1);
 			}
-/*
-			for (MetaTableData tableData : tablesData) {
-				getFactoryRestore().getAdapterRestore(DBGitMetaType.DbGitTableData, this).restoreMetaObject(tableData, -2);
-			}
-*/
 			connect.commit();
 		} catch (Exception e) {
 			//TODO wont work with ExceptionDBGit*, cause they call System.exit(1) in ctor;
 			connect.rollback();
-			ConsoleWriter.detailsPrintlnRed(e.getLocalizedMessage());
-			e.printStackTrace();
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "restoreError").toString(), e);
 		} finally {
 			//connect.setAutoCommit(false);
 		} 
 		
 	}
-	
+
 	@Override
 	public void deleteDataBase(IMapMetaObject deleteObjs)  throws Exception {
 		deleteDataBase(deleteObjs, false);
 	}
-
 	public void deleteDataBase(IMapMetaObject deleteObjs, boolean isDeleteFromIndex) throws Exception {
 		Connection connect = getConnection();
 		DBGitIndex index = DBGitIndex.getInctance();
 
 		try {
-			//start transaction
-			boolean toMakeBackup = DBGitConfig.getInstance().getBoolean("core", "TO_MAKE_BACKUP", true);
-
 			List<IMetaObject> deleteObjsSorted = deleteObjs.getSortedList().sortFromDependant();
-
 			for (IMetaObject obj : deleteObjsSorted) {
-				if (toMakeBackup) { obj = getBackupAdapterFactory().getBackupAdapter(this).backupDBObject(obj); }
 				getFactoryRestore().getAdapterRestore(obj.getType(), this).removeMetaObject(obj);
 				if(isDeleteFromIndex) index.removeItem(obj);
 			}
-
 			connect.commit();
 		} catch (Exception e) {
 			connect.rollback();
@@ -240,37 +157,80 @@ public abstract class DBAdapter implements IDBAdapter {
 			//connect.setAutoCommit(false);
 		}
 	}
-	
-	public String cleanString(String str) {
-		String dt = str.replace("\r\n", "\n");
-		while (dt.contains(" \n")) dt = dt.replace(" \n", "\n");
-		dt = dt.replace("\t", "   ").trim();
-		
-		return dt;
-	}
-	
+
 	public void rowToProperties(ResultSet rs, StringProperties properties) {
 		try {
 			for (int i = 1; i <= rs.getMetaData().getColumnCount(); i++) {
-				if (rs.getString(i) == null) continue ;			
-				
+				if (rs.getString(i) == null) continue ;
+
 				properties.addChild(rs.getMetaData().getColumnName(i).toLowerCase(), cleanString(rs.getString(i)));
 			}
 		} catch(Exception e) {
 			throw new ExceptionDBGitRunTime(e);
 		}
 	}
-	
-	private String getSchemaName(IMetaObject obj) {
-		if (obj instanceof MetaSql)
-			return ((MetaSql) obj).getSqlObject().getSchema();
-		else if (obj instanceof MetaTable)
-			return ((MetaTable) obj).getTable().getSchema();
-		else if (obj instanceof MetaSequence)
-			return ((MetaSequence) obj).getSequence().getSchema();
-		else return null;
+	public String cleanString(String str) {
+		String dt = str.replace("\r\n", "\n");
+		while (dt.contains(" \n")) dt = dt.replace(" \n", "\n");
+		dt = dt.replace("\t", "   ").trim();
+
+		return dt;
 	}
-	
+
+	private IMetaObject tryConvert(IMetaObject obj) throws Exception {
+		if ( obj.getDbType() == null) throw new Exception(lang.getValue("errors", "emptyDbType").toString());
+
+		if ( isSameDbType(obj) && isSameDbVersion(obj)) return obj;
+
+		if ( checkContainsNativeFields(obj)) {
+			ConsoleWriter.println(DBGitLang.getInstance().getValue("general", "restore", "unsupportedTypes").withParams(obj.getName()));
+			return obj;
+		}
+
+		IDBConvertAdapter convertAdapter = getConvertAdapterFactory().getConvertAdapter(obj.getType().getValue());
+		if (convertAdapter != null) return convertAdapter.convert(getDbType(), getDbVersion(), obj);
+		else {
+			throw new Exception(MessageFormat.format(
+					"Could not get convert adapter for {0} ({1} {2})",
+					obj.getName(), obj.getDbType().toString(), obj.getDbVersion()
+			));
+		}
+	}
+	private void createSchemaIfNeed(IMetaObject obj, Set<String> createdSchemas) throws Exception {
+		String schemaName = getSchemaSynonymName(obj);
+		if(schemaName == null){
+			ConsoleWriter.detailsPrintlnRed(MessageFormat.format("Object {0} schema is null", obj.getName()));
+			return;
+		}
+		if (!createdSchemas.contains(schemaName)) {
+			createSchemaIfNeed(schemaName);
+			createdSchemas.add(schemaName);
+		}
+	}
+	private void createRoleIfNeed(IMetaObject obj, Set<String> createdRoles) throws ExceptionDBGit {
+//		boolean isRolesUnignored = !DBGitIgnore.getInstance().matchOne("*." + DBGitMetaType.DBGitRole.getValue());
+		String ownerName = getOwnerName(obj);
+
+		if(ownerName != null){
+			if ( !createdRoles.contains(ownerName)) {
+				createRoleIfNeed(ownerName);
+				createdRoles.add(ownerName);
+			}
+		}
+
+	}
+
+	private boolean checkContainsNativeFields(IMetaObject obj){
+		if (obj instanceof MetaTable) {
+			MetaTable table = (MetaTable) obj;
+			for (DBTableField field : table.getFields().values()) {
+				if (field.getTypeUniversal().equals(FieldType.NATIVE)) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
 	private String getOwnerName(IMetaObject obj) {
 		if (obj instanceof MetaSql)
 			return ((MetaSql) obj).getSqlObject().getOwner();
@@ -278,7 +238,36 @@ public abstract class DBAdapter implements IDBAdapter {
 			return ((MetaTable) obj).getTable().getOptions().get("owner").getData();
 		else if (obj instanceof MetaSequence)
 			return ((MetaSequence) obj).getSequence().getOptions().get("owner").getData();
-		else return null;		
+		else return null;
+	}
+	private String getSchemaName(IMetaObject obj) {
+		if (obj instanceof MetaSql)
+			return ((MetaSql) obj).getSqlObject().getSchema();
+		else if (obj instanceof MetaTable)
+			return ((MetaTable) obj).getTable().getSchema();
+		else if (obj instanceof MetaSequence)
+			return ((MetaSequence) obj).getSequence().getSchema();
+		else if (obj instanceof MetaTableData)
+			return ((MetaTableData) obj).getTable().getSchema();
+		else return null;
+	}
+	private String getSchemaSynonymName(String schemaName) throws Exception {
+		String schemaSynonym = schemaName != null
+			? SchemaSynonym.getInstance().getSchema(schemaName)
+			: null;
+
+		return (schemaSynonym != null)
+			? schemaSynonym
+			: schemaName;
+	}
+	private String getSchemaSynonymName(IMetaObject obj) throws Exception {
+		return getSchemaSynonymName(getSchemaName(obj));
+	}
+	private boolean isSameDbType(IMetaObject obj){
+		return obj.getDbType().equals(getDbType());
+	}
+	private boolean isSameDbVersion(IMetaObject obj){
+		return obj.getDbVersion().equals(getDbVersion());
 	}
 
 	public void registryMappingTypes() {

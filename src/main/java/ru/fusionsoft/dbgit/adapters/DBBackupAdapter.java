@@ -1,6 +1,6 @@
 package ru.fusionsoft.dbgit.adapters;
 
-import com.diogonunes.jcdp.color.api.Ansi;
+import ru.fusionsoft.dbgit.core.DBGitIndex;
 import ru.fusionsoft.dbgit.core.DBGitLang;
 import ru.fusionsoft.dbgit.core.GitMetaDataManager;
 import ru.fusionsoft.dbgit.meta.*;
@@ -20,6 +20,8 @@ public abstract class DBBackupAdapter implements IDBBackupAdapter {
 	private boolean saveToSchema;
 	
 	protected DBGitLang lang = DBGitLang.getInstance();
+	protected DBGitIndex dbGitIndex;
+
 
 	public void  setAdapter(IDBAdapter adapter) {
 		this.adapter = adapter;
@@ -56,7 +58,7 @@ public abstract class DBBackupAdapter implements IDBBackupAdapter {
 		}
 	}
 
-	public void backupDatabase(IMapMetaObject backupObjs) throws Exception {
+	public void backupDatabase(IMapMetaObject updateObjs) throws Exception {
 
 		// Condition: we should not refer from backups on non-backup objects
 		// ->  we need to backup restoring objects dependencies
@@ -65,92 +67,90 @@ public abstract class DBBackupAdapter implements IDBBackupAdapter {
 		// ->  we need to drop old backups of the objects + old backup dependencies
 
 		//	collect yet existing backups of restore objects
-		Timestamp timestampBefore = new Timestamp(System.currentTimeMillis());
-		StatementLogging stLog = new StatementLogging(adapter.getConnection(), adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
-		IMapMetaObject dbObjs = GitMetaDataManager.getInstance().loadDBMetaData(true);
+//		Timestamp timestampBefore = new Timestamp(System.currentTimeMillis());
+		dbGitIndex = DBGitIndex.getInctance();
 
-		IMapMetaObject backupList = new TreeMapMetaObject(dbObjs.values().stream()
-			.filter( x-> backupObjs.containsKey(x.getName()) )
+		StatementLogging stLog = new StatementLogging(adapter.getConnection(), adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
+		IMapMetaObject dbObjs = GitMetaDataManager.getInstance().loadDBMetaData();
+
+		IMapMetaObject dbToBackup = new TreeMapMetaObject(dbObjs.values().stream()
+			.filter( x-> updateObjs.containsKey(x.getName()) )
 			.collect(Collectors.toList()));
 
-		List<IMetaObject> nonBackupList = dbObjs.values().stream()
-			.filter(x -> !backupObjs.containsKey(x.getName()))
+		List<IMetaObject> dbNotToBackup = dbObjs.values().stream()
+			.filter(x -> !updateObjs.containsKey(x.getName()))
 			.collect(Collectors.toList());
 
-		IMapMetaObject existingBackups = new TreeMapMetaObject(dbObjs.values().stream()
+		IMapMetaObject dbAllBackups = new TreeMapMetaObject(dbObjs.values().stream()
 			.filter(this::isBackupObject)
 			.collect(Collectors.toList()));
 
 
 
-		ConsoleWriter.printlnColor(MessageFormat.format("Backing up {0} objects... {1} are in database:\n\t- {2}",
-			backupObjs.size(), backupList.size(),
-			String.join("\n\t- ", backupList.keySet())
-		), Ansi.FColor.MAGENTA, 1);
+		ConsoleWriter.printlnGreen(MessageFormat.format("Try to backup {0} present of {1} restoring objects ", dbToBackup.size(), updateObjs.size()));
 
 
 		// collect restore objects dependencies to satisfy all backups create needs
 		// so dependencies will be backed up too
 		Map<String, IMetaObject> addedObjs;
 		do{
-			addedObjs = nonBackupList.stream().filter( nonBackup ->
-				nonBackup.getUnderlyingDbObject() != null
-				&& backupList.values().stream().anyMatch(
-					backup -> backup.getUnderlyingDbObject().getDependencies().contains(nonBackup.getName())
+			addedObjs = dbNotToBackup.stream().filter( notToBackup ->
+				notToBackup.getUnderlyingDbObject() != null &&
+				dbToBackup.values().stream().anyMatch(
+					toBackup -> toBackup.dependsOn(notToBackup)
 				)
 			).collect(Collectors.toMap(IMetaObject::getName, Function.identity() ));
 
-			nonBackupList.removeAll(addedObjs.values());
-			backupList.putAll(addedObjs);
+			dbNotToBackup.removeAll(addedObjs.values());
+			dbToBackup.putAll(addedObjs);
 
 			if(addedObjs.size() > 0) {
-				ConsoleWriter.printlnColor(
-					MessageFormat.format("- found {0} depending: {1}", addedObjs.size(), String.join(" ,", addedObjs.keySet())),
-					Ansi.FColor.MAGENTA, 2
+				ConsoleWriter.detailsPrintlnGreen(MessageFormat.format("Found {0} depending backups: {1}"
+					, addedObjs.size(), String.join(" ,", addedObjs.keySet()))
 				);
 			}
 		} while (addedObjs.size() > 0);
 
 		//so we have a full backup list, let's get a drop list
+		if(dbToBackup.size() > 0){
+			Set<String> suspectBackupNames = dbToBackup.values().stream().map( x->getBackupNameMeta(x).getMetaName()).collect(Collectors.toSet());
+			List<IMetaObject> dropList = new ArrayList<>();
 
-		if(backupList.size() > 0){
-
-			IMapMetaObject backupListExisting = new TreeMapMetaObject(existingBackups.values().stream()
-				.filter(x -> backupList.containsKey(x.getName()))
+			IMapMetaObject dbDroppingBackups = new TreeMapMetaObject(dbAllBackups.values().stream()
+				.filter(dbBackup -> suspectBackupNames.contains(dbBackup.getName()))
 				.collect(Collectors.toList()));
 
-			List<IMetaObject> backupListExistingDependant = existingBackups.values().stream()
-				.filter( x ->
-					!backupListExisting.containsKey(x.getName())
-					|| x.getUnderlyingDbObject().getDependencies().contains(x.getName())
-				)
-				.collect(Collectors.toList());
+			List<IMetaObject> dbDroppingBackupsDeps = dbAllBackups.values().stream()
+				.filter( dbBackup ->
+					!dbDroppingBackups.containsKey(dbBackup.getName())
+					&& dbDroppingBackups.values().stream().anyMatch(dbBackup::dependsOn)
+				).collect(Collectors.toList());
 
-			List<IMetaObject> dropList = new ArrayList<>(backupListExisting.values());
-			dropList.addAll(backupListExistingDependant);
+			dropList.addAll(dbDroppingBackups.values());
+			dropList.addAll(dbDroppingBackupsDeps);
 			List<IMetaObject> dropListSorted =  new SortedListMetaObject(dropList).sortFromDependant();
 
-			ConsoleWriter.printlnColor("Rewriting "+dropList.size()+" backups (with dependencies)", Ansi.FColor.MAGENTA, 1);
-			dropListSorted.forEach( x -> ConsoleWriter.printlnColor( "- " + x.getName(), Ansi.FColor.MAGENTA, 1));
+			ConsoleWriter.printlnGreen(MessageFormat.format("Rewriting {0} backups with {1} dependencies", dbDroppingBackups.size(), dbDroppingBackupsDeps.size()));
+			dropListSorted.forEach( x -> ConsoleWriter.detailsPrintlnGreen( x.getName()));
 
 			//drop backups in one place
 			for(IMetaObject imo : dropListSorted){
-				ConsoleWriter.detailsPrint(lang.getValue("general", "backup", "droppingBackup").withParams(imo.getName()), 2);
+				ConsoleWriter.detailsPrint(lang.getValue("general", "backup", "droppingBackup").withParams(imo.getName()), 1);
 
 				dropIfExists(imo, stLog);
 
 				ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
 			}
 
-			Timestamp timestampAfter = new Timestamp(System.currentTimeMillis());
-			ConsoleWriter.detailsPrintLn(MessageFormat.format("({0})",
-					lang.getValue("general", "add", "ms").withParams(String.valueOf(timestampAfter.getTime() - timestampBefore.getTime()))
-			));
-
 			//create backups
-			for(IMetaObject imo : backupList.getSortedList().sortFromFree()){
+			for(IMetaObject imo : dbToBackup.getSortedList().sortFromFree()){
 				backupDBObject(imo);
 			}
+
+			//	Timestamp timestampAfter = new Timestamp(System.currentTimeMillis());
+			//	ConsoleWriter.detailsPrintLn(MessageFormat.format("({0})",
+			//			lang.getValue("general", "add", "ms").withParams(String.valueOf(timestampAfter.getTime() - timestampBefore.getTime()))
+			//	));
 		}
 
 	}
@@ -162,7 +162,8 @@ public abstract class DBBackupAdapter implements IDBBackupAdapter {
 		return new NameMeta(backupSchema, backupName, (DBGitMetaType) imo.getType());
 	}
 
-	public boolean isBackupObject(IMetaObject imo){
+	public boolean isBackupObject(IMetaObject imo) {
+		if(dbGitIndex != null && dbGitIndex.getTreeItems().containsKey(imo.getName())) return false;
 		NameMeta nm = new NameMeta(imo);
 		return nm.getName().contains(PREFIX) || nm.getSchema().contains(PREFIX);
 	}
