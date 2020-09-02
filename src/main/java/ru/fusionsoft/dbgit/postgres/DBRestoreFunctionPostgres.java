@@ -1,6 +1,7 @@
 package ru.fusionsoft.dbgit.postgres;
 
 import java.sql.Connection;
+import java.text.MessageFormat;
 import java.util.Map;
 
 import ru.fusionsoft.dbgit.adapters.DBRestoreAdapter;
@@ -12,6 +13,7 @@ import ru.fusionsoft.dbgit.meta.IMetaObject;
 import ru.fusionsoft.dbgit.meta.MetaFunction;
 import ru.fusionsoft.dbgit.statement.StatementLogging;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
+import ru.fusionsoft.dbgit.utils.StringProperties;
 
 public class DBRestoreFunctionPostgres extends DBRestoreAdapter {
 
@@ -20,16 +22,17 @@ public class DBRestoreFunctionPostgres extends DBRestoreAdapter {
 		IDBAdapter adapter = getAdapter();
 		Connection connect = adapter.getConnection();
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
-		ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "restoreFnc").withParams(obj.getName()), 1);
 		try {
 			if (obj instanceof MetaFunction) {
+				ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "restoreFnc").withParams(obj.getName()), 1);
+
 				MetaFunction restoreFunction = (MetaFunction)obj;
-				String restoreFunctionName = DBAdapterPostgres.escapeNameIfNeeded(restoreFunction.getSqlObject().getName());
+				String restoreFunctionName = restoreFunction.getSqlObject().getName();
 				Map<String, DBFunction> functions = adapter.getFunctions(restoreFunction.getSqlObject().getSchema());
 				boolean exist = false;
 				if(!(functions.isEmpty() || functions == null)) {
 					for(DBFunction fnc:functions.values()) {
-						if(restoreFunctionName.equals(DBAdapterPostgres.escapeNameIfNeeded(fnc.getName()))){
+						if(restoreFunctionName.equals(fnc.getName())){
 							exist = true;
 
 							//if codes differ
@@ -41,23 +44,16 @@ public class DBRestoreFunctionPostgres extends DBRestoreAdapter {
 							}
 
 							//if owners differ
-							if(!restoreFunction.getSqlObject().getOwner().equals(fnc.getOwner())) {									
-								//without arguments
-								if(restoreFunction.getSqlObject().getOptions().get("arguments").getData() == null || restoreFunction.getSqlObject().getOptions().get("arguments").getData().isEmpty()) {
-									st.execute(
-									"ALTER FUNCTION "+ restoreFunctionName + "() OWNER TO "
-										+ restoreFunction.getSqlObject().getOwner())
-									;
-								}
-								//with arguments
-								else {								
-									st.execute(
-									"ALTER FUNCTION "+restoreFunctionName +"("
-										+ restoreFunction.getSqlObject().getOptions().get("arguments").getData()
-										+ ") OWNER TO " + restoreFunction.getSqlObject().getOwner()
-									);
-								}								
-							}						
+							if(!restoreFunction.getSqlObject().getOwner().equals(fnc.getOwner())) {
+								StringProperties restoreProcArgs = restoreFunction.getSqlObject().getOptions().get("arguments");
+								String args = restoreProcArgs != null ? restoreProcArgs.getData().replaceAll("(\\w+ \\w+) (DEFAULT [^\\,\\n]+)(\\,|\\b)", "$1") : "";
+
+								st.execute(MessageFormat.format("ALTER FUNCTION {0}.{1}({2}) OWNER TO {3}"
+									, restoreFunction.getUnderlyingDbObject().getSchema()
+									, DBAdapterPostgres.escapeNameIfNeeded(restoreFunctionName)
+									, args
+									, restoreFunction.getSqlObject().getOwner()));
+							}
 							//TODO Восстановление привилегий							
 						}
 					}

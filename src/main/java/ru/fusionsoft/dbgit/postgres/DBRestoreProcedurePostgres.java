@@ -10,6 +10,7 @@ import ru.fusionsoft.dbgit.meta.MetaProcedure;
 import ru.fusionsoft.dbgit.meta.NameMeta;
 import ru.fusionsoft.dbgit.statement.StatementLogging;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
+import ru.fusionsoft.dbgit.utils.StringProperties;
 
 import java.sql.Connection;
 import java.text.MessageFormat;
@@ -22,17 +23,17 @@ public class DBRestoreProcedurePostgres extends DBRestoreAdapter {
 		IDBAdapter adapter = getAdapter();
 		Connection connect = adapter.getConnection();
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
-		ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "restorePrc").withParams(obj.getName()), 1);
 		try {
 			if (obj instanceof MetaProcedure) {
+				ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "restorePrc").withParams(obj.getName()), 1);
 				MetaProcedure restoreProc = (MetaProcedure)obj;
 				NameMeta nm = new NameMeta(restoreProc);
-				String restoreProcName = DBAdapterPostgres.escapeNameIfNeeded(nm.getName());
+				String restoreProcName = nm.getName();
 				Map<String, DBProcedure> procs = adapter.getProcedures(nm.getSchema());
 				boolean exist = false;
 				if(!(procs.isEmpty() || procs == null)) {
 					for(DBProcedure prc : procs.values()) {
-						if(restoreProcName.equals(DBAdapterPostgres.escapeNameIfNeeded(prc.getName()))){
+						if(restoreProcName.equals(prc.getName())){
 							exist = true;
 
 							//if codes differ
@@ -45,21 +46,14 @@ public class DBRestoreProcedurePostgres extends DBRestoreAdapter {
 
 							//if owners differ
 							if(!restoreProc.getSqlObject().getOwner().equals(prc.getOwner())) {
-								//without arguments
-								if(	restoreProc.getSqlObject().getOptions().get("arguments").getData() == null ||
-									restoreProc.getSqlObject().getOptions().get("arguments").getData().isEmpty()
-								) {
-									st.execute(MessageFormat.format("ALTER PROCEDURE {0}() OWNER TO {2}"
-										, restoreProcName
-										, restoreProc.getSqlObject().getOwner()));
-								}
-								//with arguments
-								else {
-									st.execute(MessageFormat.format("ALTER PROCEDURE {0}({1}) OWNER TO {2}"
-										, restoreProcName
-										, restoreProc.getSqlObject().getOptions().get("arguments").getData()
-										, restoreProc.getSqlObject().getOwner()));
-								}
+								StringProperties restoreProcArgs = restoreProc.getSqlObject().getOptions().get("arguments");
+								String args = restoreProcArgs != null ? restoreProcArgs.getData().replaceAll("(\\w+ \\w+) (DEFAULT [^\\,\\n]+)(\\,|\\b)", "$1") : "";
+
+								st.execute(MessageFormat.format("ALTER PROCEDURE {0}.{1}({2}) OWNER TO {3}"
+									, nm.getSchema()
+									, DBAdapterPostgres.escapeNameIfNeeded(restoreProcName)
+									, args
+									, restoreProc.getSqlObject().getOwner()));
 							}
 							//TODO Восстановление привилегий
 						}
