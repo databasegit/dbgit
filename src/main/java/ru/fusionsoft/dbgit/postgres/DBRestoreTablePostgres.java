@@ -62,7 +62,7 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 				ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "restoreTable").withParams(schema+"."+tblName), 1);
 
 				//find existing table and set tablespace or create
-				if(existingTable.loadFromDB()){
+				if (existingTable.loadFromDB()){
 					StringProperties exTablespace = existingTable.getTable().getOptions().get("tablespace");
 					StringProperties restoreTablespace = restoreTable.getTable().getOptions().get("tablespace");
 					if(restoreTablespace != null &&
@@ -91,18 +91,38 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 					ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
 				} else {
 					ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "createTable"), 2);
+
+					Collection<DBTableField> fields = restoreTable.getFields().values();
+					StringBuilder columnsBld = new StringBuilder();
+
+					for (DBTableField field : fields) {
+						String fieldStr = field.getName() + " " + field.getTypeSQL().replace("NOT NULL" , "");
+						columnsBld.append(fieldStr).append(", ");
+					}
+					String columns = columnsBld.substring(0, columnsBld.length() - 2);
+
 					String createTableDdl = MessageFormat.format(
-						"create table {0}.{1}() tablespace {2};\n alter table {0}.{1} owner to {3}"
+						"create table {0}.{1}({4}) {2};\n alter table {0}.{1} owner to {3}"
 						,schema
 						,tblName
 						,restoreTable.getTable().getOptions().getChildren().containsKey("tablespace")
-							? restoreTable.getTable().getOptions().get("tablespace").getData()
-							: "pg_default"
+							? "tablespace " + restoreTable.getTable().getOptions().get("tablespace").getData()
+							: ""
 						,restoreTable.getTable().getOptions().getChildren().containsKey("owner")
 							? restoreTable.getTable().getOptions().get("owner").getData()
 							: "postgres"
+						, columns
 					);
+
+					if (restoreTable.getTable().getOptions().getChildren().containsKey("partkeydef")) {
+						createTableDdl = createTableDdl.replace(" ) ",
+								") PARTITION BY " +
+								restoreTable.getTable().getOptions().getChildren().get("partkeydef")
+						+ " ");
+					}
+
 					st.execute(createTableDdl);
+
 					ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
 				}
 
@@ -131,12 +151,13 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 
 					for(DBTableField tblField : values) {
 						String fieldName = DBAdapterPostgres.escapeNameIfNeeded(tblField.getName());
+/*
 						st.execute(
 						"alter table "+ tblSam +" add column "
 							+ fieldName + " "
 							+ tblField.getTypeSQL().replace("NOT NULL", "")
 						);
-
+*/
 						if (tblField.getDescription() != null && tblField.getDescription().length() > 0)
 							st.execute(
 							"COMMENT ON COLUMN " + tblSam + "."
@@ -160,7 +181,16 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 					}
 					ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
 				}
-							
+
+				if (restoreTable.getTable().getOptions().getChildren().containsKey("parent")) {
+					String attachPart = " ALTER TABLE " +
+							schema + "." + restoreTable.getTable().getOptions().getChildren().get("parent") +
+							" ATTACH PARTITION " +
+							schema + "." + tblName + " " +
+							restoreTable.getTable().getOptions().getChildren().get("pg_get_expr");
+					st.execute(attachPart);
+				}
+
 				if(!diffTableFields.entriesOnlyOnRight().isEmpty()) {
 					ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "droppingColumns"), 2);
 					for(DBTableField tblField:diffTableFields.entriesOnlyOnRight().values()) {
@@ -309,7 +339,7 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 				}
 				// set primary key
 				for(DBConstraint tableconst: restoreTable.getConstraints().values()) {
-					if(tableconst.getConstraintType().equals("p")) {
+					if(tableconst.getConstraintType().equals("p") && !restoreTable.getTable().getOptions().getChildren().containsKey("parent")) {
 						st.execute("alter table "+ tblName +" add constraint "+ DBAdapterPostgres.escapeNameIfNeeded(tableconst.getName()) + " "+tableconst.getSql().replace(" " + tableconst.getSql() + ".", " " + schema + "."));
 						break;
 					}
@@ -461,7 +491,8 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 				.replace(" " + constr.getSchema() + ".", " " + schema + ".")
 				.replace("REFERENCES ", "REFERENCES " + schema + ".")
 		);
-		st.execute(constrDdl);
+		if (!restoreTable.getTable().getOptions().getChildren().containsKey("parent"))
+			st.execute(constrDdl);
 	}
 
 
