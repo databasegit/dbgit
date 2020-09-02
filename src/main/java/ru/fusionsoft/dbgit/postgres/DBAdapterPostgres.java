@@ -212,8 +212,16 @@ public class DBAdapterPostgres extends DBAdapter {
 					"		JOIN ONLY pg_catalog.pg_namespace n2 ON n2.oid = c2.relnamespace\n" +
 					"		WHERE c.conrelid = to_regclass('\"' || schemaname || '\".\"' || tablename || '\"')::oid\n" +
 					"		and c1.relkind = 'r' AND c.contype = 'f'\n" +
-					"	)\n" +
-					"from pg_tables \n" +
+					"	), \n" +
+					"(SELECT oid FROM pg_class WHERE relname = tablename and relnamespace = (select oid from pg_namespace where nspname = :schema)) oid, \n" +
+					"   pg_get_partkeydef((SELECT oid FROM pg_class WHERE relname = tablename and relnamespace = (select oid from pg_namespace where nspname = :schema))) partkeydef, \n" +
+							"   parent.relname parent, \n" +
+							"   pg_get_expr(child.relpartbound, child.oid) \n" +
+							"from pg_tables \n" +
+							"left outer join pg_inherits on (SELECT oid FROM pg_class WHERE relname = tablename and relnamespace = (select oid from pg_namespace where nspname = :schema)) = pg_inherits.inhrelid \n" +
+							"left outer JOIN pg_class parent ON pg_inherits.inhparent = parent.oid \n" +
+							"left outer JOIN pg_class child ON pg_inherits.inhrelid = child.oid \n" +
+
 					"where upper(schemaname) = upper(:schema)";
 			Connection connect = getConnection();
 			
@@ -229,6 +237,10 @@ public class DBAdapterPostgres extends DBAdapter {
 				if(rs.getArray("dependencies") != null){
 					table.setDependencies(new HashSet<>(Arrays.asList((String[])rs.getArray("dependencies").getArray())));
 				} else table.setDependencies(new HashSet<>());
+				if (rs.getString("parent") != null) {
+					table.getDependencies().add(schema + "/" + rs.getString("parent") + ".tbl");
+				}
+
 				rowToProperties(rs, table.getOptions());
 				listTable.put(nameTable, table);
 			}
@@ -255,8 +267,15 @@ public class DBAdapterPostgres extends DBAdapter {
 				"		JOIN ONLY pg_catalog.pg_namespace n2 ON n2.oid = c2.relnamespace\n" +
 				"		WHERE c.conrelid = to_regclass('\"' || schemaname || '\".\"' || tablename || '\"')::oid\n" +
 				"		and c1.relkind = 'r' AND c.contype = 'f'\n" +
-				"	)" +
+						"	), \n" +
+						"(SELECT oid FROM pg_class WHERE relname = tablename and relnamespace = (select oid from pg_namespace where nspname = '"+schema+"')) oid, \n" +
+						"   pg_get_partkeydef((SELECT oid FROM pg_class WHERE relname = tablename and relnamespace = (select oid from pg_namespace where nspname = '"+schema+"'))) partkeydef, \n" +
+				"   parent.relname parent, \n" +
+				"   pg_get_expr(child.relpartbound, child.oid) \n" +
 				"from pg_tables \n" +
+				"left outer join pg_inherits on (SELECT oid FROM pg_class WHERE relname = tablename and relnamespace = (select oid from pg_namespace where nspname = '"+schema+"')) = pg_inherits.inhrelid \n" +
+				"left outer JOIN pg_class parent ON pg_inherits.inhparent = parent.oid \n" +
+				"left outer JOIN pg_class child ON pg_inherits.inhrelid = child.oid \n" +
 				"where upper(schemaname) = upper('"+schema+"') \n" +
 				"and tablename = '"+name+"'\n";
 		try {
@@ -277,6 +296,10 @@ public class DBAdapterPostgres extends DBAdapter {
 				if(rs.getArray("dependencies") != null){
 					table.setDependencies(new HashSet<>(Arrays.asList((String[])rs.getArray("dependencies").getArray())));
 				} else table.setDependencies(new HashSet<>());
+				if (rs.getString("parent") != null) {
+					table.getDependencies().add(schema + "/" + rs.getString("parent") + ".tbl");
+				}
+
 				rowToProperties(rs, table.getOptions());
 			}
 			stmt.close();
