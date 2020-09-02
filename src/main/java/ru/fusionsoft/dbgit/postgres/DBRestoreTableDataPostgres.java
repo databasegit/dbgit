@@ -1,17 +1,14 @@
 package ru.fusionsoft.dbgit.postgres;
 
 import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -36,6 +33,7 @@ import ru.fusionsoft.dbgit.dbobjects.DBTableField;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
 import ru.fusionsoft.dbgit.meta.MetaTable;
 import ru.fusionsoft.dbgit.meta.MetaTableData;
+import ru.fusionsoft.dbgit.meta.NameMeta;
 import ru.fusionsoft.dbgit.statement.PrepareStatementLogging;
 import ru.fusionsoft.dbgit.statement.StatementLogging;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
@@ -55,8 +53,8 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 			//TODO не факт что в кеше есть мета описание нашей таблицы, точнее ее не будет если при старте ресторе таблицы в бд не было совсем
 			
 			IMetaObject currentMetaObj = gitMetaMng.getCacheDBMetaObject(obj.getName());
-			
-			if (currentMetaObj instanceof MetaTableData || currentMetaObj == null) {				
+
+			if (currentMetaObj == null || currentMetaObj instanceof MetaTableData) {
 				
 				if(Integer.valueOf(step).equals(0)) {
 					removeTableConstraintsPostgres(restoreTableData.getMetaTable());
@@ -76,9 +74,11 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 						currentTableData.setMapRows(new TreeMapRowData());
 						currentTableData.setDataTable(restoreTableData.getDataTable());
 					}
+					//clears restoreTableData->getDataTable() too after ^ "else" clause
 					currentTableData.getmapRows().clear();
 				
 					if (getAdapter().getTable(schema, currentTableData.getTable().getName()) != null) {
+						//actually load data from database
 						currentTableData.setDataTable(getAdapter().getTableData(schema, currentTableData.getTable().getName()));
 					
 						ResultSet rs = currentTableData.getDataTable().getResultSet();
@@ -86,6 +86,7 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 						TreeMapRowData mapRows = new TreeMapRowData(); 
 						
 						MetaTable metaTable = new MetaTable(currentTableData.getTable());
+						//ALSO loads data from database if fields vary
 						metaTable.loadFromDB(currentTableData.getTable());
 
 						if (rs != null) {
@@ -124,187 +125,149 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 		}		
 	}
 	
-	public void restoreTableDataPostgres(MetaTableData restoreTableData, MetaTableData currentTableData) throws Exception{	
+	public void restoreTableDataPostgres(MetaTableData restoreTableData, MetaTableData currentTableData) throws Exception{
+		ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "restoreTableData").withParams(restoreTableData.getName()), 1);
+		List<String> fieldsList = restoreTableData.getFields();
+		if(fieldsList.size() == 0 ) {
+			ConsoleWriter.detailsPrintlnRed("Empty fieldList, maybe empty csv");
+			ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+			return;
+		}
+		if (restoreTableData.getmapRows() == null) {
+			ConsoleWriter.detailsPrintlnRed("MapRows is null, maybe empty csv");
+			ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+			return;
+		}
+
 		IDBAdapter adapter = getAdapter();
 		Connection connect = adapter.getConnection();
-		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
-		try {			
-			if (restoreTableData.getmapRows() == null)
-				restoreTableData.setMapRows(new TreeMapRowData());
-			
-			String fields = "";
-			if (restoreTableData.getmapRows().size() > 0) {
-				//fields = keysToString(restoreTableData.getmapRows().firstEntry().getValue().getData().keySet().stream().map(DBAdapterPostgres::escapeNameIfNeeded).collect(Collectors.toSet())) + " values ";
 
-				Comparator<DBTableField> comparator = Comparator.comparing(DBTableField::getOrder);
-				fields = "(" + restoreTableData.getMetaTableFromFile().getFields().entrySet().stream()
-						.sorted(Comparator.comparing(e -> e.getValue().getOrder()))
-						.map(entry -> DBAdapterPostgres.escapeNameIfNeeded(entry.getValue().getName()))
-						.collect(Collectors.joining(", "))
-				+ ") values ";
+		MapDifference<String, RowData> diffTableData = Maps.difference(restoreTableData.getmapRows(), currentTableData.getmapRows());
+		try (StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql())) {
 
-			}
-
-			List<String> fieldsList = restoreTableData.getFields();
-
-			MapDifference<String, RowData> diffTableData = Maps.difference(restoreTableData.getmapRows(),currentTableData.getmapRows());
 			String schema = getPhisicalSchema(restoreTableData.getTable().getSchema());
-			
-			schema = (SchemaSynonym.getInstance().getSchema(schema) == null) ? schema : SchemaSynonym.getInstance().getSchema(schema);
-			String tblNameUnescaped = schema + "." + restoreTableData.getTable().getName();
 			String tblNameEscaped = DBAdapterPostgres.escapeNameIfNeeded(schema) + "." + DBAdapterPostgres.escapeNameIfNeeded(restoreTableData.getTable().getName());
+			String fields = getFieldsPrefix(restoreTableData);
+			Map<String, String> colTypes = getColumnDataTypes(restoreTableData.getMetaTable(), st);
+			Set<String> keyNames = restoreTableData.getMetaTable().getFields().values().stream()
+					.filter(DBTableField::getIsPrimaryKey)
+					.map(DBTableField::getName)
+					.collect(Collectors.toSet());
 
-			ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "tableData").withParams(tblNameUnescaped) + "\n", 1);
-			
-			ResultSet rsTypes = st.executeQuery("select column_name, data_type from information_schema.columns \r\n" + 
-					"where lower(table_schema||'.'||table_name) = lower('" + tblNameUnescaped + "')");
 
-			HashMap<String, String> colTypes = new HashMap<String, String>();
-			while (rsTypes.next()) {
-				colTypes.put(rsTypes.getString("column_name"), rsTypes.getString("data_type"));
+			//DELETE
+			if (!diffTableData.entriesOnlyOnRight().isEmpty()) {
+				ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "deleting"), 2);
+				StringBuilder deleteQuery = new StringBuilder();
+
+				for (RowData rowData : diffTableData.entriesOnlyOnRight().values()) {
+					StringJoiner fieldJoiner = new StringJoiner(",");
+					StringJoiner valuejoiner = new StringJoiner(",");
+
+					for( Map.Entry<String, ICellData> entry : rowData.getData(fieldsList).entrySet()) {
+						if (keyNames.contains(entry.getKey())) {
+							fieldJoiner.add("\"" + entry.getKey() + "\"");
+							valuejoiner.add(entry.getValue().convertToString());
+						}
+					}
+
+					String delFields = "(" + fieldJoiner.toString() + ")";
+					String delValues = "(" + valuejoiner.toString() + ")";
+
+					if (delValues.length() > 3){
+						deleteQuery.append("DELETE FROM ").append(tblNameEscaped)
+							.append(" WHERE ").append(delFields).append(" = ")
+							.append(delValues).append(";\n");
+					}
+					if (deleteQuery.length() > 50000) {
+						st.execute(deleteQuery.toString());
+						deleteQuery = new StringBuilder();
+					}
+				}
+				if (deleteQuery.length() > 1) {
+					st.execute(deleteQuery.toString());
+				}
+				ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
 			}
-			
-			
-			if(!diffTableData.entriesOnlyOnLeft().isEmpty()) {
-				
+
+			//UPDATE
+			if (!diffTableData.entriesDiffering().isEmpty()) {
+				ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "updating"), 2);
+				String updateQuery = "";
+				Map<String, String> primarykeys = new HashMap();
+
+				for (ValueDifference<RowData> diffRowData : diffTableData.entriesDiffering().values()) {
+					if (!diffRowData.leftValue().getHashRow().equals(diffRowData.rightValue().getHashRow())) {
+
+						Map<String, ICellData> tempCols = diffRowData.leftValue().getData(fieldsList);
+						for (String key : tempCols.keySet()) {
+							if (tempCols.get(key) == null || tempCols.get(key).convertToString() == null) continue;
+							if (keyNames.contains(key)) {
+								primarykeys.put(key, tempCols.get(key).convertToString());
+								tempCols.remove(key);
+							}
+						}
+
+
+						if (!tempCols.isEmpty()) {
+							StringJoiner keyFieldsJoiner = new StringJoiner(",");
+							StringJoiner keyValuesJoiner = new StringJoiner(",");
+							for (Map.Entry<String, String> entry : primarykeys.entrySet()) {
+								keyFieldsJoiner.add("\"" + entry.getKey() + "\"");
+								keyValuesJoiner.add("\'" + entry.getValue() + "\'");
+							}
+							primarykeys.clear();
+
+
+							StringJoiner updFieldJoiner = new StringJoiner(",");
+							tempCols.forEach( (key, value) -> {
+								updFieldJoiner.add("\"" + key + "\"");
+							});
+
+
+							updateQuery = "UPDATE " + tblNameEscaped + " SET (" + updFieldJoiner.toString() + ") = "
+							+ valuesToString(tempCols.values(), colTypes, fieldsList) + " "
+							+ "WHERE (" + keyFieldsJoiner.toString() + ") = (" + keyValuesJoiner.toString() + ");\n";
+
+
+							ConsoleWriter.detailsPrintLn(updateQuery);
+							st.execute(updateQuery);
+							updateQuery = "";
+						}
+
+					}
+				}
+
+				ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+				if (updateQuery.length() > 1) {
+					ConsoleWriter.println(updateQuery);
+					st.execute(updateQuery);
+				}
+			}
+
+			//INSERT
+			if (!diffTableData.entriesOnlyOnLeft().isEmpty()) {
 				ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "inserting"), 2);
-				
-				for(RowData rowData:diffTableData.entriesOnlyOnLeft().values()) {
-					//ArrayList<String> fieldsList = new ArrayList<String>(rowData.getData().keySet().stream().map(DBAdapterPostgres::escapeNameIfNeeded).collect(Collectors.toList()));
+				for (RowData rowData : diffTableData.entriesOnlyOnLeft().values()) {
 
-					String insertQuery = "insert into " + tblNameEscaped +
-							fields+valuesToString(rowData.getData(fieldsList).values(), colTypes, fieldsList) + ";\n";
-					
+					String insertQuery = MessageFormat.format("INSERT INTO {0}{1}{2};\n"
+							, tblNameEscaped, fields
+							, valuesToString(rowData.getData(fieldsList).values(), colTypes, fieldsList)
+					);
+
 					ConsoleWriter.detailsPrintLn(insertQuery);
-					
-					PrepareStatementLogging ps = new PrepareStatementLogging(connect, insertQuery, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
-
 					st.execute(insertQuery);
 				}
 				ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
 			}
-			
-			if(!diffTableData.entriesOnlyOnRight().isEmpty()){
-				ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "deleting"), 2);
-				String deleteQuery="";
-				Map<String,String> primarykeys = new HashMap();
-				for(RowData rowData:diffTableData.entriesOnlyOnRight().values()) {
-					Map<String, ICellData> tempcols = rowData.getData(fieldsList);
-					String[] keysArray = rowData.getKey().split("_");
-					for(String key:keysArray) {
-						for (String o : tempcols.keySet()) {
-							if (tempcols.get(o) == null || tempcols.get(o).convertToString() == null) continue;
-							if (tempcols.get(o).convertToString().equals(key)) {
-						       primarykeys.put(o, tempcols.get(o).convertToString());
-						       tempcols.remove(o);
-						       break;
-						    }
-						}
-					}
-					String delFields="(";
-					String delValues="(";	
-					StringJoiner fieldJoiner = new StringJoiner(",");
-					StringJoiner valuejoiner = new StringJoiner(",");	
-					for (Map.Entry<String, String> entry : primarykeys.entrySet()) {																	
-						fieldJoiner.add("\""+entry.getKey()+"\"");
-						valuejoiner.add("\'"+entry.getValue()+"\'");												
-					}
-					delFields+=fieldJoiner.toString()+")";
-					delValues+=valuejoiner.toString()+")";
-					primarykeys.clear();
-					if (delValues.length() > 3)
-						deleteQuery+="delete from " + tblNameUnescaped+
-							" where " + delFields + " = " + delValues + ";\n";
-					if(deleteQuery.length() > 50000 ){
-						st.execute(deleteQuery);
-						deleteQuery = "";
-					}
-				}
-				if(deleteQuery.length()>1) {
-					st.execute(deleteQuery);
-				}
-				ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
-			}
-			
-			if(!diffTableData.entriesDiffering().isEmpty()) {
-				ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "updating"), 2);
-				String updateQuery="";
-				Map<String,String> primarykeys = new HashMap();
-				for(ValueDifference<RowData> diffRowData:diffTableData.entriesDiffering().values()) {	
-					if(!diffRowData.leftValue().getHashRow().equals(diffRowData.rightValue().getHashRow())) {
-						Map<String, ICellData> tempCols = diffRowData.leftValue().getData(fieldsList);
-						String[] keysArray = diffRowData.leftValue().getKey().split("_");
-						for(String key:keysArray) {
-							for (String o : tempCols.keySet()) {
-								if (tempCols.get(o) == null || tempCols.get(o).convertToString() == null) continue;
-								if (tempCols.get(o).convertToString().equals(key)) {
-									primarykeys.put(o, tempCols.get(o).convertToString());
-									tempCols.remove(o);
-									break;
-							    }
-							}
-						}
-						if(!tempCols.isEmpty()) {
-							String keyFields="(";
-							String keyValues="(";	
-							StringJoiner fieldJoiner = new StringJoiner(",");
-							StringJoiner valuejoiner = new StringJoiner(",");	
-							for (Map.Entry<String, String> entry : primarykeys.entrySet()) {																	
-								fieldJoiner.add("\""+entry.getKey()+"\"");
-								valuejoiner.add("\'"+entry.getValue()+"\'");												
-							}
-							keyFields+=fieldJoiner.toString()+")";
-							keyValues+=valuejoiner.toString()+")";
-							primarykeys.clear();
-							
-							StringJoiner updfieldJoiner = new StringJoiner(",");
-							StringJoiner updvaluejoiner = new StringJoiner(",");
-							String updFields="(";
-							String updValues="(";
-							
-							for (Map.Entry<String, ICellData> entry : tempCols.entrySet()) {																	
-								updfieldJoiner.add("\""+entry.getKey()+"\"");
-								//updvaluejoiner.add("\'"+entry.getValue().convertToString()+"\'");
-								//updvaluejoiner.add("?");
-							}
-							
-							//ArrayList<String> fieldsList = new ArrayList<String>(diffRowData.leftValue().getData().keySet());
-							
-							updFields+=updfieldJoiner.toString()+")";
-							updValues+=updvaluejoiner.toString()+")";							
-							
-							updateQuery="update "+tblNameEscaped+
-									" set "+updFields + " = " + valuesToString(tempCols.values(), colTypes, fieldsList) + " where " + keyFields+ "=" +keyValues+";\n";							
-							
-							ConsoleWriter.detailsPrintLn(updateQuery);
-							
-							PrepareStatementLogging ps = new PrepareStatementLogging(connect, updateQuery, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
 
-							//if(updateQuery.length() > 50000 ){
-								st.execute(updateQuery);
-								updateQuery = "";
-							//}
-							
-						}
-						
-					}
-				}
-				ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
-				if(updateQuery.length()>1) {
-					ConsoleWriter.println(updateQuery);
-					st.execute(updateQuery);
-				}
-			}			
-			
 		} catch (Exception e) {
 			ConsoleWriter.println(lang.getValue("errors", "restore", "objectRestoreError").withParams(e.getLocalizedMessage()));
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(restoreTableData.getTable().getSchema() + "." + restoreTableData.getTable().getName()), e);
-		} finally {
-			st.close();
 		}
 	}
 	
-	public String valuesToString(Collection<ICellData> datas, HashMap<String, String> colTypes, List<String> fieldsList) throws ExceptionDBGit, IOException {
+	public String valuesToString(Collection<ICellData> datas, Map<String, String> colTypes, List<String> fieldsList) throws ExceptionDBGit, IOException {
 		String values="(";
 		StringJoiner joiner = new StringJoiner(",");
 		int i = 0;
@@ -313,7 +276,9 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 			
 			if (data instanceof TextFileData) {
 				if (((TextFileData) data).getFile() == null || ((TextFileData) data).getFile().getName().contains("null")) {
-					joiner.add("null");
+					//TODO generalize this behaviour based on some parameter
+					//TODO nulls if nullable, '' if not
+					joiner.add("''");
 				} else {				
 					FileInputStream fis = new FileInputStream(((MapFileData) data).getFile());	
 					BufferedReader br = new BufferedReader(new InputStreamReader(fis));
@@ -439,7 +404,6 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 	}
 
 	public void restoreTableConstraintPostgres(MetaTable table) throws Exception {
-		ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "restoreConstr").withParams(table.getName()), 1);
 		IDBAdapter adapter = getAdapter();
 		Connection connect = adapter.getConnection();
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
@@ -583,5 +547,32 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 		// TODO Auto-generated method stub
 
 	}
+
+	private String getFieldsPrefix(MetaTableData restoreTableData) throws ExceptionDBGit {
+		return MessageFormat.format("({0}) values "
+			, restoreTableData.getMetaTableFromFile().getFields().entrySet().stream()
+				.sorted(Comparator.comparing(e -> e.getValue().getOrder()))
+				.map(entry -> DBAdapterPostgres.escapeNameIfNeeded(entry.getValue().getName()))
+				.collect(Collectors.joining(", "))
+		);
+	}
+
+	private Map<String, String> getColumnDataTypes(MetaTable tbl, StatementLogging st) throws SQLException {
+		HashMap<String, String> colTypes = new HashMap<String, String>();
+		NameMeta nm = new NameMeta(tbl);
+		nm.setSchema(nm.getSchema());
+
+		ResultSet rsTypes = st.executeQuery(MessageFormat.format(
+			" select column_name, data_type from information_schema.columns \r\n" +
+			" where lower(table_schema) = lower(''{0}'') AND lower(table_name) = lower(''{1}'')"
+			, nm.getSchema(), nm.getName()
+		));
+
+		while (rsTypes.next()) {
+			colTypes.put(rsTypes.getString("column_name"), rsTypes.getString("data_type"));
+		}
+		return colTypes;
+	}
+
 
 }
