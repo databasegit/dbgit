@@ -7,14 +7,9 @@ import org.apache.commons.cli.Options;
 
 import com.diogonunes.jcdp.color.api.Ansi.FColor;
 
-import ru.fusionsoft.dbgit.core.DBGit;
-import ru.fusionsoft.dbgit.core.DBGitIndex;
-import ru.fusionsoft.dbgit.core.DBGitPath;
-import ru.fusionsoft.dbgit.core.GitMetaDataManager;
-import ru.fusionsoft.dbgit.core.SchemaSynonym;
+import ru.fusionsoft.dbgit.core.*;
 import ru.fusionsoft.dbgit.meta.IMapMetaObject;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
-import ru.fusionsoft.dbgit.meta.MetaTableData;
 import ru.fusionsoft.dbgit.meta.TreeMapMetaObject;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
@@ -58,7 +53,7 @@ public class CmdStatus implements IDBGitCommand {
 		String repoVersion = DBGitIndex.getInctance().getRepoVersion();
 		ConsoleWriter.println(getLang().getValue("general", "status", "repVersion").withParams(repoVersion));
 		ConsoleWriter.println(getLang().getValue("general", "status", "dbgitVersion").withParams(DBGitIndex.VERSION));
-		
+
 		if (!DBGitIndex.getInctance().isCorrectVersion())
 			ConsoleWriter.println(getLang().getValue("general", "status", "differentVersions"));
 		

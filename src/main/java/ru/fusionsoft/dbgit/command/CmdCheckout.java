@@ -5,10 +5,13 @@ import org.apache.commons.cli.CommandLine.Builder;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
+import org.eclipse.jgit.lib.Ref;
+import org.eclipse.jgit.lib.Repository;
+import org.eclipse.jgit.revwalk.RevWalk;
 import ru.fusionsoft.dbgit.core.DBGit;
-import ru.fusionsoft.dbgit.core.DBGitIndex;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
+import java.text.MessageFormat;
 
 public class CmdCheckout implements IDBGitCommand {
 	
@@ -20,6 +23,7 @@ public class CmdCheckout implements IDBGitCommand {
 		opts.addOption("u", false, getLang().getValue("help", "checkout-u").toString());
 		opts.addOption("nodb", false, getLang().getValue("help", "checkout-no-db").toString());
 		opts.addOption("upgrade", false, getLang().getValue("help", "checkout-u").toString());
+		opts.addOption("ls", false, getLang().getValue("help", "checkout-ls").toString());
 	}
 	
 	@Override
@@ -46,11 +50,24 @@ public class CmdCheckout implements IDBGitCommand {
 	public void execute(CommandLine cmdLine) throws Exception {
 		
 		String[] args = cmdLine.getArgs();
-		ConsoleWriter.setDetailedLog(cmdLine.hasOption("v"));		
-		
+		ConsoleWriter.setDetailedLog(cmdLine.hasOption("v"));
+
+		Repository repo =  DBGit.getInstance().getRepository();
+		Ref head = repo.getAllRefs().get("HEAD");
+
+		if (cmdLine.hasOption("ls")){
+			try(RevWalk walk = new RevWalk(repo)){
+				ConsoleWriter.printlnGreen(MessageFormat.format(
+					"{0}: {1} ({2}) - {3}",
+					repo.getBranch(), head.getObjectId().getName(), head.getName(),
+					walk.parseCommit(head.getObjectId()).getShortMessage()
+				));
+			}
+			return;
+		}
+
 		if (!cmdLine.hasOption("u") && !cmdLine.hasOption("nodb"))
 			checkVersion();
-		
 		if (args == null || args.length == 0) {
 			throw new ExceptionDBGit(getLang().getValue("errors", "checkout", "badCommand"));		
 		} else if (args.length == 1) {

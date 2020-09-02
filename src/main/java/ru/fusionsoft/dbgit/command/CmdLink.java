@@ -21,6 +21,7 @@ public class CmdLink implements IDBGitCommand {
 	
 	public CmdLink() {
 		opts.addOption("d", false, getLang().getValue("help", "link-d").toString());
+		opts.addOption("ls", false, getLang().getValue("help", "link-ls").toString());
 	}
 	
 	public String getCommandName() {
@@ -43,16 +44,20 @@ public class CmdLink implements IDBGitCommand {
 	@Override
 	public void execute(CommandLine cmdLine) throws Exception {
 
+		DBConnection conn = DBConnection.getInstance(false);
+		if(cmdLine.hasOption("ls")) {
+			ConsoleWriter.printlnGreen(DBConnection.loadFileDBLink(new Properties()));
+			return;
+		}
+
+
 		String[] args = cmdLine.getArgs();
-		
 		if(args == null || args.length == 0) {
 			throw new ExceptionDBGit(getLang().getValue("errors", "link", "emptyLink"));			
 		}
-		
+
 		String url = args[0];
 		Properties props = CreateProperties(Arrays.copyOfRange(args, 1, args.length));
-		
-		DBConnection conn = DBConnection.getInstance(false);
 
 		if(conn.testingConnection(url, props)) {
 			DBConnection.createFileDBLink(url, props, cmdLine.hasOption("d"));	

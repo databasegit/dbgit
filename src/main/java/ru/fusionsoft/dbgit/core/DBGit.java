@@ -246,18 +246,18 @@ public class DBGit {
 
 				CheckoutCommand checkout = git.checkout().setCreateBranch(isNewBranch).setName(branch);
 
-				if (commit != null)
-					checkout = checkout.setStartPoint(commit);
-				else {
+				if (commit != null){
+					checkout = checkout.setName(commit);
+				} else {
 					if (git.branchList().setListMode(ListMode.REMOTE).call().stream()
-							.filter(ref -> ref.getName().equals("refs/remotes/origin/" + branch))
-							.count() > 0)
-						checkout = checkout.setStartPoint("remotes/origin/" + branch);
+						.filter(ref -> ref.getName().equals("refs/remotes/origin/" + branch))
+						.count() > 0
+					)checkout = checkout.setStartPoint("remotes/origin/" + branch);
 				}
 
 				result = checkout.call();
 
-				ConsoleWriter.printlnGreen(result.getName());
+				ConsoleWriter.printlnGreen(result != null ? result.getName() : commit);
 			} else {
 				MaskFilter maskAdd = new MaskFilter(branch);
 
