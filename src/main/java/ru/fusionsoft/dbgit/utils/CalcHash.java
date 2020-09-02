@@ -56,7 +56,14 @@ public class CalcHash {
 		stream.close();
 		return this;
 	}
-	
+
+	public CalcHash addData(boolean data){
+		return addData(String.valueOf(data));
+	}
+
+	public CalcHash addData(int data){
+		return addData(String.valueOf(data));
+	}
 	
 	public CalcHash addData(String data) {	
 		try {

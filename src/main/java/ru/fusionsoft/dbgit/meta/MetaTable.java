@@ -126,7 +126,13 @@ public class MetaTable extends MetaBase {
 	
 	@Override
 	public String getHash() {
-		CalcHash ch = new CalcHash();
+		CalcHash ch = new CalcHash()/*{
+			@Override
+			public CalcHash addData(String str){
+				ConsoleWriter.detailsPrintlnGreen(str);
+				return super.addData(str);
+			}
+		}*/;
 		ch.addData(this.getName());
 		
 		if (getTable() != null) {
@@ -142,20 +148,17 @@ public class MetaTable extends MetaBase {
 
 		}
 		
-		if (indexes != null) {
-			for (String item : indexes.keySet()) {
-				ch.addData(item);
-				ch.addData(indexes.get(item).getHash());
+		for (String item : indexes.keySet()) {
+			if(constraints.containsKey(item)) continue;
+			ch.addData(item);
+			ch.addData(indexes.get(item).getHash());
 
-			}
 		}
-		
-		if (constraints != null) {
-			for (String item : constraints.keySet()) {
-				ch.addData(item);
-				ch.addData(constraints.get(item).getHash());
 
-			}
+		for (String item : constraints.keySet()) {
+			ch.addData(item);
+			ch.addData(constraints.get(item).getHash());
+
 		}
 
 		return ch.calcHashStr();		
