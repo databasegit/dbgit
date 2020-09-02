@@ -1,6 +1,7 @@
 package ru.fusionsoft.dbgit.postgres;
 
 import java.sql.Connection;
+import java.text.MessageFormat;
 import java.util.Map;
 
 import ru.fusionsoft.dbgit.adapters.DBRestoreAdapter;
@@ -22,47 +23,29 @@ public class DBRestoreViewPostgres extends DBRestoreAdapter {
 		IDBAdapter adapter = getAdapter();
 		Connection connect = adapter.getConnection();
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
-		ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "restoreView").withParams(obj.getName()), 1);
 		try {
 			if (obj instanceof MetaView) {
-				MetaView restoreView = (MetaView)obj;								
+				MetaView restoreView = (MetaView)obj;
 				Map<String, DBView> views = adapter.getViews(restoreView.getSqlObject().getSchema());
 				boolean exist = false;
-				if(!(views.isEmpty() || views == null)) {
+				if(! (views == null || views.isEmpty())) {
 					for(DBView vw:views.values()) {
 						if(restoreView.getSqlObject().getName().equals(vw.getName())){
 							exist = true;
 							if(!restoreView.getSqlObject().getSql().equals(vw.getSql())) {
-								//String ss = "CREATE OR REPLACE VIEW "+restoreView.getSqlObject().getName() +" AS\n"+restoreView.getSqlObject().getSql();
-								st.execute(restoreView.getSqlObject().getName() +" AS\n"+restoreView.getSqlObject().getSql()); 							
+								st.execute(getDdlEscaped(restoreView));
 							}
-							
 							if(!restoreView.getSqlObject().getOwner().equals(vw.getOwner())) {
-								st.execute("ALTER VIEW "+restoreView.getSqlObject().getName() +" OWNER TO "+restoreView.getSqlObject().getOwner()); 							
+								st.execute(getChangeOwnerDdl(restoreView, restoreView.getSqlObject().getOwner()));
 							}
-							//TODO Восстановление привилегий							
 						}
 					}
 				}
 				if(!exist){
-					String query = restoreView.getSqlObject().getSql();
-					String name = restoreView.getSqlObject().getName();
-					boolean nameShouldBeEscaped = name.contains(".") || Character.isUpperCase(name.codePointAt(0));
-					if (nameShouldBeEscaped) {
-						query = query.replace(
-								"create or replace view " + restoreView.getSqlObject().getSchema() + "." + restoreView.getSqlObject().getName(), 
-								"create or replace view " + restoreView.getSqlObject().getSchema() + ".\"" + restoreView.getSqlObject().getName() + "\"");
-					}
-					
-					if (!query.endsWith(";")) query = query + ";";
-					query = query + "\n";
-					
-					query+= "ALTER VIEW "+ restoreView.getSqlObject().getSchema() + "."
-							+ ( nameShouldBeEscaped  ?( "\"" + name + "\"") : name)
-							+ " OWNER TO "+restoreView.getSqlObject().getOwner()+";\n";
+					String query = getDdlEscaped(restoreView) + getChangeOwnerDdl(restoreView, restoreView.getSqlObject().getOwner());
 					st.execute(query);
-					//TODO Восстановление привилегий
 				}
+				//TODO Восстановление привилегий ?
 			}
 			else
 			{
@@ -101,4 +84,28 @@ public class DBRestoreViewPostgres extends DBRestoreAdapter {
 		}
 	}
 
+	private String getDdlEscaped(MetaView view){
+		String name = view.getSqlObject().getName();
+		String schema = view.getSqlObject().getSchema();
+		String query = view.getSqlObject().getSql();
+		String nameEscaped = DBAdapterPostgres.escapeNameIfNeeded(name);
+
+		if (!name.equalsIgnoreCase(nameEscaped)) {
+			query = query.replace(
+				"create or replace view " + schema + "." + name,
+				"create or replace view " + schema + "." + nameEscaped
+			);
+		}
+		if (!query.endsWith(";")) query = query + ";\n";
+		query = query + "\n";
+		return query;
+	}
+
+	private String getChangeOwnerDdl(MetaView view, String owner){
+		return  MessageFormat.format("ALTER VIEW {0}.{1} OWNER TO {2}\n"
+			, view.getSqlObject().getSchema()
+			, DBAdapterPostgres.escapeNameIfNeeded(view.getSqlObject().getName())
+			, owner
+		);
+	}
 }
