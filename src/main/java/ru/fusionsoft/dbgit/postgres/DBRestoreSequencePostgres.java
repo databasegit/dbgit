@@ -60,6 +60,10 @@ public class DBRestoreSequencePostgres extends DBRestoreAdapter {
 							}
 
 							if(!restoreSeq.getSequence().getOptions().get("owner").equals(seq.getOptions().get("owner"))) {
+								if(seq.getOptions().get("blocking_table") != null){
+									String tableName = DBAdapterPostgres.escapeNameIfNeeded(seq.getOptions().get("blocking_table").getData());
+									query+="alter table "+tableName+ " owner to "+restoreSeq.getSequence().getOptions().get("owner")+";\n";
+								}
 								query+="alter sequence "+sequence+" owner to "+restoreSeq.getSequence().getOptions().get("owner")+";\n";
 							}
 							if(query.length()>1) {

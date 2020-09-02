@@ -22,6 +22,13 @@ public class DBSequence extends DBSchemaObject {
 	public StringProperties getOptions() {
 		return options;
 	}
+
+	private StringProperties getOptionsFiltered() {
+		StringProperties props = new StringProperties(getOptions().getData());
+		props.setChildren(getOptions().getChildren());
+		props.deleteChild("blocking_table");
+		return props;
+	}
 	
 	public void setOptions(StringProperties options) {
 		this.options = options;
@@ -29,11 +36,11 @@ public class DBSequence extends DBSchemaObject {
 	
 	@Override
 	public String getHash() {
-		
+
 		CalcHash ch = new CalcHash();
 		ch.addData(getSchema());
 		ch.addData(getName());
-		ch.addData(getOptions().toString());
+		ch.addData(getOptionsFiltered().toString());
 		ch.addData(getValue().toString());
 		
 		return ch.calcHashStr();		

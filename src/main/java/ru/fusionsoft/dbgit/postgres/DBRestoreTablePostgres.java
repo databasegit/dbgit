@@ -65,21 +65,29 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 				if(existingTable.loadFromDB()){
 					StringProperties exTablespace = existingTable.getTable().getOptions().get("tablespace");
 					StringProperties restoreTablespace = restoreTable.getTable().getOptions().get("tablespace");
-					if(
-						restoreTablespace != null && ( exTablespace == null || !exTablespace.getData().equals(restoreTablespace.getData()) )
-					){
+					if(restoreTablespace != null &&
+						( exTablespace == null || !exTablespace.getData().equals(restoreTablespace.getData()) ) ){
 						//TODO For now in postgres context tablespace is always missing!
-						String restoreTablespaceSam = MessageFormat.format(
-								"alter table {0}.{1} set tablespace {2}"
-								,schema
-								,tblName
-								,restoreTable.getTable().getOptions().getChildren().containsKey("tablespace")
-										? restoreTable.getTable().getOptions().get("tablespace").getData()
-										: "pg_default"
+						String alterTableDdl = MessageFormat.format(
+							"alter table {0}.{1} set tablespace {2};\n"
+							,schema
+							,tblName
+							,restoreTable.getTable().getOptions().get("tablespace").getData()
 						);
-						st.execute(restoreTablespaceSam);
+						st.execute(alterTableDdl);
 					}
 
+					StringProperties exOwner= existingTable.getTable().getOptions().get("owner");
+					StringProperties restoreOwner = restoreTable.getTable().getOptions().get("owner");
+					if(restoreOwner != null && ( exOwner == null || !exOwner.getData().equals(restoreOwner.getData()) ) ){
+						String alterTableDdl = MessageFormat.format(
+							"alter table {0}.{1} owner to {2};\n"
+							,schema
+							,tblName
+							,restoreTable.getTable().getOptions().get("owner").getData()
+						);
+						st.execute(alterTableDdl);
+					}
 					ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
 				} else {
 					ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "createTable"), 2);

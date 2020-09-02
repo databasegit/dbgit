@@ -6,14 +6,12 @@ import java.text.MessageFormat;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
-import ru.fusionsoft.dbgit.adapters.AdapterFactory;
 import ru.fusionsoft.dbgit.adapters.DBAdapter;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBAdapterRestoteMetaData;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBBackupAdapter;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBConvertAdapter;
 import ru.fusionsoft.dbgit.core.DBGitConfig;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
-import ru.fusionsoft.dbgit.core.ExceptionDBGitObjectNotFound;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
 import ru.fusionsoft.dbgit.core.db.DbType;
 import ru.fusionsoft.dbgit.core.db.FieldType;
@@ -28,13 +26,11 @@ import ru.fusionsoft.dbgit.dbobjects.DBSequence;
 import ru.fusionsoft.dbgit.dbobjects.DBTable;
 import ru.fusionsoft.dbgit.dbobjects.DBTableData;
 import ru.fusionsoft.dbgit.dbobjects.DBTableField;
-import ru.fusionsoft.dbgit.dbobjects.DBTableRow;
 import ru.fusionsoft.dbgit.dbobjects.DBTableSpace;
 import ru.fusionsoft.dbgit.dbobjects.DBTrigger;
 import ru.fusionsoft.dbgit.dbobjects.DBUser;
 import ru.fusionsoft.dbgit.dbobjects.DBView;
 import ru.fusionsoft.dbgit.meta.IMapMetaObject;
-import ru.fusionsoft.dbgit.meta.IMetaObject;
 import ru.fusionsoft.dbgit.statement.StatementLogging;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 import ru.fusionsoft.dbgit.utils.LoggerUtil;
@@ -125,18 +121,20 @@ public class DBAdapterPostgres extends DBAdapter {
 
 	@Override
 	public Map<String, DBSequence> getSequences(String schema) {
-		Map<String, DBSequence> listSequence = new HashMap<String, DBSequence>();
+		Map<String, DBSequence> listSequence = new HashMap<>();
 		try {
 			Connection connect = getConnection();
 			String query = 
-					"select s.sequence_name, rol.rolname as owner, s.start_value, s.minimum_value, s.maximum_value, s.increment, s.cycle_option " + 
-					"from pg_class cls " + 
-					"  join pg_roles rol on rol.oid = cls.relowner  " + 
-					"  join pg_namespace nsp on nsp.oid = cls.relnamespace " + 
-					"  join information_schema.sequences s on cls.relname = s.sequence_name " + 
-					"where nsp.nspname not in ('information_schema', 'pg_catalog') " + 
-					"  and nsp.nspname not like 'pg_toast%' " + 
-					"  and cls.relkind = 'S' and s.sequence_schema = :schema ";
+				"select s.sequence_name, rol.rolname as owner, s.start_value, s.minimum_value, s.maximum_value, s.increment, s.cycle_option, cl.relname as blocking_table   \n" +
+				"from pg_class cls \n" +
+				"  join pg_roles rol on rol.oid = cls.relowner  \n" +
+				"  join pg_namespace nsp on nsp.oid = cls.relnamespace \n" +
+				"  join information_schema.sequences s on cls.relname = s.sequence_name \n" +
+				"  left join pg_depend d on d.objid=cls.oid and d.classid='pg_class'::regclass and d.refclassid='pg_class'::regclass\n" +
+				"  left join  pg_class cl on cl.oid = d.refobjid and d.deptype='a'  \n" +
+				"where nsp.nspname not in ('information_schema', 'pg_catalog')\n" +
+				"  and nsp.nspname not like 'pg_toast%' \n" +
+				"  and cls.relkind = 'S' and s.sequence_schema = :schema";
 			
 			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);
 			stmt.setString("schema", schema);
@@ -163,15 +161,17 @@ public class DBAdapterPostgres extends DBAdapter {
 	public DBSequence getSequence(String schema, String name) {
 		try {
 			Connection connect = getConnection();
-			String query = 
-					"select s.sequence_name, rol.rolname as owner, s.start_value, s.minimum_value, s.maximum_value, s.increment, s.cycle_option " + 
-					"from pg_class cls " + 
-					"  join pg_roles rol on rol.oid = cls.relowner  " + 
-					"  join pg_namespace nsp on nsp.oid = cls.relnamespace " + 
-					"  join information_schema.sequences s on cls.relname = s.sequence_name " + 
-					"where nsp.nspname not in ('information_schema', 'pg_catalog') " + 
-					"  and nsp.nspname not like 'pg_toast%' " + 
-					"  and cls.relkind = 'S' and s.sequence_schema = :schema and s.sequence_name = :name ";
+			String query =
+				"select s.sequence_name, rol.rolname as owner, s.start_value, s.minimum_value, s.maximum_value, s.increment, s.cycle_option, cl.relname as blocking_table   \n" +
+				"from pg_class cls \n" +
+				"  join pg_roles rol on rol.oid = cls.relowner  \n" +
+				"  join pg_namespace nsp on nsp.oid = cls.relnamespace \n" +
+				"  join information_schema.sequences s on cls.relname = s.sequence_name \n" +
+				"  left join pg_depend d on d.objid=cls.oid and d.classid='pg_class'::regclass and d.refclassid='pg_class'::regclass\n" +
+				"  left join  pg_class cl on cl.oid = d.refobjid and d.deptype='a'  \n" +
+				"where nsp.nspname not in ('information_schema', 'pg_catalog') \n" +
+				"  and nsp.nspname not like 'pg_toast%' \n" +
+				"  and cls.relkind = 'S' and s.sequence_schema = :schema and s.sequence_name = :name ";
 			
 			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);
 			stmt.setString("schema", schema);
@@ -335,6 +335,7 @@ public class DBAdapterPostgres extends DBAdapter {
 				field.setTypeSQL(typeSQL);
 				field.setIsNullable( !typeSQL.toLowerCase().contains("not null"));
 				field.setTypeUniversal(FieldType.fromString(rs.getString("tp")));
+				//TODO more verbose type override
 				if(field.getTypeUniversal() == FieldType.TEXT) field.setTypeUniversal(FieldType.STRING);
 				field.setFixed(false);
 				field.setLength(rs.getInt("character_maximum_length"));
