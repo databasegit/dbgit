@@ -1,5 +1,6 @@
 package ru.fusionsoft.dbgit.dbobjects;
 
+import org.apache.http.annotation.Obsolete;
 import ru.fusionsoft.dbgit.core.db.FieldType;
 import ru.fusionsoft.dbgit.utils.CalcHash;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
@@ -32,7 +33,13 @@ public class DBTableField implements IDBObject, Comparable<DBTableField> {
 		CalcHash ch = new CalcHash();
 		ch.addData(this.getName());
 		ch.addData(this.getTypeSQL());
+		ch.addData(this.getFixed());
+		ch.addData(this.getLength());
+		ch.addData(this.getPrecision());
+		ch.addData(this.getScale());
 		if( this.getDefaultValue()!=null ) ch.addData(this.getDefaultValue());
+		if( this.getIsNullable()!=null ) ch.addData(this.getIsNullable());
+
 //		if( this.getOrder()!=null ) ch.addData(String.valueOf(this.getOrder()));
 		ch.addData(isPrimaryKey.toString());
 
@@ -136,6 +143,14 @@ public class DBTableField implements IDBObject, Comparable<DBTableField> {
 		int res = - isPrimaryKey.compareTo(o.getIsPrimaryKey());
 		if (res != 0) return res;
 		return name.compareTo(o.getName());
+	}
+
+	@Override public boolean equals(Object obj){
+		boolean equals = obj == this;
+		if(!equals && obj instanceof DBTableField){
+			return ((DBTableField) obj).getHash().equals(this.getHash());
+		}
+		return equals;
 	}
 	
 
