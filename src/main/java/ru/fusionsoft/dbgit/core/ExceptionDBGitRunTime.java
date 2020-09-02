@@ -1,10 +1,12 @@
 package ru.fusionsoft.dbgit.core;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 import ru.fusionsoft.dbgit.utils.LoggerUtil;
 
+import java.sql.SQLException;
 public class ExceptionDBGitRunTime extends RuntimeException {
 
 	private static final long serialVersionUID = 958722213419205629L;
@@ -15,15 +17,26 @@ public class ExceptionDBGitRunTime extends RuntimeException {
 	}
 	
 	public ExceptionDBGitRunTime(String message, Throwable cause) {
+		try{
+			DBConnection conn = DBConnection.getInstance();
+			conn.getConnect().rollback();
+			//super(message, cause);
+		} catch (Exception ex) {
+			if(ex instanceof ExceptionDBGit || ex instanceof SQLException) {
+				ConsoleWriter.detailsPrintlnRed("Failed to rollback connection: " + ex.getLocalizedMessage());
+			} else {
+				ConsoleWriter.printlnRed(ex.getLocalizedMessage());
+			}
+		}
 		ConsoleWriter.printlnRed(message);
+		ConsoleWriter.detailsPrintLn(ExceptionUtils.getStackTrace(cause));
 		logger.error(message, cause);
 		System.exit(1);
-		//super(message, cause);
+
 	}
 	
 	public ExceptionDBGitRunTime(Throwable cause) {
-		//super(cause);
-		logger.error(cause.getLocalizedMessage(), cause);
+		this(cause.getLocalizedMessage(), cause);
 	}
 
 }
