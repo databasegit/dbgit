@@ -157,6 +157,11 @@ public interface IMetaObject {
 		return null;
 	}
 
+	default boolean dependsOn(IMetaObject obj){
+		if (this.getUnderlyingDbObject() == null || this.getUnderlyingDbObject().getDependencies() == null) return false;
+		return this.getUnderlyingDbObject().getDependencies().contains(obj.getName());
+	}
+
 	static IMetaObject create(String name) throws ExceptionDBGit {
 		NameMeta nm = new NameMeta(name);
 		if (nm.getType() == null) throw new ExceptionDBGit(DBGitLang.getInstance().getValue("errors", "meta", "parseError").withParams(name));
