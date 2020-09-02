@@ -24,7 +24,7 @@ public class DBRestorePackageOracle extends DBRestoreAdapter {
 		Connection connect = adapter.getConnection();
 		st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
 		ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "restorePkg").withParams(obj.getName()), 1);
-		try {						
+		try {
 			if (obj instanceof MetaPackage) {
 				MetaPackage restorePackage = (MetaPackage) obj;								
 				Map<String, DBPackage> pkgs = adapter.getPackages(restorePackage.getSqlObject().getSchema());

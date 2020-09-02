@@ -68,25 +68,23 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 				String tableSamRe = schema + "\\.\\\"?" + Pattern.quote(tableName) + "\\\"?";
 
 				if(!isExists(schema, tableName)) {
+					//so don't actually backup, as I see...
 					File file = new File(DBGitPath.getFullPath() + metaTable.getFileName());
 					if (file.exists())
 						obj = metaTable.loadFromFile();
 					return obj;
 				}
 				
-				if (isSaveToSchema()) {
-					createSchema(stLog, schema);
-				}
+				if (isSaveToSchema()) { createSchema(stLog, schema); }
 
 				ConsoleWriter.detailsPrint(lang.getValue("general", "backup", "tryingToCopy").withParams(tableName, getFullDbName(schema, tableName)), 1);
 
-				
 				StringBuilder tableDdlSb = new StringBuilder(MessageFormat.format(
 					"create table {0} as (select * from {1}.{2} where 1={3}) {4};\n alter table {0} owner to {5};\n"
 					, backupTableSam
 					, DBAdapterPostgres.escapeNameIfNeeded(schema)
 					, DBAdapterPostgres.escapeNameIfNeeded(tableName)
-					, isToSaveData() ? "1" : "0"
+					, isToSaveData() ? "1" : "0" //TableData
 					, metaTable.getTable().getOptions().getChildren().containsKey("tablespace")
 							? " tablespace " + metaTable.getTable().getOptions().get("tablespace").getData()
 							: ""

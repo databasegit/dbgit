@@ -115,7 +115,8 @@ general:
     diffSize1: MetaTableData diff size!!! {0} {1}
     diffSize2: MetaTableData diff size row {0}!!!
     diffDataRow: MetaTableData diff data row {0} {1}  {2}  {3}
-    loadRow: Loading row
+    loadRow:  loading row {0}
+    loadedRow: loaded {0} rows
   backup:
     tryingToCopy: Trying to copy {0} to {1}...
     creatingSchema: Creating schema {0}
@@ -192,6 +193,7 @@ errors:
     errorCellData: Error create CellData for type {0}
     differentCount: Different count columns title and line
     fieldNotFound: Field {0} not found
+    filesNotFound: Cound not find .data files in directories '{0}', put NULL values instead
   adapter:
     schemes: Error load schemes!
     tables: Error load tables!
@@ -252,6 +254,7 @@ help:
     Example:
       dbgit link jdbc:oracle:thin:@<SERVER_NAME>:<PORT>:<SID> user=<USER> password=<PASSWORD>
   link-d: Creates default dblink file
+  link-ls: Just see current db url
   backup: |
     Examples:
       dbgit backup <SCHEME>/<DB_OBJECT_NAME> -d -s
@@ -269,6 +272,7 @@ help:
   checkout-b: create and checkout a new branch
   checkout-r: Updates database
   checkout-u: Upgrades branch to actual db and dbgit version state
+  checkout-ls: Just see current branch, head and revision number
   checkout-no-db: Doesn't do restore after checkout
   clone: |
     Example:

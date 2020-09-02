@@ -36,6 +36,7 @@ import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
 import ru.fusionsoft.dbgit.core.GitMetaDataManager;
 import ru.fusionsoft.dbgit.data_table.ICellData;
+import ru.fusionsoft.dbgit.data_table.MapFileData;
 import ru.fusionsoft.dbgit.data_table.RowData;
 import ru.fusionsoft.dbgit.data_table.TreeMapRowData;
 import ru.fusionsoft.dbgit.dbobjects.DBTable;
@@ -142,6 +143,7 @@ public class MetaTableData extends MetaBase {
 		if (metaTable != null)
 			return metaTable;
 
+		//TODO ... which is not from file, but from db
 		return getMetaTable();
 	}
 
@@ -177,13 +179,13 @@ public class MetaTableData extends MetaBase {
 
 		CsvReader csvReader = new CsvReader();
 		csvReader.setFieldSeparator(';');
+		int i = 1;
 
 		try (CsvParser csvParser = csvReader.parse(file, StandardCharsets.UTF_8)) {
 			CsvRow row;
 			boolean flag = false;
 			mapRows = new TreeMapRowData();
 			CsvRow titleColumns = null;
-			int i = 1;
 
 
 			while ((row = csvParser.nextRow()) != null) {
@@ -193,14 +195,18 @@ public class MetaTableData extends MetaBase {
 				} else {
 					RowData rd = new RowData(row, metaTable, titleColumns);
 					mapRows.put(rd);
-					ConsoleWriter.detailsPrintLn(DBGitLang.getInstance().getValue("general", "meta", "loadRow") + ": "+ i);
-//					System.out.println("row: " + i);
 					i++;
 				}
 				flag = true;
 			}
+		} catch (Throwable ex){
+			ConsoleWriter.detailsPrintlnRed(DBGitLang.getInstance().getValue("general", "meta", "loadRow").withParams(String.valueOf(i) ));
+			warnFilesNotFound();
+			throw ex;
 		}
-        System.out.println("TableData loaded!");
+		ConsoleWriter.detailsPrintlnGreen(DBGitLang.getInstance().getValue("general", "meta", "loadedRow").withParams(String.valueOf(i) ));
+		warnFilesNotFound();
+
 		return this;
 	}
 
@@ -431,4 +437,16 @@ public class MetaTableData extends MetaBase {
     public List<String> getFields() {
         return fields;
     }
+
+    private void warnFilesNotFound(){
+		Set<String> filesNotFound = MapFileData.getFilesNotFound();
+		if(filesNotFound != null && filesNotFound.size() > 0){
+			ConsoleWriter.detailsPrintColor(
+				DBGitLang.getInstance().getValue("errors", "dataTable", "filesNotFound")
+					.withParams(String.join(";", filesNotFound)), 0, FColor.YELLOW
+			);
+			filesNotFound.clear();
+		}
+
+	}
 }

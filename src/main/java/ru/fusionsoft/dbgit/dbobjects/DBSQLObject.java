@@ -19,7 +19,18 @@ public class DBSQLObject extends DBSchemaObject {
 	private StringProperties options = new StringProperties();
 
 	public String getHash() {
-		CalcHash ch = new CalcHash();
+		CalcHash ch = new CalcHash();/*{
+			@Override public CalcHash addData(String data){
+				ConsoleWriter.detailsPrintlnGreen("CH| " + data);
+				return super.addData(data);
+			}
+			@Override public String calcHashStr(){
+				String result = super.calcHashStr();
+				ConsoleWriter.detailsPrintlnRed("RES| " + result + "\n");
+				return result;
+			}
+
+		};*/
 		ch.addData(getSchema());
 		ch.addData(getName());
 		ch.addData(getSql().trim().replaceAll("\\s+", ""));

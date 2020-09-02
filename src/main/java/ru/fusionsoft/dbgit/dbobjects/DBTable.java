@@ -27,7 +27,12 @@ public class DBTable extends DBSchemaObject {
 	}
 
 	public String getHash() {
-		CalcHash ch = new CalcHash();
+		CalcHash ch = new CalcHash()/*{
+			public CalcHash addData(String str){
+				ConsoleWriter.detailsPrintlnRed(str);
+				return super.addData(str);
+			}
+		}*/;
 		ch.addData(this.getName());
 		ch.addData(this.getOptions().toString().replaceAll("\\s+", ""));
 

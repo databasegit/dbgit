@@ -5,6 +5,8 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.sql.ResultSet;
+import java.util.HashSet;
+import java.util.Set;
 
 import ru.fusionsoft.dbgit.core.DBGit;
 import ru.fusionsoft.dbgit.core.DBGitLang;
@@ -18,6 +20,7 @@ import ru.fusionsoft.dbgit.utils.Convertor;
 public class MapFileData implements ICellData {
 	private String srcFile = null;
 	private File tmpFile = null;
+	private static Set<String> filesNotFound = new HashSet<>();
 	//private String hash = null;
 		
 	public InputStream getBlobData(ResultSet rs, String fieldname) throws Exception {
@@ -52,9 +55,15 @@ public class MapFileData implements ICellData {
 	
 	@Override
 	public void deserialize(String data) throws Exception {
-		File fp = new File(DBGitPath.getFullPath()+"/"+data);
-		if (fp.exists()) {
-			this.srcFile = data;
+		if(data != null){
+			File fp = new File(DBGitPath.getFullPath()+"/"+data);
+			if (fp.exists()) {
+				this.srcFile = data;
+			} else {
+				int lastIndex = data.lastIndexOf('/');
+				lastIndex = lastIndex == 0 ? data.lastIndexOf('\\') : lastIndex;
+				filesNotFound.add(data.substring(0, lastIndex));
+			}
 		}
 	}
 	
@@ -75,7 +84,7 @@ public class MapFileData implements ICellData {
 			if (srcFile != null) path = DBGitPath.getFullPath()+"/"+srcFile;
 			
 			if (path == null) return "";
-			
+
 			CalcHash ch = new CalcHash();
 			ch.addDataFile(path);
 			hash = ch.calcHashStr();
@@ -110,6 +119,10 @@ public class MapFileData implements ICellData {
 	
 	public File getFile() throws ExceptionDBGit {
 		return new File(DBGitPath.getFullPath() + srcFile);
+	}
+
+	public static Set<String> getFilesNotFound(){
+		return filesNotFound;
 	}
 		
 }

@@ -85,13 +85,13 @@ public class RowData {
 		if (record.size() != titleColumns.size()) {
 			throw new ExceptionDBGit(DBGitLang.getInstance().getValue("errors", "dataTable", "differentCount"));
 		}		
-		
+
 		for (int i = 0; i < record.size(); i++) {	
 			String columnName = titleColumns.get(i);
 			if (metaTable.getFieldsMap().get(columnName) == null) {
 				throw new ExceptionDBGitRunTime(DBGitLang.getInstance().getValue("errors", "dataTable", "fieldNotFound").withParams(columnName)); 
 			}
-			
+
 			ICellData cd = FactoryCellData.createCellData(metaTable.getFieldsMap().get(columnName).getTypeUniversal());
 			cd.deserialize(record.get(i));
 

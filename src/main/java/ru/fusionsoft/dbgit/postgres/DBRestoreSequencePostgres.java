@@ -69,6 +69,7 @@ public class DBRestoreSequencePostgres extends DBRestoreAdapter {
 							if(query.length()>1) {
 								st.execute(query);
 							}
+							ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
 							//TODO Восстановление привилегий
 						}
 					}
@@ -108,7 +109,7 @@ public class DBRestoreSequencePostgres extends DBRestoreAdapter {
 			ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()), e);
 		} finally {
-			ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+
 			st.close();
 		}
 		return true;

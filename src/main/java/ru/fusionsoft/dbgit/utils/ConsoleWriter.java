@@ -19,6 +19,11 @@ public class ConsoleWriter {
 			println(msg.toString());
 	}
 
+	public static void detailsPrintColor(Object msg, int level, FColor color) {
+		if (showDetailedLog)
+			printColor(msg.toString(), color, level);
+	}
+
 	public static void detailsPrint(Object msg, int level) {
 		if (showDetailedLog)
 			print(msg.toString(), level);

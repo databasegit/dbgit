@@ -122,7 +122,7 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 				String tblSam = DBAdapterPostgres.escapeNameIfNeeded(schema) + "." + DBAdapterPostgres.escapeNameIfNeeded(tblName);
 
 				if(!diffTableFields.entriesOnlyOnLeft().isEmpty()){
-					ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "addColumns"), 2);
+					ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "addColumns"), 0);
 
 					Comparator<DBTableField> comparator = Comparator.comparing(DBTableField::getOrder);
 
@@ -397,9 +397,9 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 		IDBAdapter adapter = getAdapter();
 		Connection connect = adapter.getConnection();
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
-		ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "restoreConstr").withParams(obj.getName()), 1);
 		try {
 			if (obj instanceof MetaTable) {
+				ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "restoreTableConstraints").withParams(obj.getName()), 1);
 				MetaTable restoreTable = (MetaTable)obj;
 				MetaTable existingTable = new MetaTable(restoreTable.getTable());
 				existingTable.loadFromDB();
@@ -444,7 +444,6 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 			ConsoleWriter.println(lang.getValue("errors", "restore", "objectRestoreError").withParams(e.getLocalizedMessage()));
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()), e);
 		} finally {
-			ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
 			st.close();
 		}
 	}
