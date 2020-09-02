@@ -36,7 +36,7 @@ public class TreeMapMetaObject extends TreeMap<String, IMetaObject> implements I
 
 	}
 
-	public TreeMapMetaObject(List<IMetaObject> from){
+	public TreeMapMetaObject(Collection<IMetaObject> from){
 		this();
 		this.putAll(from.stream().collect(Collectors.toMap(IMetaObject::getName, key->key)));
 	}
