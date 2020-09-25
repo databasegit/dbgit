@@ -9,9 +9,8 @@ build:
     stage: build
     script:
         - time mvn package appassembler:assemble -D skipTests
+        - mv target/dbgit dbgit
     artifacts:
-        cwd: "target"
-        archive: dbgit.zip
         paths:
             - dbgit
 
