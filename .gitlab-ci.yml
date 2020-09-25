@@ -11,6 +11,7 @@ build:
         - time mvn package appassembler:assemble -D skipTests
     artifacts:
         cwd: "target"
+        archive: dbgit.zip
         paths:
             - dbgit
 
