@@ -1,0 +1,18 @@
+image: maven:3.6.3-jdk-8
+
+stages:
+#    - test
+    - build
+#    - deploy
+
+build:
+    stage: build
+    script:
+        - time mvn package appassembler:assemble -D skipTests
+    artifacts:
+        paths:
+            - target/dbgit
+
+cache:
+  paths:
+    - .m2/repository
