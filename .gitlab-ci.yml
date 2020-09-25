@@ -10,8 +10,9 @@ build:
     script:
         - time mvn package appassembler:assemble -D skipTests
     artifacts:
+        cwd: "target"
         paths:
-            - target/dbgit
+            - dbgit
 
 cache:
   paths:
