@@ -6,7 +6,7 @@ import java.io.FileReader;
 import java.util.HashMap;
 import java.util.Map;
 
-import ru.fusionsoft.dbgit.utils.ConsoleWriter;
+import ru.fusionsoft.dbgit.adapters.DBBackupAdapter;
 import ru.fusionsoft.dbgit.utils.MaskFilter;
 
 /**
@@ -27,19 +27,35 @@ public class DBGitIgnore {
 		// load file DBIgnore
 		loadFileDBIgnore();		
 	}
-	
+
+	public DBGitIgnore(Map<String, MaskFilter> filters, Map<String, MaskFilter> exclusions) {
+		this.filters = filters;
+		this.exclusions = exclusions;
+	}
+
 	protected void loadFileDBIgnore() throws ExceptionDBGit {
+		loadFileDBIgnore(false);
+	}
+	protected void loadFileDBIgnore(boolean withBackupSchemas) throws ExceptionDBGit {
 		try{				
 			File file = new File(DBGitPath.getRootPath(DBGitPath.DB_GIT_PATH+"/"+DBGitPath.DB_IGNORE_FILE));
 			
 			if (!file.exists()) return ;
+			//boolean isBackupToScheme = DBGitConfig.getInstance().getBoolean("core", "BACKUP_TO_SCHEME", false);
 			
 			BufferedReader br = new BufferedReader(new FileReader(file));			
-			for(String line; (line = br.readLine()) != null; ) {				
+			for(String line; (line = br.readLine()) != null; ) {
+
 				
 				if (line.startsWith("!")) {
 					MaskFilter mask = new MaskFilter(line.substring(1));
 					exclusions.put(line.substring(1), mask);
+					if(withBackupSchemas /*&&isBackupToScheme*/){
+						String schemaPart = line.substring(1,line.indexOf("/")+1);
+						String backupSchemeObjExclusion =  line.replace(schemaPart, DBBackupAdapter.PREFIX + schemaPart).substring(1);
+						MaskFilter backupSchemeObjMask = new MaskFilter(backupSchemeObjExclusion);
+						exclusions.put(backupSchemeObjExclusion, backupSchemeObjMask);
+					}
 				}
 				else {
 					MaskFilter mask = new MaskFilter(line);

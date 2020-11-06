@@ -157,12 +157,13 @@ public class GitMetaDataManager {
 	 * Load meta data from DB
 	 * @return
 	 */
-	public IMapMetaObject loadDBMetaData(boolean toIgnore) throws ExceptionDBGit {
+	public IMapMetaObject loadDBMetaData(boolean includeBackupSchemas) throws ExceptionDBGit {
 		IDBAdapter adapter = AdapterFactory.createAdapter();
 
-		DBGitIgnore ignore = (toIgnore)
-			? DBGitIgnore.getInstance()
-			: new DBGitIgnore() { @Override protected void loadFileDBIgnore() { }};
+		DBGitIgnore ignore = (includeBackupSchemas)
+			? new DBGitIgnore() { @Override protected void loadFileDBIgnore() throws ExceptionDBGit { loadFileDBIgnore(true); }}
+			: DBGitIgnore.getInstance();
+
 		dbObjs.clear();
 		Map<String, MetaTable> tbls = new HashMap<String, MetaTable>();
 
@@ -262,7 +263,7 @@ public class GitMetaDataManager {
 	}
 
 	public IMapMetaObject loadDBMetaData() throws ExceptionDBGit {		
-		return loadDBMetaData(true);
+		return loadDBMetaData(false);
 	}
 
 
@@ -273,7 +274,7 @@ public class GitMetaDataManager {
 	public IMapMetaObject loadFileMetaDataForce() throws ExceptionDBGit {
 		return loadFileMetaData(true);
 	}
-	
+
 	/**
 	 * Load meta data from git files
 	 * @return
@@ -294,19 +295,13 @@ public class GitMetaDataManager {
 	    		if (force) {
 	    			IMetaObject obj = loadMetaFile(filename);
 
-		    		if (obj != null) 
+		    		if (obj != null) {
 		    			objs.put(obj);
+					}
 
-//		    		ConsoleWriter.detailsPrintlnGreen(DBGitLang.getInstance().getValue("errors", "meta", "ok"));
 	    		} else {
 	    			try {		
-	    				Timestamp timestampBefore = new Timestamp(System.currentTimeMillis());
 		    			IMetaObject obj = loadMetaFile(filename);
-		    			
-		    			Timestamp timestampAfter = new Timestamp(System.currentTimeMillis());		    			
-		    			Long diff = timestampAfter.getTime() - timestampBefore.getTime();
-
-//		    			ConsoleWriter.detailsPrintlnGreen(DBGitLang.getInstance().getValue("errors", "meta", "okTime").withParams(diff.toString()));
 		    			
 			    		if (obj != null) {
 			    			objs.put(obj);
@@ -318,9 +313,7 @@ public class GitMetaDataManager {
 		    			ConsoleWriter.detailsPrintLn(e.getMessage());
 		    			
 		    			IMetaObject obj = MetaObjectFactory.createMetaObject(filename);
-		    			
-			    		if (obj != null) 
-			    			objs.put(obj);
+						objs.put(obj);
 		    		}	
 	    		}	    			    		
 	    	}
@@ -334,12 +327,16 @@ public class GitMetaDataManager {
 			throw new ExceptionDBGit(e);
 		}
 	}
-	
+
 	public IMetaObject loadMetaFile(String metaName) throws ExceptionDBGit {
+		return loadMetaFile(metaName, true);
+	}
+
+	public IMetaObject loadMetaFile(String metaName, boolean forceLoad) throws ExceptionDBGit {
 		AdapterFactory.createAdapter();
-		if (fileObjs.containsKey(metaName))
-			return fileObjs.get(metaName);		
-		try {
+		if (!forceLoad && fileObjs.containsKey(metaName)) return fileObjs.get(metaName);
+		try
+		{
 			IMetaObject obj = MetaObjectFactory.createMetaObject(metaName);
 			obj = obj.loadFromFile();
 			if (obj != null) {			
