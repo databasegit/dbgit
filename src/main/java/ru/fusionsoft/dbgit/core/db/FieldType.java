@@ -9,6 +9,7 @@ public enum FieldType {
     NATIVE("native"),
     NUMBER("number"),
     STRING("string"),
+    STRING_NATIVE("string native"),
     TEXT("text");
 
     private String typeName;

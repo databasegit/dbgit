@@ -277,6 +277,7 @@ public abstract class DBAdapter implements IDBAdapter {
 		FactoryCellData.regMappingTypes(FieldType.NATIVE, StringData.class);
 		FactoryCellData.regMappingTypes(FieldType.NUMBER, LongData.class);
 		FactoryCellData.regMappingTypes(FieldType.STRING, StringData.class);
+		FactoryCellData.regMappingTypes(FieldType.STRING_NATIVE, StringData.class);
 		FactoryCellData.regMappingTypes(FieldType.TEXT, TextFileData.class);
 	}
 }

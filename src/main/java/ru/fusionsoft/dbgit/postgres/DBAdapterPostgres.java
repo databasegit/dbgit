@@ -201,27 +201,27 @@ public class DBAdapterPostgres extends DBAdapter {
 		try {
 			String query = 
 					"select \n" +
-					"	tablename as table_name,\n" +
-					"	tableowner as owner,\n" +
+					"	tablename AS table_name,\n" +
+					"	tableowner AS owner,\n" +
 					"	tablespace,hasindexes,hasrules,hastriggers, \n" +
-					"	obj_description(to_regclass('\"' || schemaname || '\".\"' || tablename || '\"')::oid) table_comment, ( \n" +
-					"		select array_agg(distinct n2.nspname || '/' || c2.relname || '.tbl') as dependencies\n" +
+					"	obj_description(to_regclass('\"' || schemaname || '\".\"' || tablename || '\"')::oid) AS table_comment, " +
+					"	( 					" +
+					"		SELECT array_agg( distinct n2.nspname || '/' || c2.relname || '.tbl' ) AS dependencies\n" +
 					"	 	FROM pg_catalog.pg_constraint c  \n" +
 					"		JOIN ONLY pg_catalog.pg_class c1     ON c1.oid = c.conrelid\n" +
 					"		JOIN ONLY pg_catalog.pg_class c2     ON c2.oid = c.confrelid\n" +
 					"		JOIN ONLY pg_catalog.pg_namespace n2 ON n2.oid = c2.relnamespace\n" +
 					"		WHERE c.conrelid = to_regclass('\"' || schemaname || '\".\"' || tablename || '\"')::oid\n" +
 					"		and c1.relkind = 'r' AND c.contype = 'f'\n" +
-					"	), \n" +
-					"(SELECT oid FROM pg_class WHERE relname = tablename and relnamespace = (select oid from pg_namespace where nspname = :schema)) oid, \n" +
-					"   pg_get_partkeydef((SELECT oid FROM pg_class WHERE relname = tablename and relnamespace = (select oid from pg_namespace where nspname = :schema))) partkeydef, \n" +
-							"   parent.relname parent, \n" +
-							"   pg_get_expr(child.relpartbound, child.oid) \n" +
-							"from pg_tables \n" +
-							"left outer join pg_inherits on (SELECT oid FROM pg_class WHERE relname = tablename and relnamespace = (select oid from pg_namespace where nspname = :schema)) = pg_inherits.inhrelid \n" +
-							"left outer JOIN pg_class parent ON pg_inherits.inhparent = parent.oid \n" +
-							"left outer JOIN pg_class child ON pg_inherits.inhrelid = child.oid \n" +
-
+					"	) AS dependencies, \n" +
+					"   pg_get_partkeydef((SELECT oid FROM pg_class WHERE relname = tablename and relnamespace = (select oid from pg_namespace where nspname = '"+schema+"'))) " +
+					"	AS partkeydef, \n" +
+					"   parent.relname AS parent, \n" +
+					"   pg_get_expr(child.relpartbound, child.oid) AS pg_get_expr \n" +
+					"from pg_tables \n" +
+					"left outer join pg_inherits on (SELECT oid FROM pg_class WHERE relname = tablename and relnamespace = (select oid from pg_namespace where nspname = :schema)) = pg_inherits.inhrelid \n" +
+					"left outer JOIN pg_class parent ON pg_inherits.inhparent = parent.oid \n" +
+					"left outer JOIN pg_class child ON pg_inherits.inhrelid = child.oid \n" +
 					"where upper(schemaname) = upper(:schema)";
 			Connection connect = getConnection();
 			
@@ -267,11 +267,11 @@ public class DBAdapterPostgres extends DBAdapter {
 				"		JOIN ONLY pg_catalog.pg_namespace n2 ON n2.oid = c2.relnamespace\n" +
 				"		WHERE c.conrelid = to_regclass('\"' || schemaname || '\".\"' || tablename || '\"')::oid\n" +
 				"		and c1.relkind = 'r' AND c.contype = 'f'\n" +
-						"	), \n" +
-						"(SELECT oid FROM pg_class WHERE relname = tablename and relnamespace = (select oid from pg_namespace where nspname = '"+schema+"')) oid, \n" +
-						"   pg_get_partkeydef((SELECT oid FROM pg_class WHERE relname = tablename and relnamespace = (select oid from pg_namespace where nspname = '"+schema+"'))) partkeydef, \n" +
-				"   parent.relname parent, \n" +
-				"   pg_get_expr(child.relpartbound, child.oid) \n" +
+				"	) AS dependencies, \n" +
+				"   pg_get_partkeydef((SELECT oid FROM pg_class WHERE relname = tablename and relnamespace = (select oid from pg_namespace where nspname = '"+schema+"'))) " +
+				"	AS partkeydef, \n" +
+				"   parent.relname AS parent, \n" +
+				"   pg_get_expr(child.relpartbound, child.oid) AS pg_get_expr\n" +
 				"from pg_tables \n" +
 				"left outer join pg_inherits on (SELECT oid FROM pg_class WHERE relname = tablename and relnamespace = (select oid from pg_namespace where nspname = '"+schema+"')) = pg_inherits.inhrelid \n" +
 				"left outer JOIN pg_class parent ON pg_inherits.inhparent = parent.oid \n" +
@@ -359,7 +359,7 @@ public class DBAdapterPostgres extends DBAdapter {
 				field.setIsNullable( !typeSQL.toLowerCase().contains("not null"));
 				field.setTypeUniversal(FieldType.fromString(rs.getString("tp")));
 				//TODO more verbose type override
-				if(field.getTypeUniversal() == FieldType.TEXT) field.setTypeUniversal(FieldType.STRING);
+				if(field.getTypeUniversal() == FieldType.TEXT) field.setTypeUniversal(FieldType.STRING_NATIVE);
 				field.setFixed(false);
 				field.setLength(rs.getInt("character_maximum_length"));
 				field.setPrecision(rs.getInt("numeric_precision"));
