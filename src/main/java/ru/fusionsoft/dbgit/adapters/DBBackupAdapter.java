@@ -71,7 +71,7 @@ public abstract class DBBackupAdapter implements IDBBackupAdapter {
 		dbGitIndex = DBGitIndex.getInctance();
 
 		StatementLogging stLog = new StatementLogging(adapter.getConnection(), adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
-		IMapMetaObject dbObjs = GitMetaDataManager.getInstance().loadDBMetaData();
+		IMapMetaObject dbObjs = GitMetaDataManager.getInstance().loadDBMetaData(true);
 
 		IMapMetaObject dbToBackup = new TreeMapMetaObject(dbObjs.values().stream()
 			.filter( x-> updateObjs.containsKey(x.getName()) )

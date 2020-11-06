@@ -44,6 +44,19 @@ public class DBGit {
 		}
 	}
 
+	private DBGit(String url) throws ExceptionDBGit {
+		try {
+			FileRepositoryBuilder builder = new FileRepositoryBuilder();
+			repository = builder
+					.setGitDir(new File(url))
+					.build();
+
+			git = new Git(repository);
+		} catch (Exception e) {
+			throw new ExceptionDBGit(e);
+		}
+	}
+
 	public static DBGit getInstance() throws ExceptionDBGit {
 		if (dbGit == null) {
 			FileRepositoryBuilder builder = new FileRepositoryBuilder();
@@ -54,6 +67,14 @@ public class DBGit {
 
 			dbGit = new DBGit();
 		}
+		return dbGit;
+	}
+	public static DBGit initUrlInstance(String gitDirUrl) throws ExceptionDBGit {
+		if (dbGit != null) {
+			throw new ExceptionDBGit("Already initialized");
+		}
+
+		dbGit = new DBGit(gitDirUrl);
 		return dbGit;
 	}
 
