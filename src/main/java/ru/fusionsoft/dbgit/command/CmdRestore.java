@@ -6,8 +6,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Map;
+import java.util.stream.Collectors;
 
-import com.google.common.collect.Lists;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 
@@ -67,7 +68,6 @@ public class CmdRestore implements IDBGitCommand {
 		IMapMetaObject updateObjs = new TreeMapMetaObject();
 		IMapMetaObject deleteObjs = new TreeMapMetaObject();
 
-		ConsoleWriter.println("");
 		if (toMakeBackup) { ConsoleWriter.printlnGreen(getLang().getValue("general", "restore", "willMakeBackup").toString()); }
 		if (toMakeChanges) { ConsoleWriter.printlnGreen(getLang().getValue("general", "restore", "toMakeChanges").toString()); }
 		else { ConsoleWriter.printlnGreen(getLang().getValue("general", "restore", "notMakeChanges").withParams(autoScriptFile.getAbsolutePath())); }
@@ -112,6 +112,32 @@ public class CmdRestore implements IDBGitCommand {
 					ConsoleWriter.println("    " + obj.getName());
 				}
 			}
+
+			// to fix pk constraint re-creation error
+			// collect other file objects that depend on update objects
+			// to re-create their fk constraints too, so we:
+
+			// 0. enrich update list with fk-dependant objects from database
+			// 1. drop all of constraints
+			// 2. re-create all constraints in default sorted order
+
+			// # steps 1,2 are in GitMetaDataManager::restoreDatabase
+			Map<String, IMetaObject> affectedTables = dbObjs.values().stream().filter(excluded ->
+				excluded instanceof MetaTable &&
+				!updateObjs.containsKey(excluded.getName()) &&
+				updateObjs.values().stream().anyMatch( included -> excluded.dependsOn(included) )
+			).collect(Collectors.toMap( key -> key.getName(), val -> val));
+
+
+			if(affectedTables.isEmpty()){
+				ConsoleWriter.printlnRed("No affected tables...");
+			} else {
+				ConsoleWriter.printlnRed("Affected tables:");
+				affectedTables.forEach((k,v)->ConsoleWriter.printlnRed("\t"+k));
+				updateObjs.putAll( affectedTables );
+			}
+
+
 
 			if(toMakeBackup && toMakeChanges) {
 				IMapMetaObject backupObjs = new TreeMapMetaObject();
