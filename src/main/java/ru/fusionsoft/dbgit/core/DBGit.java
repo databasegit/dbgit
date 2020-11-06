@@ -269,7 +269,7 @@ public class DBGit {
 
 				result = checkout.call();
 
-				ConsoleWriter.printlnGreen(result != null ? result.getName() : commit);
+//				ConsoleWriter.printlnGreen(result != null ? result.getName() : commit);
 			} else {
 				MaskFilter maskAdd = new MaskFilter(branch);
 
