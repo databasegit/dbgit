@@ -167,7 +167,7 @@ public class DBGitPath {
 			writer.write("LANG = ENG\n");
 			writer.write("SCRIPT_ROTATE = 31\n");
 			writer.write("TO_MAKE_BACKUP = false\n");
-			writer.write("BACKUP_TO_SCHEME = false\n");
+			writer.write("BACKUP_TO_SCHEME = true\n");
 			writer.write("BACKUP_TABLEDATA = true\n");
 			writer.write("PORTION_SIZE = 50000\n");
 			writer.write("TRY_COUNT = 1000\n");
