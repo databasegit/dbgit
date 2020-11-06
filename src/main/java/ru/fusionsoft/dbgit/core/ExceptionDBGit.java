@@ -24,12 +24,27 @@ public class ExceptionDBGit extends Exception {
 	}
 	
 	public ExceptionDBGit(String msg) {
-		this(msg, new Exception(msg));
+		super(msg);
+		rollbackConnection();
+		ConsoleWriter.printlnRed(msg);
+		ConsoleWriter.detailsPrintLn(ExceptionUtils.getStackTrace(this));
+		logger.error(msg);
+		System.exit(1);
 	}
 	
 	public ExceptionDBGit(String message, Throwable cause) {
-		super(message, cause);
+//		super(message, cause);
+		rollbackConnection();
+		ConsoleWriter.printlnRed(message);
+		if(!cause.getMessage().equals(message)) {
+			ConsoleWriter.printlnRed(cause.getLocalizedMessage());
+		}
+		ConsoleWriter.detailsPrintLn(ExceptionUtils.getStackTrace(cause));
 		logger.error(message, cause);
+		System.exit(1);
+	}
+
+	private void rollbackConnection() {
 		try{
 			DBConnection conn = DBConnection.getInstance();
 			conn.getConnect().rollback();
@@ -40,12 +55,8 @@ public class ExceptionDBGit extends Exception {
 				ConsoleWriter.printlnRed(ex.getLocalizedMessage());
 			}
 		}
-		ConsoleWriter.printlnRed(message);
-		ConsoleWriter.detailsPrintLn(ExceptionUtils.getStackTrace(cause));
-		logger.error(message, cause);
-		System.exit(1);
 	}
-	
+
 	public ExceptionDBGit(Throwable cause) {
 		super(cause);
 		logger.error(cause.getLocalizedMessage(), cause);

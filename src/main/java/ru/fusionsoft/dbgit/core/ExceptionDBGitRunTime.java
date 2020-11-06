@@ -28,8 +28,15 @@ public class ExceptionDBGitRunTime extends RuntimeException {
 				ConsoleWriter.printlnRed(ex.getLocalizedMessage());
 			}
 		}
-		ConsoleWriter.printlnRed(message);
-		ConsoleWriter.detailsPrintLn(ExceptionUtils.getStackTrace(cause));
+		ConsoleWriter.printlnRed(message );
+
+		if(cause instanceof SQLException){
+			ConsoleWriter.printlnRed(ExceptionUtils.getStackTrace(cause));
+
+		} else if ( !message.equals(cause.getMessage()) ){
+			ConsoleWriter.printlnRed(cause.getMessage() );
+			ConsoleWriter.detailsPrintLn(ExceptionUtils.getStackTrace(cause));
+		}
 		logger.error(message, cause);
 		System.exit(1);
 
