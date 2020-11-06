@@ -5,18 +5,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import org.eclipse.jgit.api.CheckoutCommand;
-import org.eclipse.jgit.api.FetchCommand;
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.InitCommand;
+import org.eclipse.jgit.api.*;
 import org.eclipse.jgit.api.ListBranchCommand.ListMode;
-import org.eclipse.jgit.api.MergeCommand;
-import org.eclipse.jgit.api.MergeResult;
-import org.eclipse.jgit.api.PullCommand;
-import org.eclipse.jgit.api.RemoteAddCommand;
-import org.eclipse.jgit.api.RemoteRemoveCommand;
 import org.eclipse.jgit.api.ResetCommand.ResetType;
-import org.eclipse.jgit.api.Status;
 import org.eclipse.jgit.dircache.DirCache;
 import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.Ref;
@@ -370,10 +361,17 @@ public class DBGit {
 		}
 	}
 
-	public static void gitClone(String link, String remoteName) throws ExceptionDBGit {
+	public static void gitClone(String link, String remoteName, File directory) throws ExceptionDBGit {
 		try {
-			Git.cloneRepository().setURI(link).setCredentialsProvider(getCredentialsProvider(link))
-					.setRemote(remoteName.equals("") ? Constants.DEFAULT_REMOTE_NAME : remoteName).call();
+			String actualRemoteName = remoteName.equals("") ? Constants.DEFAULT_REMOTE_NAME : remoteName;
+			CredentialsProvider cp = getCredentialsProvider(link);
+			CloneCommand cc = Git.cloneRepository()
+				.setURI(link)
+				.setRemote(actualRemoteName)
+				.setCredentialsProvider(cp)
+				.setDirectory(directory);
+
+			cc.call();
 
 			ConsoleWriter.println(DBGitLang.getInstance().getValue("general", "clone", "cloned"));
 
@@ -499,6 +497,10 @@ public class DBGit {
 			
 			ConsoleWriter.detailsPrintLn("login: " + login);
 			ConsoleWriter.detailsPrintLn("pass: " + pass);*/
+			if(uri.getUser() == null) {
+				ConsoleWriter.detailsPrintlnRed(DBGitLang.getInstance().getValue("errors", "gitLoginNotFound"));
+				return null;
+			}
 			return new UsernamePasswordCredentialsProvider(uri.getUser(), uri.getPass());
 		} catch (Exception e) {
 			throw new ExceptionDBGit(e);

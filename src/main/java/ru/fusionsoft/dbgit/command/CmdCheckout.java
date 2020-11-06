@@ -57,10 +57,16 @@ public class CmdCheckout implements IDBGitCommand {
 
 		if (cmdLine.hasOption("ls")){
 			try(RevWalk walk = new RevWalk(repo)){
+				String branch = repo.getBranch();
+				String headNumber = head.getObjectId().getName();
+				String headName = head.getName();
+				String message = walk.parseCommit(head.getObjectId()).getShortMessage();
+
 				ConsoleWriter.printlnGreen(MessageFormat.format(
-					"{0}: {1} ({2}) - {3}",
-					repo.getBranch(), head.getObjectId().getName(), head.getName(),
-					walk.parseCommit(head.getObjectId()).getShortMessage()
+					"{0} ({1}) {2}",
+					!branch.equals(headNumber) ? branch + ": " + headName : headNumber,
+					headName,
+					message
 				));
 			}
 			return;
@@ -95,6 +101,11 @@ public class CmdCheckout implements IDBGitCommand {
 			}
 			if (cmdLine.hasOption("v")) {
 				builder.addOption(new Option("v", false, ""));			
+			}
+			if (cmdLine.hasOption("s")) {
+				Option scriptOption = new Option("s", true, "");
+				scriptOption.getValuesList().add(cmdLine.getOptionValue("s"));
+				builder.addOption(scriptOption);
 			}
 			
 			restoreCommand.execute(builder.build());

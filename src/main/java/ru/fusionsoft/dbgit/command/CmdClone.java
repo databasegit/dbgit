@@ -6,10 +6,16 @@ import org.apache.commons.cli.Options;
 import ru.fusionsoft.dbgit.core.DBGit;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 
+import java.io.File;
+
 public class CmdClone implements IDBGitCommand {
 
 	private Options opts = new Options();
-	
+
+	public CmdClone() {
+		opts.addOption("directory", false, "subdirectory to clone into"/*getLang().getValue("help", "commit-a").toString()*/);
+	}
+
 	@Override
 	public String getCommandName() {
 		return "clone";
@@ -36,6 +42,7 @@ public class CmdClone implements IDBGitCommand {
 		
 		String link = "";
 		String remote = "";
+		File directory = cmdLine.hasOption("directory") ? new File(cmdLine.getOptionValue("directory")) : null;
 		if (args.length > 2) {
 			throw new ExceptionDBGit(getLang().getValue("errors", "paramsNumberIncorrect"));
 		} else if (args.length == 1) {
@@ -45,7 +52,7 @@ public class CmdClone implements IDBGitCommand {
 			remote = args[1];
 		}
 		
-		DBGit.gitClone(link, remote);
+		DBGit.gitClone(link, remote, directory);
 
 	}
 
