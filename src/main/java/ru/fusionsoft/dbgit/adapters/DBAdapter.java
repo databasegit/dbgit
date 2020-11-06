@@ -15,7 +15,6 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
 import java.text.MessageFormat;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -45,10 +44,10 @@ public abstract class DBAdapter implements IDBAdapter {
 			int pauseTimeSeconds = DBGitConfig.getInstance().getInteger("core", "TRY_DELAY", DBGitConfig.getInstance().getIntegerGlobal("core", "TRY_DELAY", 1000));
 			int currentTry = 0;
 
-			if (connect.isValid(0))			
+			if (connect.isValid(0)){
+				connect.setAutoCommit(false);
 				return connect;
-			
-			else {
+			} else {
 				ConsoleWriter.println("Connection lost, trying to reconnect...");
 				while (currentTry <= maxTriesCount) {
 					TimeUnit.SECONDS.sleep(pauseTimeSeconds);
@@ -60,6 +59,7 @@ public abstract class DBAdapter implements IDBAdapter {
 						conn = DBConnection.getInstance(true);
 						ConsoleWriter.println("Successful reconnect");
 						connect = conn.getConnect();
+						connect.setAutoCommit(false);
 						return connect;
 					}
 				}
@@ -92,11 +92,19 @@ public abstract class DBAdapter implements IDBAdapter {
 		DBGitLang lang = DBGitLang.getInstance();
 
 		try {
-			List<MetaTable> tables = new ArrayList<>();
+			SortedListMetaObject tables = new SortedListMetaObject(updateObjs.values().stream().filter(x->x instanceof MetaTable ).collect(Collectors.toList()));
+			SortedListMetaObject tablesExists = new SortedListMetaObject(updateObjs.values().stream().filter(x->x instanceof MetaTable && isExists(x)).collect(Collectors.toList()));
+
 			Set<String> createdSchemas = getSchemes().values().stream().map(DBOptionsObject::getName).collect(Collectors.toSet());
 			Set<String> createdRoles = getRoles().values().stream().map(DBRole::getName).collect(Collectors.toSet());
 
-			for (IMetaObject obj : updateObjs.getSortedList().sortFromFree()) {
+			// remove table indexes and constraints, which is step(-2) of restoreMetaObject(MetaTable)
+			ConsoleWriter.println("Dropping constraints for all updating tables...");
+			for (IMetaObject table : tablesExists.sortFromDependencies()) {
+				getFactoryRestore().getAdapterRestore(DBGitMetaType.DBGitTable, this).restoreMetaObject(table, -2);
+			}
+
+			for (IMetaObject obj : updateObjs.getSortedList().sortFromReferenced()) {
 				Timestamp timestampBefore = new Timestamp(System.currentTimeMillis());
 				int step = 0;
 				boolean res = false;
@@ -113,7 +121,6 @@ public abstract class DBAdapter implements IDBAdapter {
 					res = restoreAdapter.restoreMetaObject(obj, step++);
 
 					if (step > 100) { throw new Exception(lang.getValue("errors", "restore", "restoreErrorDidNotReturnTrue").toString()); }
-					if (obj instanceof MetaTable){ tables.add((MetaTable) obj); }
 				}
 
     			Long timeDiff = new Timestamp(System.currentTimeMillis()).getTime() - timestampBefore.getTime();
@@ -121,7 +128,8 @@ public abstract class DBAdapter implements IDBAdapter {
 			}
 
 			// restore table constraints, which is step(-1) of restoreMetaObject(MetaTable)
-			for (MetaTable table : tables) {
+			ConsoleWriter.println("Restoring constraints for all updated tables...");
+			for (IMetaObject table : tables.sortFromReferenced()) {
 				getFactoryRestore().getAdapterRestore(DBGitMetaType.DBGitTable, this).restoreMetaObject(table, -1);
 			}
 			connect.commit();
@@ -144,7 +152,7 @@ public abstract class DBAdapter implements IDBAdapter {
 		DBGitIndex index = DBGitIndex.getInctance();
 
 		try {
-			List<IMetaObject> deleteObjsSorted = deleteObjs.getSortedList().sortFromDependant();
+			List<IMetaObject> deleteObjsSorted = deleteObjs.getSortedList().sortFromDependencies();
 			for (IMetaObject obj : deleteObjsSorted) {
 				getFactoryRestore().getAdapterRestore(obj.getType(), this).removeMetaObject(obj);
 				if(isDeleteFromIndex) index.removeItem(obj);
@@ -218,6 +226,17 @@ public abstract class DBAdapter implements IDBAdapter {
 			}
 		}
 
+	}
+	protected boolean isExists(IMetaObject obj){
+		try{
+			IDBBackupAdapter backupAdapter = getBackupAdapterFactory().getBackupAdapter(AdapterFactory.createAdapter());
+			return backupAdapter.isExists(
+				obj.getUnderlyingDbObject().getSchema(),
+				obj.getUnderlyingDbObject().getName()
+			);
+		} catch (Exception ex) {
+			return false;
+		}
 	}
 
 	private boolean checkContainsNativeFields(IMetaObject obj){

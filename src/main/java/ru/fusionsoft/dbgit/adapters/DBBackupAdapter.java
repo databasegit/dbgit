@@ -7,7 +7,6 @@ import ru.fusionsoft.dbgit.meta.*;
 import ru.fusionsoft.dbgit.statement.StatementLogging;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
-import java.sql.Timestamp;
 import java.text.MessageFormat;
 import java.util.*;
 import java.util.function.Function;
@@ -128,7 +127,7 @@ public abstract class DBBackupAdapter implements IDBBackupAdapter {
 
 			dropList.addAll(dbDroppingBackups.values());
 			dropList.addAll(dbDroppingBackupsDeps);
-			List<IMetaObject> dropListSorted =  new SortedListMetaObject(dropList).sortFromDependant();
+			List<IMetaObject> dropListSorted =  new SortedListMetaObject(dropList).sortFromDependencies();
 
 			ConsoleWriter.printlnGreen(MessageFormat.format("Rewriting {0} backups with {1} dependencies", dbDroppingBackups.size(), dbDroppingBackupsDeps.size()));
 			dropListSorted.forEach( x -> ConsoleWriter.detailsPrintlnGreen( x.getName()));
@@ -143,7 +142,7 @@ public abstract class DBBackupAdapter implements IDBBackupAdapter {
 			}
 
 			//create backups
-			for(IMetaObject imo : dbToBackup.getSortedList().sortFromFree()){
+			for(IMetaObject imo : dbToBackup.getSortedList().sortFromReferenced()){
 				backupDBObject(imo);
 			}
 

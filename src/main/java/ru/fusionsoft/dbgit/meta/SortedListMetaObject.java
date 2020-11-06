@@ -64,6 +64,9 @@ public class SortedListMetaObject {
 //        long diff = timestampAfter.getTime() - timestampBefore.getTime();
 //        ConsoleWriter.detailsPrintlnGreen(DBGitLang.getInstance().getValue("general", "time").withParams(Long.toString(diff)));
     }
+    public Collection<IMetaObject> getCollection(){
+        return collection;
+    }
 
     public List<IMetaObject> createSortedList(boolean isSortedFromFree) throws ExceptionDBGit {
         List<IMetaObject> list = new ArrayList<>();
@@ -85,11 +88,11 @@ public class SortedListMetaObject {
                 if (tp.equals(DBGitMetaType.DBGitTable) || objectsOfType.get(0) instanceof MetaSql) {
                     Set<String> namesAllOfType = objectsOfType.stream().map(IMetaObject::getName).collect(Collectors.toSet());
                     List<IMetaObject> objectsL0 = objectsOfType.stream()
-                            .filter(x -> {
-                                Set<String> deps = x.getUnderlyingDbObject().getDependencies();
-                                return deps.size() == 0 || ( deps.size() == 1 && deps.contains(x.getName()) );
-                            })
-                            .collect(Collectors.toList());
+                        .filter(x -> {
+                            Set<String> deps = x.getUnderlyingDbObject().getDependencies();
+                            return deps.size() == 0 || ( deps.size() == 1 && deps.contains(x.getName()) );
+                        })
+                        .collect(Collectors.toList());
 
                     objectsOfType.removeAll(objectsL0);
                     while (!objectsOfType.isEmpty()) {
@@ -98,7 +101,7 @@ public class SortedListMetaObject {
                                 .stream()
                                 .filter(x -> {
                                     Set<String> actualDeps = new HashSet<>(x.getUnderlyingDbObject().getDependencies());
-                                    actualDeps.retainAll(namesAllOfType);
+                                    actualDeps.retainAll(namesAllOfType); //only deps of same type
                                     actualDeps.remove(x.getName());
                                     return namesL0.containsAll(actualDeps);
                                 })
@@ -109,7 +112,8 @@ public class SortedListMetaObject {
                             throw new ExceptionDBGit("infinite loop");
                         }
                         objectsOfType.removeAll(objectsL1);
-                        if(isSortedFromFree) { objectsL0.addAll(objectsL1); } else { objectsL0.addAll(0, objectsL1); }
+                        if(isSortedFromFree)    { objectsL0.addAll(objectsL1); }
+                        else                    { objectsL0.addAll(0, objectsL1); }
                     }
                     list.addAll(objectsL0);
                 } else {
@@ -125,14 +129,14 @@ public class SortedListMetaObject {
         return list;
     }
 
-    public List<IMetaObject> sortFromDependant() throws ExceptionDBGit {
+    public List<IMetaObject> sortFromDependencies() throws ExceptionDBGit {
         if (listFromDependant == null) {
             listFromDependant = createSortedList(false);
         }
         return listFromDependant;
 
     }
-    public List<IMetaObject> sortFromFree() throws ExceptionDBGit {
+    public List<IMetaObject> sortFromReferenced() throws ExceptionDBGit {
         if (listFromFree == null) {
             listFromFree = createSortedList(true);
         }
