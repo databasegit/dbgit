@@ -1,18 +1,25 @@
 image: maven:3.6.3-jdk-8
 
 stages:
-#    - test
+    - test
     - build
-#    - deploy
 
 build:
     stage: build
     script:
         - time mvn package appassembler:assemble -D skipTests
         - mv target/dbgit dbgit
+    only:
+        refs:
+            - master
     artifacts:
+        expire_in: never
         paths:
             - dbgit
+test:
+    stage: test
+    script:
+        - time mvn test
 
 cache:
   paths:
