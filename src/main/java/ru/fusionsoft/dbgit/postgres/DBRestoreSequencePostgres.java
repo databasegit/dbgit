@@ -61,7 +61,7 @@ public class DBRestoreSequencePostgres extends DBRestoreAdapter {
 
 							if(!restoreSeq.getSequence().getOptions().get("owner").equals(seq.getOptions().get("owner"))) {
 								if(seq.getOptions().get("blocking_table") != null){
-									String tableName = DBAdapterPostgres.escapeNameIfNeeded(seq.getOptions().get("blocking_table").getData());
+									String tableName = adapter.escapeNameIfNeeded(seq.getOptions().get("blocking_table").getData());
 									query+="alter table "+tableName+ " owner to "+restoreSeq.getSequence().getOptions().get("owner")+";\n";
 								}
 								query+="alter sequence "+sequence+" owner to "+restoreSeq.getSequence().getOptions().get("owner")+";\n";
@@ -128,7 +128,7 @@ public class DBRestoreSequencePostgres extends DBRestoreAdapter {
 			if (seq == null) return;
 
 			String schema = getPhisicalSchema(seq.getSchema());
-			st.execute("DROP SEQUENCE IF EXISTS "+DBAdapterPostgres.escapeNameIfNeeded(schema)+"."+DBAdapterPostgres.escapeNameIfNeeded(seq.getName()));
+			st.execute("DROP SEQUENCE IF EXISTS "+adapter.escapeNameIfNeeded(schema)+"."+adapter.escapeNameIfNeeded(seq.getName()));
 
 		} catch (Exception e) {
 			ConsoleWriter.println(lang.getValue("errors", "restore", "objectRestoreError").withParams(e.getLocalizedMessage()));

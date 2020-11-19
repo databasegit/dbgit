@@ -11,15 +11,11 @@ import ru.fusionsoft.dbgit.adapters.AdapterFactory;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
 import ru.fusionsoft.dbgit.core.DBGitIndex;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
-import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
-import ru.fusionsoft.dbgit.core.ItemIndex;
 import ru.fusionsoft.dbgit.dbobjects.DBConstraint;
 import ru.fusionsoft.dbgit.dbobjects.DBIndex;
-import ru.fusionsoft.dbgit.dbobjects.DBSchema;
 import ru.fusionsoft.dbgit.dbobjects.DBTable;
 import ru.fusionsoft.dbgit.dbobjects.DBTableField;
 import ru.fusionsoft.dbgit.utils.CalcHash;
-import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 import ru.fusionsoft.dbgit.yaml.YamlOrder;
 
 /**
@@ -129,7 +125,7 @@ public class MetaTable extends MetaBase {
 		CalcHash ch = new CalcHash()/*{
 			@Override
 			public CalcHash addData(String str){
-				ConsoleWriter.detailsPrintlnGreen(str);
+				ConsoleWriter.printlnRed(str);
 				return super.addData(str);
 			}
 		}*/;
@@ -161,6 +157,24 @@ public class MetaTable extends MetaBase {
 
 		}
 
+//		if(this.getTable() != null && this.getTable().getName().contains("clients")){
+//			ConsoleWriter.printlnRed(MessageFormat.format("-\t-\t-\t-\t-\t-\ntable = {0} ; {1}, \nfields({2}) = \n{3}\nindexes({4}) = \n{5}\nconstraints({6}) = \n{7}"
+//				,this.getTable() != null ? this.getTable().getName() + " ; " + truncateHash(this.getTable().getHash()) : "noname"
+//				,this.getTable() != null ? this.getTable().getOptions().getChildren().entrySet().stream().map(x->"\n\t\t" + x.getKey() + " : " + x.getValue().getData()).collect(Collectors.joining("")) : "null"
+//				,fields.keySet().size()
+//				,fields.values().stream()
+//					.map(x->"\t\t" + x.getName() + ";" + x.getDefaultValue())
+//					.collect(Collectors.joining("\n"))
+//				,indexes.keySet().size()
+//				,indexes.values().stream()
+//					.map(x->"\t\t" + x.getName() + ";" + truncateHash(x.getHash()))
+//					.collect(Collectors.joining("\n"))
+//				,constraints.keySet().size()
+//				,constraints.values().stream()
+//					.map(x->"\t\t" + x.getName() + ";" + truncateHash(x.getHash()))
+//					.collect(Collectors.joining("\n"))
+//			));
+//		}
 		return ch.calcHashStr();		
 	}
 
@@ -230,4 +244,13 @@ public class MetaTable extends MetaBase {
 		
 		return idColumns;
 	}
+//	private String truncateHash(String hash){
+//		return hash.substring(
+//				0,
+//				2
+//		) + hash.substring(
+//				hash.length() - 3,
+//				hash.length() - 1
+//		);
+//	}
 }

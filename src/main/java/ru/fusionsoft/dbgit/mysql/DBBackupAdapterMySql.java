@@ -205,7 +205,7 @@ public class DBBackupAdapterMySql extends DBBackupAdapter {
             stLog.execute(MessageFormat.format("DROP {0} {1}.{2}",
                 rs.getString("tp"),
                 nm.getSchema(),
-                DBAdapterMySql.escapeNameIfNeeded(nm.getName()))
+                adapter.escapeNameIfNeeded(nm.getName()))
             );
         }
 

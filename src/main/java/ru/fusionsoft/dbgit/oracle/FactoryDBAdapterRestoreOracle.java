@@ -1,12 +1,9 @@
 package ru.fusionsoft.dbgit.oracle;
 
-import java.sql.Connection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import ru.fusionsoft.dbgit.adapters.DBRestoreMetaNotSupport;
-import ru.fusionsoft.dbgit.adapters.DBRestoreMetaSql;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
 import ru.fusionsoft.dbgit.adapters.IDBAdapterRestoreMetaData;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBAdapterRestoteMetaData;

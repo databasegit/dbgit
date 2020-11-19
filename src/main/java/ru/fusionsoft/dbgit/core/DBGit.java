@@ -69,8 +69,8 @@ public class DBGit {
 		}
 		return dbGit;
 	}
-	public static DBGit initUrlInstance(String gitDirUrl) throws ExceptionDBGit {
-		if (dbGit != null) {
+	public static DBGit initUrlInstance(String gitDirUrl, boolean force) throws ExceptionDBGit {
+		if (dbGit != null && !force) {
 			throw new ExceptionDBGit("Already initialized");
 		}
 

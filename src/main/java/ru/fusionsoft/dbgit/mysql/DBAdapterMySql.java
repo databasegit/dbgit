@@ -61,7 +61,7 @@ public class DBAdapterMySql extends DBAdapter {
 	private FactoryDBBackupAdapterMySql backupFactory = new FactoryDBBackupAdapterMySql();
 	public static Set<String> reservedWords;
 
-	public static Object escapeNameIfNeeded(String name) {
+	public String escapeNameIfNeeded(String name)  {
 		boolean shouldBeEscaped = false;
 		//TODO Permitted characters in unquoted identifiers:
 		//ASCII: [0-9,a-z,A-Z$_] (basic Latin letters, digits 0-9, dollar, underscore)

@@ -51,7 +51,7 @@ public class DBRestoreProcedurePostgres extends DBRestoreAdapter {
 
 								st.execute(MessageFormat.format("ALTER PROCEDURE {0}.{1}({2}) OWNER TO {3}"
 									, nm.getSchema()
-									, DBAdapterPostgres.escapeNameIfNeeded(restoreProcName)
+									, adapter.escapeNameIfNeeded(restoreProcName)
 									, args
 									, restoreProc.getSqlObject().getOwner()));
 							}
@@ -94,7 +94,7 @@ public class DBRestoreProcedurePostgres extends DBRestoreAdapter {
 			if (prc == null) return;
 
 			String schema = getPhisicalSchema(prc.getSchema());
-			st.execute("DROP PROCEDURE "+schema+"."+DBAdapterPostgres.escapeNameIfNeeded(prc.getName()));
+			st.execute("DROP PROCEDURE "+schema+"."+adapter.escapeNameIfNeeded(prc.getName()));
 		} catch (Exception e) {
 			ConsoleWriter.println(lang.getValue("errors", "restore", "objectRestoreError").withParams(e.getLocalizedMessage()));
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRemoveError").withParams(obj.getName()), e);

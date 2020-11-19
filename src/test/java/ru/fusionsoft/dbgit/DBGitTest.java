@@ -17,6 +17,9 @@ import org.junit.jupiter.api.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 import org.postgresql.jdbc.PgConnection;
+import ru.fusionsoft.dbgit.adapters.AdapterFactory;
+import ru.fusionsoft.dbgit.adapters.DBAdapter;
+import ru.fusionsoft.dbgit.adapters.IDBAdapter;
 import ru.fusionsoft.dbgit.command.*;
 import ru.fusionsoft.dbgit.core.*;
 import ru.fusionsoft.dbgit.meta.IMapMetaObject;
@@ -29,6 +32,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.Statement;
 import java.text.MessageFormat;
 import java.util.*;
 
@@ -56,10 +60,22 @@ public class DBGitTest {
 
     static String repoUrl = "https://github.com/rocket-3/dbgit-test.git";
     static String repoBranch = "master";
-    static String pgTestDbUrl = "jdbc:postgresql://localhost/";
-    static String pgTestDbUser = "postgres";
-    static String pgTestDbPass = "pass";
-    static String pgTestDbCatalog = "testDatabasegit";
+    static String pgTestDbUrl = "jdbc:postgresql://0.0.0.0/";
+    static String pgTestDbUser = /*"postgres";*/"testuser";
+    static String pgTestDbPass = /*"pass";*/"s%G351as";
+    static String pgTestDbCatalog = "testdatabasegit";
+    static boolean eraseExistingCatalog = false;
+    static{ if(!eraseExistingCatalog) addCatalogToUrl(); }
+
+    private static void addCatalogToUrl() {
+        pgTestDbUrl = MessageFormat.format(
+            "{0}{1}{2}",
+            pgTestDbUrl,
+            !pgTestDbUrl.endsWith("/") ? "/" : "",
+            pgTestDbCatalog
+        );
+    }
+
     static List<String> commitNumbers = new ArrayList<>();
     //Now commit numbers are loaded automaticvally
     /*Arrays.asList(
@@ -79,28 +95,13 @@ public class DBGitTest {
 
     @BeforeAll
     public static void setUp() throws Exception {
-        DBGit.initUrlInstance(resourcesRepoGitDirectory.toString());
+        DBGit.initUrlInstance(resourcesRepoGitDirectory.toString(), false);
 
         if(commitNumbers.isEmpty()){
             loadCommitNumbersFromRepo();
         }
 
-        configureTestDb();
-    }
-
-    private static void loadCommitNumbersFromRepo() throws GitAPIException, IOException {
-        DfsRepositoryDescription repoDesc = new DfsRepositoryDescription();
-        InMemoryRepository repo = new InMemoryRepository(repoDesc);
-        Git git = new Git(repo);
-        git.fetch()
-                .setRemote(repoUrl)
-                .setRefSpecs(new RefSpec("+refs/heads/"+repoBranch+":refs/heads/"+repoBranch))
-                .call();
-
-        String treeName = "refs/heads/"+repoBranch; // tag or branch
-        for (RevCommit commit :  git.log().add(repo.resolve(treeName)).call()) {
-            commitNumbers.add(commit.getName());
-        }
+        configureTestDb(false);
     }
 
     @BeforeEach
@@ -325,7 +326,7 @@ public class DBGitTest {
         cmd.execute(builder.build());
     }
 
-    private static void configureTestDb() throws Exception {
+    private static void configureTestDb(boolean eraseDatabase) throws Exception {
         String propDbUrl = System.getProperty("pgTestDbUrl");
         String propDbUser = System.getProperty("pgTestDbUser");
         String propDbPass = System.getProperty("pgTestDbPass");
@@ -342,26 +343,54 @@ public class DBGitTest {
             pgTestDbProps.put("password", pgTestDbPass);
         }
         try (Connection conn = DriverManager.getConnection(pgTestDbUrl, pgTestDbProps)) {
-            if (!conn.getCatalog().isEmpty()) {
-                throw new Exception("Catalog must not be specified to create test database.");
+
+            if(eraseDatabase){
+                if (!conn.getCatalog().isEmpty()) {
+                    throw new Exception("Catalog must not be specified to create test database.");
+                }
+
+                IDBAdapter adapter = AdapterFactory.createAdapter();
+
+                try(Statement stmt = conn.createStatement()){
+                    stmt.execute(MessageFormat.format(
+                        "DROP DATABASE {0}; ",
+                        AdapterFactory.createAdapter().escapeNameIfNeeded(pgTestDbCatalog)
+                    ));
+                } catch (Exception ex){ ConsoleWriter.println("### failed to drop database: " + ex.getLocalizedMessage()); }
+
+                try(Statement stmt = conn.createStatement()){
+                    stmt.execute(MessageFormat.format(
+                        "CREATE DATABASE {0} ENCODING = 'UTF8'",
+                        adapter.escapeNameIfNeeded(pgTestDbCatalog)
+                    ));
+                } catch (Exception ex){
+                    ConsoleWriter.println("### failed to create database: " + ex.getLocalizedMessage());
+                    throw  ex;
+                }
+
+                addCatalogToUrl();
             }
 
-            conn.createStatement().execute(MessageFormat.format(
-                "DROP DATABASE IF EXISTS {0}; " +
-                "CREATE DATABASE {0} ENCODING = 'UTF8'",
-                DBAdapterPostgres.escapeNameIfNeeded(pgTestDbCatalog)
-            ));
-            pgTestDbUrl = MessageFormat.format(
-                "{0}{1}{2}",
-                pgTestDbUrl,
-                !pgTestDbUrl.endsWith("/") ? "/" : "",
-                pgTestDbCatalog
-            );
         }
 
         DBConnection.createFileDBLink(pgTestDbUrl, pgTestDbProps, false);
         pgTestDbConnection = DBConnection.getInstance(true);
 
+    }
+
+    private static void loadCommitNumbersFromRepo() throws GitAPIException, IOException {
+        DfsRepositoryDescription repoDesc = new DfsRepositoryDescription();
+        InMemoryRepository repo = new InMemoryRepository(repoDesc);
+        Git git = new Git(repo);
+        git.fetch()
+                .setRemote(repoUrl)
+                .setRefSpecs(new RefSpec("+refs/heads/"+repoBranch+":refs/heads/"+repoBranch))
+                .call();
+
+        String treeName = "refs/heads/"+repoBranch; // tag or branch
+        for (RevCommit commit :  git.log().add(repo.resolve(treeName)).call()) {
+            commitNumbers.add(commit.getName());
+        }
     }
 
     private static void restoreDbLinkIfNeeded() throws Exception {

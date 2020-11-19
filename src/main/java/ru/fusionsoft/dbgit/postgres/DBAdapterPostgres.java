@@ -812,7 +812,7 @@ public class DBAdapterPostgres extends DBAdapter {
 			if (DBGitConfig.getInstance().getBoolean("core", "LIMIT_FETCH", DBGitConfig.getInstance().getBooleanGlobal("core", "LIMIT_FETCH", true))) {
 				Statement st = getConnection().createStatement();
 				String query = "select COALESCE(count(*), 0) kolvo from ( select 1 from "+
-						DBAdapterPostgres.escapeNameIfNeeded(schema) + "." + DBAdapterPostgres.escapeNameIfNeeded(nameTable) + " limit " + (maxRowsCount + 1) + " ) tbl";
+						escapeNameIfNeeded(schema) + "." + escapeNameIfNeeded(nameTable) + " limit " + (maxRowsCount + 1) + " ) tbl";
 				ResultSet rs = st.executeQuery(query);
 				rs.next();
 				if (rs.getInt("kolvo") > maxRowsCount) {
@@ -827,9 +827,10 @@ public class DBAdapterPostgres extends DBAdapter {
 			int end = portionSize + portionSize*portionIndex;
 			
 			Statement st = getConnection().createStatement();
-			String query = "    SELECT * FROM \r\n" + 
-					"   (SELECT f.*, ROW_NUMBER() OVER (ORDER BY ctid) DBGIT_ROW_NUM FROM " + DBAdapterPostgres.escapeNameIfNeeded(schema) + "." + DBAdapterPostgres.escapeNameIfNeeded(nameTable) + " f) s\r\n" +
-					"   WHERE DBGIT_ROW_NUM BETWEEN " + begin  + " and " + end;
+			String query =
+				"    SELECT * FROM \r\n" +
+				"   (SELECT f.*, ROW_NUMBER() OVER (ORDER BY ctid) DBGIT_ROW_NUM FROM " + escapeNameIfNeeded(schema) + "." + escapeNameIfNeeded(nameTable) + " f) s\r\n" +
+				"   WHERE DBGIT_ROW_NUM BETWEEN " + begin  + " and " + end;
 			ResultSet rs = st.executeQuery(query);
 			
 			data.setResultSet(rs);	
@@ -865,7 +866,7 @@ public class DBAdapterPostgres extends DBAdapter {
 	
 	@Override
 	public DBTableData getTableData(String schema, String nameTable) {
-		String tableName = DBAdapterPostgres.escapeNameIfNeeded(schema)+"."+ DBAdapterPostgres.escapeNameIfNeeded(nameTable);
+		String tableName = escapeNameIfNeeded(schema)+"."+ escapeNameIfNeeded(nameTable);
 		try {
 			DBTableData data = new DBTableData();
 			
@@ -1040,7 +1041,7 @@ public class DBAdapterPostgres extends DBAdapter {
 	}
 
 
-	public static String escapeNameIfNeeded(String name){
+	public String escapeNameIfNeeded(String name){
 		boolean shouldBeEscaped = !name.equals(name.toLowerCase())
 			|| name.contains(".")
 			|| name.contains(".")

@@ -82,8 +82,8 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 				StringBuilder tableDdlSb = new StringBuilder(MessageFormat.format(
 					"create table {0} as (select * from {1}.{2} where 1={3}) {4};\n alter table {0} owner to {5};\n"
 					, backupTableSam
-					, DBAdapterPostgres.escapeNameIfNeeded(schema)
-					, DBAdapterPostgres.escapeNameIfNeeded(tableName)
+					, adapter.escapeNameIfNeeded(schema)
+					, adapter.escapeNameIfNeeded(tableName)
 					, isToSaveData() ? "1" : "0" //TableData
 					, metaTable.getTable().getOptions().getChildren().containsKey("tablespace")
 							? " tablespace " + metaTable.getTable().getOptions().get("tablespace").getData()
@@ -97,10 +97,10 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 					String fkname = fk.substring(fk.indexOf('/')+1,fk.lastIndexOf('.')) ;
 					String fkschema = fk.substring(0,fk.indexOf('/')) ;
 
-					String nameDb = "("+fkschema+ "\\.)?" + "\\\"?" + Pattern.quote(DBAdapterPostgres.escapeNameIfNeeded(fkname)) + "\\\"?(?=\\()";
+					String nameDb = "("+fkschema+ "\\.)?" + "\\\"?" + Pattern.quote(adapter.escapeNameIfNeeded(fkname)) + "\\\"?(?=\\()";
 					String nameReplacement = isSaveToSchema()
-						? Matcher.quoteReplacement(DBAdapterPostgres.escapeNameIfNeeded(PREFIX+fkschema) + "." + fkname)
-						: Matcher.quoteReplacement(fkschema + "." + DBAdapterPostgres.escapeNameIfNeeded(PREFIX+fkname));
+						? Matcher.quoteReplacement(adapter.escapeNameIfNeeded(PREFIX+fkschema) + "." + fkname)
+						: Matcher.quoteReplacement(fkschema + "." + adapter.escapeNameIfNeeded(PREFIX+fkname));
 					fkRefReplaces.put(nameDb, nameReplacement);
 				}
 
@@ -108,7 +108,7 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 				for (DBIndex index : metaTable.getIndexes().values()) {
 					String indexName = index.getName();
 					String indexNameRe = "\\\"?" + Pattern.quote(indexName) + "\\\"?";
-					String backupIndexNameRe = Matcher.quoteReplacement(DBAdapterPostgres.escapeNameIfNeeded(
+					String backupIndexNameRe = Matcher.quoteReplacement(adapter.escapeNameIfNeeded(
 						PREFIX + indexName
 						+ ((metaTable.getConstraints().containsKey(index.getName())) ? "_idx" : "")
 					));
@@ -126,10 +126,10 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 				}
 
 				for (DBConstraint constraint : metaTable.getConstraints().values().stream().sorted(Comparator.comparing(x->!x.getName().toLowerCase().contains("pk"))).collect(Collectors.toList())) {
-					String name = DBAdapterPostgres.escapeNameIfNeeded(PREFIX + constraint.getName());
+					String name = adapter.escapeNameIfNeeded(PREFIX + constraint.getName());
 					String constrName = constraint.getName();
 					String constrNameRe = "\\\"?" + Pattern.quote(constrName) + "\\\"?";
-					String backupConstrNameRe = Matcher.quoteReplacement(DBAdapterPostgres.escapeNameIfNeeded(PREFIX + constrName));
+					String backupConstrNameRe = Matcher.quoteReplacement(adapter.escapeNameIfNeeded(PREFIX + constrName));
 					String constrDef = constraint.getSql().replaceAll(constrNameRe, backupConstrNameRe);
 					for(String reference : fkRefReplaces.keySet()){ constrDef = constrDef.replaceAll(reference, fkRefReplaces.get(reference)); }
 
@@ -210,10 +210,10 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 	
 	private String getFullDbName(String schema, String objectName) {
 		if (isSaveToSchema()){
-			return DBAdapterPostgres.escapeNameIfNeeded(PREFIX + schema) + "." + DBAdapterPostgres.escapeNameIfNeeded(objectName);
+			return adapter.escapeNameIfNeeded(PREFIX + schema) + "." + adapter.escapeNameIfNeeded(objectName);
 		}
 		else {
-			return DBAdapterPostgres.escapeNameIfNeeded(schema) + "." + DBAdapterPostgres.escapeNameIfNeeded(PREFIX + objectName);
+			return adapter.escapeNameIfNeeded(schema) + "." + adapter.escapeNameIfNeeded(PREFIX + objectName);
 		}
 
 	}
@@ -230,7 +230,7 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 				"where sch = '" + owner.toLowerCase() + "' and obj_name = '"+objectName+"'");
 		
 		while (rs.next()) {
-			stLog.execute("drop " + rs.getString("tp") + " " + DBAdapterPostgres.escapeNameIfNeeded(owner) + "." + DBAdapterPostgres.escapeNameIfNeeded(objectName));
+			stLog.execute("drop " + rs.getString("tp") + " " + adapter.escapeNameIfNeeded(owner) + "." + adapter.escapeNameIfNeeded(objectName));
 		}
 		
 		rs.close();
@@ -260,8 +260,8 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 		while (rs.next()) {
 			stLog.execute(MessageFormat.format("DROP {0} {1}.{2}",
 				rs.getString("tp"),
-				DBAdapterPostgres.escapeNameIfNeeded(nm.getSchema()),
-				DBAdapterPostgres.escapeNameIfNeeded(nm.getName())
+				adapter.escapeNameIfNeeded(nm.getSchema()),
+				adapter.escapeNameIfNeeded(nm.getName())
 			));
 		}
 
@@ -300,7 +300,7 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 			rs.next();
 			if (rs.getInt("cnt") == 0) {
 				ConsoleWriter.detailsPrintLn(lang.getValue("general", "backup", "creatingSchema").withParams(PREFIX + schema));
-				stLog.execute("create schema " + DBAdapterPostgres.escapeNameIfNeeded(PREFIX + schema));
+				stLog.execute("create schema " + adapter.escapeNameIfNeeded(PREFIX + schema));
 			}
 			
 			rs.close();

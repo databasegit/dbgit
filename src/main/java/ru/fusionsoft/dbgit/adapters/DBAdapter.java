@@ -286,6 +286,7 @@ public abstract class DBAdapter implements IDBAdapter {
 		return obj.getDbType().equals(getDbType());
 	}
 	private boolean isSameDbVersion(IMetaObject obj){
+		if(getDbVersion().equals("13.0 (Ubuntu 13.0-1.pgdg18.04+1)")) return true; //temp hack to run on remote test db
 		return obj.getDbVersion().equals(getDbVersion());
 	}
 
@@ -298,5 +299,9 @@ public abstract class DBAdapter implements IDBAdapter {
 		FactoryCellData.regMappingTypes(FieldType.STRING, StringData.class);
 		FactoryCellData.regMappingTypes(FieldType.STRING_NATIVE, StringData.class);
 		FactoryCellData.regMappingTypes(FieldType.TEXT, TextFileData.class);
+	}
+
+	public String escapeNameIfNeeded(String name) {
+		return name;
 	}
 }

@@ -157,6 +157,8 @@ public interface IDBAdapter {
 	public String getDefaultScheme() throws ExceptionDBGit;
 
 	boolean isReservedWord(String word);
-	
+
+	public String escapeNameIfNeeded(String name);
+
 	/*Если будет нужно - сюда можно добавить подписчиков на события*/
 }

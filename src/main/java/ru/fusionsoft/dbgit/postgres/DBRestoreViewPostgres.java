@@ -75,7 +75,7 @@ public class DBRestoreViewPostgres extends DBRestoreAdapter {
 			if (vw == null) return;
 
 			String schema = getPhisicalSchema(vw.getSchema());
-			st.execute("DROP VIEW "+DBAdapterPostgres.escapeNameIfNeeded(schema)+"."+DBAdapterPostgres.escapeNameIfNeeded(vw.getName()));
+			st.execute("DROP VIEW "+adapter.escapeNameIfNeeded(schema)+"."+adapter.escapeNameIfNeeded(vw.getName()));
 		} catch (Exception e) {
 			ConsoleWriter.println(lang.getValue("errors", "restore", "objectRestoreError").withParams(e.getLocalizedMessage()));
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRemoveError").withParams(obj.getName()), e);
@@ -88,7 +88,7 @@ public class DBRestoreViewPostgres extends DBRestoreAdapter {
 		String name = view.getSqlObject().getName();
 		String schema = view.getSqlObject().getSchema();
 		String query = view.getSqlObject().getSql();
-		String nameEscaped = DBAdapterPostgres.escapeNameIfNeeded(name);
+		String nameEscaped = adapter.escapeNameIfNeeded(name);
 
 		if (!name.equalsIgnoreCase(nameEscaped)) {
 			query = query.replace(
@@ -104,7 +104,7 @@ public class DBRestoreViewPostgres extends DBRestoreAdapter {
 	private String getChangeOwnerDdl(MetaView view, String owner){
 		return  MessageFormat.format("ALTER VIEW {0}.{1} OWNER TO {2}\n"
 			, view.getSqlObject().getSchema()
-			, DBAdapterPostgres.escapeNameIfNeeded(view.getSqlObject().getName())
+			, adapter.escapeNameIfNeeded(view.getSqlObject().getName())
 			, owner
 		);
 	}

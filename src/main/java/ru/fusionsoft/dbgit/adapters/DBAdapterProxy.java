@@ -254,6 +254,11 @@ public class DBAdapterProxy implements IDBAdapter {
 	}
 
 	@Override
+	public String escapeNameIfNeeded(String name) {
+		return adapter.escapeNameIfNeeded(name);
+	}
+
+	@Override
 	public DBTableData getTableDataPortion(String schema, String nameTable, int portionIndex, int tryNumber) {
 		return adapter.getTableDataPortion(schema, nameTable, portionIndex, tryNumber);
 	}

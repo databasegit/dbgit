@@ -146,7 +146,7 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 		try (StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql())) {
 
 			String schema = getPhisicalSchema(restoreTableData.getTable().getSchema());
-			String tblNameEscaped = DBAdapterPostgres.escapeNameIfNeeded(schema) + "." + DBAdapterPostgres.escapeNameIfNeeded(restoreTableData.getTable().getName());
+			String tblNameEscaped = adapter.escapeNameIfNeeded(schema) + "." + adapter.escapeNameIfNeeded(restoreTableData.getTable().getName());
 			String fields = getFieldsPrefix(restoreTableData);
 			Map<String, String> colTypes = getColumnDataTypes(restoreTableData.getMetaTable(), st);
 			Set<String> keyNames = restoreTableData.getMetaTable().getFields().values().stream()
@@ -552,7 +552,7 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 		return MessageFormat.format("({0}) values "
 			, restoreTableData.getMetaTableFromFile().getFields().entrySet().stream()
 				.sorted(Comparator.comparing(e -> e.getValue().getOrder()))
-				.map(entry -> DBAdapterPostgres.escapeNameIfNeeded(entry.getValue().getName()))
+				.map(entry -> adapter.escapeNameIfNeeded(entry.getValue().getName()))
 				.collect(Collectors.joining(", "))
 		);
 	}

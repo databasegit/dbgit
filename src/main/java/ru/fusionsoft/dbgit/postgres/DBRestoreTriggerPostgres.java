@@ -87,7 +87,7 @@ public class DBRestoreTriggerPostgres extends DBRestoreAdapter {
 			if (trg == null) return;
 
 			String schema = getPhisicalSchema(trg.getSchema());
-			st.execute("DROP FUNCTION IF EXISTS "+DBAdapterPostgres.escapeNameIfNeeded(schema)+"."+DBAdapterPostgres.escapeNameIfNeeded(trg.getName()));
+			st.execute("DROP FUNCTION IF EXISTS "+adapter.escapeNameIfNeeded(schema)+"."+adapter.escapeNameIfNeeded(trg.getName()));
 
 		} catch (Exception e) {
 			ConsoleWriter.println(lang.getValue("errors", "restore", "objectRestoreError").withParams(e.getLocalizedMessage()));

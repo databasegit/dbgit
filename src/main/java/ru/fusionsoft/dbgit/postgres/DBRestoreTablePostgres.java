@@ -68,7 +68,7 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 			String schema = getPhisicalSchema(tbl.getSchema());
 
 			freeTableSequences(tbl, connect, st);
-			st.execute("DROP TABLE "+DBAdapterPostgres.escapeNameIfNeeded(schema)+"."+DBAdapterPostgres.escapeNameIfNeeded(tbl.getName()));
+			st.execute("DROP TABLE "+adapter.escapeNameIfNeeded(schema)+"."+adapter.escapeNameIfNeeded(tbl.getName()));
 		} catch (Exception e) {
 			ConsoleWriter.println(lang.getValue("errors", "restore", "objectRestoreError").withParams(e.getLocalizedMessage()));
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRemoveError").withParams(obj.getName()), e);
@@ -86,9 +86,9 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 				MetaTable restoreTable = (MetaTable)obj;
 				MetaTable existingTable = new MetaTable(restoreTable.getTable());
 
-				String schema = DBAdapterPostgres.escapeNameIfNeeded(getPhisicalSchema(restoreTable.getTable().getSchema().toLowerCase()));
-				String tblName = DBAdapterPostgres.escapeNameIfNeeded(restoreTable.getTable().getName());
-				String tblSam = DBAdapterPostgres.escapeNameIfNeeded(schema) + "." + DBAdapterPostgres.escapeNameIfNeeded(tblName);
+				String schema = adapter.escapeNameIfNeeded(getPhisicalSchema(restoreTable.getTable().getSchema().toLowerCase()));
+				String tblName = adapter.escapeNameIfNeeded(restoreTable.getTable().getName());
+				String tblSam = adapter.escapeNameIfNeeded(schema) + "." + adapter.escapeNameIfNeeded(tblName);
 
 				ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "restoreTable").withParams(schema+"."+tblName), 1);
 
@@ -148,8 +148,8 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 					for(DBIndex ind:diffInd.entriesOnlyOnRight().values()) {
 						if(existingTable.getConstraints().containsKey(ind.getName())) continue;
 						st.execute(MessageFormat.format("drop index if exists {0}.{1}"
-								, DBAdapterPostgres.escapeNameIfNeeded(schema)
-								, DBAdapterPostgres.escapeNameIfNeeded(ind.getName())
+								, adapter.escapeNameIfNeeded(schema)
+								, adapter.escapeNameIfNeeded(ind.getName())
 						));
 					}
 
@@ -159,14 +159,14 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 						if(!restoreIndex.getSql().equalsIgnoreCase(existingIndex.getSql())) {
 							st.execute(MessageFormat.format(
 									"DROP INDEX {0}.{1} CASCADE;\n" + "{2};\n", //TODO discuss CASCADE
-									DBAdapterPostgres.escapeNameIfNeeded(schema)
-									, DBAdapterPostgres.escapeNameIfNeeded(existingIndex.getName())
+									adapter.escapeNameIfNeeded(schema)
+									, adapter.escapeNameIfNeeded(existingIndex.getName())
 									, restoreIndex.getSql() //drop and re-create using full DDL from .getSql()
 							));
 							st.execute(MessageFormat.format(
 									"alter index {0}.{1} set tablespace {2}"
-									,DBAdapterPostgres.escapeNameIfNeeded(schema)
-									,DBAdapterPostgres.escapeNameIfNeeded(restoreIndex.getName())
+									,adapter.escapeNameIfNeeded(schema)
+									,adapter.escapeNameIfNeeded(restoreIndex.getName())
 									,restoreIndex.getOptions().getChildren().containsKey("tablespace")
 											? restoreIndex.getOptions().get("tablespace").getData()
 											: "pg_default"
@@ -209,9 +209,9 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 				for(DBConstraint constr : diff.entriesOnlyOnLeft().values()){
 					st.execute(MessageFormat.format(
 							"alter table {0}.{1} drop constraint {2};\n"
-							, DBAdapterPostgres.escapeNameIfNeeded(schema)
-							, DBAdapterPostgres.escapeNameIfNeeded(existingTable.getTable().getName())
-							, DBAdapterPostgres.escapeNameIfNeeded(constr.getName())
+							, adapter.escapeNameIfNeeded(schema)
+							, adapter.escapeNameIfNeeded(existingTable.getTable().getName())
+							, adapter.escapeNameIfNeeded(constr.getName())
 					));
 				}
 
@@ -246,8 +246,8 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 	}
 	private NameMeta getEscapedNameMeta(MetaTable table) throws ExceptionDBGit {
 		NameMeta nm = new NameMeta();
-		String schema = DBAdapterPostgres.escapeNameIfNeeded(getPhisicalSchema(table.getTable().getSchema().toLowerCase()));
-		String tblName = DBAdapterPostgres.escapeNameIfNeeded(table.getTable().getName());
+		String schema = adapter.escapeNameIfNeeded(getPhisicalSchema(table.getTable().getSchema().toLowerCase()));
+		String tblName = adapter.escapeNameIfNeeded(table.getTable().getName());
 
 		nm.setSchema(schema);
 		nm.setName(tblName);
@@ -319,8 +319,8 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 						//	st.execute(
 						//	"alter table "
 						//		+ tblSam
-						//		+" rename column "+ DBAdapterPostgres.escapeNameIfNeeded(tblField.rightValue().getName())
-						//		+" to "+ DBAdapterPostgres.escapeNameIfNeeded(tblField.leftValue().getName())
+						//		+" rename column "+ adapter.escapeNameIfNeeded(tblField.rightValue().getName())
+						//		+" to "+ adapter.escapeNameIfNeeded(tblField.leftValue().getName())
 						//	);
 					}
 				}
@@ -358,8 +358,8 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 		st.execute(createTableDdl);
 	}
 	private void restoreTableOwner(StatementLogging st, MetaTable restoreTable, MetaTable existingTable) throws SQLException, ExceptionDBGit {
-		String schema = DBAdapterPostgres.escapeNameIfNeeded(getPhisicalSchema(restoreTable.getTable().getSchema().toLowerCase()));
-		String tblName = DBAdapterPostgres.escapeNameIfNeeded(restoreTable.getTable().getName());
+		String schema = adapter.escapeNameIfNeeded(getPhisicalSchema(restoreTable.getTable().getSchema().toLowerCase()));
+		String tblName = adapter.escapeNameIfNeeded(restoreTable.getTable().getName());
 
 		StringProperties exOwner= existingTable.getTable().getOptions().get("owner");
 		StringProperties restoreOwner = restoreTable.getTable().getOptions().get("owner");
@@ -428,8 +428,8 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 			if(commentsDiffer){
 				st.execute(MessageFormat.format(
 						"COMMENT ON TABLE {0}.{1} IS ''{2}''"
-						,DBAdapterPostgres.escapeNameIfNeeded(getPhisicalSchema(restoreTable.getTable().getSchema()))
-						,DBAdapterPostgres.escapeNameIfNeeded(restoreTable.getTable().getName())
+						,adapter.escapeNameIfNeeded(getPhisicalSchema(restoreTable.getTable().getSchema()))
+						,adapter.escapeNameIfNeeded(restoreTable.getTable().getName())
 						,restoreTableComment
 				));
 			}
@@ -458,7 +458,7 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 	private void createConstraint(MetaTable restoreTable, DBConstraint constr, StatementLogging st, boolean replaceExisting) throws Exception {
 		NameMeta nme = getEscapedNameMeta(restoreTable);
 		String tblSam = nme.getSchema()+"."+nme.getName();
-		String constrName = DBAdapterPostgres.escapeNameIfNeeded(constr.getName());
+		String constrName = adapter.escapeNameIfNeeded(constr.getName());
 		String constrDdl = (replaceExisting) ? MessageFormat.format("alter table {0} drop constraint {1};\n", tblSam, constrName) : "";
 		constrDdl += MessageFormat.format(
 			"alter table {0} add constraint {1} {2};\n"
@@ -477,7 +477,7 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 
 	//TODO  restoreTableFields
 	private void addColumn(String tblSam, DBTableField tblField, Statement st ) throws SQLException {
-		String fieldName = DBAdapterPostgres.escapeNameIfNeeded(tblField.getName());
+		String fieldName = adapter.escapeNameIfNeeded(tblField.getName());
 		st.execute(
 				"alter table "+ tblSam +" add column "
 						+ fieldName + " "
@@ -507,7 +507,7 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 
 	}
 	private void dropColumn(String tblSam, DBTableField tblField, Statement st) throws SQLException {
-		st.execute("alter table "+ tblSam +" drop column "+ DBAdapterPostgres.escapeNameIfNeeded(tblField.getName()));
+		st.execute("alter table "+ tblSam +" drop column "+ adapter.escapeNameIfNeeded(tblField.getName()));
 	}
 	private boolean isSameTypeSql(DBTableField left, DBTableField right){
 		return left.getTypeSQL().equals(right.getTypeSQL());
@@ -521,16 +521,16 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 	{
 		st.execute(MessageFormat.format("ALTER TABLE {0} ALTER COLUMN {1} TYPE {2} USING ({3}::{4})"
 				, tblSam
-				, DBAdapterPostgres.escapeNameIfNeeded(tblField.leftValue().getName())
+				, adapter.escapeNameIfNeeded(tblField.leftValue().getName())
 				, tblField.leftValue().getTypeSQL().replace("NOT NULL", "")
-				, DBAdapterPostgres.escapeNameIfNeeded(tblField.leftValue().getName())
+				, adapter.escapeNameIfNeeded(tblField.leftValue().getName())
 				, tblField.leftValue().getTypeSQL().replace("NOT NULL", "")
 		));
 
 		if (!tblField.leftValue().getIsNullable()) {
 			st.execute(MessageFormat.format("ALTER TABLE {0} ALTER COLUMN {1} SET NOT NULL"
 					, tblSam
-					, DBAdapterPostgres.escapeNameIfNeeded(tblField.leftValue().getName())
+					, adapter.escapeNameIfNeeded(tblField.leftValue().getName())
 			));
 		}
 	}
@@ -548,7 +548,7 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 				st.execute(MessageFormat.format(
 						"COMMENT ON COLUMN {0}.{1} IS ''{2}''"
 						,tableSam
-						,DBAdapterPostgres.escapeNameIfNeeded(tblField.leftValue().getName())
+						,adapter.escapeNameIfNeeded(tblField.leftValue().getName())
 						,restoreDesc
 				));
 			}
@@ -568,7 +568,7 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 				st.execute(MessageFormat.format(
 						"ALTER TABLE {0} ALTER COLUMN {1} SET DEFAULT {2}"
 						,tableSam
-						,DBAdapterPostgres.escapeNameIfNeeded(tblField.leftValue().getName())
+						,adapter.escapeNameIfNeeded(tblField.leftValue().getName())
 						,restoreDefault
 				));
 			}
@@ -593,9 +593,9 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 
 					st.execute(MessageFormat.format(
 						"DROP INDEX IF EXISTS {0}.{1}"
-						,DBAdapterPostgres.escapeNameIfNeeded(schema)
-//						,DBAdapterPostgres.escapeNameIfNeeded(table.getTable().getName())
-						,DBAdapterPostgres.escapeNameIfNeeded(index.getName())
+						,adapter.escapeNameIfNeeded(schema)
+//						,adapter.escapeNameIfNeeded(table.getTable().getName())
+						,adapter.escapeNameIfNeeded(index.getName())
 					));
 				}
 			}
@@ -620,8 +620,8 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 				Map<String, DBConstraint> constraints = dbTable.getConstraints();
 				for(DBConstraint constrs :constraints.values()) {
 					st.execute(
-					"alter table "+ DBAdapterPostgres.escapeNameIfNeeded(schema) +"."+DBAdapterPostgres.escapeNameIfNeeded(table.getTable().getName())
-						+" drop constraint if exists "+DBAdapterPostgres.escapeNameIfNeeded(constrs.getName())
+					"alter table "+ adapter.escapeNameIfNeeded(schema) +"."+adapter.escapeNameIfNeeded(table.getTable().getName())
+						+" drop constraint if exists "+adapter.escapeNameIfNeeded(constrs.getName())
 					);
 				}
 			}
