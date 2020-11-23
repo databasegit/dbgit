@@ -149,7 +149,8 @@ public interface IDBAdapter {
 	public IFactoryDBConvertAdapter getConvertAdapterFactory();
 	
 	public DbType getDbType();
-	public String getDbVersion();	
+	public String getDbVersion();
+	public Double getDbVersionNumber();
 	
 	public void createSchemaIfNeed(String schemaName) throws ExceptionDBGit;
 	public void createRoleIfNeed(String roleName) throws ExceptionDBGit;

@@ -140,7 +140,7 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 					for(DBIndex ind:diffInd.entriesOnlyOnLeft().values()) {
 						if(restoreTable.getConstraints().containsKey(ind.getName())) {continue;}
 						st.execute(MessageFormat.format("{0} {1}"
-								,ind.getSql().replace(" INDEX ", " INDEX IF NOT EXISTS ")
+								,ind.getSql()/*.replace(" INDEX ", " INDEX IF NOT EXISTS ")*/
 								,ind.getOptions().getChildren().containsKey("tablespace") ? " tablespace " + ind.getOptions().get("tablespace").getData() : ""
 						));
 					}

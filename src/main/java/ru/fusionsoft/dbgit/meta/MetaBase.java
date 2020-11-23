@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
@@ -60,6 +62,14 @@ public abstract class MetaBase implements IMetaObject {
 	@Override
 	public String getDbVersion() {
 		return dbVersion;
+	}
+
+	@Override
+	public Double getDbVersionNumber() {
+		Matcher matcher = Pattern.compile("\\D*(\\d+)\\.(\\d+)").matcher(getDbVersion());
+		matcher.find();
+		Double result = Double.valueOf(matcher.group(0)+matcher.group(1));
+		return result;
 	}
 	
 	@Override

@@ -55,7 +55,9 @@ public interface IMetaObject {
 	public void setDbType(DbType dbType);
 	
 	public String getDbVersion();
-	
+
+	public Double getDbVersionNumber();
+
 	public void setDbVersion(String dbVersion);
 	
 	public String getFileName();

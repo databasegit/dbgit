@@ -9,6 +9,7 @@ import ru.fusionsoft.dbgit.adapters.IFactoryDBConvertAdapter;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.meta.DBGitMetaType;
 import ru.fusionsoft.dbgit.oracle.converters.TableConverterOracle;
+import ru.fusionsoft.dbgit.postgres.converters.BypassVersionConverterPostgresql;
 import ru.fusionsoft.dbgit.postgres.converters.TableConverterPostgresql;
 import ru.fusionsoft.dbgit.postgres.converters.TableDataConverterPostgresql;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
@@ -21,6 +22,11 @@ public class FactoryDbConvertAdapterPostgres implements IFactoryDBConvertAdapter
 		Map<String, IDBConvertAdapter> aMap = new HashMap<String, IDBConvertAdapter>();
 		aMap.put(DBGitMetaType.DBGitTable.getValue(), new TableConverterPostgresql());
 		aMap.put(DBGitMetaType.DbGitTableData.getValue(), new TableDataConverterPostgresql());
+		aMap.put(DBGitMetaType.DBGitSequence.getValue(), new BypassVersionConverterPostgresql());
+//		aMap.put(DBGitMetaType.DBGit.getValue(), new BypassVersionConverterPostgresql());
+//		aMap.put(DBGitMetaType.DBGit.getValue(), new BypassVersionConverterPostgresql());
+//		aMap.put(DBGitMetaType.DBGit.getValue(), new BypassVersionConverterPostgresql());
+//		aMap.put(DBGitMetaType.DBGit.getValue(), new BypassVersionConverterPostgresql());
 
 		converters = Collections.unmodifiableMap(aMap);
 	}

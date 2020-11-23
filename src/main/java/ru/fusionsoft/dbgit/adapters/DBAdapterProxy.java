@@ -228,6 +228,11 @@ public class DBAdapterProxy implements IDBAdapter {
 	}
 
 	@Override
+	public Double getDbVersionNumber() {
+		return adapter.getDbVersionNumber();
+	}
+
+	@Override
 	public IFactoryDBConvertAdapter getConvertAdapterFactory() {
 		return adapter.getConvertAdapterFactory();
 	}

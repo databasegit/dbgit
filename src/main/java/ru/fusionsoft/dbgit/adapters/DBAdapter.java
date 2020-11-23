@@ -18,6 +18,8 @@ import java.text.MessageFormat;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -188,19 +190,22 @@ public abstract class DBAdapter implements IDBAdapter {
 	private IMetaObject tryConvert(IMetaObject obj) throws Exception {
 		if ( obj.getDbType() == null) throw new Exception(lang.getValue("errors", "emptyDbType").toString());
 
-		if ( isSameDbType(obj) && isSameDbVersion(obj)) return obj;
-
-		if ( checkContainsNativeFields(obj)) {
-			ConsoleWriter.println(DBGitLang.getInstance().getValue("general", "restore", "unsupportedTypes").withParams(obj.getName()));
-			return obj;
+		if (isSameDbType(obj) ){
+			if(isSameDbVersion(obj) || obj.getDbVersionNumber() <= getDbVersionNumber()){
+				return obj;
+			}
+		} else {
+			if ( checkContainsNativeFields(obj)) {
+				ConsoleWriter.println(DBGitLang.getInstance().getValue("general", "restore", "unsupportedTypes").withParams(obj.getName()));
+			}
 		}
 
 		IDBConvertAdapter convertAdapter = getConvertAdapterFactory().getConvertAdapter(obj.getType().getValue());
 		if (convertAdapter != null) return convertAdapter.convert(getDbType(), getDbVersion(), obj);
 		else {
 			throw new Exception(MessageFormat.format(
-					"Could not get convert adapter for {0} ({1} {2})",
-					obj.getName(), obj.getDbType().toString(), obj.getDbVersion()
+				"Could not get convert adapter for {0} ({1} {2} -> {3})",
+				obj.getName(), obj.getDbType().toString(), obj.getDbVersion(), getDbVersionNumber()
 			));
 		}
 	}
@@ -282,11 +287,16 @@ public abstract class DBAdapter implements IDBAdapter {
 	private String getSchemaSynonymName(IMetaObject obj) throws Exception {
 		return getSchemaSynonymName(getSchemaName(obj));
 	}
+	public Double getDbVersionNumber(){
+		Matcher matcher = Pattern.compile("\\D*(\\d+)\\.(\\d+)").matcher(getDbVersion());
+		matcher.find();
+		Double result = Double.valueOf(matcher.group(0)+matcher.group(1));
+		return result;
+	}
 	private boolean isSameDbType(IMetaObject obj){
 		return obj.getDbType().equals(getDbType());
 	}
 	private boolean isSameDbVersion(IMetaObject obj){
-		if(getDbVersion().equals("13.0 (Ubuntu 13.0-1.pgdg18.04+1)")) return true; //temp hack to run on remote test db
 		return obj.getDbVersion().equals(getDbVersion());
 	}
 

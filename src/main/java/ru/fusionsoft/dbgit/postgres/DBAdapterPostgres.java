@@ -199,30 +199,42 @@ public class DBAdapterPostgres extends DBAdapter {
 	public Map<String, DBTable> getTables(String schema) {
 		Map<String, DBTable> listTable = new HashMap<String, DBTable>();
 		try {
+
+
 			String query = 
-					"select \n" +
+					"SELECT \n" +
 					"	tablename AS table_name,\n" +
 					"	tableowner AS owner,\n" +
-					"	tablespace,hasindexes,hasrules,hastriggers, \n" +
-					"	obj_description(to_regclass('\"' || schemaname || '\".\"' || tablename || '\"')::oid) AS table_comment, " +
+					"	tablespace, hasindexes, hasrules, hastriggers, \n" +
+					"	obj_description( (('\"' || schemaname || '\".\"' || tablename || '\"')::regclass)::oid) AS table_comment,\n" +
 					"	( 					" +
 					"		SELECT array_agg( distinct n2.nspname || '/' || c2.relname || '.tbl' ) AS dependencies\n" +
 					"	 	FROM pg_catalog.pg_constraint c  \n" +
 					"		JOIN ONLY pg_catalog.pg_class c1     ON c1.oid = c.conrelid\n" +
 					"		JOIN ONLY pg_catalog.pg_class c2     ON c2.oid = c.confrelid\n" +
 					"		JOIN ONLY pg_catalog.pg_namespace n2 ON n2.oid = c2.relnamespace\n" +
-					"		WHERE c.conrelid = to_regclass('\"' || schemaname || '\".\"' || tablename || '\"')::oid\n" +
+					"		WHERE c.conrelid = (('\"' || schemaname || '\".\"' || tablename || '\"')::regclass)::oid\n" +
 					"		and c1.relkind = 'r' AND c.contype = 'f'\n" +
-					"	) AS dependencies, \n" +
-					"   pg_get_partkeydef((SELECT oid FROM pg_class WHERE relname = tablename and relnamespace = (select oid from pg_namespace where nspname = '"+schema+"'))) " +
-					"	AS partkeydef, \n" +
-					"   parent.relname AS parent, \n" +
-					"   pg_get_expr(child.relpartbound, child.oid) AS pg_get_expr \n" +
-					"from pg_tables \n" +
-					"left outer join pg_inherits on (SELECT oid FROM pg_class WHERE relname = tablename and relnamespace = (select oid from pg_namespace where nspname = :schema)) = pg_inherits.inhrelid \n" +
-					"left outer JOIN pg_class parent ON pg_inherits.inhparent = parent.oid \n" +
-					"left outer JOIN pg_class child ON pg_inherits.inhrelid = child.oid \n" +
-					"where upper(schemaname) = upper(:schema)";
+					"	) " +
+					"	AS dependencies, \n" +
+				( (getDbVersionNumber() > 10)
+					? 	"   pg_get_partkeydef((" +
+						"		SELECT oid " +
+						"		FROM pg_class " +
+						"		WHERE relname = tablename " +
+						"		AND relnamespace = (select oid from pg_namespace where nspname = :schema" +
+						"	)) " +
+						"   AS partkeydef, \n" +
+						"  	pg_get_expr(child.relpartbound, child.oid) " +
+						"	AS pg_get_expr, \n"
+					: 	" "
+				) +
+					"   parent.relname AS parent \n" +
+					"FROM pg_tables \n" +
+					"LEFT OUTER JOIN pg_inherits on (SELECT oid FROM pg_class WHERE relname = tablename and relnamespace = (select oid from pg_namespace where nspname = :schema)) = pg_inherits.inhrelid \n" +
+					"LEFT OUTER JOIN pg_class parent ON pg_inherits.inhparent = parent.oid \n" +
+					"LEFT OUTER JOIN pg_class child ON pg_inherits.inhrelid = child.oid \n" +
+					"WHERE upper(schemaname) = upper(:schema)";
 			Connection connect = getConnection();
 			
 			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);			
@@ -255,36 +267,49 @@ public class DBAdapterPostgres extends DBAdapter {
 	@Override
 	public DBTable getTable(String schema, String name) {
 		String query =
-				"select \n" +
-				"	tablename as table_name,\n" +
-				"	tableowner as owner,\n" +
-				"	tablespace,hasindexes,hasrules,hastriggers, \n" +
-				"	obj_description(to_regclass('\"' || schemaname || '\".\"' || tablename || '\"')::oid) table_comment, ( \n" +
-				"		select array_agg(distinct n2.nspname || '/' || c2.relname || '.tbl') as dependencies\n" +
-				"	 	FROM pg_catalog.pg_constraint c  \n" +
-				"		JOIN ONLY pg_catalog.pg_class c1     ON c1.oid = c.conrelid\n" +
-				"		JOIN ONLY pg_catalog.pg_class c2     ON c2.oid = c.confrelid\n" +
-				"		JOIN ONLY pg_catalog.pg_namespace n2 ON n2.oid = c2.relnamespace\n" +
-				"		WHERE c.conrelid = to_regclass('\"' || schemaname || '\".\"' || tablename || '\"')::oid\n" +
-				"		and c1.relkind = 'r' AND c.contype = 'f'\n" +
-				"	) AS dependencies, \n" +
-				"   pg_get_partkeydef((SELECT oid FROM pg_class WHERE relname = tablename and relnamespace = (select oid from pg_namespace where nspname = '"+schema+"'))) " +
-				"	AS partkeydef, \n" +
-				"   parent.relname AS parent, \n" +
-				"   pg_get_expr(child.relpartbound, child.oid) AS pg_get_expr\n" +
-				"from pg_tables \n" +
-				"left outer join pg_inherits on (SELECT oid FROM pg_class WHERE relname = tablename and relnamespace = (select oid from pg_namespace where nspname = '"+schema+"')) = pg_inherits.inhrelid \n" +
-				"left outer JOIN pg_class parent ON pg_inherits.inhparent = parent.oid \n" +
-				"left outer JOIN pg_class child ON pg_inherits.inhrelid = child.oid \n" +
-				"where upper(schemaname) = upper('"+schema+"') \n" +
-				"and tablename = '"+name+"'\n";
+			"SELECT \n" +
+			"	tablename AS table_name,\n" +
+			"	tableowner AS owner,\n" +
+			"	tablespace, hasindexes, hasrules, hastriggers, \n" +
+			"	obj_description( (('\"' || schemaname || '\".\"' || tablename || '\"')::regclass)::oid) AS table_comment, " +
+			"	( 					" +
+			"		SELECT array_agg( distinct n2.nspname || '/' || c2.relname || '.tbl' ) AS dependencies\n" +
+			"	 	FROM pg_catalog.pg_constraint c  \n" +
+			"		JOIN ONLY pg_catalog.pg_class c1     ON c1.oid = c.conrelid\n" +
+			"		JOIN ONLY pg_catalog.pg_class c2     ON c2.oid = c.confrelid\n" +
+			"		JOIN ONLY pg_catalog.pg_namespace n2 ON n2.oid = c2.relnamespace\n" +
+			"		WHERE c.conrelid = (('\"' || schemaname || '\".\"' || tablename || '\"')::regclass)::oid\n" +
+			"		and c1.relkind = 'r' AND c.contype = 'f'\n" +
+			"	) " +
+			"	AS dependencies, \n" +
+			( (getDbVersionNumber() > 10)
+					? 	"   pg_get_partkeydef((" +
+					"		SELECT oid " +
+					"		FROM pg_class " +
+					"		WHERE relname = tablename " +
+					"		AND relnamespace = (select oid from pg_namespace where nspname = :schema" +
+					"	)) " +
+					"   AS partkeydef, \n" +
+					"  	pg_get_expr(child.relpartbound, child.oid) " +
+					"	AS pg_get_expr, \n"
+					: 	" "
+			) +
+			"   parent.relname AS parent \n" +
+			"FROM pg_tables \n" +
+			"LEFT OUTER JOIN pg_inherits on (SELECT oid FROM pg_class WHERE relname = tablename and relnamespace = (select oid from pg_namespace where nspname = :schema)) = pg_inherits.inhrelid \n" +
+			"LEFT OUTER JOIN pg_class parent ON pg_inherits.inhparent = parent.oid \n" +
+			"LEFT OUTER JOIN pg_class child ON pg_inherits.inhrelid = child.oid \n" +
+			"WHERE upper(schemaname) = upper(:schema)" +
+			"AND tablename = :name";
 		try {
 
 			Connection connect = getConnection();
-			
-			Statement stmt = connect.createStatement();
-			
-			ResultSet rs = stmt.executeQuery(query);
+
+			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);
+			stmt.setString("schema", schema);
+			stmt.setString("name", name);
+
+			ResultSet rs = stmt.executeQuery();
 
 			DBTable table = null;
 			
@@ -672,7 +697,10 @@ public class DBAdapterPostgres extends DBAdapter {
 				"FROM pg_catalog.pg_proc p\n" +
 				"	JOIN pg_catalog.pg_roles u ON u.oid = p.proowner\n" +
 				"	LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace\n" +
-				"WHERE p.prokind = 'p' \n" +
+			( (getDbVersionNumber() > 10)
+				? 	"WHERE p.prokind = 'p' \n"
+				:	"WHERE 1=0 \n"
+			) +
 				"	AND n.nspname not in('pg_catalog', 'information_schema')\n" +
 				"	AND n.nspname = '"+schema+"'";
 
@@ -707,7 +735,10 @@ public class DBAdapterPostgres extends DBAdapter {
 				"FROM pg_catalog.pg_proc p\n" +
 				"	JOIN pg_catalog.pg_roles u ON u.oid = p.proowner\n" +
 				"	LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace\n" +
-				"WHERE p.prokind = 'p' \n" +
+			( (getDbVersionNumber() > 10)
+				? "WHERE p.prokind = 'p' \n"
+				: "WHERE 1=0 \n"
+			) +
 				"	AND n.nspname not in('pg_catalog', 'information_schema')\n" +
 				"	AND n.nspname = '"+schema+"'" +
 				"	AND p.proname = '"+name+"'";
@@ -739,9 +770,12 @@ public class DBAdapterPostgres extends DBAdapter {
 				"FROM pg_catalog.pg_proc p\n" +
 				"	JOIN pg_catalog.pg_roles u ON u.oid = p.proowner\n" +
 				"	LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace\n" +
-				"WHERE p.prokind = 'f' \n" +
-				"	AND n.nspname not in('pg_catalog', 'information_schema')\n" +
-				"	AND n.nspname = '"+schema+"'";
+			( (getDbVersionNumber() > 10)
+				? "WHERE p.prokind = 'f' \n"
+				: "WHERE 1=1 "
+			)+
+				"AND n.nspname not in('pg_catalog', 'information_schema')\n" +
+				"AND n.nspname = '"+schema+"'";
 
 			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
@@ -776,9 +810,12 @@ public class DBAdapterPostgres extends DBAdapter {
 				"FROM pg_catalog.pg_proc p\n" +
 				"	JOIN pg_catalog.pg_roles u ON u.oid = p.proowner\n" +
 				"	LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace\n" +
-				"WHERE p.prokind = 'f' \n" +
-				"	AND n.nspname not in('pg_catalog', 'information_schema')\n" +
-				"	AND n.nspname = '"+schema+"' AND p.proname = '"+name+"'";
+			( (getDbVersionNumber() > 10)
+				? "WHERE p.prokind = 'f' \n"
+				: "WHERE 1=1 \n"
+			) +
+				"AND n.nspname not in('pg_catalog', 'information_schema')\n" +
+				"AND n.nspname = '"+schema+"' AND p.proname = '"+name+"'";
 			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
@@ -928,9 +965,18 @@ public class DBAdapterPostgres extends DBAdapter {
 	public Map<String, DBRole> getRoles() {
 		Map<String, DBRole> listRole = new HashMap<String, DBRole>();
 		try {
-			String query = "select *,array_to_string(array(SELECT rolname " + 
-					"FROM pg_roles,pg_auth_members " + 
-					"WHERE member = auth.oid and roleid=oid), ', ') as rolmemberof from pg_authid as auth where auth.rolname not like 'pg_%'";
+			String query =
+				"SELECT r.rolname, r.rolsuper, r.rolinherit,\n" +
+				"  r.rolcreaterole, r.rolcreatedb, r.rolcanlogin, \n" +
+				"  r.rolreplication," + ((getDbVersionNumber() > 9.5) ? "r.rolbypassrls,\n" : "\n") +
+				"  r.rolconnlimit, r.rolpassword, r.rolvaliduntil,\n" +
+				"  ARRAY(SELECT b.rolname\n" +
+				"        FROM pg_catalog.pg_auth_members m\n" +
+				"        JOIN pg_catalog.pg_roles b ON (m.roleid = b.oid)\n" +
+				"        WHERE m.member = r.oid) as memberof\n" +
+				"FROM pg_catalog.pg_roles r\n" +
+				"WHERE r.rolname !~ '^pg_'\n" +
+				"ORDER BY 1;";
 			Connection connect = getConnection();
 			Statement stmt = connect.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
