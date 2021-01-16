@@ -126,16 +126,15 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 	}
 	
 	public void restoreTableDataPostgres(MetaTableData restoreTableData, MetaTableData currentTableData) throws Exception{
-		ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "restoreTableData").withParams(restoreTableData.getName()), 1);
 		List<String> fieldsList = restoreTableData.getFields();
 		if(fieldsList.size() == 0 ) {
 			ConsoleWriter.detailsPrintlnRed("Empty fieldList, maybe empty csv");
-			ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+			ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 			return;
 		}
 		if (restoreTableData.getmapRows() == null) {
 			ConsoleWriter.detailsPrintlnRed("MapRows is null, maybe empty csv");
-			ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+			ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 			return;
 		}
 
@@ -187,7 +186,7 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 				if (deleteQuery.length() > 1) {
 					st.execute(deleteQuery.toString());
 				}
-				ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+				ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 			}
 
 			//UPDATE
@@ -238,7 +237,7 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 					}
 				}
 
-				ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+				ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 				if (updateQuery.length() > 1) {
 					ConsoleWriter.println(updateQuery);
 					st.execute(updateQuery);
@@ -258,7 +257,7 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 					ConsoleWriter.detailsPrintLn(insertQuery);
 					st.execute(insertQuery);
 				}
-				ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+				ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 			}
 
 		} catch (Exception e) {
@@ -420,7 +419,7 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 			ConsoleWriter.println(lang.getValue("errors", "restore", "objectRestoreError").withParams(e.getLocalizedMessage()));
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(schema + "." + table.getTable().getName()), e);
 		} finally {
-			ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+			ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 			st.close();
 		}			
 	}
@@ -461,7 +460,7 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 					}					
 				}
 			//}	
-			ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+			ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 
 		} catch (Exception e) {
 			ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));

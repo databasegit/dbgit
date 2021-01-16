@@ -56,7 +56,7 @@ public class DBRestoreViewPostgres extends DBRestoreAdapter {
 			ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()), e);
 		} finally {
-			ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+			ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 			st.close();
 		}
 		return true;

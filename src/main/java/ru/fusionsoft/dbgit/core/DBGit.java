@@ -1,10 +1,12 @@
 package ru.fusionsoft.dbgit.core;
 
 import java.io.File;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import com.diogonunes.jcdp.color.api.Ansi;
 import org.eclipse.jgit.api.*;
 import org.eclipse.jgit.api.ListBranchCommand.ListMode;
 import org.eclipse.jgit.api.ResetCommand.ResetType;
@@ -13,6 +15,7 @@ import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.eclipse.jgit.transport.PushResult;
@@ -248,10 +251,13 @@ public class DBGit {
 
 	public void gitCheckout(String branch, String commit, boolean isNewBranch) throws ExceptionDBGit {
 		try {
-			ConsoleWriter.detailsPrintLn(DBGitLang.getInstance().getValue("general", "checkout", "toCreateBranch") + ": " + isNewBranch);
-			ConsoleWriter.detailsPrintLn(DBGitLang.getInstance().getValue("general", "checkout", "branchName") + ": " + branch);
+			ConsoleWriter.detailsPrintLn(DBGitLang.getInstance().getValue("general", "checkout", "do"));
+			ConsoleWriter.detailsPrintLnColor(DBGitLang.getInstance().getValue("general", "checkout", "toCreateBranch") + ": " + isNewBranch, 1, Ansi.FColor.GREEN);
+			ConsoleWriter.detailsPrintLnColor(DBGitLang.getInstance().getValue("general", "checkout", "branchName") + ": " + branch, 1, Ansi.FColor.GREEN);
 			if (commit != null)
-				ConsoleWriter.detailsPrintLn(DBGitLang.getInstance().getValue("general", "checkout", "commitName") + ": " + commit);
+				ConsoleWriter.detailsPrintLnColor(DBGitLang.getInstance().getValue("general", "checkout", "commitName") + ": " + commit, 1, Ansi.FColor.GREEN);
+
+
 
 			Ref result;
 			if (git.getRepository().findRef(branch) != null || isNewBranch) {
@@ -269,7 +275,14 @@ public class DBGit {
 
 				result = checkout.call();
 
-//				ConsoleWriter.printlnGreen(result != null ? result.getName() : commit);
+				try(RevWalk walk = new RevWalk(repository)){
+					ConsoleWriter.detailsPrintLnColor(MessageFormat.format("{0}: {1}"
+						, DBGitLang.getInstance().getValue("general", "checkout", "commitMessage")
+						, walk.parseCommit(repository.getAllRefs().get("HEAD").getObjectId()).getShortMessage()
+					), 1, Ansi.FColor.GREEN);
+				}
+
+
 			} else {
 				MaskFilter maskAdd = new MaskFilter(branch);
 
@@ -282,12 +295,12 @@ public class DBGit {
 				}
 				String s = "";
 				if (counter != 1) s = "s";
-				ConsoleWriter.println(DBGitLang.getInstance().getValue("general", "checkout", "updatedFromIndex").withParams(String.valueOf(counter), s));
+				ConsoleWriter.println(DBGitLang.getInstance().getValue("general", "checkout", "updatedFromIndex").withParams(String.valueOf(counter), s), 1);
 			}
 
 
 		} catch (Exception e) {
-			throw new ExceptionDBGit(e.getLocalizedMessage());
+			throw new ExceptionDBGit(e);
 		}
 	}
 
@@ -301,7 +314,7 @@ public class DBGit {
 
 			MergeResult result = merge.call();
 
-			ConsoleWriter.println(result.getMergeStatus().toString());
+			ConsoleWriter.println(result.getMergeStatus().toString(), 1);
 
 		} catch (Exception e) {
 			throw new ExceptionDBGit(e);
@@ -318,7 +331,11 @@ public class DBGit {
 
 			if (remoteBranch.length() > 0)
 				pull = pull.setRemoteBranchName(remoteBranch);
-			ConsoleWriter.printlnGreen(pull.setCredentialsProvider(getCredentialsProviderByName(pull.getRemote())).call().toString());
+			ConsoleWriter.printlnGreen(
+				pull.setCredentialsProvider(getCredentialsProviderByName(pull.getRemote())).call()
+				.toString()
+				, 1
+			);
 		} catch (Exception e) {
 			ConsoleWriter.println("Repo is empty!");
 			//throw new ExceptionDBGit(e);

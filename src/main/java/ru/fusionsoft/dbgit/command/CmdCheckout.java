@@ -48,7 +48,7 @@ public class CmdCheckout implements IDBGitCommand {
 
 	@Override
 	public void execute(CommandLine cmdLine) throws Exception {
-		
+
 		String[] args = cmdLine.getArgs();
 		ConsoleWriter.setDetailedLog(cmdLine.hasOption("v"));
 

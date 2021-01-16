@@ -25,7 +25,6 @@ public class DBRestoreProcedurePostgres extends DBRestoreAdapter {
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
 		try {
 			if (obj instanceof MetaProcedure) {
-				ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "restorePrc").withParams(obj.getName()), 1);
 				MetaProcedure restoreProc = (MetaProcedure)obj;
 				NameMeta nm = new NameMeta(restoreProc);
 				String restoreProcName = nm.getName();
@@ -74,7 +73,7 @@ public class DBRestoreProcedurePostgres extends DBRestoreAdapter {
 			ConsoleWriter.detailsPrintlnRed(e.getLocalizedMessage());
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()), e);
 		} finally {
-			ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+			ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 			st.close();
 		}
 		return true;

@@ -23,7 +23,6 @@ public class DBRestorePackageOracle extends DBRestoreAdapter {
 		IDBAdapter adapter = getAdapter();
 		Connection connect = adapter.getConnection();
 		st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
-		ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "restorePkg").withParams(obj.getName()), 1);
 		try {
 			if (obj instanceof MetaPackage) {
 				MetaPackage restorePackage = (MetaPackage) obj;								
@@ -45,7 +44,7 @@ public class DBRestorePackageOracle extends DBRestoreAdapter {
 					 executeSql(restorePackage.getSqlObject().getSql());
 					//TODO Восстановление привилегий	
 				}
-				ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+				ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 			}
 			else
 			{

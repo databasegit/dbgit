@@ -121,7 +121,6 @@ public class DBRestoreTableDataMssql extends DBRestoreAdapter {
 			schema = (SchemaSynonym.getInstance().getSchema(schema) == null) ? schema : SchemaSynonym.getInstance().getSchema(schema);
 			String tblName = schema + "." + restoreTableData.getTable().getName();
 
-			ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "tableData").withParams(tblName) + "\n", 1);
 
 			// TODO MSSQL restore TableData script
 			ResultSet rsTypes = st.executeQuery("select column_name, data_type from information_schema.columns \r\n" +
@@ -135,7 +134,7 @@ public class DBRestoreTableDataMssql extends DBRestoreAdapter {
 
 			if(!diffTableData.entriesOnlyOnLeft().isEmpty()) {
 
-				ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "inserting"), 2);
+				ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "inserting"), 3);
 
 				for(RowData rowData:diffTableData.entriesOnlyOnLeft().values()) {
 					ArrayList<String> fieldsList = new ArrayList<String>(rowData.getData().keySet());
@@ -171,11 +170,11 @@ public class DBRestoreTableDataMssql extends DBRestoreAdapter {
 
 					st.execute(insertQuery);
 				}
-				ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+				ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 			}
 
 			if(!diffTableData.entriesOnlyOnRight().isEmpty()){
-				ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "deleting"), 2);
+				ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "deleting"), 3);
 				String deleteQuery="";
 				Map<String,String> primarykeys = new HashMap();
 				for(RowData rowData:diffTableData.entriesOnlyOnRight().values()) {
@@ -213,11 +212,11 @@ public class DBRestoreTableDataMssql extends DBRestoreAdapter {
 				if(deleteQuery.length()>1) {
 					st.execute(deleteQuery);
 				}
-				ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+				ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 			}
 
 			if(!diffTableData.entriesDiffering().isEmpty()) {
-				ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "updating"), 2);
+				ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "updating"), 3);
 				String updateQuery="";
 				Map<String,String> primarykeys = new HashMap();
 				for(ValueDifference<RowData> diffRowData:diffTableData.entriesDiffering().values()) {
@@ -305,7 +304,7 @@ public class DBRestoreTableDataMssql extends DBRestoreAdapter {
 
 					}
 				}
-				ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+				ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 				if(updateQuery.length()>1) {
 					ConsoleWriter.println(updateQuery);
 					st.execute(updateQuery);
@@ -447,7 +446,7 @@ public class DBRestoreTableDataMssql extends DBRestoreAdapter {
 	}
 
 	public void restoreTableConstraintMssql(MetaTable table) throws Exception {
-		ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "restoreConstr").withParams(table.getName()), 1);
+		ConsoleWriter.detailsPrintLn(lang.getValue("general", "restore", "restoreConstr").withParams(table.getName()), 3);
 		IDBAdapter adapter = getAdapter();
 		Connection connect = adapter.getConnection();
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
@@ -464,7 +463,7 @@ public class DBRestoreTableDataMssql extends DBRestoreAdapter {
 			ConsoleWriter.println(lang.getValue("errors", "restore", "objectRestoreError").withParams(e.getLocalizedMessage()));
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(schema + "." + table.getTable().getName()), e);
 		} finally {
-			ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+			ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 			st.close();
 		}
 	}
@@ -477,7 +476,7 @@ public class DBRestoreTableDataMssql extends DBRestoreAdapter {
 		String schema = getPhisicalSchema(table.getTable().getSchema());
 		schema = (SchemaSynonym.getInstance().getSchema(schema) == null) ? schema : SchemaSynonym.getInstance().getSchema(schema);
 		String tblName = schema + "." +table.getTable().getName();
-		ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "delConstr").withParams(table.getName()), 1);
+		ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "delConstr").withParams(table.getName()), 3);
 		try {
 			//TODO MSSQL remove table constraints script
 			ResultSet rs = stCnt.executeQuery("SELECT *\r\n" +
@@ -506,7 +505,7 @@ public class DBRestoreTableDataMssql extends DBRestoreAdapter {
 				}
 			}
 			//}	
-			ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+			ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 
 		} catch (Exception e) {
 			ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));

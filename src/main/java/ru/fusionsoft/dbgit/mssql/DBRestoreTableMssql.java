@@ -1,6 +1,6 @@
 package ru.fusionsoft.dbgit.mssql;
 
-import ch.qos.logback.classic.db.names.TableName;
+import com.diogonunes.jcdp.color.api.Ansi;
 import com.google.common.collect.Lists;
 import com.google.common.collect.MapDifference;
 import com.google.common.collect.MapDifference.ValueDifference;
@@ -53,14 +53,10 @@ public class DBRestoreTableMssql extends DBRestoreAdapter {
 				MetaTable restoreTable = (MetaTable) obj;
 				String tblSchema = getPhisicalSchema(restoreTable.getTable().getSchema().toLowerCase());
 				String tblName = restoreTable.getTable().getName();
-				String tblSam = tblSchema+"."+tblName;
 
-				ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "restoreTable").withParams(tblSam) + "\n", 1);
-
-				Map<String, DBTable> tables = adapter.getTables(tblSchema);
 
 				if(!isTablePresent(tblSchema ,tblName)){
-					ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "createTable"), 2);
+					ConsoleWriter.detailsPrintLn(lang.getValue("general", "restore", "createTable"), 3);
 
 					DBTable table = restoreTable.getTable();
 
@@ -72,7 +68,7 @@ public class DBRestoreTableMssql extends DBRestoreAdapter {
 					")";
 					st.execute(ddl);
 
-					ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+					ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 				}
 				restoreTableFieldsMssql(restoreTable, tblName, tblSchema, st);
 
@@ -103,7 +99,7 @@ public class DBRestoreTableMssql extends DBRestoreAdapter {
 		IDBAdapter adapter = getAdapter();
 		Connection connect = adapter.getConnection();
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
-		ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "restoreIndex").withParams(obj.getName()), 1);
+		ConsoleWriter.detailsPrintLn(lang.getValue("general", "restore", "restoreIndex").withParams(obj.getName()), 3);
 		try {
 			if (obj instanceof MetaTable) {
 				MetaTable restoreTable = (MetaTable)obj;
@@ -182,7 +178,7 @@ public class DBRestoreTableMssql extends DBRestoreAdapter {
 			ConsoleWriter.println(lang.getValue("errors", "restore", "objectRestoreError").withParams(e.getLocalizedMessage()));
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()), e);
 		} finally {
-			ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+//			ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 			st.close();
 		}
 	}
@@ -191,7 +187,7 @@ public class DBRestoreTableMssql extends DBRestoreAdapter {
 		IDBAdapter adapter = getAdapter();
 		Connection connect = adapter.getConnection();
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
-		ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "restoreConstr").withParams(obj.getName()), 1);
+		ConsoleWriter.detailsPrintLn(lang.getValue("general", "restore", "restoreConstr").withParams(obj.getName()), 3);
 		try {
 			if (obj instanceof MetaTable) {
 				MetaTable restoreTable = (MetaTable)obj;
@@ -222,7 +218,7 @@ public class DBRestoreTableMssql extends DBRestoreAdapter {
 			ConsoleWriter.println(lang.getValue("errors", "restore", "objectRestoreError").withParams(e.getLocalizedMessage()));
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()), e);
 		} finally {
-			ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+			ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 			st.close();
 		}
 	}
@@ -276,7 +272,7 @@ public class DBRestoreTableMssql extends DBRestoreAdapter {
 
 
 		if( !restoringUniqueFields.isEmpty()){
-			ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "addColumns"), 2);
+			ConsoleWriter.detailsPrintLn(lang.getValue("general", "restore", "addColumns"), 3);
 
 			List<DBTableField> values = restoringUniqueFields.values()
 					.stream()
@@ -288,22 +284,22 @@ public class DBRestoreTableMssql extends DBRestoreAdapter {
 				st.execute(fieldDdl);
 			}
 
-			ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+			ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 		}
 
 		if( !existingUniqueFields.isEmpty()) {
-			ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "droppingColumns"), 2);
+			ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "droppingColumns"), 3);
 
 			for(DBTableField tblField:existingUniqueFields.values()) {
 				String fieldDdl = MessageFormat.format("ALTER TABLE {1} DROP COLUMN [{2}]", tblSam, tblField.getName());
 				st.execute(fieldDdl);
 			}
 
-			ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+			ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 		}
 
 		if(!mergingFields.isEmpty()) {
-			ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "modifyColumns"), 2);
+			ConsoleWriter.detailsPrintLnColor(lang.getValue("general", "restore", "modifyColumns"), 3, Ansi.FColor.WHITE);
 
 			for(ValueDifference<DBTableField> fld : mergingFields.values()) {
 				DBTableField oldValue = fld.rightValue();
@@ -323,7 +319,7 @@ public class DBRestoreTableMssql extends DBRestoreAdapter {
 				}
 			}
 
-			ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+			ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 		}
 	}
 
@@ -364,7 +360,7 @@ public class DBRestoreTableMssql extends DBRestoreAdapter {
 	}
 
 	private void restoreTablePksMssql(MetaTable restoreTable, StatementLogging st) throws SQLException {
-		ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "addPk"), 2);
+		ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "addPk"), 3);
 		String tblSchema = restoreTable.getTable().getSchema();
 		String tblName = restoreTable.getTable().getName();
 		boolean flagPkCreated = false;
@@ -387,13 +383,13 @@ public class DBRestoreTableMssql extends DBRestoreAdapter {
 		}
 
 
-		ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+		ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 		flagPkCreated = true;
 
 		if (!flagPkCreated) {
 			for(DBTableField field: restoreTable.getFields().values()) {
 				if (field.getIsPrimaryKey()) {
-					ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "addPk"), 2);
+					ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "addPk"), 3);
 
 					String ddl = MessageFormat.format(
 							"ALTER TABLE {0} ADD CONSTRAINT PK_{1}_{2} PRIMARY KEY([{2}])",
@@ -401,7 +397,7 @@ public class DBRestoreTableMssql extends DBRestoreAdapter {
 					);
 					st.execute(ddl);
 
-					ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok")); break;
+					ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok")); break;
 				}
 			}
 		}

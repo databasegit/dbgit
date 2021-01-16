@@ -60,7 +60,6 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 				String schema = getPhisicalSchema(restoreTable.getTable().getSchema());
 				schema = (SchemaSynonym.getInstance().getSchema(schema) == null) ? schema : SchemaSynonym.getInstance().getSchema(schema);
 				String tblName = schema+"."+restoreTable.getTable().getName();
-				ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "restoreTable").withParams(tblName) + "\n", 1);
 
 				Map<String, DBTable> tables = adapter.getTables(schema.toUpperCase());
 				boolean exist = false;
@@ -73,7 +72,7 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 					}
 				}
 				if(!exist){			
-					ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "createTable"), 2);
+					ConsoleWriter.detailsPrintLn(lang.getValue("general", "restore", "createTable"), 3);
 					String ddl = "";
 					if (restoreTable.getTable().getOptions().get("ddl") != null)
 						ddl = restoreTable.getTable().getOptions().get("ddl").getData()
@@ -91,14 +90,14 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 					}
 					st.execute(ddl);					
 					
-					ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+					ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 				} else {
 				//restore tabl fields
 							Map<String, DBTableField> currentFileds = adapter.getTableFields(schema, restoreTable.getTable().getName().toLowerCase());
 							MapDifference<String, DBTableField> diffTableFields = Maps.difference(restoreTable.getFields(),currentFileds);
 							
 							if(!diffTableFields.entriesOnlyOnLeft().isEmpty()){
-								ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "addColumns"), 2);
+								ConsoleWriter.detailsPrintLn(lang.getValue("general", "restore", "addColumns"), 3);
 								
 								Comparator<DBTableField> comparator = (o1, o2) -> o1.getOrder().compareTo(o2.getOrder());
 								
@@ -108,19 +107,19 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 								for(DBTableField tblField : values) {
 										st.execute("alter table "+ tblName +" add " + tblField.getName()  + " " + tblField.getTypeSQL());
 								}								
-								ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+								ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 							}
 							
 							if(!diffTableFields.entriesOnlyOnRight().isEmpty()) {
-								ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "droppingColumns"), 2);
+								ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "droppingColumns"), 3);
 								for(DBTableField tblField:diffTableFields.entriesOnlyOnRight().values()) {
 									st.execute("alter table "+ tblName +" drop column "+ tblField.getName());
 								}								
-								ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+								ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 							}
 							
 							if(!diffTableFields.entriesDiffering().isEmpty()) {
-								ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "modifyColumns"), 2);
+								ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "modifyColumns"), 3);
 
 								for(ValueDifference<DBTableField> tblField:diffTableFields.entriesDiffering().values()) {
 									if(!tblField.leftValue().getName().equals(tblField.rightValue().getName())) {
@@ -131,7 +130,7 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 										st.execute("alter table "+ tblName +" modify "+ tblField.leftValue().getName() +" "+ tblField.leftValue().getTypeSQL());
 									}
 								}		
-								ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+								ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 							}						
 				}
 				
@@ -153,7 +152,7 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 							st.execute(tableconst.getOptions().get("ddl").toString().replace(" " +tableconst.getSchema() + ".", " " + schema + "."));
 						else if (tableconst.getOptions().get("ddl").toString().toLowerCase().startsWith("primary key"))
 							st.execute("alter table "+ tblName +" add constraint PK_"+ tableconst.getName() + tableconst.getOptions().get("ddl").toString());
-						ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+						ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 						flagPkCreated = true;
 						break;
 					}
@@ -164,7 +163,7 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 						if (field.getIsPrimaryKey()) {
 							ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "addPk"), 2);
 							st.execute("alter table "+ tblName +" add constraint pk_" + restoreTable.getTable().getName() + "_" + field.getName() + " PRIMARY KEY (" + field.getName() + ")");
-							ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));							
+							ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 							break;
 						}
 					}
@@ -274,7 +273,7 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 		Connection connect = adapter.getConnection();
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
 		
-		ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "restoreIndex").withParams(obj.getName()), 1);
+		ConsoleWriter.detailsPrintLn(lang.getValue("general", "restore", "restoreIndex").withParams(obj.getName()), 3);
 		try {
 			if (obj instanceof MetaTable) {
 				MetaTable restoreTable = (MetaTable)obj;	
@@ -310,7 +309,7 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 						st.execute(ind.getSql());						
 					}
 				}
-				ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+				ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 			}
 			else
 			{
@@ -331,7 +330,7 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 		IDBAdapter adapter = getAdapter();
 		Connection connect = adapter.getConnection();
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
-		ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "restoreConstr").withParams(obj.getName()), 1);
+		ConsoleWriter.detailsPrintLn(lang.getValue("general", "restore", "restoreConstr").withParams(obj.getName()), 3);
 		try {
 			if (obj instanceof MetaTable) {
 				MetaTable restoreTable = (MetaTable)obj;
@@ -344,7 +343,7 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 						st.execute(constrs.getOptions().get("ddl").toString().replace(" " + constrs.getSchema() + ".", " " + schema + "."));
 					}
 				}
-				ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+				ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 			}
 			else
 			{

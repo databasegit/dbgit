@@ -1,0 +1,50 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<configuration>
+	<statusListener class="ch.qos.logback.core.status.NopStatusListener" />
+	
+	<timestamp key="time" datePattern="yyyyMMdd"/>
+	
+	<property name="log_dir_rep" value=".dbgit/logs"/>	
+	<property name="log_dir_home" value="${user.home}/dbgit/logs"/>	
+	
+	<define name="INCLUDED_FILE_EXISTS"
+    	class="ch.qos.logback.core.property.FileExistsPropertyDefiner">
+    	<path>.dbgit/logs</path>
+	</define>
+	
+	<appender name='logAppander' class='ch.qos.logback.core.FileAppender'>
+		<!-- <file>${log_dir}/log-${time}.log</file> -->
+		
+		<!-- <if condition='property("INCLUDED_FILE_EXISTS").equals("true")'> -->
+		<if condition='property("INCLUDED_FILE_EXISTS").equals("true")'>
+	    	<then>
+	        	<file>${log_dir_rep}/log-${time}.log</file>
+	    	</then>
+	    	<else>
+	    		<file>${log_dir_home}/log-${time}.log</file>
+	    	</else>
+		</if> 
+		
+		 <layout class="ch.qos.logback.classic.PatternLayout">
+            <Pattern>%date %level [%thread] %logger{10} [%file:%line] %msg%n</Pattern>
+        </layout>
+	</appender>	
+	
+	
+	<appender name='sout' class='ch.qos.logback.core.ConsoleAppender'>
+    	<layout class='ch.qos.logback.classic.PatternLayout'>
+        	<Pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</Pattern>
+    	</layout>
+  	</appender>  
+  	
+  	<logger name="ru.fusionsoft.dbgit" level="INFO" additivity="false">
+    	<appender-ref ref='logAppander'/>
+  	</logger>
+  	
+	<root>
+		<level value="ERROR" />
+		<!--   --><level value='${log_root_level:-info}'/> -->	
+		<appender-ref ref='sout'/>  
+		<appender-ref ref='logAppander'/>
+	</root>
+</configuration>

@@ -86,6 +86,12 @@
 
 		<resources>
 			<resource>
+				<directory>${project.basedir}/src/main/resources/</directory>
+				<includes><!-- what -->
+					<include>logback.xml</include>
+				</includes>
+			</resource>
+			<resource>
 				<directory>${project.basedir}/src/main/resources/scripts</directory><!-- from -->
 				<targetPath>${project.build.directory}/dbgit</targetPath><!-- to -->
 				<includes><!-- what -->
@@ -114,8 +120,15 @@
 				</includes>
 			</resource>
 			<resource>
-				<directory>${project.basedir}/src/main/resources</directory><!-- from -->
-				<targetPath>${project.build.directory}/dbgit</targetPath><!-- to -->
+				<directory>${project.basedir}/src/main/resources/example</directory><!-- from -->
+				<targetPath>${project.build.directory}/dbgit/example</targetPath><!-- to -->
+				<includes><!-- what -->
+					<include>.dblink</include>
+				</includes>
+			</resource>
+			<resource>
+				<directory>${project.basedir}/src/main/resources/</directory><!-- from -->
+				<targetPath>${project.build.directory}/dbgit/</targetPath><!-- to -->
 				<includes><!-- what -->
 					<include>dbgitconfig</include>
 				</includes>

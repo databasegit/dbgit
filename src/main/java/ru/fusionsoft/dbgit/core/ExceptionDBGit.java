@@ -33,14 +33,18 @@ public class ExceptionDBGit extends Exception {
 	}
 	
 	public ExceptionDBGit(String message, Throwable cause) {
-//		super(message, cause);
+
 		rollbackConnection();
-		ConsoleWriter.printlnRed(message);
-		if(!cause.getMessage().equals(message)) {
-			ConsoleWriter.printlnRed(cause.getLocalizedMessage());
+
+		if(message != null && !message.equals(cause.getMessage())) {
+			ConsoleWriter.printlnRed(message);
 		}
-		ConsoleWriter.detailsPrintLn(ExceptionUtils.getStackTrace(cause));
-		logger.error(message, cause);
+
+		ConsoleWriter.printlnRed(cause.getLocalizedMessage());
+		ConsoleWriter.detailsPrintlnRed(ExceptionUtils.getStackTrace(cause));
+		ConsoleWriter.printlnRed("");
+
+		logger.error(message != null ? message : cause.getMessage(), cause);
 		System.exit(1);
 	}
 
@@ -58,8 +62,7 @@ public class ExceptionDBGit extends Exception {
 	}
 
 	public ExceptionDBGit(Throwable cause) {
-		super(cause);
-		logger.error(cause.getLocalizedMessage(), cause);
+		this(null, cause);
 	}
 
 }

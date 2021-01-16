@@ -32,6 +32,7 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 
 	@Override
 	public boolean restoreMetaObject(IMetaObject obj, int step) throws Exception {
+
 		if(Integer.valueOf(step).equals(0)) {
 			restoreTablePostgres(obj);
 			return false;
@@ -86,24 +87,24 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 				MetaTable restoreTable = (MetaTable)obj;
 				MetaTable existingTable = new MetaTable(restoreTable.getTable());
 
+
 				String schema = adapter.escapeNameIfNeeded(getPhisicalSchema(restoreTable.getTable().getSchema().toLowerCase()));
 				String tblName = adapter.escapeNameIfNeeded(restoreTable.getTable().getName());
 				String tblSam = adapter.escapeNameIfNeeded(schema) + "." + adapter.escapeNameIfNeeded(tblName);
 
-				ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "restoreTable").withParams(schema+"."+tblName), 1);
 
 				//find existing table and set tablespace or create
 				if (existingTable.loadFromDB()){
 
 					restoreTableTablespace(st, restoreTable, existingTable);
 					restoreTableOwner(st, restoreTable, existingTable);
-					ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+					ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 
 				} else {
 
-					ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "createTable"), 2);
+					ConsoleWriter.detailsPrintLn(lang.getValue("general", "restore", "createTable"), 3);
 					createTable(st, restoreTable);
-					ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+					ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 
 				}
 
@@ -127,7 +128,7 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 		IDBAdapter adapter = getAdapter();
 		Connection connect = adapter.getConnection();
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
-		ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "restoreIndex").withParams(obj.getName()), 1);
+		ConsoleWriter.detailsPrintLn(lang.getValue("general", "restore", "restoreIndex").withParams(obj.getName()), 3);
 		try {
 			if (obj instanceof MetaTable) {
 				MetaTable restoreTable = (MetaTable)obj;
@@ -186,7 +187,7 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 			ConsoleWriter.println(lang.getValue("errors", "restore", "objectRestoreError").withParams(e.getLocalizedMessage()));
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()), e);
 		} finally {
-			ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+//			ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 			st.close();
 		}
 	}
@@ -196,7 +197,7 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
 		try {
 			if (obj instanceof MetaTable) {
-				ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "restoreTableConstraints").withParams(obj.getName()), 1);
+				ConsoleWriter.detailsPrintLn(lang.getValue("general", "restore", "restoreTableConstraints").withParams(obj.getName()), 2);
 				MetaTable restoreTable = (MetaTable)obj;
 				MetaTable existingTable = new MetaTable(restoreTable.getTable());
 				existingTable.loadFromDB();
@@ -225,20 +226,18 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 
 				//process intersects
 				for (ValueDifference<DBConstraint> constr : diff.entriesDiffering().values()){
-					MapDifference<String, StringProperties> propsDiff = Maps.difference(constr.leftValue().getOptions().getChildren(), constr.leftValue().getOptions().getChildren());
-					ConsoleWriter.printlnColor("Difference in constraints: " + propsDiff.toString(), Ansi.FColor.MAGENTA, 1);
+					//MapDifference<String, StringProperties> propsDiff = Maps.difference(constr.leftValue().getOptions().getChildren(), constr.leftValue().getOptions().getChildren());
+					//ConsoleWriter.printlnColor("Difference in constraints: " + propsDiff.toString(), Ansi.FColor.MAGENTA, 1);
 					createConstraint(restoreTable, constr.rightValue(), st, true);
 				}
 
-				ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+				ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 			}
 			else {
 				ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
 				throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()));
 			}
 		} catch (Exception e) {
-			ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
-			ConsoleWriter.println(lang.getValue("errors", "restore", "objectRestoreError").withParams(e.getLocalizedMessage()));
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()), e);
 		} finally {
 			st.close();
@@ -265,7 +264,7 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 			MapDifference<String, DBTableField> diffTableFields = Maps.difference(restoreTable.getFields(),existingTable.getFields());
 
 			if(!diffTableFields.entriesOnlyOnLeft().isEmpty()){
-				ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "addColumns"), 0);
+				ConsoleWriter.detailsPrintLn(lang.getValue("general", "restore", "addColumns"), 3);
 
 				List<DBTableField> fields = diffTableFields.entriesOnlyOnLeft().values().stream()
 					.sorted(Comparator.comparing(DBTableField::getOrder))
@@ -275,20 +274,20 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 					lastField = tblField.getName();
 					addColumn(tblSam, tblField, st);
 				}
-				ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+				ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 			}
 
 			if(!diffTableFields.entriesOnlyOnRight().isEmpty()) {
-				ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "droppingColumns"), 2);
+				ConsoleWriter.detailsPrintLn(lang.getValue("general", "restore", "droppingColumns"), 3);
 				for(DBTableField tblField:diffTableFields.entriesOnlyOnRight().values()) {
 					lastField = tblField.getName();
 					dropColumn(tblSam, tblField, st);
 				}
-				ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+				ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 			}
 
 			if(!diffTableFields.entriesDiffering().isEmpty()) {
-				ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "modifyColumns"), 2);
+				ConsoleWriter.detailsPrintLn(lang.getValue("general", "restore", "modifyColumns"), 3);
 				for(ValueDifference<DBTableField> tblField:diffTableFields.entriesDiffering().values()) {
 					lastField = tblField.leftValue().getName();
 
@@ -324,12 +323,12 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 						//	);
 					}
 				}
-				ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+				ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 			}
 		} catch (Exception e) {
-			throw new ExceptionDBGitRestore(
+			throw new ExceptionDBGit(
 				lang.getValue("errors", "restore", "objectRestoreError").withParams(restoreTable.getName()+"#"+lastField)
-				+ "\n" + e.getMessage()
+				, e
 			);
 		}
 	}

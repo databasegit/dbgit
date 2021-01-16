@@ -80,16 +80,15 @@ public class CmdRm implements IDBGitCommand {
 					metaObject = IMetaObject.create(idxItem.getName());
 				}
 
-				ConsoleWriter.detailsPrintlnGreen(getLang().getValue("general", "ok"));
+				ConsoleWriter.detailsPrintGreen(getLang().getValue("general", "ok"));
 				ConsoleWriter.detailsPrint(getLang().getValue("general", "rm", "markingToDelete") + " ... ", 2);
 				index.markItemToDelete(metaObject);
-				ConsoleWriter.detailsPrintlnGreen(getLang().getValue("general", "ok"));
+				ConsoleWriter.detailsPrintGreen(getLang().getValue("general", "ok"));
 
 
 				Timestamp timestampAfter = new Timestamp(System.currentTimeMillis());
 				Long diff = timestampAfter.getTime() - timestampBefore.getTime();
 				ConsoleWriter.detailsPrint(getLang().getValue("general", "time").withParams(diff.toString()), 2);
-				ConsoleWriter.detailsPrintLn("");
 			}
 		}
 		if (forgetImmediately) {
@@ -97,13 +96,13 @@ public class CmdRm implements IDBGitCommand {
 			index.getTreeItems().values().stream().filter(ItemIndex::getIsDelete).collect(Collectors.toList()).forEach(x->index.getTreeItems().remove(x.getName()));
 			index.saveDBIndex();
 			index.addToGit();
-			ConsoleWriter.detailsPrintlnGreen(getLang().getValue("general", "ok"));
+			ConsoleWriter.detailsPrintGreen(getLang().getValue("general", "ok"));
 		}
 
 		if (cmdLine.hasOption("db")) {
 			ConsoleWriter.detailsPrint(getLang().getValue("general", "rm", "removingFromDb"), 2);
 			gmdm.deleteDataBase(deleteObjs, true);
-			ConsoleWriter.detailsPrintlnGreen(getLang().getValue("general", "ok"));
+			ConsoleWriter.detailsPrintGreen(getLang().getValue("general", "ok"));
 		}
 
 		if (countDelete > 0) {

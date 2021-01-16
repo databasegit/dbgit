@@ -20,8 +20,7 @@ public class DBRestoreProcedureOracle extends DBRestoreAdapter {
 		IDBAdapter adapter = getAdapter();
 		Connection connect = adapter.getConnection();
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
-		ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "restorePrc").withParams(obj.getName()), 1);
-		try {						
+		try {
 			if (obj instanceof MetaProcedure) {
 				MetaProcedure restoreProcedure = (MetaProcedure)obj;								
 				Map<String, DBProcedure> prcds = adapter.getProcedures(restoreProcedure.getSqlObject().getSchema());
@@ -41,7 +40,7 @@ public class DBRestoreProcedureOracle extends DBRestoreAdapter {
 					st.execute(restoreProcedure.getSqlObject().getSql(), "/");
 					//TODO Восстановление привилегий	
 				}
-				ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+				ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 			}
 			else
 			{

@@ -115,7 +115,11 @@ public class DBConnection {
 		      writer.write(key+"="+ props.getProperty(key)+"\n");		      
 		    }		   
 		    writer.close();
-		    ConsoleWriter.println(DBGitLang.getInstance().getValue("general", "link", "dblinkCreated").withParams(DBGitPath.getFullPath(DBGitPath.DB_LINK_FILE)));
+		    ConsoleWriter.detailsPrintLn(
+				DBGitLang.getInstance().getValue("general", "link", "dblinkCreated")
+					.withParams(DBGitPath.getFullPath(DBGitPath.DB_LINK_FILE))
+				, 1
+			);
 	    } catch(Exception e) {
 	    	throw new ExceptionDBGit(e);
 	    }

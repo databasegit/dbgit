@@ -84,9 +84,13 @@ public abstract class DBBackupAdapter implements IDBBackupAdapter {
 			.filter(this::isBackupObject)
 			.collect(Collectors.toList()));
 
-
-
-		ConsoleWriter.printlnGreen(MessageFormat.format("Try to backup {0} present of {1} restoring objects ", dbToBackup.size(), updateObjs.size()));
+		ConsoleWriter.println(DBGitLang.getInstance()
+		    .getValue("general", "backup", "tryToBackup")
+		    .withParams(
+				String.valueOf(dbToBackup.size()),
+				String.valueOf(updateObjs.size()))
+		    , 1
+		);
 
 
 		// collect restore objects dependencies to satisfy all backups create needs
@@ -104,8 +108,12 @@ public abstract class DBBackupAdapter implements IDBBackupAdapter {
 			dbToBackup.putAll(addedObjs);
 
 			if(addedObjs.size() > 0) {
-				ConsoleWriter.detailsPrintlnGreen(MessageFormat.format("Found {0} depending backups: {1}"
-					, addedObjs.size(), String.join(" ,", addedObjs.keySet()))
+				ConsoleWriter.println(DBGitLang.getInstance()
+					.getValue("general", "backup", "dependingBackups")
+					.withParams(
+						String.valueOf(addedObjs.size()),
+						String.join(" ,", addedObjs.keySet())
+					), 2
 				);
 			}
 		} while (addedObjs.size() > 0);
@@ -129,16 +137,23 @@ public abstract class DBBackupAdapter implements IDBBackupAdapter {
 			dropList.addAll(dbDroppingBackupsDeps);
 			List<IMetaObject> dropListSorted =  new SortedListMetaObject(dropList).sortFromDependencies();
 
-			ConsoleWriter.printlnGreen(MessageFormat.format("Rewriting {0} backups with {1} dependencies", dbDroppingBackups.size(), dbDroppingBackupsDeps.size()));
-			dropListSorted.forEach( x -> ConsoleWriter.detailsPrintlnGreen( x.getName()));
+			ConsoleWriter.println(DBGitLang.getInstance()
+				.getValue("general", "backup", "rewritingBackups")
+				.withParams(
+					String.valueOf(dbDroppingBackups.size()),
+					String.valueOf(dbDroppingBackupsDeps.size())
+				), 2
+			);
+
+			//dropListSorted.forEach( x -> ConsoleWriter.detailsPrintLnColor( x.getName(), 3, Ansi.FColor.MAGENTA));
 
 			//drop backups in one place
 			for(IMetaObject imo : dropListSorted){
-				ConsoleWriter.detailsPrint(lang.getValue("general", "backup", "droppingBackup").withParams(imo.getName()), 1);
+				ConsoleWriter.detailsPrintLn(lang.getValue("general", "backup", "droppingBackup").withParams(imo.getName()), 3);
 
 				dropIfExists(imo, stLog);
 
-				ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+				ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 			}
 
 			//create backups

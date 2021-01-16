@@ -9,6 +9,7 @@ import java.util.Date;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.diogonunes.jcdp.color.api.Ansi;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 
@@ -51,7 +52,8 @@ public class CmdRestore implements IDBGitCommand {
 		GitMetaDataManager gmdm = GitMetaDataManager.getInstance();
 
 		ConsoleWriter.setDetailedLog(cmdLine.hasOption("v"));
-		ConsoleWriter.println("");
+		ConsoleWriter.println(getLang().getValue("general", "restore", "do"), 0);
+
 		boolean toMakeChanges = cmdLine.hasOption("r");
 		boolean toMakeBackup = DBGitConfig.getInstance().getBoolean("core", "TO_MAKE_BACKUP", true);
 
@@ -68,49 +70,60 @@ public class CmdRestore implements IDBGitCommand {
 		IMapMetaObject updateObjs = new TreeMapMetaObject();
 		IMapMetaObject deleteObjs = new TreeMapMetaObject();
 
-		if (toMakeBackup) { ConsoleWriter.printlnGreen(getLang().getValue("general", "restore", "willMakeBackup").toString()); }
-		if (toMakeChanges) { ConsoleWriter.printlnGreen(getLang().getValue("general", "restore", "toMakeChanges").toString()); }
-		else { ConsoleWriter.printlnGreen(getLang().getValue("general", "restore", "notMakeChanges").withParams(autoScriptFile.getAbsolutePath())); }
+		if (toMakeBackup) { ConsoleWriter.printlnColor(getLang().getValue("general", "restore", "willMakeBackup").toString(), Ansi.FColor.GREEN, 1); }
+		if (toMakeChanges) { ConsoleWriter.printlnColor(getLang().getValue("general", "restore", "toMakeChanges").toString(), Ansi.FColor.GREEN, 1); }
+		else { ConsoleWriter.printlnColor(getLang().getValue("general", "restore", "notMakeChanges").withParams(autoScriptFile.getAbsolutePath()), Ansi.FColor.GREEN, 1); }
 
 		//delete that not present in HEAD
 		try {
 			DBGitIndex index = DBGitIndex.getInctance();
 			DBGitIgnore ignore = DBGitIgnore.getInstance();
 
-			ConsoleWriter.println(getLang().getValue("general", "restore", "seekingToRemove"));
+			ConsoleWriter.println(getLang().getValue("general", "restore", "seekingToRemove"),1);
+//			ConsoleWriter.print(getLang().getValue("general", "restore", "toRemove"));
+
 			for ( ItemIndex item : index.getTreeItems().values() ) {
 				if ( ignore.matchOne(item.getName()) ) continue;
+
 				if ( item.getIsDelete() ) {
+
 					if ( !dbObjs.containsKey(item.getName()) ) {
-						ConsoleWriter.println(getLang().getValue("general", "restore", "notExists").withParams(item.getName()));
+						ConsoleWriter.println(getLang().getValue("general", "restore", "notExists").withParams(item.getName()), 2);
 						index.removeItem(item.getName());
 					} else {
+
 						try {
 							IMetaObject obj = MetaObjectFactory.createMetaObject(item.getName());
 							gmdm.loadFromDB(obj);
 							if (item.getHash().equals(obj.getHash())) {
 								deleteObjs.put(obj);
-								if (deleteObjs.size() == 1) ConsoleWriter.println(getLang().getValue("general", "restore", "toRemove"));
-								ConsoleWriter.println("    " + obj.getName());
+
+								ConsoleWriter.println(getLang().getValue("general", "restore", "objectToRemove").withParams(obj.getName()), 2);
 							}
 						} catch(ExceptionDBGit e) {
-							LoggerUtil.getGlobalLogger().error(getLang().getValue("errors", "restore", "cantConnect") + ": " + item.getName(), e);
+							throw e;
+							//LoggerUtil.getGlobalLogger().error(getLang().getValue("errors", "restore", "cantConnect") + ": " + item.getName(), e);
 						}
 					}
 				}
 			}
+			if (deleteObjs.size() == 0) ConsoleWriter.println(getLang().getValue("general", "restore", "nothingToRemove").toString(), 2);
 
-			ConsoleWriter.println(getLang().getValue("general", "restore", "seekingToRestore"));
+
+			ConsoleWriter.println(getLang().getValue("general", "restore", "seekingToRestore"),1);
 			for (IMetaObject obj : fileObjs.values()) {
 
 				//запомнили файл если хеш разный или объекта нет
 				if (checkNeedsRestore(obj)) {
 					updateObjs.put(obj);
-					if (updateObjs.size() == 1){
-						ConsoleWriter.println(getLang().getValue("general", "restore", "toRestore"));
-					}
-					ConsoleWriter.println("    " + obj.getName());
+//					if (updateObjs.size() == 1){
+//						ConsoleWriter.print(getLang().getValue("general", "restore", "toRestore"));
+//					}
+					ConsoleWriter.println(obj.getName(), 2);
 				}
+			}
+			if (updateObjs.size() == 0){
+				ConsoleWriter.println(getLang().getValue("general", "restore", "nothingToRestore").toString(), 2);
 			}
 
 			// to fix pk constraint re-creation error
@@ -122,6 +135,8 @@ public class CmdRestore implements IDBGitCommand {
 			// 2. re-create all constraints in default sorted order
 
 			// # steps 1,2 are in GitMetaDataManager::restoreDatabase
+
+			ConsoleWriter.println(getLang().getValue("general", "restore", "seekingToRestoreAdditional"),1);
 			Map<String, IMetaObject> affectedTables = dbObjs.values().stream().filter(excluded ->
 				excluded instanceof MetaTable &&
 				!updateObjs.containsKey(excluded.getName()) &&
@@ -130,10 +145,10 @@ public class CmdRestore implements IDBGitCommand {
 
 
 			if(affectedTables.isEmpty()){
-				ConsoleWriter.printlnRed("No affected tables...");
+				ConsoleWriter.println(getLang().getValue("general", "restore", "nothingToRestoreAdditional"), 2);
 			} else {
-				ConsoleWriter.printlnRed("Affected tables:");
-				affectedTables.forEach((k,v)->ConsoleWriter.printlnRed("\t"+k));
+//				ConsoleWriter.print(getLang().getValue("general", "restore", "toRestoreAdditional"));
+				affectedTables.forEach((k,v)->ConsoleWriter.println(k, 2));
 				updateObjs.putAll( affectedTables );
 			}
 
@@ -146,18 +161,14 @@ public class CmdRestore implements IDBGitCommand {
 				adapter.getBackupAdapterFactory().getBackupAdapter(adapter).backupDatabase(backupObjs);
 			}
 
-			if (deleteObjs.size() == 0){
-				ConsoleWriter.println(getLang().getValue("general", "restore", "nothingToRemove"));
-			} else {
-				if (toMakeChanges) ConsoleWriter.println(getLang().getValue("general", "restore", "removing"));
+			if (deleteObjs.size() != 0){
+				if (toMakeChanges) ConsoleWriter.println(getLang().getValue("general", "restore", "removing"),1);
 				gmdm.deleteDataBase(deleteObjs, true);
 			}
 
-			if (updateObjs.size() == 0){
-				ConsoleWriter.println(getLang().getValue("general", "restore", "nothingToRestore"));
-			}
+
 			if (toMakeChanges) {
-				ConsoleWriter.println(getLang().getValue("general", "restore", "restoring"));
+				ConsoleWriter.println(getLang().getValue("general", "restore", "restoring"),1);
 			}
 			gmdm.restoreDataBase(updateObjs);
 
@@ -172,10 +183,10 @@ public class CmdRestore implements IDBGitCommand {
 				File file = new File(scriptName);
 
 				if (!file.exists()) {
-					ConsoleWriter.detailsPrintLn(getLang().getValue("general", "restore", "scriptWillSaveTo").withParams(scriptName));
+					ConsoleWriter.println(getLang().getValue("general", "restore", "scriptWillSaveTo").withParams(scriptName),1);
 					Files.copy(autoScriptFile.toPath(), file.toPath());
 				} else {
-					ConsoleWriter.detailsPrintLn(getLang().getValue("errors", "restore", "fileAlreadyExists").withParams(scriptName));
+					ConsoleWriter.println(getLang().getValue("errors", "restore", "fileAlreadyExists").withParams(scriptName),1);
 				}
 			}
 		}

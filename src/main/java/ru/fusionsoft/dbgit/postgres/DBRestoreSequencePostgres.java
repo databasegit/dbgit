@@ -22,7 +22,6 @@ public class DBRestoreSequencePostgres extends DBRestoreAdapter {
 		IDBAdapter adapter = getAdapter();
 		Connection connect = adapter.getConnection();
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
-		ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "restoreSeq").withParams(obj.getName()), 1);
 		try {
 			if (obj instanceof MetaSequence) {
 				MetaSequence restoreSeq = (MetaSequence)obj;
@@ -69,7 +68,7 @@ public class DBRestoreSequencePostgres extends DBRestoreAdapter {
 							if(query.length()>1) {
 								st.execute(query);
 							}
-							ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+							ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 							//TODO Восстановление привилегий
 						}
 					}

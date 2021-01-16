@@ -39,7 +39,7 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 					createSchema(stLog, schema);
 				}
 
-				ConsoleWriter.detailsPrint(lang.getValue("general", "backup", "tryingToCopy").withParams(objectName, getFullDbName(schema, objectName)), 1);
+				ConsoleWriter.detailsPrintLn(lang.getValue("general", "backup", "tryingToCopy").withParams(objectName, getFullDbName(schema, objectName)), 3);
 				
 				//dropIfExists(isSaveToSchema() ? PREFIX + schema : schema, 
 				//		isSaveToSchema() ? objectName : PREFIX + objectName, stLog);
@@ -54,7 +54,7 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 				if (file.exists())
 					obj = metaSql.loadFromFile();
 		
-				ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+				ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 
 			} else if (obj instanceof MetaTable) {
 				
@@ -77,7 +77,7 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 				
 				if (isSaveToSchema()) { createSchema(stLog, schema); }
 
-				ConsoleWriter.detailsPrint(lang.getValue("general", "backup", "tryingToCopy").withParams(tableName, getFullDbName(schema, tableName)), 1);
+				ConsoleWriter.detailsPrintLn(lang.getValue("general", "backup", "tryingToCopy").withParams(tableName, getFullDbName(schema, tableName)), 3);
 
 				StringBuilder tableDdlSb = new StringBuilder(MessageFormat.format(
 					"create table {0} as (select * from {1}.{2} where 1={3}) {4};\n alter table {0} owner to {5};\n"
@@ -151,7 +151,7 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 				File file = new File(DBGitPath.getFullPath() + metaTable.getFileName());
 				if (file.exists())
 					obj = metaTable.loadFromFile();
-				ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+				ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 			} else if (obj instanceof MetaSequence) {
 				MetaSequence metaSequence = (MetaSequence) obj;
 				metaSequence.loadFromDB();
@@ -165,7 +165,7 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 
 				String sequenceName = getFullDbName(schema, objectName);
 				
-				ConsoleWriter.detailsPrint(lang.getValue("general", "backup", "tryingToCopy").withParams(objectName, getFullDbName(schema, objectName)), 1);
+				ConsoleWriter.detailsPrintLn(lang.getValue("general", "backup", "tryingToCopy").withParams(objectName, getFullDbName(schema, objectName)), 3);
 				
 				String ddl = "create sequence " + sequenceName + "\n"
 						+ (metaSequence.getSequence().getOptions().get("cycle_option").toString().equals("YES") ? "CYCLE\n" : "")
@@ -186,7 +186,7 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 				File file = new File(DBGitPath.getFullPath() + metaSequence.getFileName());				
 				if (file.exists())
 					obj = metaSequence.loadFromFile();
-				ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+				ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 			}			
 			
 		} catch (SQLException e1) {
@@ -299,7 +299,7 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 			
 			rs.next();
 			if (rs.getInt("cnt") == 0) {
-				ConsoleWriter.detailsPrintLn(lang.getValue("general", "backup", "creatingSchema").withParams(PREFIX + schema));
+				ConsoleWriter.detailsPrintLn(lang.getValue("general", "backup", "creatingSchema").withParams(PREFIX + schema), 3);
 				stLog.execute("create schema " + adapter.escapeNameIfNeeded(PREFIX + schema));
 			}
 			

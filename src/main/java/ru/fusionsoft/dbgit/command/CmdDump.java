@@ -79,15 +79,15 @@ public class CmdDump implements IDBGitCommand {
 					ConsoleWriter.detailsPrint(getLang().getValue("general", "dump", "fSwitchFound"), 2);
 				//сохранили файл если хеш разный
 				obj.saveToFile();
-				ConsoleWriter.detailsPrintlnGreen(getLang().getValue("general", "ok"));
+				ConsoleWriter.detailsPrintGreen(getLang().getValue("general", "ok"));
 				ConsoleWriter.detailsPrint(getLang().getValue("general", "dump", "addToIndex"), 2);
 				index.addItem(obj);				
-				ConsoleWriter.detailsPrintlnGreen(getLang().getValue("general", "ok"));
+				ConsoleWriter.detailsPrintGreen(getLang().getValue("general", "ok"));
 				
 				if (isAddToGit) {
 					ConsoleWriter.detailsPrint(getLang().getValue("general", "addToGit"), 2);
 					obj.addToGit();						
-					ConsoleWriter.detailsPrintlnGreen(getLang().getValue("general", "ok"));
+					ConsoleWriter.detailsPrintGreen(getLang().getValue("general", "ok"));
 				}
 			} else {
 				ConsoleWriter.detailsPrint(getLang().getValue("general", "dump", "hashesMatch") + "\n", 2);

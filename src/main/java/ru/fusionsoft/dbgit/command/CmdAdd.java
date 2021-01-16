@@ -80,15 +80,15 @@ public class CmdAdd implements IDBGitCommand {
 
 				Timestamp timestampBefore = new Timestamp(System.currentTimeMillis());
 				ConsoleWriter.detailsPrintLn(getLang().getValue("general", "add", "processingObject") + " " + obj.getName());
-				ConsoleWriter.detailsPrint(getLang().getValue("general", "add", "savingToFile"), 2);
+				ConsoleWriter.detailsPrintLn(getLang().getValue("general", "add", "savingToFile"), 2);
 
 				//TODO
 				obj.saveToFile();
 
-				ConsoleWriter.detailsPrintlnGreen(getLang().getValue("general", "ok"));
+				ConsoleWriter.detailsPrintGreen(getLang().getValue("general", "ok"));
 				ConsoleWriter.detailsPrint(getLang().getValue("general", "addToGit"), 2);
 				countSave += obj.addToGit();
-				ConsoleWriter.detailsPrintlnGreen(getLang().getValue("general", "ok"));
+				ConsoleWriter.detailsPrintGreen(getLang().getValue("general", "ok"));
 
 				Timestamp timestampAfter = new Timestamp(System.currentTimeMillis());
 				Long diff = timestampAfter.getTime() - timestampBefore.getTime();

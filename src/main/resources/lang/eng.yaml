@@ -14,9 +14,11 @@ general:
     connectionEstablished: Connection established
     dblinkCreated: File {0} has been created
   checkout:
+    do: Do checkout...
     toCreateBranch: To create new branch
     branchName: Branch name
     commitName: Commit name
+    commitMessage: Commit message
     updatedFromIndex: Updated {0} path{1} from the index
   clone:
     cloned: Repository cloned
@@ -44,14 +46,19 @@ general:
   fetch:
     fetching: Fetching...
   restore:
+    do: Do restore...
     scriptWillSaveTo: Script will be saved to {0}
     seekingToRemove: Seeking objects to remove...
     seekingToRestore: Seeking objects to restore...
+    seekingToRestoreAdditional: Seeking additional dependant objects to restore...
     toRestore: "Objects to restore:"
+    toRestoreAdditional: "Additional to restore:"
     toRemove: "Objects to remove:"
     notExists: Object {0} not exists in db, it will be removed from index
+    objectToRemove: Object {0} marked to delete
     nothingToRemove: No objects to remove
     nothingToRestore: No objects to restore
+    nothingToRestoreAdditional: No additional objects to restore
     restoring: Restoring...
     removing: Removing...
     removingObject: Removing {0}...
@@ -77,6 +84,9 @@ general:
     addColumns: Adding columns...
     modifyColumns: Modifying columns...
     droppingColumns: Dropping columns...
+    droppingTablesConstraints: Dropping constraints for all updating tables...
+    droppingTableConstraints: Dropping constraints for table {0}...
+    restoringTablesConstraints: Restoring constraints for all updated tables...
     addPk: Adding PK...
     inserting: Inserting...
     deleting: Deleting...
@@ -84,7 +94,7 @@ general:
     unsupportedTypes: Table {0} contains unsupported types, it will be skipped
     willMakeBackup: Backup option enabled, all objects will be backed up before making changes
     toMakeChanges: Restore key specified, the operation will make changes to database
-    notMakeChanges: The operation will NOT make changes to database, a sql script was generated at {0}. Use "-r" key to make changes.
+    notMakeChanges: The operation will NOT make changes to database
   rm:
     checking: Checking files
     deleting: Deleting
@@ -121,6 +131,9 @@ general:
     tryingToCopy: Trying to copy {0} to {1}...
     creatingSchema: Creating schema {0}
     droppingBackup: Dropping backup object {0}...
+    tryToBackup: Try to backup {0} present of {1} restoring objects ...
+    dependingBackups: Found {0} depending backups - {1}
+    rewritingBackups: Rewriting {0} backups with {1} found dependencies
 errors:
   commandNotFound: Command {0} not found!
   executionError: Error execute dbgit
@@ -267,13 +280,18 @@ help:
       dbgit add <SCHEME>/TEST_VIEW.vw
   add-c: Let you continue adding from last place if it was broken
   checkout: |
+    Calls git checkout and 'dbgit restore' then
     Example:
-      dbgit checkout master
+      dbgit checkout master       # checkout and restore (only script generated)
+      dbgit checkout master -r    # checkout and restore with changing database
+      dbgit checkout master -nodb # checkout only
+      dbgit checkout -ls          # see current branch
   checkout-b: create and checkout a new branch
   checkout-r: Updates database
   checkout-u: Upgrades branch to actual db and dbgit version state
   checkout-ls: Just see current branch, head and revision number
   checkout-no-db: Doesn't do restore after checkout
+  checkout-no-owner: Doesn't restore objects original owner
   clone: |
     Example:
       dbgit clone <link>

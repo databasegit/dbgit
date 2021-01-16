@@ -1,5 +1,6 @@
 package ru.fusionsoft.dbgit.adapters;
 
+import com.diogonunes.jcdp.color.api.Ansi;
 import ru.fusionsoft.dbgit.core.*;
 import ru.fusionsoft.dbgit.core.db.FieldType;
 import ru.fusionsoft.dbgit.data_table.*;
@@ -101,8 +102,9 @@ public abstract class DBAdapter implements IDBAdapter {
 			Set<String> createdRoles = getRoles().values().stream().map(DBRole::getName).collect(Collectors.toSet());
 
 			// remove table indexes and constraints, which is step(-2) of restoreMetaObject(MetaTable)
-			ConsoleWriter.println("Dropping constraints for all updating tables...");
+			ConsoleWriter.println(lang.getValue("general", "restore", "droppingTablesConstraints"), 1);
 			for (IMetaObject table : tablesExists.sortFromDependencies()) {
+				ConsoleWriter.println(lang.getValue("general", "restore", "droppingTableConstraints").withParams(table.getName()), 2);
 				getFactoryRestore().getAdapterRestore(DBGitMetaType.DBGitTable, this).restoreMetaObject(table, -2);
 			}
 
@@ -120,17 +122,23 @@ public abstract class DBAdapter implements IDBAdapter {
 				createSchemaIfNeed(obj, createdSchemas);
 
 				while (!res) {
+					if(step==0) printRestoreMessage(obj);
+					//if(step!=0) ConsoleWriter.print(" (step " + step + ")");
 					res = restoreAdapter.restoreMetaObject(obj, step++);
 
 					if (step > 100) { throw new Exception(lang.getValue("errors", "restore", "restoreErrorDidNotReturnTrue").toString()); }
 				}
 
     			Long timeDiff = new Timestamp(System.currentTimeMillis()).getTime() - timestampBefore.getTime();
-				ConsoleWriter.detailsPrintlnGreen(MessageFormat.format("({1} {2})",  obj.getName(), timeDiff, lang.getValue("general", "add", "ms")));
+//				ConsoleWriter.detailsPrintColor(MessageFormat.format(" ({1} {2})"
+//					, obj.getName()
+//					, timeDiff
+//					, lang.getValue("general", "add", "ms")), 0, Ansi.FColor.CYAN
+//				);
 			}
 
 			// restore table constraints, which is step(-1) of restoreMetaObject(MetaTable)
-			ConsoleWriter.println("Restoring constraints for all updated tables...");
+			ConsoleWriter.println(lang.getValue("general", "restore", "restoringTablesConstraints"), 2);
 			for (IMetaObject table : tables.sortFromReferenced()) {
 				getFactoryRestore().getAdapterRestore(DBGitMetaType.DBGitTable, this).restoreMetaObject(table, -1);
 			}
@@ -143,6 +151,23 @@ public abstract class DBAdapter implements IDBAdapter {
 			//connect.setAutoCommit(false);
 		} 
 		
+	}
+
+	private void printRestoreMessage(IMetaObject obj) {
+		String leafName = "";
+		if(obj instanceof MetaSequence){ leafName = "restoreSeq"; }
+		if(obj instanceof MetaView){ leafName = "restoreView"; }
+		if(obj instanceof MetaTrigger){ leafName = "restoreTrigger"; }
+		if(obj instanceof MetaSchema){ leafName = "restoreSchema"; }
+		if(obj instanceof MetaRole){ leafName = "restoreRole"; }
+		if(obj instanceof MetaProcedure){ leafName = "restorePrc"; }
+		if(obj instanceof MetaPackage){ leafName = "restorePkg"; }
+		if(obj instanceof MetaUser){ leafName = "restoreUser"; }
+		if(obj instanceof MetaFunction){ leafName = "restoreFnc"; }
+		if(obj instanceof MetaTable){ leafName = "restoreTable"; }
+		if(obj instanceof MetaTableSpace){ leafName = "restoreTablespace"; }
+		if(obj instanceof MetaTableData){ leafName = "restoreTableData"; }
+		ConsoleWriter.println(lang.getValue("general", "restore", leafName).withParams(obj.getName()), 2);
 	}
 
 	@Override

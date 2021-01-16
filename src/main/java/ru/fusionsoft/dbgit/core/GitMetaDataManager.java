@@ -286,11 +286,12 @@ public class GitMetaDataManager {
 			
 			List<String> files = dbGit.getGitIndexFiles(DBGitPath.DB_GIT_PATH);
 			boolean isSuccessful = true;
-			
+
+			ConsoleWriter.detailsPrintLn("Loading files...", 1);
 			for (int i = 0; i < files.size(); i++) {
 	    		String filename = files.get(i);
 	    		if (DBGitPath.isServiceFile(filename)) continue;
-	    		ConsoleWriter.detailsPrint("\nLoading file " + filename + "...", 1);
+	    		ConsoleWriter.detailsPrintLn("Loading file " + filename + "...", 2);
 	    		
 	    		if (force) {
 	    			IMetaObject obj = loadMetaFile(filename);

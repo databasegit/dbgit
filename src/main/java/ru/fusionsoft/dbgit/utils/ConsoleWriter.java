@@ -23,28 +23,36 @@ public class ConsoleWriter {
 		if (showDetailedLog)
 			printColor(msg.toString(), color, level);
 	}
+	public static void detailsPrintLnColor(Object msg, int level, FColor color) {
+		if (showDetailedLog)
+			printlnColor(msg.toString(), color, level);
+	}
 
 	public static void detailsPrint(Object msg, int level) {
 		if (showDetailedLog)
 			print(msg.toString(), level);
 	}
 
-	public static void detailsPrintlnGreen(Object msg) {
-		if (showDetailedLog)
-			printlnColor(msg.toString(), FColor.GREEN, 0);
-	}
-	
+
 	public static void detailsPrintlnRed(Object msg) {
 		if (showDetailedLog)
 			printlnColor(msg.toString(), FColor.RED, 0);
 	}
 
+	public static void printlnGreen(Object msg, int level) {
+		printlnColor(msg.toString(), FColor.GREEN, level);
+	}
+
 	public static void printlnGreen(Object msg) {
 		printlnColor(msg.toString(), FColor.GREEN, 0);
 	}
-	
+
 	public static void printlnRed(Object msg) {
 		printlnColor(msg.toString(), FColor.RED, 0);
+	}
+
+	public static void printlnRed(Object msg, int level) {
+		printlnColor(msg.toString(), FColor.RED, level);
 	}
 	
 	public static void detailsPrintLn(String msg) {
@@ -52,9 +60,24 @@ public class ConsoleWriter {
 			println(msg);
 	}
 
+	public static void detailsPrintLn(String msg, int level) {
+		if (showDetailedLog)
+			println(msg, level);
+	}
+
+	public static void detailsPrintLn(Object msg, int level) {
+		if (showDetailedLog)
+			println(msg.toString(), level);
+	}
+
 	public static void detailsPrint(String msg, int level) {
 		if (showDetailedLog)
 			print(msg, level);
+	}
+
+	public static void detailsPrintGreen(Object msg) {
+		if (showDetailedLog)
+			printColor(msg.toString(), FColor.GREEN, 0);
 	}
 
 	public static void detailsPrintlnGreen(String msg) {
@@ -81,7 +104,8 @@ public class ConsoleWriter {
 		System.out.println(tab + msg);
 		if (1==1) return ;
 		*/
-		cp.println(tab+msg, Attribute.NONE, color, BColor.BLACK);
+
+		cp.print("\n"+tab+msg, Attribute.NONE, color, BColor.BLACK);
 		cp.clear();
 		//logger.info(msg);
 	}
@@ -111,20 +135,32 @@ public class ConsoleWriter {
 		System.out.println(tab + msg);
 		if (1==1) return ;
 		*/
-		cp.println(tab+msg);
+		printWhite("\n"+tab+msg);
 		cp.clear();
 		//logger.info(msg);
 	}
-	
+
+	public static void println(Object msg, Integer level) {
+		println(msg.toString(), level);
+	}
+
 	public static void print(String msg, Integer level) {
 		String tab = StringUtils.leftPad("", 4*level, " ");
 		/*
 		System.out.println(tab + msg);
 		if (1==1) return ;
 		*/
-		cp.print(tab+msg);
-		cp.clear();
+		printWhite(tab+msg);
 		//logger.info(msg);
+	}
+	public static void print(Object msg, Integer level) {
+		print(msg.toString(), level);
+	}
+	public static void print(String msg) {
+		print(msg, 0);
+	}
+	public static void print(Object msg) {
+		print(msg.toString());
 	}
 	
 	public static void setDetailedLog(boolean toShowLog) {
@@ -133,5 +169,9 @@ public class ConsoleWriter {
 
 	public static boolean getDetailedLog() {
 		return showDetailedLog;
+	}
+	public static void printWhite(String message){
+		cp.print(message, Attribute.NONE, FColor.WHITE, BColor.BLACK);
+		cp.clear();
 	}
 }

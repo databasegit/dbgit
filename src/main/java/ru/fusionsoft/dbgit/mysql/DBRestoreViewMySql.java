@@ -17,7 +17,6 @@ public class DBRestoreViewMySql extends DBRestoreAdapter {
         IDBAdapter adapter = getAdapter();
         Connection connect = adapter.getConnection();
         StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
-        ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "restoreView").withParams(obj.getName()), 1);
         try {
             if (obj instanceof MetaView) {
                 MetaView restoreView = (MetaView)obj;
@@ -32,7 +31,7 @@ public class DBRestoreViewMySql extends DBRestoreAdapter {
             ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
             throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()), e);
         } finally {
-            ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+            ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
             st.close();
         }
         return true;

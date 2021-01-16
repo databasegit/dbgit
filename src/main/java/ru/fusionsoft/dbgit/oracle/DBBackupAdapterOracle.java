@@ -30,7 +30,7 @@ public class DBBackupAdapterOracle extends DBBackupAdapter {
 				
 				String ddl = metaSql.getSqlObject().getSql();
 				String schema = metaSql.getSqlObject().getSchema();
-				ConsoleWriter.detailsPrint(lang.getValue("general", "backup", "tryingToCopy").withParams(objectName, getFullDbName(schema, objectName)), 1);
+				ConsoleWriter.detailsPrintLn(lang.getValue("general", "backup", "tryingToCopy").withParams(objectName, getFullDbName(schema, objectName)), 3);
 				
 				ddl = replaceNames(ddl, schema, objectName, stLog);
 				
@@ -54,7 +54,7 @@ public class DBBackupAdapterOracle extends DBBackupAdapter {
 				if (file.exists())
 					obj = metaSql.loadFromFile();
 		
-				ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+				ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 			} else if (obj instanceof MetaTable) {
 				MetaTable metaTable = (MetaTable) obj;
 				metaTable.loadFromDB();
@@ -64,7 +64,7 @@ public class DBBackupAdapterOracle extends DBBackupAdapter {
 				if(!isExists(schema, objectName))
 					return obj;
 				
-				ConsoleWriter.detailsPrint(lang.getValue("general", "backup", "tryingToCopy").withParams(objectName, getFullDbName(schema, objectName)), 1);
+				ConsoleWriter.detailsPrintLn(lang.getValue("general", "backup", "tryingToCopy").withParams(objectName, getFullDbName(schema, objectName)), 3);
 
 				
 				if (isToSaveData()) {					
@@ -98,7 +98,7 @@ public class DBBackupAdapterOracle extends DBBackupAdapter {
 				if (file.exists())
 					obj = metaTable.loadFromFile();
 				
-				ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+				ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 			} else if (obj instanceof MetaSequence) {
 				MetaSequence metaSequence = (MetaSequence) obj;
 				metaSequence.loadFromDB();
@@ -108,7 +108,7 @@ public class DBBackupAdapterOracle extends DBBackupAdapter {
 
 				String ddl = metaSequence.getSequence().getOptions().get("ddl").toString();
 
-				ConsoleWriter.detailsPrint(lang.getValue("general", "backup", "tryingToCopy").withParams(objectName, getFullDbName(schema, objectName)), 1);
+				ConsoleWriter.detailsPrintLn(lang.getValue("general", "backup", "tryingToCopy").withParams(objectName, getFullDbName(schema, objectName)), 3);
 
 				ddl = replaceNames(ddl, schema, objectName, stLog);
 
@@ -118,7 +118,7 @@ public class DBBackupAdapterOracle extends DBBackupAdapter {
 				if (file.exists())
 					obj = metaSequence.loadFromFile();
 				
-				ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+				ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 			}
 
 		} catch (Exception e) {
@@ -205,7 +205,7 @@ public class DBBackupAdapterOracle extends DBBackupAdapter {
 			ResultSet rs = st.executeQuery("select count(*) cnt from all_users where USERNAME = '" + PREFIX + schema + "'");
 			rs.next();
 			if (rs.getInt("cnt") == 0) {
-				ConsoleWriter.detailsPrintLn(lang.getValue("general", "backup", "creatingSchema").withParams(PREFIX + schema));
+				ConsoleWriter.detailsPrintLn(lang.getValue("general", "backup", "creatingSchema").withParams(PREFIX + schema), 3);
 				stLog.execute("create USER \"" + PREFIX + schema + "\"\r\n" + 
 						"IDENTIFIED BY \"" + PREFIX + schema + "\"\r\n" + 
 						"DEFAULT TABLESPACE \"SYSTEM\"\r\n" + 

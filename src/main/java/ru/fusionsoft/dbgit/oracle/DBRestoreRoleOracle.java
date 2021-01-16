@@ -19,7 +19,6 @@ public class DBRestoreRoleOracle extends DBRestoreAdapter{
 		IDBAdapter adapter = getAdapter();
 		Connection connect = adapter.getConnection();
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
-		ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "restoreRole").withParams(obj.getName()), 1);
 		try {
 			if (obj instanceof MetaRole) {
 				MetaRole restoreRole = (MetaRole)obj;
@@ -60,7 +59,7 @@ public class DBRestoreRoleOracle extends DBRestoreAdapter{
 				}
 				
 				//TODO restore memberOfRole
-				ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+				ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 		}
 			else
 			{

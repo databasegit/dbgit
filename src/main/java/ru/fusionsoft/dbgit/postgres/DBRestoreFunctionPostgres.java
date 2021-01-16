@@ -24,7 +24,6 @@ public class DBRestoreFunctionPostgres extends DBRestoreAdapter {
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
 		try {
 			if (obj instanceof MetaFunction) {
-				ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "restoreFnc").withParams(obj.getName()), 1);
 
 				MetaFunction restoreFunction = (MetaFunction)obj;
 				String restoreFunctionName = restoreFunction.getSqlObject().getName();
@@ -48,11 +47,12 @@ public class DBRestoreFunctionPostgres extends DBRestoreAdapter {
 								StringProperties restoreProcArgs = restoreFunction.getSqlObject().getOptions().get("arguments");
 								String args = restoreProcArgs != null ? restoreProcArgs.getData().replaceAll("(\\w+ \\w+) (DEFAULT [^\\,\\n]+)(\\,|\\b)", "$1") : "";
 
-								st.execute(MessageFormat.format("ALTER FUNCTION {0}.{1}({2}) OWNER TO {3}"
+								st.execute(MessageFormat.format("ALTER FUNCTION {0}.{1}({2}) OWNER TO \"{3}\""
 									, restoreFunction.getUnderlyingDbObject().getSchema()
 									, adapter.escapeNameIfNeeded(restoreFunctionName)
 									, args
-									, restoreFunction.getSqlObject().getOwner()));
+									, restoreFunction.getSqlObject().getOwner())
+								);
 							}
 							//TODO Восстановление привилегий							
 						}
@@ -73,7 +73,7 @@ public class DBRestoreFunctionPostgres extends DBRestoreAdapter {
 			ConsoleWriter.detailsPrintlnRed(e.getLocalizedMessage());
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()), e);
 		} finally {
-			ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+			ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 			st.close();
 		}
 		return true;

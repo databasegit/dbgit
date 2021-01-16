@@ -100,9 +100,8 @@ public class DBRestoreTableDataMySql extends DBRestoreAdapter {
             String schema = getPhisicalSchema(restoreTableData.getTable().getSchema());
             schema = (SchemaSynonym.getInstance().getSchema(schema) == null) ? schema : SchemaSynonym.getInstance().getSchema(schema);
             String tblName = schema + ".`" + restoreTableData.getTable().getName() + "`";
-            ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "tableData").withParams(tblName) + "\n", 1);
             if (!diffTableData.entriesOnlyOnLeft().isEmpty()) {
-                ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "inserting"), 2);
+                ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "inserting"), 3);
                 for (RowData rowData : diffTableData.entriesOnlyOnLeft().values()) {
                     String fields = String.join("`, `", rowData.getData().keySet());
                     String values = String.join(", ", rowData.getData().values().stream().map(row -> valueToString(row)).collect(Collectors.toList()));
@@ -110,10 +109,10 @@ public class DBRestoreTableDataMySql extends DBRestoreAdapter {
                     ConsoleWriter.detailsPrintLn(insertQuery);
                     st.execute(insertQuery);
                 }
-                ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+                ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
             }
             if (!diffTableData.entriesOnlyOnRight().isEmpty()) {
-                ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "deleting"), 2);
+                ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "deleting"), 3);
                 String ddl = "";
                 for (RowData rowData : diffTableData.entriesOnlyOnRight().values()) {
                     Map<String, String> primarykeys = new HashMap();
@@ -136,10 +135,10 @@ public class DBRestoreTableDataMySql extends DBRestoreAdapter {
                     if (!ddl.isEmpty())
                         st.execute("delete from " + tblName + " where " + ddl);
                 }
-                ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+                ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
             }
             if (!diffTableData.entriesDiffering().isEmpty()) {
-                ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "updating"), 2);
+                ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "updating"), 3);
                 String updateQuery = "";
                 //Map<String,String> primarykeys = new HashMap();
                 for (ValueDifference<RowData> diffRowData : diffTableData.entriesDiffering().values()) {
@@ -212,7 +211,7 @@ public class DBRestoreTableDataMySql extends DBRestoreAdapter {
                         }
                     }
                 }
-                ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+                ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
                 if (!updateQuery.isEmpty()) {
                     ConsoleWriter.println(updateQuery);
                     //st.execute(updateQuery);

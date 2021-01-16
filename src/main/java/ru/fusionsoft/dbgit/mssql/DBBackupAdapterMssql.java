@@ -43,7 +43,7 @@ public class DBBackupAdapterMssql extends DBBackupAdapter {
 					createSchema(stLog, schema);
 				}
 
-				ConsoleWriter.detailsPrint(lang.getValue("general", "backup", "tryingToCopy").withParams(objectName, getFullDbName(schema, objectName)), 1);
+				ConsoleWriter.detailsPrintLn(lang.getValue("general", "backup", "tryingToCopy").withParams(objectName, getFullDbName(schema, objectName)), 3);
 
 				ddl = ddl.replace(schema + "." + objectName, getFullDbName(schema, objectName));
 
@@ -53,7 +53,7 @@ public class DBBackupAdapterMssql extends DBBackupAdapter {
 				if (file.exists())
 					obj = metaSql.loadFromFile();
 
-				ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+				ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 			}
 			else if (obj instanceof MetaTable) {
 
@@ -77,7 +77,7 @@ public class DBBackupAdapterMssql extends DBBackupAdapter {
 					createSchema(stLog, schema);
 				}
 
-				ConsoleWriter.detailsPrint(lang.getValue("general", "backup", "tryingToCopy").withParams(objectName, getFullDbName(schema, objectName)), 1);
+				ConsoleWriter.detailsPrintLn(lang.getValue("general", "backup", "tryingToCopy").withParams(objectName, getFullDbName(schema, objectName)), 3);
 
 				dropIfExists(isSaveToSchema() ? PREFIX + schema : schema,
 						isSaveToSchema() ? objectName : PREFIX + objectName, stLog);
@@ -123,7 +123,7 @@ public class DBBackupAdapterMssql extends DBBackupAdapter {
 				File file = new File(DBGitPath.getFullPath() + metaTable.getFileName());
 				if (file.exists())
 					obj = metaTable.loadFromFile();
-				ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+				ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 			}
 			else if (obj instanceof MetaSequence) {
 				MetaSequence metaSequence = (MetaSequence) obj;
@@ -138,7 +138,7 @@ public class DBBackupAdapterMssql extends DBBackupAdapter {
 
 				String sequenceName = getFullDbName(schema, objectName);
 
-				ConsoleWriter.detailsPrint(lang.getValue("general", "backup", "tryingToCopy").withParams(objectName, getFullDbName(schema, objectName)), 1);
+				ConsoleWriter.detailsPrintLn(lang.getValue("general", "backup", "tryingToCopy").withParams(objectName, getFullDbName(schema, objectName)), 3);
 
                 StringProperties props = metaSequence.getSequence().getOptions();
 				String seqName = props.get("name").getData();
@@ -178,7 +178,7 @@ public class DBBackupAdapterMssql extends DBBackupAdapter {
 				File file = new File(DBGitPath.getFullPath() + metaSequence.getFileName());
 				if (file.exists())
 					obj = metaSequence.loadFromFile();
-				ConsoleWriter.detailsPrintlnGreen(lang.getValue("general", "ok"));
+				ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 			}
 
 		} catch (SQLException e1) {
@@ -285,7 +285,7 @@ public class DBBackupAdapterMssql extends DBBackupAdapter {
 	public boolean createSchema(StatementLogging stLog, String schema) {
 		try {
 			if (!adapter.getSchemes().containsKey(schema)) {
-				ConsoleWriter.detailsPrintLn(lang.getValue("general", "backup", "creatingSchema").withParams(PREFIX + schema));
+				ConsoleWriter.detailsPrintLn(lang.getValue("general", "backup", "creatingSchema").withParams(PREFIX + schema), 3);
 				stLog.execute(MessageFormat.format("CREATE SCHEMA {0}{1}", PREFIX, schema));
 			}
 			return true;
