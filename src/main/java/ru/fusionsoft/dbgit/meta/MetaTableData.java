@@ -26,6 +26,8 @@ import org.apache.commons.csv.QuoteMode;
 
 import com.diogonunes.jcdp.color.api.Ansi.FColor;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.slf4j.Logger;
 import ru.fusionsoft.dbgit.adapters.AdapterFactory;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
 import ru.fusionsoft.dbgit.core.DBGit;
@@ -43,6 +45,7 @@ import ru.fusionsoft.dbgit.dbobjects.DBTable;
 import ru.fusionsoft.dbgit.dbobjects.DBTableData;
 import ru.fusionsoft.dbgit.utils.CalcHash;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
+import ru.fusionsoft.dbgit.utils.LoggerUtil;
 
 /**
  * Meta class for Table data
@@ -50,6 +53,7 @@ import ru.fusionsoft.dbgit.utils.ConsoleWriter;
  *
  */
 public class MetaTableData extends MetaBase {
+ 	private Logger logger = LoggerUtil.getLogger(this.getClass());
 	 protected DBTable table = null;
 	 private DBTableData dataTable = null;
 
@@ -200,11 +204,11 @@ public class MetaTableData extends MetaBase {
 				flag = true;
 			}
 		} catch (Throwable ex){
-			ConsoleWriter.detailsPrintlnRed(DBGitLang.getInstance().getValue("general", "meta", "loadRow").withParams(String.valueOf(i) ));
+			ConsoleWriter.detailsPrintlnRed(DBGitLang.getInstance().getValue("general", "meta", "loadRow").withParams(String.valueOf(i) ), messageLevel);
 			warnFilesNotFound();
 			throw ex;
 		}
-		ConsoleWriter.detailsPrintlnGreen(DBGitLang.getInstance().getValue("general", "meta", "loadedRow").withParams(String.valueOf(i) ));
+		ConsoleWriter.detailsPrintlnGreen(DBGitLang.getInstance().getValue("general", "meta", "loadedRow").withParams(String.valueOf(i) ), messageLevel);
 		warnFilesNotFound();
 
 		return this;
@@ -287,10 +291,11 @@ public class MetaTableData extends MetaBase {
 
 			return true;
 		} catch (Exception e) {
-			e.printStackTrace();
-			ConsoleWriter.println(e.getMessage());
-			ConsoleWriter.println(e.getLocalizedMessage());
-			
+
+			ConsoleWriter.println(e.getLocalizedMessage(), messageLevel);
+			ConsoleWriter.detailsPrintln(ExceptionUtils.getStackTrace(e), messageLevel);
+			logger.error(DBGitLang.getInstance().getValue("errors", "adapter", "tableData").toString(), e);
+
 			try {
 				if (tryNumber <= DBGitConfig.getInstance().getInteger("core", "TRY_COUNT", DBGitConfig.getInstance().getIntegerGlobal("core", "TRY_COUNT", 1000))) {
 					try {
@@ -298,7 +303,11 @@ public class MetaTableData extends MetaBase {
 					} catch (InterruptedException e1) {
 						throw new ExceptionDBGitRunTime(e1.getMessage());
 					}
-					ConsoleWriter.println("Error while getting portion of data, try " + tryNumber);
+					ConsoleWriter.println(DBGitLang.getInstance()
+					    .getValue("errors", "dataTable", "loadPortionError")
+					    .withParams(String.valueOf(tryNumber))
+					    , messageLevel
+					);
 					return loadPortionFromDB(currentPortionIndex, tryNumber++);
 				}
 			} catch (Exception e1) {
@@ -306,8 +315,7 @@ public class MetaTableData extends MetaBase {
 				e1.printStackTrace();
 			}			
 			
-			if (e instanceof ExceptionDBGit) 
-				throw (ExceptionDBGit)e;
+			if (e instanceof ExceptionDBGit) throw (ExceptionDBGit)e;
 			throw new ExceptionDBGit(e);
 		}
 	}
@@ -441,9 +449,9 @@ public class MetaTableData extends MetaBase {
     private void warnFilesNotFound(){
 		Set<String> filesNotFound = MapFileData.getFilesNotFound();
 		if(filesNotFound != null && filesNotFound.size() > 0){
-			ConsoleWriter.detailsPrintColor(
-				DBGitLang.getInstance().getValue("errors", "dataTable", "filesNotFound")
-					.withParams(String.join(";", filesNotFound)), 0, FColor.YELLOW
+			ConsoleWriter.detailsPrintlnColor(DBGitLang.getInstance().getValue("errors", "dataTable", "filesNotFound")
+				.withParams(String.join(";", filesNotFound))
+				, FColor.YELLOW, messageLevel
 			);
 			filesNotFound.clear();
 		}

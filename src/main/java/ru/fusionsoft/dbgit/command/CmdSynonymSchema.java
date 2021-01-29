@@ -39,9 +39,9 @@ public class CmdSynonymSchema implements IDBGitCommand {
 		Boolean isShow = cmdLine.hasOption('s');
 		
 		if (isShow) {
-			ConsoleWriter.printlnGreen(getLang().getValue("general", "status", "synSchema"));
+			ConsoleWriter.printlnGreen(getLang().getValue("general", "status", "synSchema"), messageLevel);
 			for (Entry<String, String> el : ss.getMapSchema().entrySet()) {
-				ConsoleWriter.println(el.getKey() + " - " + el.getValue());
+				ConsoleWriter.println(el.getKey() + " - " + el.getValue(), messageLevel+1);
 			}
 			return ;
 		}
@@ -66,6 +66,6 @@ public class CmdSynonymSchema implements IDBGitCommand {
 		}
 		
 		ss.saveFile();
-		ConsoleWriter.println(getLang().getValue("general", "done"));
+		ConsoleWriter.println(getLang().getValue("general", "done"), messageLevel);
 	}
 }

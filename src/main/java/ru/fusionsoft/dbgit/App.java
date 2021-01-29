@@ -96,7 +96,11 @@ public class App
         	executeDbGitCommand(args);
         	
         } catch (Exception e) {
-        	ConsoleWriter.printlnRed(DBGitLang.getInstance().getValue("errors", "executionError") + ": " + e.getMessage());
+        	ConsoleWriter.println(DBGitLang.getInstance()
+        	    .getValue("errors", "executionError")
+        	    .withParams(e.getMessage())
+        	    , 0
+        	);
         	LoggerUtil.getGlobalLogger().error(e.getMessage(), e);
         } finally {
         	DBGitPath.clearTempDir();

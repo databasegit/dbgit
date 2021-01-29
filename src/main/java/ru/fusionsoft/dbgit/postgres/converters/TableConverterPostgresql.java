@@ -5,6 +5,7 @@ import java.util.regex.Pattern;
 
 import ru.fusionsoft.dbgit.adapters.IDBConvertAdapter;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBConvertAdapter;
+import ru.fusionsoft.dbgit.core.DBGitLang;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.db.DbType;
 import ru.fusionsoft.dbgit.dbobjects.DBConstraint;
@@ -25,9 +26,12 @@ public class TableConverterPostgresql implements IDBConvertAdapter {
 		if (obj instanceof MetaTable) {
 			
 			MetaTable table = (MetaTable) obj;
-			
-			ConsoleWriter.println("Processing table " + table.getName());
-					
+			ConsoleWriter.println(DBGitLang.getInstance()
+			    .getValue("general", "convert", "processingTable")
+			    .withParams(table.getName())
+			    , messageLevel
+			);
+
 			//types
 			for (DBTableField field : table.getFields().values())
 				field.setTypeSQL(typeFromAnotherDB(objDbType, field));
@@ -54,26 +58,38 @@ public class TableConverterPostgresql implements IDBConvertAdapter {
 	}
 
 	private String indexFromOracle(DBIndex index) {
-		ConsoleWriter.println("Converting table index " + index.getName() + " from oracle to postgresql...");
-		
+		ConsoleWriter.println(DBGitLang.getInstance()
+		    .getValue("general", "convert", "convertingIndex")
+		    .withParams(index.getName(), "oracle", "postgresql")
+		    , messageLevel
+		);
+
 		return "";
 	}
 	
 	private String constraintFromOracle(DBConstraint constraint) {
-		ConsoleWriter.println("Converting table constraint " + constraint.getName() + " from oracle to postgresql...");
-		
-			Pattern patternConstraint = Pattern.compile("(?<=" + constraint.getName() + ")(.*?)(?=\\))", Pattern.MULTILINE);
-			Matcher matcher = patternConstraint.matcher(constraint.getSql());
-	
-			if (matcher.find()) {
-				return matcher.group().replace("\"", "") + ")";				
-			} else {
-				return "";
-			}
+		ConsoleWriter.println(DBGitLang.getInstance()
+			.getValue("general", "convert", "convertingConstraint")
+			.withParams(constraint.getName(), "oracle", "postgresql")
+			, messageLevel
+		);
+
+		Pattern patternConstraint = Pattern.compile("(?<=" + constraint.getName() + ")(.*?)(?=\\))", Pattern.MULTILINE);
+		Matcher matcher = patternConstraint.matcher(constraint.getSql());
+
+		if (matcher.find()) {
+			return matcher.group().replace("\"", "") + ")";
+		} else {
+			return "";
+		}
 	}
 	
 	private String typeFromAnotherDB(DbType dbType, DBTableField field) {
-		ConsoleWriter.println("Converting table field " + field.getName() + " from " + dbType.toString().toLowerCase() + " to postgresql...");
+		ConsoleWriter.println(DBGitLang.getInstance()
+			.getValue("general", "convert", "convertingField")
+			.withParams(field.getName(), dbType.toString(), "postgresql")
+			, messageLevel
+		);
 		String result = "";
 		switch (field.getTypeUniversal()) {
 			case STRING:

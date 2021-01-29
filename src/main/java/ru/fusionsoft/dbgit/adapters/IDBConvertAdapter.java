@@ -7,5 +7,6 @@ import ru.fusionsoft.dbgit.meta.IMetaObject;
 import ru.fusionsoft.dbgit.meta.MetaTable;
 
 public interface IDBConvertAdapter {
+	public static int messageLevel = 2;
 	public IMetaObject convert(DbType dbType, String dbVersion, IMetaObject obj) throws ExceptionDBGit;
 }

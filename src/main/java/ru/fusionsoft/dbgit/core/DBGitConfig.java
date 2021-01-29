@@ -7,7 +7,7 @@ import org.ini4j.Ini;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
 public class DBGitConfig {
-
+	private static int messageLevel = 1;
 	private static DBGitConfig config = null;
 	private Ini ini = null;
 	private Ini iniGlobal = null;
@@ -131,7 +131,10 @@ public class DBGitConfig {
 		try {
 			if (global) {
 				if (!iniGlobal.get("core").containsKey(parameter))
-					ConsoleWriter.detailsPrintLn(DBGitLang.getInstance().getValue("errors", "config", "noParameter").withParams(parameter));
+					ConsoleWriter.detailsPrintln(
+						DBGitLang.getInstance().getValue("errors", "config", "noParameter").withParams(parameter)
+						, messageLevel
+					);
 				else {			
 					iniGlobal.get("core").put(parameter, value);
 					iniGlobal.store(iniGlobal.getFile());
@@ -141,7 +144,7 @@ public class DBGitConfig {
 					throw new ExceptionDBGit(DBGitLang.getInstance().getValue("errors", "gitRepNotFound"));
 
 				if (!ini.get("core").containsKey(parameter))
-					ConsoleWriter.detailsPrintLn(DBGitLang.getInstance().getValue("errors", "config", "noParameter").withParams(parameter));
+					ConsoleWriter.detailsPrintln(DBGitLang.getInstance().getValue("errors", "config", "noParameter").withParams(parameter), messageLevel);
 				else {			
 					ini.get("core").put(parameter, value);
 					ini.store(new File(DBGitPath.getFullPath() + "/" + DBGitPath.DBGIT_CONFIG));

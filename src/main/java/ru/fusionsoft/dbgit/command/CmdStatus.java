@@ -51,23 +51,23 @@ public class CmdStatus implements IDBGitCommand {
 		DBGit dbGit = DBGit.getInstance();
 		boolean hasConflicts = DBGitIndex.getInctance().hasConflicts();
 		String repoVersion = DBGitIndex.getInctance().getRepoVersion();
-		ConsoleWriter.println(getLang().getValue("general", "status", "repVersion").withParams(repoVersion));
-		ConsoleWriter.println(getLang().getValue("general", "status", "dbgitVersion").withParams(DBGitIndex.VERSION));
+		ConsoleWriter.println(getLang().getValue("general", "status", "repVersion").withParams(repoVersion), messageLevel);
+		ConsoleWriter.println(getLang().getValue("general", "status", "dbgitVersion").withParams(DBGitIndex.VERSION), messageLevel);
 
 		if (!DBGitIndex.getInctance().isCorrectVersion())
-			ConsoleWriter.println(getLang().getValue("general", "status", "differentVersions"));
+			ConsoleWriter.println(getLang().getValue("general", "status", "differentVersions"), messageLevel);
 		
 		if (hasConflicts) {
-			ConsoleWriter.println(getLang().getValue("general", "status", "conflicts"));
+			ConsoleWriter.println(getLang().getValue("general", "status", "conflicts"), messageLevel);
 		}
 		
 		SchemaSynonym ss = SchemaSynonym.getInstance();
 				
 		if (ss.getCountSynonym() > 0) {
-			ConsoleWriter.printlnGreen(getLang().getValue("general", "status", "usedSynonyms"));
-			ConsoleWriter.printlnGreen(getLang().getValue("general", "status", "synSchema"));
+			ConsoleWriter.printlnGreen(getLang().getValue("general", "status", "usedSynonyms"), messageLevel);
+			ConsoleWriter.printlnGreen(getLang().getValue("general", "status", "synSchema"), messageLevel);
 			for (Entry<String, String> el : ss.getMapSchema().entrySet()) {
-				ConsoleWriter.println(el.getKey() + " - " + el.getValue());
+				ConsoleWriter.println(el.getKey() + " - " + el.getValue(), messageLevel+1);
 			}			
 		}
 		
@@ -102,40 +102,40 @@ public class CmdStatus implements IDBGitCommand {
 				addedObjs.put(fileObjs.get(name));					
 		}
 		
-		ConsoleWriter.println(getLang().getValue("general", "status", "changesToCommit"));
+		ConsoleWriter.println(getLang().getValue("general", "status", "changesToCommit"), messageLevel);
 		for(IMetaObject obj : addedObjs.values()) {
-			printObect(obj, FColor.GREEN, 1);
+			printObect(obj, FColor.GREEN, messageLevel+1);
 		}
-		ConsoleWriter.println(" ");
+		ConsoleWriter.printLineBreak();
 
-		ConsoleWriter.println(getLang().getValue("general", "status", "notStaged"));
+		ConsoleWriter.println(getLang().getValue("general", "status", "notStaged"), messageLevel);
 		for(IMetaObject obj : changeObjs.values()) {
 			printObect(obj, FColor.RED, 1);
 		}
-		ConsoleWriter.println(" ");
-		
+		ConsoleWriter.printLineBreak();
+
 				
-		ConsoleWriter.println(getLang().getValue("general", "status", "untracked"));
+		ConsoleWriter.println(getLang().getValue("general", "status", "untracked"), messageLevel);
 		for (String name : dbObjs.keySet()) {
 			if (!fileObjs.containsKey(name)) {
-				ConsoleWriter.println(name, 1);
+				ConsoleWriter.println(name, messageLevel+1);
 			}
 		}
-		ConsoleWriter.println(" ");
+		ConsoleWriter.printLineBreak();
 
-		ConsoleWriter.println(getLang().getValue("general", "status", "localNotStaged"));
+		ConsoleWriter.println(getLang().getValue("general", "status", "localNotStaged"), messageLevel);
 		for (String modified : DBGit.getInstance().getModifiedFiles()) {
-			ConsoleWriter.printlnColor(modified, FColor.RED, 1);
+			ConsoleWriter.printlnColor(modified, FColor.RED, messageLevel+1);
 		}
 		
-		ConsoleWriter.println(" ");
+		ConsoleWriter.printLineBreak();
 
-		ConsoleWriter.println(getLang().getValue("general", "status", "localToCommit"));
+		ConsoleWriter.println(getLang().getValue("general", "status", "localToCommit"), messageLevel);
 		for (String modified : DBGit.getInstance().getChanged()) {
-			ConsoleWriter.printlnColor(modified, FColor.GREEN, 1);
+			ConsoleWriter.printlnColor(modified, FColor.GREEN , messageLevel+1);
 		}
 
-		ConsoleWriter.println(" ");
+		ConsoleWriter.printLineBreak();
 	}
 	
 	public void printObect(IMetaObject obj, FColor color, Integer level) {

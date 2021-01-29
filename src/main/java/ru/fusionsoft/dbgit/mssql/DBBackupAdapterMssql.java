@@ -43,7 +43,7 @@ public class DBBackupAdapterMssql extends DBBackupAdapter {
 					createSchema(stLog, schema);
 				}
 
-				ConsoleWriter.detailsPrintLn(lang.getValue("general", "backup", "tryingToCopy").withParams(objectName, getFullDbName(schema, objectName)), 3);
+				ConsoleWriter.detailsPrintln(lang.getValue("general", "backup", "tryingToCopy").withParams(objectName, getFullDbName(schema, objectName)), messageLevel);
 
 				ddl = ddl.replace(schema + "." + objectName, getFullDbName(schema, objectName));
 
@@ -77,7 +77,7 @@ public class DBBackupAdapterMssql extends DBBackupAdapter {
 					createSchema(stLog, schema);
 				}
 
-				ConsoleWriter.detailsPrintLn(lang.getValue("general", "backup", "tryingToCopy").withParams(objectName, getFullDbName(schema, objectName)), 3);
+				ConsoleWriter.detailsPrintln(lang.getValue("general", "backup", "tryingToCopy").withParams(objectName, getFullDbName(schema, objectName)), messageLevel);
 
 				dropIfExists(isSaveToSchema() ? PREFIX + schema : schema,
 						isSaveToSchema() ? objectName : PREFIX + objectName, stLog);
@@ -138,7 +138,7 @@ public class DBBackupAdapterMssql extends DBBackupAdapter {
 
 				String sequenceName = getFullDbName(schema, objectName);
 
-				ConsoleWriter.detailsPrintLn(lang.getValue("general", "backup", "tryingToCopy").withParams(objectName, getFullDbName(schema, objectName)), 3);
+				ConsoleWriter.detailsPrintln(lang.getValue("general", "backup", "tryingToCopy").withParams(objectName, getFullDbName(schema, objectName)), messageLevel);
 
                 StringProperties props = metaSequence.getSequence().getOptions();
 				String seqName = props.get("name").getData();
@@ -185,10 +185,9 @@ public class DBBackupAdapterMssql extends DBBackupAdapter {
 			throw new ExceptionDBGitRestore(
 				lang.getValue("errors", "restore", "objectRestoreError")
 					.withParams(obj.getName() + ": " + e1.getLocalizedMessage())
+					, e1
 			);
 		} catch (Exception e) {
-			ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
-			connection.rollback();
 			throw new ExceptionDBGit(lang.getValue("errors", "backup", "backupError").withParams(obj.getName()), e);
 		} finally {
             stLog.close();
@@ -285,12 +284,12 @@ public class DBBackupAdapterMssql extends DBBackupAdapter {
 	public boolean createSchema(StatementLogging stLog, String schema) {
 		try {
 			if (!adapter.getSchemes().containsKey(schema)) {
-				ConsoleWriter.detailsPrintLn(lang.getValue("general", "backup", "creatingSchema").withParams(PREFIX + schema), 3);
+				ConsoleWriter.detailsPrintln(lang.getValue("general", "backup", "creatingSchema").withParams(PREFIX + schema), messageLevel);
 				stLog.execute(MessageFormat.format("CREATE SCHEMA {0}{1}", PREFIX, schema));
 			}
 			return true;
 		} catch (SQLException e) {
-			ConsoleWriter.println(lang.getValue("errors", "backup", "cannotCreateSchema").withParams(e.getLocalizedMessage()));
+			ConsoleWriter.println(lang.getValue("errors", "backup", "cannotCreateSchema").withParams(e.getLocalizedMessage()), messageLevel);
 			return false;
 		}
 	}

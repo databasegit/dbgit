@@ -61,7 +61,7 @@ public class CmdRestore implements IDBGitCommand {
 			adapter = AdapterFactory.createAdapter();
 			adapter.setDumpSqlCommand(scriptOutputStream, toMakeChanges);
 		} catch (NullPointerException e) {
-			ConsoleWriter.println(getLang().getValue("errors", "restore", "cantConnect"));
+			ConsoleWriter.println(getLang().getValue("errors", "restore", "cantConnect"), messageLevel);
 			System.exit(0);
 		}
 
@@ -190,7 +190,7 @@ public class CmdRestore implements IDBGitCommand {
 				}
 			}
 		}
-		ConsoleWriter.println(getLang().getValue("general", "done"));
+		ConsoleWriter.println(getLang().getValue("general", "done"), messageLevel);
 	}
 
 	private boolean checkNeedsRestore(IMetaObject obj){

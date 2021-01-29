@@ -12,6 +12,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 import java.util.Set;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import ru.fusionsoft.dbgit.adapters.DBAdapter;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
 import ru.fusionsoft.dbgit.adapters.IDBAdapterRestoreMetaData;
@@ -138,7 +139,7 @@ public class DBAdapterOracle extends DBAdapter {
 			stmt.close();
 		}catch(Exception e) {
 			logger.error(e.getMessage());
-			throw new ExceptionDBGitRunTime(e.getMessage());
+			throw new ExceptionDBGitRunTime(e);
 		}
 		return listTableSpace;
 	}
@@ -451,22 +452,21 @@ public class DBAdapterOracle extends DBAdapter {
 			
 		}catch(Exception e) {
 			logger.error(lang.getValue("errors", "adapter", "views").toString() + ": "+ e.getMessage());
-			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "views").toString() + ": "+ e.getMessage());
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "views").toString(), e);
 		}
 	}
 	
 	public Map<String, DBTrigger> getTriggers(String schema) {
+
 		Map<String, DBTrigger> listTrigger = new HashMap<String, DBTrigger>();
-		try {
-			String query = "SELECT  tr.owner, tr.trigger_name, tr.trigger_type, tr.table_name," + 
-					" (select dbms_metadata.get_ddl('TRIGGER', tr.trigger_name, tr.owner) AS DDL from dual) AS DDL\n" + 
-					"FROM all_triggers tr\n" + 
-					"WHERE owner = '"+ schema +"'";
-			
-			Connection connect = getConnection();
-			Statement stmt = connect.createStatement();
-			
-			ResultSet rs = stmt.executeQuery(query);
+		String query =
+			"SELECT  tr.owner, tr.trigger_name, tr.trigger_type, tr.table_name," +
+			" (select dbms_metadata.get_ddl('TRIGGER', tr.trigger_name, tr.owner) AS DDL from dual) AS DDL\n" +
+			"FROM all_triggers tr\n" +
+			"WHERE owner = '"+ schema +"'";
+
+		try (Statement stmt = getConnection().createStatement(); ResultSet rs = stmt.executeQuery(query);) {
+
 			while(rs.next()){
 				String name = rs.getString("TRIGGER_NAME");
 				String sql = rs.getString("DDL");
@@ -477,22 +477,24 @@ public class DBAdapterOracle extends DBAdapter {
 				rowToProperties(rs, trigger.getOptions());
 				listTrigger.put(name, trigger);
 			}
-			stmt.close();
-			return listTrigger;
-		}catch(Exception e) {
-			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "triggers").toString(), e);	
+
+
+		} catch(Exception e) {
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "triggers").toString(), e);
 		}
+
+		return listTrigger;
 	}
 	
 	public DBTrigger getTrigger(String schema, String name) {
 		DBTrigger trigger = null;
-		try {
-			String query = "SELECT  tr.owner, tr.trigger_name, tr.trigger_type, tr.table_name, (select dbms_metadata.get_ddl('TRIGGER', tr.trigger_name, tr.owner) AS DDL from dual) AS DDL\n" + 
-					"FROM    all_triggers tr\n" + 
-					"WHERE   owner = '" + schema + "' and trigger_name = '" + name + "'";
-			
-			Statement stmt = connect.createStatement();
-			ResultSet rs = stmt.executeQuery(query);
+
+		String query =
+			"SELECT  tr.owner, tr.trigger_name, tr.trigger_type, tr.table_name, (select dbms_metadata.get_ddl('TRIGGER', tr.trigger_name, tr.owner) AS DDL from dual) AS DDL\n" +
+			"FROM    all_triggers tr\n" +
+			"WHERE   owner = '" + schema + "' and trigger_name = '" + name + "'";
+
+		try (Statement stmt = connect.createStatement(); ResultSet rs = stmt.executeQuery(query);) {
 
 			while(rs.next()){
 				trigger = new DBTrigger(name);	
@@ -501,22 +503,24 @@ public class DBAdapterOracle extends DBAdapter {
 				trigger.setOwner("oracle");
 				rowToProperties(rs, trigger.getOptions());
 			}
-			stmt.close();
-			return trigger;
-		}catch(Exception e) {
-			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "triggers").toString(), e);	
+
+		} catch(Exception e) {
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "triggers").toString(), e);
 		}
+
+		return trigger;
 	}
 
 	@Override
 	public Map<String, DBPackage> getPackages(String schema) {
 		Map<String, DBPackage> listPackage = new HashMap<String, DBPackage>();
-		try {
-			String query = "SELECT f.owner, f.object_name, (select dbms_metadata.get_ddl('PACKAGE', f.object_name, f.owner) AS DDL from dual) AS DDL \n" + 
-					"FROM all_objects f WHERE f.owner = '" + schema + "' and f.object_type = 'PACKAGE'";
-			Connection connect = getConnection();
-			Statement stmt = connect.createStatement();
-			ResultSet rs = stmt.executeQuery(query);
+
+		String query =
+			"SELECT f.owner, f.object_name, (select dbms_metadata.get_ddl('PACKAGE', f.object_name, f.owner) AS DDL from dual) AS DDL \n" +
+			"FROM all_objects f WHERE f.owner = '" + schema + "' and f.object_type = 'PACKAGE'";
+
+		try (Statement stmt = getConnection().createStatement(); ResultSet rs = stmt.executeQuery(query); ){
+
 			while(rs.next()){
 				String name = rs.getString("OBJECT_NAME");
 				String owner = rs.getString("OWNER");
@@ -528,23 +532,24 @@ public class DBAdapterOracle extends DBAdapter {
 				//pack.setArguments(args);
 				listPackage.put(name, pack);
 			}
-			stmt.close();
-		}catch(Exception e) {
+
+		} catch(Exception e) {
 			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "pkg").toString(), e);
 		}
+
 		return listPackage;
 	}
 
 	@Override
 	public DBPackage getPackage(String schema, String name) {
-		try {
-			String query = "SELECT f.owner, f.object_name, (select dbms_metadata.get_ddl('PACKAGE', f.object_name, f.owner) AS DDL from dual) AS DDL \n" + 
-					"FROM all_objects f WHERE f.owner = '" + schema + "' and f.object_type = 'PACKAGE' and f.object_name = '" + name + "'";
-			Connection connect = getConnection();
-			Statement stmt = connect.createStatement();
-			ResultSet rs = stmt.executeQuery(query);
-			
-			DBPackage pack = null;
+		DBPackage pack = null;
+
+		String query =
+			"SELECT f.owner, f.object_name, (select dbms_metadata.get_ddl('PACKAGE', f.object_name, f.owner) AS DDL from dual) AS DDL \n" +
+			"FROM all_objects f WHERE f.owner = '" + schema + "' and f.object_type = 'PACKAGE' and f.object_name = '" + name + "'";
+
+		try (Statement stmt = getConnection().createStatement(); ResultSet rs = stmt.executeQuery(query);) {
+
 			while (rs.next()) {
 				pack = new DBPackage(name);
 				String owner = rs.getString("OWNER");
@@ -554,25 +559,25 @@ public class DBAdapterOracle extends DBAdapter {
 				//pack.setArguments(args);
 				rowToProperties(rs,pack.getOptions());
 			}
-			stmt.close();
-			
-			return pack;
-			
-		}catch(Exception e) {
-			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "views").toString(), e);			
+
+		} catch(Exception e) {
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "views").toString(), e);
 		}
+
+		return pack;
 	}
 
 	@Override
 	public Map<String, DBProcedure> getProcedures(String schema) {
 		Map<String, DBProcedure> listProcedure = new HashMap<String, DBProcedure>();
-		try {
-			String query = "SELECT f.owner, f.object_name, (select listagg(DATA_TYPE, ' ' ) within group (order by DATA_TYPE) from ALL_ARGUMENTS " + 
-					"WHERE object_name = f.OBJECT_NAME AND owner = f.owner) arguments, (select dbms_metadata.get_ddl('PROCEDURE', f.object_name, f.owner) AS DDL from dual) AS DDL \n" + 
-					"FROM all_objects f WHERE f.owner = '" + schema + "' and f.object_type = 'PROCEDURE'";
-			Connection connect = getConnection();
-			Statement stmt = connect.createStatement();
-			ResultSet rs = stmt.executeQuery(query);
+
+		String query =
+			"SELECT f.owner, f.object_name, (select listagg(DATA_TYPE, ' ' ) within group (order by DATA_TYPE) from ALL_ARGUMENTS " +
+			"WHERE object_name = f.OBJECT_NAME AND owner = f.owner) arguments, (select dbms_metadata.get_ddl('PROCEDURE', f.object_name, f.owner) AS DDL from dual) AS DDL \n" +
+			"FROM all_objects f WHERE f.owner = '" + schema + "' and f.object_type = 'PROCEDURE'";
+
+		try (Statement stmt = getConnection().createStatement(); ResultSet rs = stmt.executeQuery(query);) {
+
 			while(rs.next()){
 				String name = rs.getString("OBJECT_NAME");
 				String owner = rs.getString("OWNER");
@@ -585,24 +590,25 @@ public class DBAdapterOracle extends DBAdapter {
 				//proc.setArguments(args);
 				listProcedure.put(name, proc);
 			}
-			stmt.close();
-		}catch(Exception e) {
+
+		} catch(Exception e) {
 			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "prc").toString(), e);
 		}
+
 		return listProcedure;
 	}
 
 	@Override
 	public DBProcedure getProcedure(String schema, String name) {
-		try {
-			String query = "SELECT f.owner, f.object_name, (select listagg(DATA_TYPE, ' ' ) within group (order by DATA_TYPE) from ALL_ARGUMENTS " + 
-					"WHERE object_name = f.OBJECT_NAME AND owner = f.owner) arguments, (select dbms_metadata.get_ddl('PROCEDURE', f.object_name, f.owner) AS DDL from dual) AS DDL \n" + 
-					"FROM all_objects f WHERE f.owner = '" + schema + "' and f.object_type = 'PROCEDURE' and f.object_name = '" + name + "'";
-			Connection connect = getConnection();
-			Statement stmt = connect.createStatement();
-			ResultSet rs = stmt.executeQuery(query);
-			DBProcedure proc = null;
-			
+		DBProcedure proc = null;
+
+		String query =
+			"SELECT f.owner, f.object_name, (select listagg(DATA_TYPE, ' ' ) within group (order by DATA_TYPE) from ALL_ARGUMENTS " +
+			"WHERE object_name = f.OBJECT_NAME AND owner = f.owner) arguments, (select dbms_metadata.get_ddl('PROCEDURE', f.object_name, f.owner) AS DDL from dual) AS DDL \n" +
+			"FROM all_objects f WHERE f.owner = '" + schema + "' and f.object_type = 'PROCEDURE' and f.object_name = '" + name + "'";
+
+		try (Statement stmt = getConnection().createStatement(); ResultSet rs = stmt.executeQuery(query);) {
+
 			while (rs.next()) {
 				proc = new DBProcedure(rs.getString("OBJECT_NAME"));
 				String owner = rs.getString("OWNER");
@@ -612,25 +618,23 @@ public class DBAdapterOracle extends DBAdapter {
 				//proc.setArguments(args);
 				rowToProperties(rs,proc.getOptions());
 			}
-			stmt.close();
-			
-			return proc;
-			
-		}catch(Exception e) {
-			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "prc").toString(), e);			
+
+		} catch(Exception e) {
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "prc").toString(), e);
 		}
+
+		return proc;
 	}
 
 	@Override
 	public Map<String, DBFunction> getFunctions(String schema) {
 		Map<String, DBFunction> listFunction = new HashMap<String, DBFunction>();
-		try {
-			String query = "SELECT f.owner, f.object_name, (select listagg(DATA_TYPE, ' ' ) within group (order by DATA_TYPE) from ALL_ARGUMENTS \r\n" + 
-					"WHERE object_name = f.OBJECT_NAME AND owner = f.owner) arguments, (select dbms_metadata.get_ddl('FUNCTION', f.object_name, f.owner) AS DDL from dual) AS DDL \n" + 
-					"FROM all_objects f WHERE f.owner = '" + schema + "' and f.object_type = 'FUNCTION'";
-			Connection connect = getConnection();
-			Statement stmt = connect.createStatement();
-			ResultSet rs = stmt.executeQuery(query);
+		String query =
+			"SELECT f.owner, f.object_name, (select listagg(DATA_TYPE, ' ' ) within group (order by DATA_TYPE) from ALL_ARGUMENTS \r\n" +
+			"WHERE object_name = f.OBJECT_NAME AND owner = f.owner) arguments, (select dbms_metadata.get_ddl('FUNCTION', f.object_name, f.owner) AS DDL from dual) AS DDL \n" +
+			"FROM all_objects f WHERE f.owner = '" + schema + "' and f.object_type = 'FUNCTION'";
+
+		try (Statement stmt = getConnection().createStatement(); ResultSet rs = stmt.executeQuery(query);) {
 			while(rs.next()){
 				String name = rs.getString("OBJECT_NAME");
 				String sql = rs.getString("DDL");
@@ -643,25 +647,26 @@ public class DBAdapterOracle extends DBAdapter {
 				//func.setArguments(args);
 				listFunction.put(name, func);
 			}
-			stmt.close();
-		}catch(Exception e) {
+
+		} catch(Exception e) {
 			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "fnc").toString(), e);
 		}
+
 		return listFunction;
 	}
 
 	@Override
 	public DBFunction getFunction(String schema, String name) {
-		try {
-			String query = "SELECT f.owner, f.object_name, (select listagg(DATA_TYPE, ' ' ) within group (order by DATA_TYPE) from ALL_ARGUMENTS " + 
-					"WHERE object_name = f.OBJECT_NAME AND owner = f.owner) arguments, (select dbms_metadata.get_ddl('FUNCTION', f.object_name, f.owner) AS DDL from dual) AS DDL \n" + 
-					"FROM all_objects f WHERE f.owner = '" + schema +"' and " + 
-					"f.object_type = 'FUNCTION' and f.object_name = '" + name +"'";
-			Connection connect = getConnection();
-			Statement stmt = connect.createStatement();
-			ResultSet rs = stmt.executeQuery(query);
-			DBFunction func = null;
-			
+		DBFunction func = null;
+
+		String query =
+			"SELECT f.owner, f.object_name, (select listagg(DATA_TYPE, ' ' ) within group (order by DATA_TYPE) from ALL_ARGUMENTS " +
+			"WHERE object_name = f.OBJECT_NAME AND owner = f.owner) arguments, (select dbms_metadata.get_ddl('FUNCTION', f.object_name, f.owner) AS DDL from dual) AS DDL \n" +
+			"FROM all_objects f WHERE f.owner = '" + schema +"' and " +
+			"f.object_type = 'FUNCTION' and f.object_name = '" + name +"'";
+
+		try (Statement stmt = getConnection().createStatement(); ResultSet rs = stmt.executeQuery(query);) {
+
 			while (rs.next()) {
 				func = new DBFunction(rs.getString("OBJECT_NAME"));
 				String owner = rs.getString("OWNER");
@@ -671,13 +676,12 @@ public class DBAdapterOracle extends DBAdapter {
 				//func.setArguments(args);
 				rowToProperties(rs,func.getOptions());
 			}
-			stmt.close();
-			
-			return func;
-			
-		}catch(Exception e) {
-			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "fnc").toString(), e);			
+
+		} catch(Exception e) {
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "fnc").toString(), e);
 		}
+
+		return func;
 	}
 
 	@Override
@@ -697,7 +701,9 @@ public class DBAdapterOracle extends DBAdapter {
 			data.setResultSet(rs);	
 			return data;
 		} catch(Exception e) {
-			ConsoleWriter.println("Connection lost!");
+
+			ConsoleWriter.println(e.getLocalizedMessage(), messageLevel);
+			ConsoleWriter.detailsPrintln(ExceptionUtils.getStackTrace(e), messageLevel);
 			logger.error(lang.getValue("errors", "adapter", "tableData").toString(), e);
 
 			try {
@@ -707,7 +713,11 @@ public class DBAdapterOracle extends DBAdapter {
 					} catch (InterruptedException e1) {
 						throw new ExceptionDBGitRunTime(e1.getMessage());
 					}
-					ConsoleWriter.println("Error while getting portion of data, try " + tryNumber);
+					ConsoleWriter.println(DBGitLang.getInstance()
+					    .getValue("errors", "dataTable", "loadPortionError")
+					    .withParams(String.valueOf(tryNumber))
+					    , messageLevel
+					);
 					return getTableDataPortion(schema, nameTable, portionIndex, tryNumber++);
 				}
 			} catch (Exception e1) {

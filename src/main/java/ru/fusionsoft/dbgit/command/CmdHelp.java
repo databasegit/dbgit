@@ -31,7 +31,7 @@ public class CmdHelp implements IDBGitCommand {
 	}
 	@Override
 	public void execute(CommandLine cmdLine) throws Exception {	
-		ConsoleWriter.println(getLang().getValue("help", "common"));
+		ConsoleWriter.println(getLang().getValue("help", "common"), messageLevel);
 	}
 
 }

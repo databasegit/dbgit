@@ -40,7 +40,10 @@ public class FactoryDBAdapterRestoreOracle implements IFactoryDBAdapterRestoteMe
 		if (!restoreAdapters.containsKey(tp.getValue())) {
 			//return new DBRestoreMetaNotSupport();
 			
-			ConsoleWriter.println(DBGitLang.getInstance().getValue("errors", "restore", "cannotRestore").withParams(tp.getValue()));
+			ConsoleWriter.println(DBGitLang.getInstance().getValue("errors", "restore", "cannotRestore")
+				.withParams(tp.getValue())
+				, messageLevel
+			);
 			return null;
 		}
 		

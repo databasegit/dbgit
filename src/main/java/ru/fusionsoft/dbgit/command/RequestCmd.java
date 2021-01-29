@@ -125,7 +125,7 @@ public class RequestCmd {
 	
 	public static void main( String[] args ) throws Exception
     {    	
-    	ConsoleWriter.println( "dbgit utils - Hello!");
+    	ConsoleWriter.println( "dbgit utils - Hello!", 0);
         
         //configureLogback();
                
@@ -171,9 +171,16 @@ public class RequestCmd {
             
             
         	
-        	ConsoleWriter.println( "execute command success!");
+            ConsoleWriter.println(DBGitLang.getInstance()
+                .getValue("general", "commandSuccess")
+                , 0
+            );
         } catch (Exception e) {
-        	ConsoleWriter.printlnRed("Error execute dbgit: "+e.getMessage());
+        	ConsoleWriter.printlnRed(DBGitLang.getInstance()
+        	    .getValue("errors", "cmdException")
+        	    .withParams(e.getMessage())
+        	    , 0
+        	);
         	LoggerUtil.getGlobalLogger().error(e.getMessage(), e);
         }
         

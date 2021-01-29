@@ -37,7 +37,7 @@ public class CmdFetch implements IDBGitCommand {
 		String[] args = cmdLine.getArgs();
 		String remote = "";
 		
-		ConsoleWriter.println(getLang().getValue("general", "fetch", "fetching"));
+		ConsoleWriter.println(getLang().getValue("general", "fetch", "fetching"), messageLevel);
 		
 		if (args.length == 1) {
 			remote = args[0];

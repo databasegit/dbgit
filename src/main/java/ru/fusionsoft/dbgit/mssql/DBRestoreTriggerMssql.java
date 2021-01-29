@@ -55,19 +55,20 @@ public class DBRestoreTriggerMssql extends DBRestoreAdapter {
 					if(!ddl.isEmpty()){
 						st.execute(ddl);
 					} else {
-						ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "encrypted").withParams(triggerName));
+						ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "encrypted").withParams(triggerName), messageLevel);
 					}
 				}
 			}
 			else
 			{
-				ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
-				throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()));
+				throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "metaTypeError").withParams(
+					obj.getName()
+					,  "trigger", obj.getType().getValue()
+				));
 			}
 
 		}
 		catch (Exception e) {
-			ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()), e);
 		} finally {
 			ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));

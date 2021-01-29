@@ -34,7 +34,9 @@ import ru.fusionsoft.dbgit.dbobjects.DBSchemaObject;
  */
 public interface IMetaObject {
 	public static final String EMPTY_HASH = "<EMPTY>"; 
-	public static final int MAX_FILE_NAME_LENGTH = 130; 
+	public static final int MAX_FILE_NAME_LENGTH = 130;
+	public static int messageLevel = 1;
+
 	/**
 	 * 
 	 * @return Type meta object

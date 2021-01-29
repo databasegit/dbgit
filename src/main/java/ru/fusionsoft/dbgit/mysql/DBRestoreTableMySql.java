@@ -54,7 +54,7 @@ public class DBRestoreTableMySql extends DBRestoreAdapter {
             schema = (SchemaSynonym.getInstance().getSchema(schema) == null) ? schema : SchemaSynonym.getInstance().getSchema(schema);
             st.execute("drop table if exists " + schema + "." + tbl.getName());
         } catch (Exception e) {
-            ConsoleWriter.println(lang.getValue("errors", "restore", "objectRestoreError").withParams(e.getLocalizedMessage()));
+            ConsoleWriter.println(lang.getValue("errors", "restore", "objectRestoreError").withParams(e.getLocalizedMessage()), 0);
             throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRemoveError").withParams(obj.getName()), e);
         } finally {
             st.close();
@@ -97,10 +97,12 @@ public class DBRestoreTableMySql extends DBRestoreAdapter {
                 st.execute(ddl);
                 ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
             } else {
-                throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()));
+                throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "metaTypeError").withParams(
+                    obj.getName()
+                    ,  "table", obj.getType().getValue()
+                ));
             }
         } catch (Exception e) {
-            ConsoleWriter.println(lang.getValue("errors", "restore", "objectRestoreError").withParams(e.getLocalizedMessage()));
             throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()), e);
         } finally {
             st.close();
@@ -111,7 +113,7 @@ public class DBRestoreTableMySql extends DBRestoreAdapter {
         IDBAdapter adapter = getAdapter();
         Connection connect = adapter.getConnection();
         StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
-        ConsoleWriter.detailsPrintLn(lang.getValue("general", "restore", "restoreIndex").withParams(obj.getName()), 3);
+        ConsoleWriter.detailsPrintln(lang.getValue("general", "restore", "restoreIndex").withParams(obj.getName()), messageLevel);
         try {
             if (obj instanceof MetaTable) {
                 MetaTable restoreTable = (MetaTable)obj;
@@ -171,19 +173,18 @@ public class DBRestoreTableMySql extends DBRestoreAdapter {
                     //}
                 } else {
                     String errText = lang.getValue("errors", "meta", "notFound").withParams(obj.getName());
-                    ConsoleWriter.detailsPrintlnRed(errText);
                     throw new ExceptionDBGitRestore(errText);
                 }
             } else {
-                ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
-                throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()));
+                throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "metaTypeError").withParams(
+                    obj.getName()
+                        ,  "table", obj.getType().getValue()
+                ));
             }
         } catch (Exception e) {
-            ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
-            ConsoleWriter.println(lang.getValue("errors", "restore", "objectRestoreError").withParams(e.getLocalizedMessage()));
             throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()), e);
         } finally {
-//            ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
+            ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
             st.close();
         }
     }
@@ -192,7 +193,7 @@ public class DBRestoreTableMySql extends DBRestoreAdapter {
         IDBAdapter adapter = getAdapter();
         Connection connect = adapter.getConnection();
         StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
-        ConsoleWriter.detailsPrintLn(lang.getValue("general", "restore", "restoreConstr").withParams(obj.getName()), 3);
+        ConsoleWriter.detailsPrintln(lang.getValue("general", "restore", "restoreConstr").withParams(obj.getName()), messageLevel);
         try {
             if (obj instanceof MetaTable) {
                 MetaTable restoreTable = (MetaTable)obj;
@@ -224,13 +225,13 @@ public class DBRestoreTableMySql extends DBRestoreAdapter {
                     }
                 }
             } else {
-                ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
                 throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()));
             }
         } catch (Exception e) {
-            ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
-            ConsoleWriter.println(lang.getValue("errors", "restore", "objectRestoreError").withParams(e.getLocalizedMessage()));
-            throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()), e);
+            throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "metaTypeError").withParams(
+                obj.getName()
+                ,  "table", obj.getType().getValue()
+            ));
         } finally {
             ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
             st.close();

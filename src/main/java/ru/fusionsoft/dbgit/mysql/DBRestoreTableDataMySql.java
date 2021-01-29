@@ -75,12 +75,16 @@ public class DBRestoreTableDataMySql extends DBRestoreAdapter {
                 }
                 return true;
             } else {
-                ////TODO WTF????
-                throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()));
-                //return true;
+                throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "metaTypeError").withParams(
+                    obj.getName()
+                    ,  "table data cached", obj.getType().getValue()
+                ));
             }
         } else {
-            throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()));
+            throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "metaTypeError").withParams(
+                obj.getName()
+                ,  "table data", obj.getType().getValue()
+            ));
         }
     }
 
@@ -101,18 +105,18 @@ public class DBRestoreTableDataMySql extends DBRestoreAdapter {
             schema = (SchemaSynonym.getInstance().getSchema(schema) == null) ? schema : SchemaSynonym.getInstance().getSchema(schema);
             String tblName = schema + ".`" + restoreTableData.getTable().getName() + "`";
             if (!diffTableData.entriesOnlyOnLeft().isEmpty()) {
-                ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "inserting"), 3);
+                ConsoleWriter.detailsPrintln(lang.getValue("general", "restore", "inserting"), messageLevel);
                 for (RowData rowData : diffTableData.entriesOnlyOnLeft().values()) {
                     String fields = String.join("`, `", rowData.getData().keySet());
                     String values = String.join(", ", rowData.getData().values().stream().map(row -> valueToString(row)).collect(Collectors.toList()));
                     String insertQuery = "insert into " + tblName + "(`" + fields + "`) values (" + values + ");";
-                    ConsoleWriter.detailsPrintLn(insertQuery);
+                    ConsoleWriter.detailsPrintln(insertQuery, messageLevel);
                     st.execute(insertQuery);
                 }
                 ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
             }
             if (!diffTableData.entriesOnlyOnRight().isEmpty()) {
-                ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "deleting"), 3);
+                ConsoleWriter.detailsPrintln(lang.getValue("general", "restore", "deleting"), messageLevel);
                 String ddl = "";
                 for (RowData rowData : diffTableData.entriesOnlyOnRight().values()) {
                     Map<String, String> primarykeys = new HashMap();
@@ -138,7 +142,7 @@ public class DBRestoreTableDataMySql extends DBRestoreAdapter {
                 ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
             }
             if (!diffTableData.entriesDiffering().isEmpty()) {
-                ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "updating"), 3);
+                ConsoleWriter.detailsPrintln(lang.getValue("general", "restore", "updating"), messageLevel);
                 String updateQuery = "";
                 //Map<String,String> primarykeys = new HashMap();
                 for (ValueDifference<RowData> diffRowData : diffTableData.entriesDiffering().values()) {
@@ -213,12 +217,12 @@ public class DBRestoreTableDataMySql extends DBRestoreAdapter {
                 }
                 ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
                 if (!updateQuery.isEmpty()) {
-                    ConsoleWriter.println(updateQuery);
+                    //TODO not a real restore, just print
+                    ConsoleWriter.println(updateQuery, messageLevel);
                     //st.execute(updateQuery);
                 }
             }
         } catch (Exception e) {
-            ConsoleWriter.println(lang.getValue("errors", "restore", "objectRestoreError").withParams(e.getLocalizedMessage()));
             throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(restoreTableData.getTable().getSchema() + "." + restoreTableData.getTable().getName()), e);
         } finally {
             st.close();

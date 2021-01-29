@@ -209,10 +209,13 @@ public class DBGitTest {
             scriptFile.delete();
             dbgitRestore(true, true, scriptPath);
 
-            ConsoleWriter.printlnGreen(MessageFormat.format("Done restore, script: \n{1} ({0} syms.)",
-                scriptFile.exists() ? FileUtils.readFileToString(scriptFile).length() : 0,
-                scriptPath
-            ));
+
+            //TODO assert sizes have no difference
+            ConsoleWriter.printlnGreen(MessageFormat.format(
+                "File 1st: {0} syms.\nFile 2nd: {1} syms.",
+                scriptFile.exists() ? FileUtils.readFileToString(scriptFile).length() : -1,
+                scriptFileA.exists() ? FileUtils.readFileToString(scriptFileA).length() :- 1
+            ), messageLevel);
         }
     }
 
@@ -231,6 +234,9 @@ public class DBGitTest {
         dbgitCheckout(repoBranch, lastCommit, false, true, false, false);
         IMapMetaObject fileImos = GitMetaDataManager.getInstance().loadFileMetaData();
         IMapMetaObject databaseImos = GitMetaDataManager.getInstance().loadDBMetaData();
+
+
+        ConsoleWriter.detailsPrintln("Find file to db object difference: ", messageLevel);
         MapDifference<String, IMetaObject> diffs = Maps.difference(fileImos, databaseImos);
 
         ConsoleWriter.detailsPrintLn("Diffs: ");
@@ -255,6 +261,8 @@ public class DBGitTest {
         CmdReset cmd = new CmdReset();
         Option optionMode = new Option(mode , false, mode);
         CommandLine.Builder builder = new CommandLine.Builder();
+        ConsoleWriter.println(MessageFormat.format("(call) dbgit {0} {1}", "reset", sb.toString()), messageLevel);
+
         cmd.execute(builder.addOption(optionMode).build());
     }
 
@@ -321,6 +329,8 @@ public class DBGitTest {
             scriptOption.getValuesList().add(scriptPath);
             builder.addOption(scriptOption);
         }
+
+        ConsoleWriter.println(MessageFormat.format("(call) dbgit {0} {1}", "checkout", sb.toString()), messageLevel);
         setToMakeBackup(isToMakeBackup);
 
         cmd.execute(builder.build());
@@ -330,6 +340,8 @@ public class DBGitTest {
         String propDbUrl = System.getProperty("pgTestDbUrl");
         String propDbUser = System.getProperty("pgTestDbUser");
         String propDbPass = System.getProperty("pgTestDbPass");
+
+        ConsoleWriter.println("(config) Using test database: ", messageLevel);
         if(propDbUrl != null){
             ConsoleWriter.printlnGreen(MessageFormat.format("Overriding DBConnection url from props: {0}", pgTestDbUrl));
             pgTestDbUrl = propDbUrl;
@@ -410,15 +422,14 @@ public class DBGitTest {
     private static void setToMakeBackup(boolean isToMakeBackup) throws Exception {
         String sectionName = "core";
         String parameterName = "TO_MAKE_BACKUP";
-        ConsoleWriter.detailsPrintlnRed(MessageFormat.format("+ TO_MAKE_BACKUP was: {0}",
-                String.valueOf(DBGitConfig.getInstance().getBoolean(sectionName, parameterName, false))
-        ));
+        String was = String.valueOf(DBGitConfig.getInstance().getBoolean(sectionName, parameterName, false));
+
         DBGitConfig.getInstance().setValue("TO_MAKE_BACKUP", isToMakeBackup ? "true" : "false");
 
-        ConsoleWriter.detailsPrintlnRed(MessageFormat.format("+ TO_MAKE_BACKUP (set, now)): {0}, {1}",
-                String.valueOf(isToMakeBackup),
+        ConsoleWriter.detailsPrintlnRed(MessageFormat.format("(config) Set ''TO_MAKE_BACKUP'' (was, set, now): {0}, {1}, {2}",
+                was, String.valueOf(isToMakeBackup),
                 String.valueOf(DBGitConfig.getInstance().getBoolean(sectionName, parameterName, false))
-        ));
+        ), messageLevel);
     }
 
     private static CommandLine getLinkCommandLine(String url, String user, String pass){

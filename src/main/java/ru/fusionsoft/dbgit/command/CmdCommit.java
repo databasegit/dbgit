@@ -54,7 +54,7 @@ public class CmdCommit implements IDBGitCommand {
 		
 		checkVersion();
 		
-		ConsoleWriter.println(getLang().getValue("general", "commit", "commiting"));	
+		ConsoleWriter.println(getLang().getValue("general", "commit", "commiting"), messageLevel);
 		DBGitIndex.getInctance().addLinkToGit();
 		DBGitIndex.getInctance().addIgnoreToGit();
 		DBGit.getInstance().gitCommit(cmdLine.hasOption("a"), msg, filePath);

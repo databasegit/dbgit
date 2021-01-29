@@ -10,40 +10,20 @@ import java.sql.SQLException;
 public class ExceptionDBGitRunTime extends RuntimeException {
 
 	private static final long serialVersionUID = 958722213419205629L;
-	private Logger logger = LoggerUtil.getLogger(this.getClass());
-	
-	public ExceptionDBGitRunTime(String msg) {
-		super(msg);
+	private ExceptionDBGit exceptionDBGit;
+
+	public ExceptionDBGitRunTime(Object msg) {
+		super(msg.toString());
+		exceptionDBGit = new ExceptionDBGit(this);
 	}
-	
-	public ExceptionDBGitRunTime(String message, Throwable cause) {
-		try{
-			DBConnection conn = DBConnection.getInstance();
-			conn.getConnect().rollback();
-			//super(message, cause);
-		} catch (Exception ex) {
-			if(ex instanceof ExceptionDBGit || ex instanceof SQLException) {
-				ConsoleWriter.detailsPrintlnRed("Failed to rollback connection: " + ex.getLocalizedMessage());
-			} else {
-				ConsoleWriter.printlnRed(ex.getLocalizedMessage());
-			}
-		}
-		ConsoleWriter.printlnRed(message );
 
-		if(cause instanceof SQLException){
-			ConsoleWriter.printlnRed(ExceptionUtils.getStackTrace(cause));
-
-		} else if ( !message.equals(cause.getMessage()) ){
-			ConsoleWriter.printlnRed(cause.getMessage() );
-			ConsoleWriter.detailsPrintLn(ExceptionUtils.getStackTrace(cause));
-		}
-		logger.error(message, cause);
-		System.exit(1);
-
+	public ExceptionDBGitRunTime(Object message, Throwable cause) {
+		super(message.toString(), cause);
+		exceptionDBGit = new ExceptionDBGit(this);
 	}
-	
+
 	public ExceptionDBGitRunTime(Throwable cause) {
-		this(cause.getLocalizedMessage(), cause);
+		super(cause);
+		exceptionDBGit = new ExceptionDBGit(this);
 	}
-
 }

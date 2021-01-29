@@ -9,9 +9,9 @@ import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevWalk;
 import ru.fusionsoft.dbgit.core.DBGit;
+import ru.fusionsoft.dbgit.core.DBGitLang;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
-import java.text.MessageFormat;
 
 public class CmdCheckout implements IDBGitCommand {
 	
@@ -62,12 +62,16 @@ public class CmdCheckout implements IDBGitCommand {
 				String headName = head.getName();
 				String message = walk.parseCommit(head.getObjectId()).getShortMessage();
 
-				ConsoleWriter.printlnGreen(MessageFormat.format(
-					"{0} ({1}) {2}",
-					!branch.equals(headNumber) ? branch + ": " + headName : headNumber,
-					headName,
-					message
-				));
+				ConsoleWriter.printlnGreen(DBGitLang.getInstance()
+				    .getValue("general", "checkout", "printBranchAndCommit")
+				    .withParams(
+						!branch.equals(headNumber) ? branch + ": " + headName : headNumber,
+						headName,
+						message
+					)
+				    , messageLevel
+				);
+
 			}
 			return;
 		}

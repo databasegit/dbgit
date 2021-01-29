@@ -11,8 +11,9 @@ import java.sql.SQLException;
 
 public interface IDBBackupAdapter {
 	
-	public static final String PREFIX = "BACKUP$";	
-	
+	public static final String PREFIX = "BACKUP$";
+	static int messageLevel = 3;
+
 	public void setAdapter(IDBAdapter adapter);
 
 	public IDBAdapter getAdapter();

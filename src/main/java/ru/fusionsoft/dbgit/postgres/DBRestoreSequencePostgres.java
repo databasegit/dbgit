@@ -101,11 +101,12 @@ public class DBRestoreSequencePostgres extends DBRestoreAdapter {
 			}
 			else
 			{
-				ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
-				throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()));
+                throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "metaTypeError").withParams(
+                    obj.getName()
+                    ,  "sequence", obj.getType().getValue()
+                ));
 			}
 		} catch (Exception e) {
-			ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()), e);
 		} finally {
 
@@ -130,7 +131,6 @@ public class DBRestoreSequencePostgres extends DBRestoreAdapter {
 			st.execute("DROP SEQUENCE IF EXISTS "+adapter.escapeNameIfNeeded(schema)+"."+adapter.escapeNameIfNeeded(seq.getName()));
 
 		} catch (Exception e) {
-			ConsoleWriter.println(lang.getValue("errors", "restore", "objectRestoreError").withParams(e.getLocalizedMessage()));
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRemoveError").withParams(obj.getName()), e);
 		} finally {
 			st.close();

@@ -15,6 +15,8 @@ import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
  *
  */
 public interface IDBGitCommand {
+	public static int messageLevel = 0;
+
 	public void execute(CommandLine cmdLine) throws Exception;
 	
 	public String getCommandName();

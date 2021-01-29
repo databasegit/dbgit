@@ -3,6 +3,10 @@ general:
   done: Done!
   time: Time... {0} ms
   addToGit: Adding to git...
+  commandSuccess: Execute command success!
+  showDbCredentials: "Getting database connection credentials... {0}:\\{1}@{2}{3}"
+  gettingRepoLink: Getting link to repo...
+  repoLink: "Link: {0}"
   add:
     processingObject: Processing object {0}
     savingToFile: Saving to file...
@@ -11,15 +15,16 @@ general:
     size: portion size
     loading: Loading portion index
   link:
-    connectionEstablished: Connection established
+    connectionEstablished: Testing connection OK... Connection established
     dblinkCreated: File {0} has been created
   checkout:
     do: Do checkout...
-    toCreateBranch: To create new branch
-    branchName: Branch name
-    commitName: Commit name
-    commitMessage: Commit message
-    updatedFromIndex: Updated {0} path{1} from the index
+    toCreateBranch: "To create new branch: {0}"
+    branchName: "Branch name: {0}"
+    commitName: "Commit name: {0}"
+    commitMessage: "Commit message: {0}"
+    updatedFromIndex: Updated {0} path {1} from the index
+    printBranchAndCommit: "{0} ({1}) {2}"
   clone:
     cloned: Repository cloned
   commit:
@@ -34,8 +39,8 @@ general:
   dump:
     checking: Checking files...
     dumping: Dumping...
-    hash: hash
-    dbHash: db hash
+    hash: "hash: {0}"
+    dbHash: "db hash {0}"
     hashesDifferent: Hashes are different, saving to file...
     hashesMatch: Hashes match, no need to dump object...
     processing: Processing {0}
@@ -103,6 +108,14 @@ general:
     removingFromIndex: Removing from index...
     removingFromDb: Removing from db...
     markingToDelete: Marking item as removing in index
+  push:
+    noCommitsFound: No commits found!
+    remoteName: "remoteName: {0}"
+    called: Push called...
+    nullResult: Push result is null!
+    callResult: "Push call result: {0}"
+    result: "Push result: {0}"
+    upToDate: Everything up-to-date
   status:
     repVersion: "Repository version: {0}"
     dbgitVersion: "Dbgit version: {0}"
@@ -127,16 +140,32 @@ general:
     diffDataRow: MetaTableData diff data row {0} {1}  {2}  {3}
     loadRow:  loading row {0}
     loadedRow: loaded {0} rows
+    loadFiles: Loading files...
+    loadFile: Loading file {0}...
   backup:
     tryingToCopy: Trying to copy {0} to {1}...
     creatingSchema: Creating schema {0}
     droppingBackup: Dropping backup object {0}...
     tryToBackup: Try to backup {0} present of {1} restoring objects ...
     dependingBackups: Found {0} depending backups - {1}
-    rewritingBackups: Rewriting {0} backups with {1} found dependencies
+    rewritingBackups: Dropping {0} backups with {1} found dependencies...
+    creatingBackups: Creating {0} backups...
+  dbAdapter:
+    connectionLost: Connection lost, trying to reconnect...
+    reconnectTrySuccess: Successful reconnect.
+    reconnectTry: Try {0}...
+  convert:
+    processingTable: Converting table {0}...
+    convertingIndex: Converting table index {0} from {1} to {2}
+    convertingConstraint: Converting table constraint {0} from {1} to {2}
+    convertingField: Converting table field {0} from {1} to {2}
+    convertingSchema: Converting schema {0}...
+    convertingView: Converting view {0}...
 errors:
+  cmdException: "Error execute dbgit: {0}"
+  onExceptionTransactionRollbackError: "Failed to rollback connection: {0}"
   commandNotFound: Command {0} not found!
-  executionError: Error execute dbgit
+  executionError: Error execute dbgit {0}
   gitRepNotFound: Git repository not found
   gitLoginNotFound: Can't find git login
   gitPasswordNotFound: Can't find git password
@@ -152,13 +181,15 @@ errors:
   fileLoadError: Error load file {0}
   errorParseIndex: Error parse ItemIndex!
   errorDump: Error write dump file
+  unsatisfiedDependencies: "There were objects with unsatisfied dependencies, they will NOT be included in restore list:"
+  metaTypeError: "The restore adapter encountered wrong MetaObject {0} type: expected {1}, got {2}"
   hash:
     errorSha: error search MessageDigest SHA-256
     nullParam: Calc hash use null params
     unsupportedEncode: UnsupportedEncodingException UTF-8
   link:
     emptyLink: Url database is empty
-    cantConnect: Test connection error
+    cantConnect: "Test connection error: {0}"
   restore:
     restoreErrorDidNotReturnTrue: Error restore objects.... restoreMetaObject must return true if object restore
     restoreError: Restore objects error
@@ -171,6 +202,8 @@ errors:
     cantConnect: Can't connect to db!
     errorLoadDelete: Error load and delete object
     fileAlreadyExists: Error write script, file {0} already exists
+    emptyFieldsList: Empty fieldList, maybe empty csv...
+    emptyRowsList: MapRows is null, maybe empty csv...
   add:
     badCommand: Bad command. Not found object to add!
     cantFindObjectInDb: Can't find object {0} in database
@@ -202,11 +235,13 @@ errors:
     encrypted: Could not get ddl of database object {0}, the restoration is impossible
     tooManyRecords: Table {0} has more than {1} records. dbgit can't save this table data.
     compareMetaError: compareMeta Error! {0} to {1}
+    loadMetaFile: Could not load meta file {0}, using dummy version instead!
   dataTable:
     errorCellData: Error create CellData for type {0}
     differentCount: Different count columns title and line
     fieldNotFound: Field {0} not found
     filesNotFound: Cound not find .data files in directories '{0}', put NULL values instead
+    loadPortionError: Error while getting portion of data, try {0}
   adapter:
     schemes: Error load schemes!
     tables: Error load tables!
@@ -224,10 +259,16 @@ errors:
     roles: Error load roles!
     rollback: Error while rollback!
     createSchema: Cannot create schema
+    nullSchema: Object {0} has no schema set!
   backup:
     badCommand: Bad command. Object to backup doesn't specified!
     backupError: Error on backup {0}
     cannotCreateSchema: Cannot create schema {0}
+  convert:
+    cannotConvert: Cannot convert {0}!
+    cannotFindAdapter: Could not get convert adapter for {0} ({1} version {2} -> {3} version {4})
+  pull:
+    emptyGitRepository: Repo is empty!
 help:
   h: Shows this help
   v: Outputs full log of command execution

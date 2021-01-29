@@ -36,6 +36,7 @@ public interface IDBAdapter {
 	public static final int MAX_ROW_COUNT_FETCH = 10000;
 	public static final int LIMIT_FETCH = 1;
 	public static final int NOLIMIT_FETCH = 2;
+	public static final int messageLevel = 2;
 	
 	public void setConnection(Connection conn);
 	

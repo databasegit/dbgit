@@ -569,14 +569,9 @@ public class DBAdapterMySql extends DBAdapter {
 			
 			return data;
 		} catch(Exception e) {
-			logger.error(lang.getValue("errors", "adapter", "tableData").toString(), e);
-			try {
-				getConnection().rollback(); 
-			} catch (Exception e2) {
-				logger.error(lang.getValue("errors", "adapter", "rollback").toString(), e2);
-			}
-			throw new ExceptionDBGitRunTime(e.getMessage());
+			throw new ExceptionDBGitRunTime(e);
 		}
+		return data;
 	}
 
 	@Override
@@ -724,6 +719,9 @@ public class DBAdapterMySql extends DBAdapter {
 			data.setResultSet(rs);
 			return data;
 		} catch(Exception e) {
+
+			ConsoleWriter.println(e.getLocalizedMessage(), messageLevel);
+			ConsoleWriter.detailsPrintln(ExceptionUtils.getStackTrace(e), messageLevel);
 			logger.error(lang.getValue("errors", "adapter", "tableData").toString(), e);
 
 			try {
@@ -733,7 +731,11 @@ public class DBAdapterMySql extends DBAdapter {
 					} catch (InterruptedException e1) {
 						throw new ExceptionDBGitRunTime(e1.getMessage());
 					}
-					ConsoleWriter.println("Error while getting portion of data, try " + tryNumber);
+					ConsoleWriter.println(DBGitLang.getInstance()
+					    .getValue("errors", "dataTable", "loadPortionError")
+					    .withParams(String.valueOf(tryNumber))
+					    , messageLevel
+					);
 					getTableDataPortion(schema, nameTable, portionIndex, tryNumber++);
 				}
 			} catch (Exception e1) {

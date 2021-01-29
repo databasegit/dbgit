@@ -15,10 +15,7 @@ import java.util.stream.Collectors;
 
 import ru.fusionsoft.dbgit.adapters.DBRestoreAdapter;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
-import ru.fusionsoft.dbgit.core.ExceptionDBGit;
-import ru.fusionsoft.dbgit.core.ExceptionDBGitRestore;
-import ru.fusionsoft.dbgit.core.GitMetaDataManager;
-import ru.fusionsoft.dbgit.core.SchemaSynonym;
+import ru.fusionsoft.dbgit.core.*;
 import ru.fusionsoft.dbgit.data_table.BooleanData;
 import ru.fusionsoft.dbgit.data_table.DateData;
 import ru.fusionsoft.dbgit.data_table.ICellData;
@@ -114,26 +111,36 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 			}
 			else
 			{
-				//TODO WTF????
-				throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()));
-				//return true;
+                throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "metaTypeError").withParams(
+                    obj.getName()
+                    ,  "table data cached", obj.getType().getValue()
+                ));
 			}					
 		}
 		else
 		{
-			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()));
+			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "metaTypeError").withParams(
+				obj.getName()
+				,  "table data", obj.getType().getValue()
+			));
 		}		
 	}
 	
 	public void restoreTableDataPostgres(MetaTableData restoreTableData, MetaTableData currentTableData) throws Exception{
 		List<String> fieldsList = restoreTableData.getFields();
 		if(fieldsList.size() == 0 ) {
-			ConsoleWriter.detailsPrintlnRed("Empty fieldList, maybe empty csv");
+			ConsoleWriter.printlnRed(DBGitLang.getInstance()
+			    .getValue("errors", "restore", "emptyFieldsList")
+			    , 1
+			);
 			ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 			return;
 		}
 		if (restoreTableData.getmapRows() == null) {
-			ConsoleWriter.detailsPrintlnRed("MapRows is null, maybe empty csv");
+			ConsoleWriter.printlnRed(DBGitLang.getInstance()
+				.getValue("errors", "restore", "emptyRowsList")
+				, 1
+			);
 			ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 			return;
 		}
@@ -156,7 +163,7 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 
 			//DELETE
 			if (!diffTableData.entriesOnlyOnRight().isEmpty()) {
-				ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "deleting"), 2);
+				ConsoleWriter.detailsPrintln(lang.getValue("general", "restore", "deleting"), messageLevel);
 				StringBuilder deleteQuery = new StringBuilder();
 
 				for (RowData rowData : diffTableData.entriesOnlyOnRight().values()) {
@@ -191,7 +198,7 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 
 			//UPDATE
 			if (!diffTableData.entriesDiffering().isEmpty()) {
-				ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "updating"), 2);
+				ConsoleWriter.detailsPrintln(lang.getValue("general", "restore", "updating"), messageLevel);
 				String updateQuery = "";
 				Map<String, String> primarykeys = new HashMap();
 
@@ -229,7 +236,7 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 							+ "WHERE (" + keyFieldsJoiner.toString() + ") = (" + keyValuesJoiner.toString() + ");\n";
 
 
-							ConsoleWriter.detailsPrintLn(updateQuery);
+							ConsoleWriter.detailsPrintln(updateQuery, messageLevel);
 							st.execute(updateQuery);
 							updateQuery = "";
 						}
@@ -239,14 +246,14 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 
 				ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 				if (updateQuery.length() > 1) {
-					ConsoleWriter.println(updateQuery);
+					ConsoleWriter.println(updateQuery, messageLevel);
 					st.execute(updateQuery);
 				}
 			}
 
 			//INSERT
 			if (!diffTableData.entriesOnlyOnLeft().isEmpty()) {
-				ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "inserting"), 2);
+				ConsoleWriter.detailsPrintln(lang.getValue("general", "restore", "inserting"), messageLevel);
 				for (RowData rowData : diffTableData.entriesOnlyOnLeft().values()) {
 
 					String insertQuery = MessageFormat.format("INSERT INTO {0}{1}{2};\n"
@@ -254,15 +261,16 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 							, valuesToString(rowData.getData(fieldsList).values(), colTypes, fieldsList)
 					);
 
-					ConsoleWriter.detailsPrintLn(insertQuery);
+					ConsoleWriter.detailsPrintln(insertQuery, messageLevel);
 					st.execute(insertQuery);
 				}
 				ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 			}
 
 		} catch (Exception e) {
-			ConsoleWriter.println(lang.getValue("errors", "restore", "objectRestoreError").withParams(e.getLocalizedMessage()));
-			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(restoreTableData.getTable().getSchema() + "." + restoreTableData.getTable().getName()), e);
+			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(restoreTableData.getTable().getSchema() + "." + restoreTableData.getTable().getName())
+				, e
+			);
 		}
 	}
 	
@@ -415,9 +423,10 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 					}
 				}						
 		} catch (Exception e) {
-			ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
-			ConsoleWriter.println(lang.getValue("errors", "restore", "objectRestoreError").withParams(e.getLocalizedMessage()));
-			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(schema + "." + table.getTable().getName()), e);
+//			ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
+			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(schema + "." + table.getTable().getName())
+				, e
+			);
 		} finally {
 			ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 			st.close();
@@ -432,7 +441,7 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 		String schema = getPhisicalSchema(table.getTable().getSchema());
 		schema = (SchemaSynonym.getInstance().getSchema(schema) == null) ? schema : SchemaSynonym.getInstance().getSchema(schema);
 		String tblName = schema + "." +table.getTable().getName();
-		ConsoleWriter.detailsPrint(lang.getValue("general", "restore", "delConstr").withParams(table.getName()), 1);
+		ConsoleWriter.detailsPrintln(lang.getValue("general", "restore", "delConstr").withParams(table.getName()), messageLevel);
 		try {					
 			ResultSet rs = stCnt.executeQuery("SELECT *\r\n" + 
 					"       FROM pg_catalog.pg_constraint con\r\n" + 
@@ -463,8 +472,6 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 			ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 
 		} catch (Exception e) {
-			ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
-			ConsoleWriter.println(lang.getValue("errors", "restore", "objectRestoreError").withParams(e.getLocalizedMessage()));
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "cannotRestore").withParams(schema + "." + table.getTable().getName()), e);
 		}		
 	}

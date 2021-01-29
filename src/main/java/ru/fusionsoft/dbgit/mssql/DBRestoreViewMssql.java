@@ -53,8 +53,10 @@ public class DBRestoreViewMssql extends DBRestoreAdapter {
 			}
 			else
 			{
-				ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
-				throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()));
+				throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "metaTypeError").withParams(
+					obj.getName()
+					,  "view", obj.getType().getValue()
+				));
 			}
 		} catch (Exception e) {
 			ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));

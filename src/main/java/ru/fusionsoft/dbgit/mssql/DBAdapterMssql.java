@@ -6,6 +6,7 @@ import ru.fusionsoft.dbgit.adapters.IFactoryDBAdapterRestoteMetaData;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBBackupAdapter;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBConvertAdapter;
 import ru.fusionsoft.dbgit.core.DBGitConfig;
+import ru.fusionsoft.dbgit.core.DBGitLang;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
 import ru.fusionsoft.dbgit.core.db.DbType;
@@ -947,8 +948,11 @@ public class DBAdapterMssql extends DBAdapter {
 			return data;
 		} catch (Exception e) {
 
-			ConsoleWriter.println("Connection lost!");
-			ConsoleWriter.println("Error while getting portion of data, try " + tryNumber);
+			ConsoleWriter.println(DBGitLang.getInstance()
+			    .getValue("errors", "dataTable", "loadPortionError")
+			    .withParams(String.valueOf(tryNumber))
+			    , messageLevel
+			);
 			logger.error(lang.getValue("errors", "adapter", "tableData").toString(), e);
 
 			//try fetch again

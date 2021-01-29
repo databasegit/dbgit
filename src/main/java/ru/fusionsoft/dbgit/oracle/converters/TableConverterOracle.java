@@ -5,6 +5,7 @@ import java.util.regex.Pattern;
 
 import ru.fusionsoft.dbgit.adapters.IDBConvertAdapter;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBConvertAdapter;
+import ru.fusionsoft.dbgit.core.DBGitLang;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.db.DbType;
 import ru.fusionsoft.dbgit.dbobjects.DBConstraint;
@@ -25,9 +26,13 @@ public class TableConverterOracle implements IDBConvertAdapter {
 		if (obj instanceof MetaTable) {
 			
 			MetaTable table = (MetaTable) obj;			
-			
-			ConsoleWriter.println("Processing table " + table.getName());
-					
+
+			ConsoleWriter.println(DBGitLang.getInstance()
+			    .getValue("general", "convert", "convertingTable")
+			    .withParams(table.getName())
+			    , messageLevel
+			);
+
 			//types
 			for (DBTableField field : table.getFields().values())
 				field.setTypeSQL(typeFromAnotherDB(objDbType, field));
@@ -54,14 +59,23 @@ public class TableConverterOracle implements IDBConvertAdapter {
 	}
 
 	private String indexFromPostgres(DBIndex index) {
-		ConsoleWriter.println("Converting table index " + index.getName() + " from postgresql to oracle...");
-		
+		ConsoleWriter.println(DBGitLang.getInstance()
+		    .getValue("general", "convert", "convertingIndex")
+		    .withParams(index.getName(), "postgresql", "oracle")
+		    , messageLevel
+		);
+
 		return "";
 	}
 	
 	private String constraintFromPostgres(MetaTable table, DBConstraint constraint) {
-		ConsoleWriter.println("Converting table constraint " + constraint.getName() + " from postgresql to oracle...");
-		
+
+		ConsoleWriter.println(DBGitLang.getInstance()
+		    .getValue("general", "convert", "convertingConstraint")
+		    .withParams(constraint.getName(), "postgresql", "oracle")
+		    , messageLevel
+		);
+
 		String ddl = constraint.getOptions().get("ddl")
 				.toString()
 				.replace("ON UPDATE CASCADE", "")
@@ -76,7 +90,13 @@ public class TableConverterOracle implements IDBConvertAdapter {
 	}
 	
 	private String typeFromAnotherDB(DbType dbType, DBTableField field) {
-		ConsoleWriter.println("Converting table field " + field.getName() + " from " + dbType.toString().toLowerCase() + " to oracle...");
+
+		ConsoleWriter.println(DBGitLang.getInstance()
+		    .getValue("general", "convert", "convertingField")
+		    .withParams(field.getName(), dbType.toString(), "oracle")
+		    , messageLevel
+		);
+
 		String result = "";
 		switch (field.getTypeUniversal()) {
 			case STRING:

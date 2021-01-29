@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 import ru.fusionsoft.dbgit.utils.LoggerUtil;
 
+import java.sql.Connection;
 import java.sql.SQLException;
 
 /**
@@ -17,52 +18,70 @@ import java.sql.SQLException;
 public class ExceptionDBGit extends Exception {
 
 	private static final long serialVersionUID = -4613368557825624023L;
-	private Logger logger = LoggerUtil.getLogger(this.getClass());
+	protected Logger logger = LoggerUtil.getLogger(this.getClass());
+	protected static int messageLevel = 0;
+	private Throwable cause = null;
+	private String contextMessage = null;
 
 	public ExceptionDBGit(Object msg) {
-		this(msg.toString());
+		this.setContextMessage(msg.toString());
+		handleException();
 	}
-	
-	public ExceptionDBGit(String msg) {
-		super(msg);
+	public ExceptionDBGit(Object message, Throwable cause) {
+		this.setContextMessage(message.toString());
+		this.setCause(cause);
+		handleException();
+	}
+	public ExceptionDBGit(Throwable cause) {
+		this.setCause(cause);
+		handleException();
+	}
+
+	private void handleException(){
+		printMessageAndStackTrace();
 		rollbackConnection();
-		ConsoleWriter.printlnRed(msg);
-		ConsoleWriter.detailsPrintLn(ExceptionUtils.getStackTrace(this));
-		logger.error(msg);
 		System.exit(1);
 	}
-	
-	public ExceptionDBGit(String message, Throwable cause) {
 
-		rollbackConnection();
-
-		if(message != null && !message.equals(cause.getMessage())) {
-			ConsoleWriter.printlnRed(message);
+	public void printMessageAndStackTrace(){
+		if(contextMessage != null && (cause == null || !cause.getMessage().equals(contextMessage))) {
+			ConsoleWriter.printlnRed(contextMessage, messageLevel);
+			ConsoleWriter.printLineBreak();
 		}
 
-		ConsoleWriter.printlnRed(cause.getLocalizedMessage());
-		ConsoleWriter.detailsPrintlnRed(ExceptionUtils.getStackTrace(cause));
-		ConsoleWriter.printlnRed("");
+		if(cause != null){
+			ConsoleWriter.printlnRed(cause.getLocalizedMessage(), messageLevel);
+			ConsoleWriter.printLineBreak();
+			ConsoleWriter.detailsPrintlnRed(ExceptionUtils.getStackTrace(cause), messageLevel);
+			logger.error(contextMessage != null ? contextMessage :  cause.getMessage(), cause);
 
-		logger.error(message != null ? message : cause.getMessage(), cause);
-		System.exit(1);
+		} else {
+			ConsoleWriter.detailsPrintlnRed(ExceptionUtils.getStackTrace(this), messageLevel);
+			logger.error(contextMessage != null ? contextMessage :  "no error message provided..." , this);
+		}
 	}
-
 	private void rollbackConnection() {
-		try{
-			DBConnection conn = DBConnection.getInstance();
-			conn.getConnect().rollback();
+		if(DBConnection.hasInstance()) try{
+			DBConnection dbConnection = DBConnection.getInstance();
+			Connection connection = dbConnection.getConnect();
+			if(connection != null && !connection.isClosed()){
+				connection.rollback();
+				connection.close();
+			}
 		} catch (Exception ex) {
 			if(ex instanceof ExceptionDBGit || ex instanceof SQLException) {
-				ConsoleWriter.detailsPrintlnRed("Failed to rollback connection: " + ex.getLocalizedMessage());
+				ConsoleWriter.println(DBGitLang.getInstance()
+				    .getValue("errors", "onExceptionTransactionRollbackError")
+				    .withParams(ex.getLocalizedMessage())
+				    , 0
+				);
 			} else {
-				ConsoleWriter.printlnRed(ex.getLocalizedMessage());
+				ConsoleWriter.printlnRed(ex.getLocalizedMessage(), messageLevel);
 			}
 		}
 	}
 
-	public ExceptionDBGit(Throwable cause) {
-		this(null, cause);
-	}
+	public void setCause(Throwable cause) { this.cause = cause; }
+	public void setContextMessage(String contextMessage) { this.contextMessage = contextMessage; }
 
 }

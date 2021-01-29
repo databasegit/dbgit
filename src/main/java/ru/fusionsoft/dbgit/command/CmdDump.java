@@ -53,56 +53,72 @@ public class CmdDump implements IDBGitCommand {
 		if (!cmdLine.hasOption("u"))
 			checkVersion();
 		
-		ConsoleWriter.detailsPrintLn(getLang().getValue("general", "dump", "checking"));
+		ConsoleWriter.detailsPrintln(getLang().getValue("general", "dump", "checking"), messageLevel);
 
 		IMapMetaObject fileObjs = gmdm.loadFileMetaDataForce();
 		
-		ConsoleWriter.detailsPrintLn(getLang().getValue("general", "dump", "dumping"));
+		ConsoleWriter.detailsPrintln(getLang().getValue("general", "dump", "dumping"), messageLevel);
 		
 		for (IMetaObject obj : fileObjs.values()) {
 			Timestamp timestampBefore = new Timestamp(System.currentTimeMillis());
-			ConsoleWriter.detailsPrintLn(getLang().getValue("general", "dump", "processing").withParams(obj.getName()));
+			ConsoleWriter.detailsPrintln(getLang().getValue("general", "dump", "processing")
+				.withParams(obj.getName())
+				, messageLevel
+			);
 			String hash = obj.getHash();
-			ConsoleWriter.detailsPrint(getLang().getValue("general", "dump", "hash") + ": " + hash + "\n", 2);
-			
-			ConsoleWriter.detailsPrint(getLang().getValue("general", "dump", "loading") + "\n", 2);
+
+			ConsoleWriter.detailsPrintln(DBGitLang.getInstance()
+			    .getValue("general", "dump", "hash")
+			    .withParams(hash)
+			    , messageLevel+1
+			);
+
+			ConsoleWriter.detailsPrintln(getLang().getValue("general", "dump", "loading"), messageLevel+1);
 			if (!gmdm.loadFromDB(obj)) {
-				ConsoleWriter.println(getLang().getValue("general", "dump", "cantFindInDb").withParams(obj.getName()));
+				ConsoleWriter.println(getLang().getValue("general", "dump", "cantFindInDb")
+					.withParams(obj.getName())
+					, messageLevel
+				);
 				continue;
 			}
-			ConsoleWriter.detailsPrint(getLang().getValue("general", "dump", "dbHash") + ": " + obj.getHash() + "\n", 2);
+			ConsoleWriter.detailsPrintln(getLang().getValue("general", "dump", "dbHash")
+					.withParams(obj.getHash()), messageLevel+1
+			);
 			
 			if (isAllDump || !obj.getHash().equals(hash)) {
 				if (!obj.getHash().equals(hash))
-					ConsoleWriter.detailsPrint(getLang().getValue("general", "dump", "hashesDifferent"), 2);
+					ConsoleWriter.detailsPrintln(getLang().getValue("general", "dump", "hashesDifferent")
+						, messageLevel+1
+					);
 				else
-					ConsoleWriter.detailsPrint(getLang().getValue("general", "dump", "fSwitchFound"), 2);
+					ConsoleWriter.detailsPrintln(getLang().getValue("general", "dump", "fSwitchFound")
+						, messageLevel+1
+					);
 				//сохранили файл если хеш разный
 				obj.saveToFile();
 				ConsoleWriter.detailsPrintGreen(getLang().getValue("general", "ok"));
-				ConsoleWriter.detailsPrint(getLang().getValue("general", "dump", "addToIndex"), 2);
+				ConsoleWriter.detailsPrintln(getLang().getValue("general", "dump", "addToIndex"), messageLevel+1);
 				index.addItem(obj);				
 				ConsoleWriter.detailsPrintGreen(getLang().getValue("general", "ok"));
 				
 				if (isAddToGit) {
-					ConsoleWriter.detailsPrint(getLang().getValue("general", "addToGit"), 2);
+					ConsoleWriter.detailsPrintln(getLang().getValue("general", "addToGit"), messageLevel+1);
 					obj.addToGit();						
 					ConsoleWriter.detailsPrintGreen(getLang().getValue("general", "ok"));
 				}
 			} else {
-				ConsoleWriter.detailsPrint(getLang().getValue("general", "dump", "hashesMatch") + "\n", 2);
+				ConsoleWriter.detailsPrintln(getLang().getValue("general", "dump", "hashesMatch"), messageLevel+1);
 			}
 			Timestamp timestampAfter = new Timestamp(System.currentTimeMillis());
 			Long diff = timestampAfter.getTime() - timestampBefore.getTime();
-			ConsoleWriter.detailsPrint(getLang().getValue("general", "time").withParams(diff.toString()), 2);
-			ConsoleWriter.detailsPrintLn("");
+			ConsoleWriter.detailsPrint(getLang().getValue("general", "time").withParams(diff.toString()));
 		}
 		
 		index.saveDBIndex();
 		if (isAddToGit) {
-			ConsoleWriter.detailsPrintLn(getLang().getValue("general", "addToGit"));
+			ConsoleWriter.detailsPrintln(getLang().getValue("general", "addToGit"), messageLevel+1);
 			index.addToGit();
 		}			
-		ConsoleWriter.println(getLang().getValue("general", "done"));
+		ConsoleWriter.println(getLang().getValue("general", "done"), messageLevel);
 	}
 }

@@ -2,6 +2,7 @@ package ru.fusionsoft.dbgit.mysql.converters;
 
 import ru.fusionsoft.dbgit.adapters.IDBConvertAdapter;
 import ru.fusionsoft.dbgit.core.DBConnection;
+import ru.fusionsoft.dbgit.core.DBGitLang;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.db.DbType;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
@@ -17,7 +18,11 @@ public class SchemaConverterMySql implements IDBConvertAdapter {
         if (obj instanceof MetaSchema) {
             MetaSchema schema = (MetaSchema) obj;
             schema.setDbType(DbType.MYSQL);
-            ConsoleWriter.println("Processing schema " + schema.getName());
+            ConsoleWriter.println(DBGitLang.getInstance()
+                .getValue("general", "convert", "convertingSchema")
+                .withParams(schema.getName())
+                , messageLevel
+            );
             //ConsoleWriter.printlnGreen("URL=" + DBConnection.getInstance().dbName);
             switch(objDbType) {
                 case POSTGRES:

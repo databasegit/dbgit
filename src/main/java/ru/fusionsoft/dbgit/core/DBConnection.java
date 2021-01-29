@@ -22,6 +22,7 @@ import ru.fusionsoft.dbgit.utils.LoggerUtil;
  */
 public class DBConnection {
 	private static DBConnection dbGitConnection = null;
+	private static int messageLevel = 1;
 	private Connection connect = null;
 	private Logger logger = LoggerUtil.getLogger(this.getClass());
 	private DBGitLang lang = DBGitLang.getInstance();
@@ -68,12 +69,12 @@ public class DBConnection {
 			String url = loadFileDBLink(props);
 			
 			Connection conTest = DriverManager.getConnection(url, props);
-			ConsoleWriter.printlnGreen(lang.getValue("general", "link", "connectionEstablished"));
+			ConsoleWriter.printlnGreen(lang.getValue("general", "link", "connectionEstablished"), messageLevel);
 			conTest.close();
 			conTest = null;
 			return true;
 		} catch(Exception e) {
-			ConsoleWriter.printlnRed(lang.getValue("errors", "link", "cantConnect") + ": " + e.getMessage());
+			ConsoleWriter.printlnRed(lang.getValue("errors", "link", "cantConnect").withParams(e.getMessage()), messageLevel);
 			return false;
 		}	
 	}
@@ -81,12 +82,12 @@ public class DBConnection {
 	public boolean testingConnection(String url, Properties props) {
 		try {
 			Connection conTest = DriverManager.getConnection(url, props);
-			ConsoleWriter.printlnGreen(lang.getValue("general", "link", "connectionEstablished"));
+			ConsoleWriter.printlnGreen(lang.getValue("general", "link", "connectionEstablished"), messageLevel);
 			conTest.close();
 			conTest = null;
 			return true;
 		} catch(Exception e) {
-			ConsoleWriter.printlnRed(lang.getValue("errors", "link", "cantConnect") + ": " + e.getMessage());
+			ConsoleWriter.printlnRed(lang.getValue("errors", "link", "cantConnect").withParams(e.getMessage()), messageLevel);
 			return false;
 		}	
 	}
@@ -115,10 +116,10 @@ public class DBConnection {
 		      writer.write(key+"="+ props.getProperty(key)+"\n");		      
 		    }		   
 		    writer.close();
-		    ConsoleWriter.detailsPrintLn(
+		    ConsoleWriter.detailsPrintln(
 				DBGitLang.getInstance().getValue("general", "link", "dblinkCreated")
 					.withParams(DBGitPath.getFullPath(DBGitPath.DB_LINK_FILE))
-				, 1
+				, messageLevel
 			);
 	    } catch(Exception e) {
 	    	throw new ExceptionDBGit(e);
@@ -145,5 +146,9 @@ public class DBConnection {
 	    } catch(Exception e) {
 	    	throw new ExceptionDBGit(DBGitLang.getInstance().getValue("errors", "fileLoadError").withParams(DBGitPath.DB_LINK_FILE), e);
 	    }
+	}
+
+	public static boolean hasInstance(){
+		return dbGitConnection != null;
 	}
 }

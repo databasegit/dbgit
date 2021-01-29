@@ -43,9 +43,9 @@ public class CmdValid implements IDBGitCommand {
 		//возможно за списком файлов нужно будет сходить в гит индекс
 		try {
 			Map<String, IMetaObject> fileObjs = gmdm.loadFileMetaData();
-			ConsoleWriter.printlnGreen(getLang().getValue("general", "valid", "allOk"));
+			ConsoleWriter.printlnGreen(getLang().getValue("general", "valid", "allOk"), messageLevel);
 		} catch (Exception e) {
-			ConsoleWriter.printlnRed(e.getMessage());
+			ConsoleWriter.printlnRed(e.getMessage(), messageLevel);
 		}
 		
 	}

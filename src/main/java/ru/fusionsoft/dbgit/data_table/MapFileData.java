@@ -21,6 +21,8 @@ public class MapFileData implements ICellData {
 	private String srcFile = null;
 	private File tmpFile = null;
 	private static Set<String> filesNotFound = new HashSet<>();
+	private static int messageLevel = 2;
+
 	//private String hash = null;
 		
 	public InputStream getBlobData(ResultSet rs, String fieldname) throws Exception {
@@ -47,7 +49,10 @@ public class MapFileData implements ICellData {
 			DBGitPath.createDir(wrtFile.getAbsolutePath());
 			
 			Files.move(tmpFile.toPath(), wrtFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-			ConsoleWriter.println(DBGitLang.getInstance().getValue("general", "dataTable", "writeData").withParams(srcFile));
+			ConsoleWriter.println(DBGitLang.getInstance().getValue("general", "dataTable", "writeData")
+				.withParams(srcFile)
+				, messageLevel
+			);
 			tmpFile = null;
 		}
 		return srcFile;

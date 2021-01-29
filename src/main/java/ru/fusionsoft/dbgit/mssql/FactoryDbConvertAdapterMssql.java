@@ -2,6 +2,7 @@ package ru.fusionsoft.dbgit.mssql;
 
 import ru.fusionsoft.dbgit.adapters.IDBConvertAdapter;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBConvertAdapter;
+import ru.fusionsoft.dbgit.core.DBGitLang;
 import ru.fusionsoft.dbgit.meta.DBGitMetaType;
 import ru.fusionsoft.dbgit.mssql.converters.TableConverterMssql;
 import ru.fusionsoft.dbgit.mssql.converters.TableDataConverterMssql;
@@ -26,7 +27,11 @@ public class FactoryDbConvertAdapterMssql implements IFactoryDBConvertAdapter {
 	@Override
 	public IDBConvertAdapter getConvertAdapter(String objectType) throws Exception {
 		if (!converters.containsKey(objectType)) {
-			ConsoleWriter.println("Cannot convert " + objectType + "!");
+			ConsoleWriter.println(DBGitLang.getInstance()
+				.getValue("errors", "convert", "cannotConvert")
+				.withParams(objectType)
+				, 1
+			);
 			return null;
 		} else
 			return converters.get(objectType);

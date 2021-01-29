@@ -163,8 +163,11 @@ public class SortedListMetaObject {
     };
 
     public void warnNotAdded(List<IMetaObject> remained){
-        ConsoleWriter.detailsPrintlnRed("There were objects with unsatisfied dependencies, " +
-                "they will NOT be included in restore list!\n");
+        ConsoleWriter.printlnRed(DBGitLang.getInstance()
+            .getValue("errors", "unsatisfiedDependencies")
+            , 1
+        );
+
         remained.forEach( x -> ConsoleWriter.printlnColor(x.getName(), Ansi.FColor.MAGENTA, 1) );
     }
 

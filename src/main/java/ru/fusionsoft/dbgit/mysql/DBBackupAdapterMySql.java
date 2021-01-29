@@ -36,7 +36,7 @@ public class DBBackupAdapterMySql extends DBBackupAdapter {
                 if (isSaveToSchema()) {
                     createSchema(stLog, schema);
                 }
-                ConsoleWriter.detailsPrintLn(lang.getValue("general", "backup", "tryingToCopy").withParams(objectName, getFullDbName(schema, objectName)), 3);
+                ConsoleWriter.detailsPrintln(lang.getValue("general", "backup", "tryingToCopy").withParams(objectName, getFullDbName(schema, objectName)), messageLevel);
                 ////dropIfExists(isSaveToSchema() ? PREFIX + schema : schema,
                 ////		isSaveToSchema() ? objectName : PREFIX + objectName, stLog);
                 //ddl = ddl.replace(schema + "." + objectName, getFullDbName(schema, objectName));
@@ -64,7 +64,9 @@ public class DBBackupAdapterMySql extends DBBackupAdapter {
                 if (isSaveToSchema()) {
                     createSchema(stLog, schema);
                 }
-                ConsoleWriter.detailsPrintLn(lang.getValue("general", "backup", "tryingToCopy").withParams(tableName, getFullDbName(schema, tableName)), 3);
+                ConsoleWriter.detailsPrintln(lang.getValue("general", "backup", "tryingToCopy").withParams(tableName, getFullDbName(schema, tableName))
+                    , messageLevel
+                );
                 //dropIfExists(
                         //isSaveToSchema() ? PREFIX + schema : schema,
                         //isSaveToSchema() ? tableName : PREFIX + tableName, stLog
@@ -118,7 +120,9 @@ public class DBBackupAdapterMySql extends DBBackupAdapter {
                     createSchema(stLog, schema);
                 }
                 String sequenceName = getFullDbName(schema, objectName);
-                ConsoleWriter.detailsPrintLn(lang.getValue("general", "backup", "tryingToCopy").withParams(objectName, getFullDbName(schema, objectName)), 3);
+                ConsoleWriter.detailsPrintln(lang.getValue("general", "backup", "tryingToCopy").withParams(objectName, getFullDbName(schema, objectName))
+                    , messageLevel
+                );
                 //String ddl = "create sequence " + sequenceName + "\n"
                         //+ (metaSequence.getSequence().getOptions().get("cycle_option").toString().equals("YES") ? "CYCLE\n" : "")
                         //+ " INCREMENT " + metaSequence.getSequence().getOptions().get("increment").toString() + "\n"
@@ -136,12 +140,7 @@ public class DBBackupAdapterMySql extends DBBackupAdapter {
                     obj = metaSequence.loadFromFile();
                 ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
             }
-        } catch (SQLException e1) {
-            throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").
-                    withParams(obj.getName() + ": " + e1.getLocalizedMessage()));
         } catch (Exception e) {
-            ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
-            connection.rollback();
             throw new ExceptionDBGitRestore(lang.getValue("errors", "backup", "backupError").withParams(obj.getName()), e);
         } finally {
             connection.commit();
@@ -223,7 +222,7 @@ public class DBBackupAdapterMySql extends DBBackupAdapter {
 
             rs.next();
             if (rs.getInt("cnt") == 0) {
-                ConsoleWriter.detailsPrintLn(lang.getValue("general", "backup", "creatingSchema").withParams(PREFIX + schema), 3);
+                ConsoleWriter.detailsPrintln(lang.getValue("general", "backup", "creatingSchema").withParams(PREFIX + schema), messageLevel);
                 stLog.execute("create schema " + PREFIX + schema);
             }
 
@@ -232,7 +231,7 @@ public class DBBackupAdapterMySql extends DBBackupAdapter {
 
             return true;
         } catch (SQLException e) {
-            ConsoleWriter.println(lang.getValue("errors", "backup", "cannotCreateSchema").withParams(e.getLocalizedMessage()));
+            ConsoleWriter.println(lang.getValue("errors", "backup", "cannotCreateSchema").withParams(e.getLocalizedMessage()), messageLevel);
             return false;
         }
     }

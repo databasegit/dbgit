@@ -137,24 +137,29 @@ public abstract class DBBackupAdapter implements IDBBackupAdapter {
 			dropList.addAll(dbDroppingBackupsDeps);
 			List<IMetaObject> dropListSorted =  new SortedListMetaObject(dropList).sortFromDependencies();
 
-			ConsoleWriter.println(DBGitLang.getInstance()
+			if(dropList.size() > 0) ConsoleWriter.println(DBGitLang.getInstance()
 				.getValue("general", "backup", "rewritingBackups")
 				.withParams(
 					String.valueOf(dbDroppingBackups.size()),
 					String.valueOf(dbDroppingBackupsDeps.size())
-				), 2
+				), messageLevel-1
 			);
-
-			//dropListSorted.forEach( x -> ConsoleWriter.detailsPrintLnColor( x.getName(), 3, Ansi.FColor.MAGENTA));
 
 			//drop backups in one place
 			for(IMetaObject imo : dropListSorted){
-				ConsoleWriter.detailsPrintLn(lang.getValue("general", "backup", "droppingBackup").withParams(imo.getName()), 3);
-
+				ConsoleWriter.detailsPrintln(lang.getValue("general", "backup", "droppingBackup").withParams(imo.getName()), messageLevel);
 				dropIfExists(imo, stLog);
 
 				ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 			}
+
+			if(dbToBackup.size() > 0) ConsoleWriter.println(DBGitLang.getInstance()
+				.getValue("general", "backup", "creatingBackups")
+				.withParams(
+					String.valueOf(dbToBackup.size())
+				), messageLevel-1
+			);
+
 
 			//create backups
 			for(IMetaObject imo : dbToBackup.getSortedList().sortFromReferenced()){

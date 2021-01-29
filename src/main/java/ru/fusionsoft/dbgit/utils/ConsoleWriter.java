@@ -8,170 +8,113 @@ import com.diogonunes.jcdp.color.api.Ansi.Attribute;
 import com.diogonunes.jcdp.color.api.Ansi.BColor;
 import com.diogonunes.jcdp.color.api.Ansi.FColor;
 
+import java.text.MessageFormat;
+
 public class ConsoleWriter {
 	private static Logger logger = LoggerUtil.getLogger(ConsoleWriter.class);
 	private static ColoredPrinter cp = new ColoredPrinter.Builder(1, false).build();
 	private static boolean showDetailedLog = false;
-	
-	
-	public static void detailsPrintLn(Object msg) {
-		if (showDetailedLog)
-			println(msg.toString());
-	}
-
-	public static void detailsPrintColor(Object msg, int level, FColor color) {
-		if (showDetailedLog)
-			printColor(msg.toString(), color, level);
-	}
-	public static void detailsPrintLnColor(Object msg, int level, FColor color) {
-		if (showDetailedLog)
-			printlnColor(msg.toString(), color, level);
-	}
-
-	public static void detailsPrint(Object msg, int level) {
-		if (showDetailedLog)
-			print(msg.toString(), level);
-	}
 
 
-	public static void detailsPrintlnRed(Object msg) {
-		if (showDetailedLog)
-			printlnColor(msg.toString(), FColor.RED, 0);
-	}
+	public static void print(Object message, FColor color, int level, boolean newLine, boolean onlyDetailed){
+		if(onlyDetailed && !showDetailedLog) return;
 
-	public static void printlnGreen(Object msg, int level) {
-		printlnColor(msg.toString(), FColor.GREEN, level);
-	}
-
-	public static void printlnGreen(Object msg) {
-		printlnColor(msg.toString(), FColor.GREEN, 0);
-	}
-
-	public static void printlnRed(Object msg) {
-		printlnColor(msg.toString(), FColor.RED, 0);
-	}
-
-	public static void printlnRed(Object msg, int level) {
-		printlnColor(msg.toString(), FColor.RED, level);
-	}
-	
-	public static void detailsPrintLn(String msg) {
-		if (showDetailedLog)
-			println(msg);
-	}
-
-	public static void detailsPrintLn(String msg, int level) {
-		if (showDetailedLog)
-			println(msg, level);
-	}
-
-	public static void detailsPrintLn(Object msg, int level) {
-		if (showDetailedLog)
-			println(msg.toString(), level);
-	}
-
-	public static void detailsPrint(String msg, int level) {
-		if (showDetailedLog)
-			print(msg, level);
-	}
-
-	public static void detailsPrintGreen(Object msg) {
-		if (showDetailedLog)
-			printColor(msg.toString(), FColor.GREEN, 0);
-	}
-
-	public static void detailsPrintlnGreen(String msg) {
-		if (showDetailedLog)
-			printlnColor(msg, FColor.GREEN, 0);
-	}
-	
-	public static void detailsPrintlnRed(String msg) {
-		if (showDetailedLog)
-			printlnColor(msg, FColor.RED, 0);
-	}
-
-	public static void printlnGreen(String msg) {
-		printlnColor(msg, FColor.GREEN, 0);
-	}
-	
-	public static void printlnRed(String msg) {
-		printlnColor(msg, FColor.RED, 0);
-	}
-	
-	public static void printlnColor(String msg, FColor color, Integer level) {
 		String tab = StringUtils.leftPad("", 4*level, " ");
-		/*
-		System.out.println(tab + msg);
-		if (1==1) return ;
-		*/
+		String msg = MessageFormat.format("{0}{1}{2}",
+			newLine ? "\n" : "",
+			tab,
+			message.toString()
+		);
 
-		cp.print("\n"+tab+msg, Attribute.NONE, color, BColor.BLACK);
+		cp.print(msg, Attribute.NONE, color, BColor.BLACK);
 		cp.clear();
-		//logger.info(msg);
-	}
-	
-	public static void printColor(String msg, FColor color, Integer level) {
-		String tab = StringUtils.leftPad("", 4*level, " ");
-		/*
-		System.out.println(tab + msg);
-		if (1==1) return ;
-		*/
-		cp.print(tab+msg, Attribute.NONE, color, BColor.BLACK);
-		cp.clear();
-		//logger.info(msg);
-	}
-	
-	public static void println(Object msg) {
-		println(msg.toString(), 0);
+
 	}
 
-	public static void println(String msg) {
-		println(msg, 0);
-	}
-
-	public static void println(String msg, Integer level) {
-		String tab = StringUtils.leftPad("", 4*level, " ");
-		/*
-		System.out.println(tab + msg);
-		if (1==1) return ;
-		*/
-		printWhite("\n"+tab+msg);
-		cp.clear();
-		//logger.info(msg);
-	}
-
-	public static void println(Object msg, Integer level) {
-		println(msg.toString(), level);
-	}
-
-	public static void print(String msg, Integer level) {
-		String tab = StringUtils.leftPad("", 4*level, " ");
-		/*
-		System.out.println(tab + msg);
-		if (1==1) return ;
-		*/
-		printWhite(tab+msg);
-		//logger.info(msg);
-	}
-	public static void print(Object msg, Integer level) {
-		print(msg.toString(), level);
-	}
-	public static void print(String msg) {
-		print(msg, 0);
-	}
-	public static void print(Object msg) {
-		print(msg.toString());
-	}
-	
 	public static void setDetailedLog(boolean toShowLog) {
 		showDetailedLog = toShowLog;
 	}
-
 	public static boolean getDetailedLog() {
 		return showDetailedLog;
 	}
-	public static void printWhite(String message){
-		cp.print(message, Attribute.NONE, FColor.WHITE, BColor.BLACK);
-		cp.clear();
+
+	// Just print
+	// With no color, with color and with hardcoded colors
+	// - no levels cause them mean nothing without a newline
+
+	public static void print(Object msg){
+		print(msg, FColor.WHITE, 0, false, false);
 	}
+
+	public static void printColor(Object msg, FColor color) {
+		print(msg, color, 0, false, false);
+	}
+
+	public static void printGreen(Object msg) {
+		print(msg, FColor.GREEN, 0, false, false);
+	}
+
+	public static void printRed(Object msg) {
+		print(msg, FColor.RED, 0, false, false);
+	}
+
+	// Print with a newline
+	// With no color, with color and with hardcoded colors
+	// - with explicit level
+
+	public static void printLineBreak(){println("", 0);}
+
+	public static void println(Object msg, Integer level) {
+		print(msg, FColor.WHITE, level, true, false);
+	}
+
+	public static void printlnColor(Object msg, FColor color, Integer level) {
+		print(msg, color, level, true, false);
+	}
+
+	public static void printlnGreen(Object msg, int level) {
+		print(msg, FColor.GREEN, level, true, false);
+	}
+
+	public static void printlnRed(Object msg, int level) {
+		print(msg, FColor.RED, level, true, false);
+	}
+
+
+	// Detailed versions of other methods
+	// - print if only showDetailedLog is true
+
+	public static void detailsPrint(Object msg){
+		print(msg, FColor.WHITE, 0, false, true);
+	}
+
+	public static void detailsPrintColor(Object msg, FColor color) {
+		print(msg, color, 0, false, true);
+	}
+
+	public static void detailsPrintGreen(Object msg) {
+		print(msg, FColor.GREEN, 0, false, true);
+	}
+
+	public static void detailsPrintRed(Object msg) {
+		print(msg, FColor.RED, 0, false, true);
+	}
+
+	public static void detailsPrintln(Object msg, Integer level) {
+		print(msg, FColor.WHITE, level, true, true);
+	}
+
+	public static void detailsPrintlnColor(Object msg, FColor color, Integer level) {
+		print(msg, color, level, true, true);
+	}
+
+	public static void detailsPrintlnGreen(Object msg, int level) {
+		print(msg, FColor.GREEN, level, true, true);
+	}
+
+	public static void detailsPrintlnRed(Object msg, int level) {
+		print(msg, FColor.RED, level, true, true);
+	}
+
+
 }

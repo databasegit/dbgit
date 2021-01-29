@@ -1,6 +1,7 @@
 package ru.fusionsoft.dbgit.mysql.converters;
 
 import ru.fusionsoft.dbgit.adapters.IDBConvertAdapter;
+import ru.fusionsoft.dbgit.core.DBGitLang;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.db.DbType;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
@@ -17,7 +18,11 @@ public class ViewConverterMySql implements IDBConvertAdapter {
         if (obj instanceof MetaView) {
             MetaView view = (MetaView) obj;
             view.setDbType(DbType.MYSQL);
-            ConsoleWriter.println("Processing view " + view.getName());
+            ConsoleWriter.println(DBGitLang.getInstance()
+                .getValue("general", "convert", "convertingView")
+                .withParams(view.getName())
+                , messageLevel
+            );
             switch(objDbType) {
                 case POSTGRES:
                     String  ddl = view.getSqlObject().getSql();

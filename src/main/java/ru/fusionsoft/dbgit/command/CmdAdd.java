@@ -79,21 +79,23 @@ public class CmdAdd implements IDBGitCommand {
 				DBGitConfig.getInstance().setValue("CURRENT_OBJECT", obj.getName().replace(".csv", ".tbl"));
 
 				Timestamp timestampBefore = new Timestamp(System.currentTimeMillis());
-				ConsoleWriter.detailsPrintLn(getLang().getValue("general", "add", "processingObject") + " " + obj.getName());
-				ConsoleWriter.detailsPrintLn(getLang().getValue("general", "add", "savingToFile"), 2);
+				ConsoleWriter.detailsPrintln(getLang().getValue("general", "add", "processingObject")
+					.withParams(obj.getName())
+					, messageLevel
+				);
+				ConsoleWriter.detailsPrintln(getLang().getValue("general", "add", "savingToFile"), messageLevel+1);
 
 				//TODO
 				obj.saveToFile();
 
 				ConsoleWriter.detailsPrintGreen(getLang().getValue("general", "ok"));
-				ConsoleWriter.detailsPrint(getLang().getValue("general", "addToGit"), 2);
+				ConsoleWriter.detailsPrintln(getLang().getValue("general", "addToGit"), messageLevel+1);
 				countSave += obj.addToGit();
 				ConsoleWriter.detailsPrintGreen(getLang().getValue("general", "ok"));
 
 				Timestamp timestampAfter = new Timestamp(System.currentTimeMillis());
 				Long diff = timestampAfter.getTime() - timestampBefore.getTime();
-				ConsoleWriter.detailsPrint(getLang().getValue("general", "time").withParams(diff.toString()), 2);
-				ConsoleWriter.detailsPrintLn("");
+				ConsoleWriter.detailsPrint(getLang().getValue("general", "time").withParams(diff.toString()));
 
 				index.addItem(obj);
 
@@ -116,7 +118,7 @@ public class CmdAdd implements IDBGitCommand {
 						isFirstPortion = (DBGitConfig.getInstance().getInteger("core", "CURRENT_PORTION", 0) == 0);
 
 					while (gmdm.loadNextPortion((MetaTable) obj)) {
-						ConsoleWriter.detailsPrint(getLang().getValue("general", "add", "writing").toString(), 2);
+						ConsoleWriter.detailsPrintln(getLang().getValue("general", "add", "writing").toString(), messageLevel+1);
 						try {
 							//gmdm.getCurrent().serialize(out);
 							Integer count = 0;
@@ -137,7 +139,6 @@ public class CmdAdd implements IDBGitCommand {
 
 
 						} catch (Exception e) {
-							e.printStackTrace();
 							throw new ExceptionDBGit(e);
 						}
 					}
@@ -155,8 +156,8 @@ public class CmdAdd implements IDBGitCommand {
 			index.saveDBIndex();
 			index.addToGit();
 		} else {
-			ConsoleWriter.printlnRed(getLang().getValue("errors", "add", "cantFindObjectInDb").withParams(nameObj));
+			ConsoleWriter.printlnRed(getLang().getValue("errors", "add", "cantFindObjectInDb").withParams(nameObj), messageLevel);
 		}
-		ConsoleWriter.println(getLang().getValue("general", "done"));
+		ConsoleWriter.println(getLang().getValue("general", "done"), messageLevel);
 	}
 }

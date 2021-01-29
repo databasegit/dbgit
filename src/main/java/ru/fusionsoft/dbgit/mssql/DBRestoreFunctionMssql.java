@@ -52,11 +52,12 @@ public class DBRestoreFunctionMssql extends DBRestoreAdapter {
 			}
 			else
 			{
-				ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
-				throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()));
+				throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "metaTypeError").withParams(
+					obj.getName()
+					,  "function", obj.getType().getValue()
+				));
 			}
 		} catch (Exception e) {
-			ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()), e);
 		} finally {
 			ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));

@@ -21,7 +21,11 @@ public class TableConverterMySql implements IDBConvertAdapter {
             return obj;
         if (obj instanceof MetaTable) {
             MetaTable table = (MetaTable) obj;
-            ConsoleWriter.println("Processing table " + table.getName());
+            ConsoleWriter.println(DBGitLang.getInstance()
+                .getValue("general", "convert", "processingTable")
+                .withParams(table.getName())
+                , messageLevel
+            );
             //types
             for (DBTableField field : table.getFields().values())
                 field.setTypeSQL(typeFromAnotherDB(objDbType, field));
@@ -56,17 +60,29 @@ public class TableConverterMySql implements IDBConvertAdapter {
     }
 
     private String indexFromPostgres(DBIndex index) {
-        ConsoleWriter.println("Converting table index " + index.getName() + " from postgresql to mysql...");
+        ConsoleWriter.println(DBGitLang.getInstance()
+            .getValue("general", "convert", "convertingIndex")
+            .withParams(index.getName(), "postgresql", "mysql")
+            , messageLevel
+        );
         return "";
     }
 
     private String indexFromOracle(DBIndex index) {
-        ConsoleWriter.println("Converting table index " + index.getName() + " from oracle to mysql...");
+        ConsoleWriter.println(DBGitLang.getInstance()
+            .getValue("general", "convert", "convertingIndex")
+            .withParams(index.getName(), "oracle", "mysql")
+            , messageLevel
+        );
         return "";
     }
 
     private String constraintFromOracle(DBConstraint constraint) {//TODO: change
-        ConsoleWriter.println("Converting table constraint " + constraint.getName() + " from oracle to mysql...");
+        ConsoleWriter.println(DBGitLang.getInstance()
+            .getValue("general", "convert", "convertingConstraint")
+            .withParams(constraint.getName(), "oracle", "mysql")
+            , messageLevel
+        );
         Pattern patternConstraint = Pattern.compile("(?<=" + constraint.getName() + ")(.*?)(?=\\))", Pattern.MULTILINE);
         Matcher matcher = patternConstraint.matcher(constraint.getSql());
         if (matcher.find())
@@ -76,7 +92,11 @@ public class TableConverterMySql implements IDBConvertAdapter {
     }
 
     private String constraintFromPostgres(MetaTable table, DBConstraint constraint) {//TODO: change
-        ConsoleWriter.println("Converting table constraint " + constraint.getName() + " from postgresql to mysql...");
+        ConsoleWriter.println(DBGitLang.getInstance()
+            .getValue("general", "convert", "convertingConstraint")
+            .withParams(constraint.getName(), "postgresql", "mysql")
+            , messageLevel
+        );
 
         String ddl = constraint.getOptions().get("ddl")
                 .toString()
@@ -92,7 +112,11 @@ public class TableConverterMySql implements IDBConvertAdapter {
     }
 
     private String typeFromAnotherDB(DbType dbType, DBTableField field) {
-        ConsoleWriter.println("Converting table field " + field.getName() + " from " + dbType.toString().toLowerCase() + " to mysql...");
+        ConsoleWriter.println(DBGitLang.getInstance()
+            .getValue("general", "convert", "convertingField")
+            .withParams(field.getName(), dbType.toString().toLowerCase(), "mysql")
+            , messageLevel
+        );
         String result;
         switch (field.getTypeUniversal()) {
             case STRING:

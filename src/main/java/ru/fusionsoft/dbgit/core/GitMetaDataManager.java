@@ -44,7 +44,8 @@ public class GitMetaDataManager {
 	
 	private MetaTableData currentPortion = null;
 	private int currentPortionIndex = 0;
-	
+	private static int messageLevel = 1;
+
 	protected GitMetaDataManager() {
 		dbObjs = new TreeMapMetaObject();
 		fileObjs = new TreeMapMetaObject();
@@ -126,14 +127,14 @@ public class GitMetaDataManager {
 		if (currentPortion == null || !tbl.getName().replace(".tbl", ".csv") .equalsIgnoreCase(currentPortion.getName()))
 			currentPortionIndex = 0;
 		
-		ConsoleWriter.detailsPrint(DBGitLang.getInstance().getValue("general", "add", "loading") + " " + currentPortionIndex + ", ", 2);
+		ConsoleWriter.detailsPrintln(DBGitLang.getInstance().getValue("general", "add", "loading") + " " + currentPortionIndex + ", ", messageLevel);
 		currentPortion = new MetaTableData(tbl.getTable());
 		
 		if (currentPortion.getmapRows() != null)
 			currentPortion.getmapRows().clear();
 				
 		if (!currentPortion.loadPortionFromDB(currentPortionIndex)) return false;
-		ConsoleWriter.detailsPrint(DBGitLang.getInstance().getValue("general", "add", "size") + " " + currentPortion.getmapRows().size() + "\n", 2);
+		ConsoleWriter.detailsPrintln(DBGitLang.getInstance().getValue("general", "add", "size") + " " + currentPortion.getmapRows().size() , messageLevel);
 
 		currentPortionIndex++;
 		try {
@@ -181,9 +182,9 @@ public class GitMetaDataManager {
 			schemes = new HashMap<String, DBSchema>();
 			try {
 				schemes.put(adapter.getConnection().getSchema(), new DBSchema(adapter.getConnection().getSchema()));
-				ConsoleWriter.println(DBGitLang.getInstance().getValue("errors", "meta", "cantGetOtherUsersObjects"));
+				ConsoleWriter.println(DBGitLang.getInstance().getValue("errors", "meta", "cantGetOtherUsersObjects"), messageLevel);
 			} catch (SQLException e) {
-				throw new ExceptionDBGit(DBGitLang.getInstance().getValue("errors", "meta", "cantGetCurrentSchema"));
+				throw new ExceptionDBGit(DBGitLang.getInstance().getValue("errors", "meta", "cantGetCurrentSchema").toString(), e);
 			}
 		}
 
@@ -287,12 +288,22 @@ public class GitMetaDataManager {
 			List<String> files = dbGit.getGitIndexFiles(DBGitPath.DB_GIT_PATH);
 			boolean isSuccessful = true;
 
-			ConsoleWriter.detailsPrintLn("Loading files...", 1);
+			ConsoleWriter.println(DBGitLang.getInstance()
+			    .getValue("general", "meta", "loadFiles")
+			    .withParams("")
+			    , messageLevel
+			);
+
 			for (int i = 0; i < files.size(); i++) {
 	    		String filename = files.get(i);
 	    		if (DBGitPath.isServiceFile(filename)) continue;
-	    		ConsoleWriter.detailsPrintLn("Loading file " + filename + "...", 2);
-	    		
+
+				ConsoleWriter.println(DBGitLang.getInstance()
+					.getValue("general", "meta", "loadFile")
+					.withParams(filename)
+					, messageLevel+1
+				);
+
 	    		if (force) {
 	    			IMetaObject obj = loadMetaFile(filename);
 
@@ -309,9 +320,11 @@ public class GitMetaDataManager {
 			    		}
 		    		} catch (Exception e) {
 		    			isSuccessful = false;
-		    			ConsoleWriter.detailsPrintlnRed(DBGitLang.getInstance().getValue("errors", "meta", "fail"));
-		    			e.printStackTrace();
-		    			ConsoleWriter.detailsPrintLn(e.getMessage());
+		    			ConsoleWriter.printlnRed(DBGitLang.getInstance().getValue("errors", "meta", "loadMetaFile")
+							.withParams(filename)
+							, messageLevel
+						);
+		    			ConsoleWriter.detailsPrintln(e.getMessage(), messageLevel);
 		    			
 		    			IMetaObject obj = MetaObjectFactory.createMetaObject(filename);
 						objs.put(obj);

@@ -18,7 +18,9 @@ import ru.fusionsoft.dbgit.meta.IMetaObject;
 public abstract class DBRestoreAdapter implements IDBAdapterRestoreMetaData {
 	protected IDBAdapter adapter = null;
 	protected DBGitLang lang = DBGitLang.getInstance();
-	 	
+	public static int messageLevel = 3;
+
+
 	public void  setAdapter(IDBAdapter adapter) {
 		this.adapter = adapter;
 	}

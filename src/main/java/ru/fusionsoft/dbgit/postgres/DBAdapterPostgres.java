@@ -457,8 +457,9 @@ public class DBAdapterPostgres extends DBAdapter {
 			return indexes;
 			
 		}catch(Exception e) {
-			logger.error(lang.getValue("errors", "adapter", "indexes").toString());
-			throw new ExceptionDBGitRunTime(e.getMessage());
+			String msg = lang.getValue("errors", "adapter", "indexes").toString();
+			logger.error(msg);
+			throw new ExceptionDBGitRunTime(msg, e);
 		}
 		
 	}
@@ -873,9 +874,9 @@ public class DBAdapterPostgres extends DBAdapter {
 			data.setResultSet(rs);	
 			return data;
 		} catch(Exception e) {
-			ConsoleWriter.println("err: " + e.getLocalizedMessage());
-			
-			logger.error(lang.getValue("errors", "adapter", "tableData").toString(), e);
+			ConsoleWriter.println(e.getLocalizedMessage(), messageLevel);
+			ConsoleWriter.detailsPrintln(ExceptionUtils.getStackTrace(e), messageLevel);
+			logger.error(DBGitLang.getInstance().getValue("errors", "adapter", "tableData").toString(), e);
 			
 			try {
 				if (tryNumber <= DBGitConfig.getInstance().getInteger("core", "TRY_COUNT", DBGitConfig.getInstance().getIntegerGlobal("core", "TRY_COUNT", 1000))) {
@@ -884,7 +885,11 @@ public class DBAdapterPostgres extends DBAdapter {
 					} catch (InterruptedException e1) {
 						throw new ExceptionDBGitRunTime(e1.getMessage());
 					}
-					ConsoleWriter.println("Error while getting portion of data, try " + tryNumber);
+					ConsoleWriter.println(DBGitLang.getInstance()
+					    .getValue("errors", "dataTable", "loadPortionError")
+					    .withParams(String.valueOf(tryNumber))
+					    , messageLevel
+					);
 					getTableDataPortion(schema, nameTable, portionIndex, tryNumber++);
 				}
 			} catch (Exception e1) {

@@ -51,16 +51,26 @@ public abstract class DBAdapter implements IDBAdapter {
 				connect.setAutoCommit(false);
 				return connect;
 			} else {
-				ConsoleWriter.println("Connection lost, trying to reconnect...");
+				ConsoleWriter.println(DBGitLang.getInstance()
+				    .getValue("general", "dbAdapter", "connectionLost")
+				    , messageLevel-1
+				);
 				while (currentTry <= maxTriesCount) {
 					TimeUnit.SECONDS.sleep(pauseTimeSeconds);
 					currentTry++;
-					ConsoleWriter.println("Try " + currentTry);
+					ConsoleWriter.println(DBGitLang.getInstance()
+						.getValue("general", "dbAdapter", "reconnectTry")
+						.withParams(String.valueOf(currentTry))
+						, messageLevel
+					);
 					DBConnection conn = DBConnection.getInstance(false);
 					if (conn.testingConnection()) {
 						conn.flushConnection();
 						conn = DBConnection.getInstance(true);
-						ConsoleWriter.println("Successful reconnect");
+						ConsoleWriter.println(DBGitLang.getInstance()
+							.getValue("general", "dbAdapter", "reconnectTrySuccess")
+							, messageLevel
+						);
 						connect = conn.getConnect();
 						connect.setAutoCommit(false);
 						return connect;
@@ -102,9 +112,9 @@ public abstract class DBAdapter implements IDBAdapter {
 			Set<String> createdRoles = getRoles().values().stream().map(DBRole::getName).collect(Collectors.toSet());
 
 			// remove table indexes and constraints, which is step(-2) of restoreMetaObject(MetaTable)
-			ConsoleWriter.println(lang.getValue("general", "restore", "droppingTablesConstraints"), 1);
+			ConsoleWriter.println(lang.getValue("general", "restore", "droppingTablesConstraints"), messageLevel);
 			for (IMetaObject table : tablesExists.sortFromDependencies()) {
-				ConsoleWriter.println(lang.getValue("general", "restore", "droppingTableConstraints").withParams(table.getName()), 2);
+				ConsoleWriter.println(lang.getValue("general", "restore", "droppingTableConstraints").withParams(table.getName()), messageLevel+1);
 				getFactoryRestore().getAdapterRestore(DBGitMetaType.DBGitTable, this).restoreMetaObject(table, -2);
 			}
 
@@ -138,18 +148,15 @@ public abstract class DBAdapter implements IDBAdapter {
 			}
 
 			// restore table constraints, which is step(-1) of restoreMetaObject(MetaTable)
-			ConsoleWriter.println(lang.getValue("general", "restore", "restoringTablesConstraints"), 2);
+			ConsoleWriter.println(lang.getValue("general", "restore", "restoringTablesConstraints"), messageLevel);
 			for (IMetaObject table : tables.sortFromReferenced()) {
 				getFactoryRestore().getAdapterRestore(DBGitMetaType.DBGitTable, this).restoreMetaObject(table, -1);
 			}
 			connect.commit();
 		} catch (Exception e) {
-			//TODO wont work with ExceptionDBGit*, cause they call System.exit(1) in ctor;
-			connect.rollback();
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "restoreError").toString(), e);
 		} finally {
-			//connect.setAutoCommit(false);
-		} 
+		}
 		
 	}
 
@@ -221,23 +228,33 @@ public abstract class DBAdapter implements IDBAdapter {
 			}
 		} else {
 			if ( checkContainsNativeFields(obj)) {
-				ConsoleWriter.println(DBGitLang.getInstance().getValue("general", "restore", "unsupportedTypes").withParams(obj.getName()));
+				ConsoleWriter.println(DBGitLang.getInstance()
+				    .getValue("general", "restore", "unsupportedTypes")
+				    .withParams(obj.getName())
+				    , messageLevel
+				);
 			}
 		}
 
 		IDBConvertAdapter convertAdapter = getConvertAdapterFactory().getConvertAdapter(obj.getType().getValue());
 		if (convertAdapter != null) return convertAdapter.convert(getDbType(), getDbVersion(), obj);
 		else {
-			throw new Exception(MessageFormat.format(
-				"Could not get convert adapter for {0} ({1} {2} -> {3})",
-				obj.getName(), obj.getDbType().toString(), obj.getDbVersion(), getDbVersionNumber()
-			));
+			String msg = DBGitLang.getInstance().getValue("errors", "convert", "cannotFindAdapter").withParams(
+				obj.getName(), obj.getDbType().toString(), obj.getDbVersion()
+				, getDbType().toString()
+				, String.valueOf(getDbVersionNumber())
+			);
+			throw new Exception(msg);
 		}
 	}
 	private void createSchemaIfNeed(IMetaObject obj, Set<String> createdSchemas) throws Exception {
 		String schemaName = getSchemaSynonymName(obj);
 		if(schemaName == null){
-			ConsoleWriter.detailsPrintlnRed(MessageFormat.format("Object {0} schema is null", obj.getName()));
+			ConsoleWriter.detailsPrintlnRed(DBGitLang.getInstance()
+			    .getValue("errors", "adapter", "nullSchema")
+			    .withParams(obj.getName())
+			    , messageLevel
+			);
 			return;
 		}
 		if (!createdSchemas.contains(schemaName)) {

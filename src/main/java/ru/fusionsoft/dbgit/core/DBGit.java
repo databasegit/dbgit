@@ -32,6 +32,8 @@ public class DBGit {
 	private static DBGit dbGit = null;
 	private Repository repository;
 	private Git git;
+	private static int messageLevel = 0;
+
 
 	private DBGit() throws ExceptionDBGit {
 		try {
@@ -207,7 +209,7 @@ public class DBGit {
 				for (IMetaObject obj : fileObjs.values()) {
 					String hash = obj.getHash();
 					if (!gmdm.loadFromDB(obj)) {
-						ConsoleWriter.println(DBGitLang.getInstance().getValue("errors", "commit", "cantFindObject"));
+						ConsoleWriter.println(DBGitLang.getInstance().getValue("errors", "commit", "cantFindObject"), messageLevel);
 						obj.removeFromGit();
 						index.markItemToDelete(obj);
 						index.saveDBIndex();
@@ -241,8 +243,12 @@ public class DBGit {
 					res = git.commit().setAll(existsSwitchA).setOnly(DBGitPath.DB_GIT_PATH + "/" + path).call();
 				}
 			}
-			ConsoleWriter.printlnGreen(DBGitLang.getInstance().getValue("general", "commit", "commit") + ": " + res.getName());
-			ConsoleWriter.printlnGreen(res.getAuthorIdent().getName() + "<" + res.getAuthorIdent().getEmailAddress() + ">, " + res.getAuthorIdent().getWhen());
+			ConsoleWriter.printlnGreen(DBGitLang.getInstance().getValue("general", "commit", "commit") + ": " + res.getName()
+				, messageLevel
+			);
+			ConsoleWriter.printlnGreen(res.getAuthorIdent().getName() + "<" + res.getAuthorIdent().getEmailAddress() + ">, " + res.getAuthorIdent().getWhen()
+				, messageLevel
+			);
 
 		} catch (Exception e) {
 			throw new ExceptionDBGit(e);
@@ -251,13 +257,21 @@ public class DBGit {
 
 	public void gitCheckout(String branch, String commit, boolean isNewBranch) throws ExceptionDBGit {
 		try {
-			ConsoleWriter.detailsPrintLn(DBGitLang.getInstance().getValue("general", "checkout", "do"));
-			ConsoleWriter.detailsPrintLnColor(DBGitLang.getInstance().getValue("general", "checkout", "toCreateBranch") + ": " + isNewBranch, 1, Ansi.FColor.GREEN);
-			ConsoleWriter.detailsPrintLnColor(DBGitLang.getInstance().getValue("general", "checkout", "branchName") + ": " + branch, 1, Ansi.FColor.GREEN);
-			if (commit != null)
-				ConsoleWriter.detailsPrintLnColor(DBGitLang.getInstance().getValue("general", "checkout", "commitName") + ": " + commit, 1, Ansi.FColor.GREEN);
-
-
+			ConsoleWriter.detailsPrintln(DBGitLang.getInstance().getValue("general", "checkout", "do"), messageLevel);
+			ConsoleWriter.detailsPrintlnGreen(DBGitLang.getInstance().getValue("general", "checkout", "toCreateBranch")
+				.withParams(String.valueOf(isNewBranch))
+				, messageLevel+1
+			);
+			ConsoleWriter.detailsPrintlnGreen(DBGitLang.getInstance().getValue("general", "checkout", "branchName")
+				.withParams(branch)
+				, messageLevel+1
+			);
+			if (commit != null){
+				ConsoleWriter.detailsPrintlnGreen(DBGitLang.getInstance().getValue("general", "checkout", "commitName")
+					.withParams(commit)
+					, messageLevel+1
+				);
+			}
 
 			Ref result;
 			if (git.getRepository().findRef(branch) != null || isNewBranch) {
@@ -276,10 +290,10 @@ public class DBGit {
 				result = checkout.call();
 
 				try(RevWalk walk = new RevWalk(repository)){
-					ConsoleWriter.detailsPrintLnColor(MessageFormat.format("{0}: {1}"
-						, DBGitLang.getInstance().getValue("general", "checkout", "commitMessage")
-						, walk.parseCommit(repository.getAllRefs().get("HEAD").getObjectId()).getShortMessage()
-					), 1, Ansi.FColor.GREEN);
+					ConsoleWriter.detailsPrintlnGreen(DBGitLang.getInstance().getValue("general", "checkout", "commitMessage")
+						.withParams(walk.parseCommit(repository.getAllRefs().get("HEAD").getObjectId()).getShortMessage())
+						, messageLevel+1
+					);
 				}
 
 
@@ -337,7 +351,10 @@ public class DBGit {
 				, 1
 			);
 		} catch (Exception e) {
-			ConsoleWriter.println("Repo is empty!");
+			ConsoleWriter.println(DBGitLang.getInstance()
+				.getValue("errors", "pull", "emptyGitRepository")
+				, 0
+			);
 			//throw new ExceptionDBGit(e);
 		}
 	}
@@ -346,29 +363,56 @@ public class DBGit {
 		try {
 			git.log().call();
 		} catch (Exception e) {
-			ConsoleWriter.println("No commits found!");
+			ConsoleWriter.println(DBGitLang.getInstance()
+			    .getValue("general", "push", "noCommitsFound")
+			    , messageLevel
+			);
 			return;
 		}
 
 		try {
-			ConsoleWriter.detailsPrintLn("Entered to gitPush");
-			ConsoleWriter.detailsPrintLn("remoteName: " + (remoteName.equals("") ? Constants.DEFAULT_REMOTE_NAME : remoteName));
+			ConsoleWriter.println(DBGitLang.getInstance()
+			    .getValue("general", "push", "remoteName")
+			    .withParams((remoteName.equals("") ? Constants.DEFAULT_REMOTE_NAME : remoteName))
+			    , messageLevel+1
+			);
 
 			Iterable<PushResult> result = git.push()
 					.setCredentialsProvider(getCredentialsProviderByName(remoteName.equals("") ? Constants.DEFAULT_REMOTE_NAME : remoteName))
 					.setRemote(remoteName.equals("") ? Constants.DEFAULT_REMOTE_NAME : remoteName).call();
 
-			ConsoleWriter.detailsPrintLn("Push called ");
+			ConsoleWriter.detailsPrintln("Push called ", messageLevel);
+			ConsoleWriter.println(DBGitLang.getInstance()
+			    .getValue("general", "push", "called")
+			    , messageLevel+1
+			);
 
 			result.forEach(pushResult -> {
-				if (pushResult == null)
-					ConsoleWriter.detailsPrintLn("Push result is null!!! ");
-				pushResult.toString();
+				if (pushResult == null){
+					ConsoleWriter.println(DBGitLang.getInstance()
+						.getValue("general", "push", "nullResult")
+						, 1
+					);
+				} else {
+					ConsoleWriter.println(DBGitLang.getInstance()
+						.getValue("general", "push", "callResult")
+						.withParams(pushResult.toString())
+						, messageLevel+1
+					);
+				}
 				for (RemoteRefUpdate res : pushResult.getRemoteUpdates()) {
-					if (res.getStatus() == RemoteRefUpdate.Status.UP_TO_DATE)
-						ConsoleWriter.println("Everything up-to-date");
+					if (res.getStatus() == RemoteRefUpdate.Status.UP_TO_DATE){
+						ConsoleWriter.println(DBGitLang.getInstance()
+							.getValue("general", "push", "upToDate")
+							, 1
+						);
+					}
 					else {
-						ConsoleWriter.println(res.toString());
+						ConsoleWriter.println(DBGitLang.getInstance()
+							.getValue("general", "push", "result")
+							.withParams(res.toString())
+							, 1
+						);
 					}
 				}
 			});
@@ -392,7 +436,7 @@ public class DBGit {
 
 			init.call();
 
-			ConsoleWriter.println(DBGitLang.getInstance().getValue("general", "init", "created"));
+			ConsoleWriter.println(DBGitLang.getInstance().getValue("general", "init", "created"), messageLevel);
 
 		} catch (Exception e) {
 			throw new ExceptionDBGit(e);
@@ -411,7 +455,7 @@ public class DBGit {
 
 			cc.call();
 
-			ConsoleWriter.println(DBGitLang.getInstance().getValue("general", "clone", "cloned"));
+			ConsoleWriter.println(DBGitLang.getInstance().getValue("general", "clone", "cloned"), messageLevel);
 
 		} catch (Exception e) {
 			throw new ExceptionDBGit(e);
@@ -423,7 +467,7 @@ public class DBGit {
 		try {
 			switch (command) {
 				case "" : {
-					git.remoteList().call().forEach(remote -> ConsoleWriter.println(remote.getName()));
+					git.remoteList().call().forEach(remote -> ConsoleWriter.println(remote.getName(), messageLevel+1));
 					break;
 				}
 
@@ -433,7 +477,7 @@ public class DBGit {
 					remote.setUri(new URIish(uri));
 					remote.call();
 
-					ConsoleWriter.printlnGreen(DBGitLang.getInstance().getValue("general", "remote", "added"));
+					ConsoleWriter.printlnGreen(DBGitLang.getInstance().getValue("general", "remote", "added"), messageLevel);
 
 					break;
 				}
@@ -443,12 +487,12 @@ public class DBGit {
 					remote.setName(name);
 					remote.call();
 
-					ConsoleWriter.printlnGreen(DBGitLang.getInstance().getValue("general", "remote", "removed"));
+					ConsoleWriter.printlnGreen(DBGitLang.getInstance().getValue("general", "remote", "removed"), messageLevel);
 
 					break;
 				}
 
-				default : ConsoleWriter.println(DBGitLang.getInstance().getValue("general", "remote", "unknown"));
+				default : ConsoleWriter.println(DBGitLang.getInstance().getValue("general", "remote", "unknown"), messageLevel);
 			}
 
 		} catch (Exception e) {
@@ -462,7 +506,7 @@ public class DBGit {
 				git.reset().call();
 			else
 				git.reset().setMode(ResetType.valueOf(mode)).call();
-			ConsoleWriter.println(DBGitLang.getInstance().getValue("general", "done"));
+			ConsoleWriter.println(DBGitLang.getInstance().getValue("general", "done"), messageLevel);
 		} catch (Exception e) {
 			throw new ExceptionDBGit(e);
 		}
@@ -480,16 +524,23 @@ public class DBGit {
 
 			fetch.call();
 
-			ConsoleWriter.println(DBGitLang.getInstance().getValue("general", "done"));
+			ConsoleWriter.println(DBGitLang.getInstance().getValue("general", "done"), messageLevel);
 		} catch (Exception e) {
 			throw new ExceptionDBGit(e);
 		}
 	}
 
 	private CredentialsProvider getCredentialsProviderByName(String remoteName) throws ExceptionDBGit {
-		ConsoleWriter.detailsPrintLn("Getting link to repo... ");
+		ConsoleWriter.detailsPrintln(DBGitLang.getInstance()
+		    .getValue("general", "gettingRepoLink")
+		    , messageLevel
+		);
 		String link = git.getRepository().getConfig().getString("remote", remoteName, "url");
-		ConsoleWriter.detailsPrintLn("link:" + link);
+		ConsoleWriter.detailsPrintln(DBGitLang.getInstance()
+			.getValue("general", "repoLink")
+			.withParams(link)
+			, messageLevel
+		);
 
 		if (link != null)
 			return getCredentialsProvider(link);
@@ -504,12 +555,19 @@ public class DBGit {
 
 	private static CredentialsProvider getCredentialsProvider(String link) throws ExceptionDBGit {
 		try {
-			ConsoleWriter.detailsPrintLn("Getting credentials...");
+			ConsoleWriter.println(DBGitLang.getInstance()
+			    .getValue("general", "parsingDbCredentials")
+			    , 0
+			);
 
 			URIish uri = new URIish(link);
 
-			ConsoleWriter.detailsPrintLn("uri login = " + uri.getUser());
-			ConsoleWriter.detailsPrintLn("uri pass = " + uri.getPass());
+			ConsoleWriter.println(DBGitLang.getInstance()
+				.getValue("general", "showDbCredentials")
+				.withParams( uri.getScheme(), uri.getUser(), uri.getHost(), uri.getRawPath())
+				, 0
+			);
+
 			/*
 			Pattern patternPass = Pattern.compile("(?<=:(?!\\/))(.*?)(?=@)");
 			Pattern patternLogin = Pattern.compile("(?<=\\/\\/)(.*?)(?=:(?!\\/))");
@@ -536,7 +594,7 @@ public class DBGit {
 			ConsoleWriter.detailsPrintLn("login: " + login);
 			ConsoleWriter.detailsPrintLn("pass: " + pass);*/
 			if(uri.getUser() == null) {
-				ConsoleWriter.detailsPrintlnRed(DBGitLang.getInstance().getValue("errors", "gitLoginNotFound"));
+				ConsoleWriter.detailsPrintlnRed(DBGitLang.getInstance().getValue("errors", "gitLoginNotFound"), messageLevel);
 				return null;
 			}
 			return new UsernamePasswordCredentialsProvider(uri.getUser(), uri.getPass());

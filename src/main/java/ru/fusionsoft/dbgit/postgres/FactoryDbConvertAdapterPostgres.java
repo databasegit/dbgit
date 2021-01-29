@@ -6,6 +6,7 @@ import java.util.Map;
 
 import ru.fusionsoft.dbgit.adapters.IDBConvertAdapter;
 import ru.fusionsoft.dbgit.adapters.IFactoryDBConvertAdapter;
+import ru.fusionsoft.dbgit.core.DBGitLang;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.meta.DBGitMetaType;
 import ru.fusionsoft.dbgit.oracle.converters.TableConverterOracle;
@@ -34,7 +35,11 @@ public class FactoryDbConvertAdapterPostgres implements IFactoryDBConvertAdapter
 	@Override
 	public IDBConvertAdapter getConvertAdapter(String objectType) throws Exception {
 		if (!converters.containsKey(objectType)) {
-			ConsoleWriter.detailsPrintlnRed("DBAdapterPostgres cannot convert " + objectType + "!");
+			ConsoleWriter.println(DBGitLang.getInstance()
+				.getValue("errors", "convert", "cannotConvert")
+				.withParams(objectType)
+				, 1
+			);
 			return null;
 		} else
 			return converters.get(objectType);

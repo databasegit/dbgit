@@ -37,7 +37,7 @@ public class FactoryDBRestoreAdapterMySql implements IFactoryDBAdapterRestoteMet
     public IDBAdapterRestoreMetaData getAdapterRestore(IDBGitMetaType tp, IDBAdapter adapter) {
         if (!restoreAdapters.containsKey(tp.getValue())) {
             //return new DBRestoreMetaNotSupport();
-            ConsoleWriter.println(DBGitLang.getInstance().getValue("errors", "restore", "cannotRestore").withParams(tp.getValue()));
+            ConsoleWriter.println(DBGitLang.getInstance().getValue("errors", "restore", "cannotRestore").withParams(tp.getValue()), messageLevel);
             return null;
         }
 

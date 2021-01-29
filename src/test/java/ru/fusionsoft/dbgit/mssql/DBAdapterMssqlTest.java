@@ -74,6 +74,7 @@ public class DBAdapterMssqlTest {
     private static String schema;
     private static String viewName = "TestView";
     private static String sequenceName = "TestSequence";
+    private static int messageLevel = 0;
 
 
     @Before
@@ -924,6 +925,7 @@ public class DBAdapterMssqlTest {
         Map<String, DBTable> tables = testAdapter.getTables(schema);
         for (DBTable table : tables.values()){
             if(table.getName().startsWith("BACKUP$")){
+                ConsoleWriter.println("drop "+table.getName(), messageLevel);
                 dropTable(schema+"."+table.getName());
             }
         }
@@ -1283,7 +1285,7 @@ schema + "." + tableName,
         
         Statement stmt = testConnection.createStatement();
         try { stmt.execute("DROP TABLE tempdb..#bigDummyTable\n"); } catch (SQLException ex) {
-            ConsoleWriter.println("Failed to drop #bigDummyTable");
+            ConsoleWriter.println("Failed to drop #bigDummyTable", messageLevel);
         }
         stmt.close();
     }
