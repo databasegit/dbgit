@@ -2,6 +2,7 @@ package ru.fusionsoft.dbgit.postgres;
 
 import ru.fusionsoft.dbgit.adapters.DBRestoreAdapter;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
+import ru.fusionsoft.dbgit.core.DBGitConfig;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRestore;
 import ru.fusionsoft.dbgit.dbobjects.DBProcedure;
@@ -42,13 +43,12 @@ public class DBRestoreProcedurePostgres extends DBRestoreAdapter {
 							) {
 								st.execute(restoreProc.getSqlObject().getSql());
 							}
-
 							//if owners differ
-							if(!restoreProc.getSqlObject().getOwner().equals(prc.getOwner())) {
+							if(!DBGitConfig.getInstance().getToIgnoreOnwer(false) && !restoreProc.getSqlObject().getOwner().equals(prc.getOwner())) {
 								StringProperties restoreProcArgs = restoreProc.getSqlObject().getOptions().get("arguments");
 								String args = restoreProcArgs != null ? restoreProcArgs.getData().replaceAll("(\\w+ \\w+) (DEFAULT [^\\,\\n]+)(\\,|\\b)", "$1") : "";
 
-								st.execute(MessageFormat.format("ALTER PROCEDURE {0}.{1}({2}) OWNER TO {3}"
+								st.execute(MessageFormat.format("ALTER PROCEDURE {0}.{1}({2}) OWNER TO \"{3}\""
 									, nm.getSchema()
 									, adapter.escapeNameIfNeeded(restoreProcName)
 									, args

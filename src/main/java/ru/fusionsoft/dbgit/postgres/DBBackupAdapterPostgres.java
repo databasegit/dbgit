@@ -80,7 +80,7 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 				ConsoleWriter.detailsPrintln(lang.getValue("general", "backup", "tryingToCopy").withParams(tableName, getFullDbName(schema, tableName)), messageLevel);
 
 				StringBuilder tableDdlSb = new StringBuilder(MessageFormat.format(
-					"create table {0} as (select * from {1}.{2} where 1={3}) {4};\n alter table {0} owner to {5};\n"
+					"create table {0} as (select * from {1}.{2} where 1={3}) {4};"
 					, backupTableSam
 					, adapter.escapeNameIfNeeded(schema)
 					, adapter.escapeNameIfNeeded(tableName)
@@ -90,6 +90,11 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 							: ""
 					, metaTable.getTable().getOptions().get("owner").getData()
 				));
+
+				if(!DBGitConfig.getInstance().getToIgnoreOnwer(false)){
+					String owner = metaTable.getTable().getOptions().get("owner").getData();
+					tableDdlSb.append(MessageFormat.format("\nalter table {0} owner to \"{1}\";\n", backupTableSam, owner));
+				}
 
 
 				Map<String, String> fkRefReplaces = new HashMap<>();
@@ -173,8 +178,10 @@ public class DBBackupAdapterPostgres extends DBBackupAdapter {
 						+ " START " + metaSequence.getSequence().getOptions().get("start_value").toString() + "\n"
 						+ " MINVALUE " + metaSequence.getSequence().getOptions().get("minimum_value").toString() + "\n"
 						+ " MAXVALUE " + metaSequence.getSequence().getOptions().get("maximum_value").toString() + ";\n";
-				
-				ddl += "alter sequence "+ sequenceName + " owner to "+ metaSequence.getSequence().getOptions().get("owner").getData()+";\n";
+
+				if(!DBGitConfig.getInstance().getToIgnoreOnwer(false)){
+					ddl += "alter sequence "+ sequenceName + " owner to \""+ metaSequence.getSequence().getOptions().get("owner").getData()+"\";\n";
+				}
 				
 				dropIfExists(
 					isSaveToSchema() ? PREFIX + schema : schema,

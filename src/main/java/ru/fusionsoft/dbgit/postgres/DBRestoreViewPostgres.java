@@ -6,12 +6,11 @@ import java.util.Map;
 
 import ru.fusionsoft.dbgit.adapters.DBRestoreAdapter;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
+import ru.fusionsoft.dbgit.core.DBGitConfig;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRestore;
-import ru.fusionsoft.dbgit.dbobjects.DBTable;
 import ru.fusionsoft.dbgit.dbobjects.DBView;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
-import ru.fusionsoft.dbgit.meta.MetaTable;
 import ru.fusionsoft.dbgit.meta.MetaView;
 import ru.fusionsoft.dbgit.statement.StatementLogging;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
@@ -35,14 +34,20 @@ public class DBRestoreViewPostgres extends DBRestoreAdapter {
 							if(!restoreView.getSqlObject().getSql().equals(vw.getSql())) {
 								st.execute(getDdlEscaped(restoreView));
 							}
-							if(!restoreView.getSqlObject().getOwner().equals(vw.getOwner())) {
-								st.execute(getChangeOwnerDdl(restoreView, restoreView.getSqlObject().getOwner()));
+
+							if(!DBGitConfig.getInstance().getToIgnoreOnwer(false)){
+								if(!restoreView.getSqlObject().getOwner().equals(vw.getOwner())) {
+									st.execute(getChangeOwnerDdl(restoreView, restoreView.getSqlObject().getOwner()));
+								}
 							}
 						}
 					}
 				}
 				if(!exist){
-					String query = getDdlEscaped(restoreView) + getChangeOwnerDdl(restoreView, restoreView.getSqlObject().getOwner());
+					String query = getDdlEscaped(restoreView);
+					if(!DBGitConfig.getInstance().getToIgnoreOnwer(false)){
+						query += getChangeOwnerDdl(restoreView, restoreView.getSqlObject().getOwner());
+					}
 					st.execute(query);
 				}
 				//TODO Восстановление привилегий ?

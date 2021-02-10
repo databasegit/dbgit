@@ -2,6 +2,7 @@ package ru.fusionsoft.dbgit.mssql;
 
 import ru.fusionsoft.dbgit.adapters.DBRestoreAdapter;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
+import ru.fusionsoft.dbgit.core.DBGitConfig;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRestore;
 import ru.fusionsoft.dbgit.dbobjects.DBSchema;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
@@ -29,13 +30,13 @@ public class DBRestoreSchemaMssql extends DBRestoreAdapter {
 						if(restoreSchema.getObjectOption().getName().equals(sch.getName())){
 							exist = true;
 							// TODO MSSQL restore Schema script
-							//String test1 = changedsch.getObjectOption().getName();
-							//String test2 = changedsch.getObjectOption().getOptions().getChildren().get("usename").getData();
-							if(!restoreSchema.getObjectOption().getOptions().getChildren().get("usename").getData().equals(sch.getOptions().getChildren().get("usename").getData())) {
+
+							if(!DBGitConfig.getInstance().getToIgnoreOnwer(false)){
+								if(!restoreSchema.getObjectOption().getOptions().getChildren().get("usename").getData().equals(sch.getOptions().getChildren().get("usename").getData())) {
 								st.execute("ALTER SCHEMA "+ restoreSchema.getObjectOption().getName() +" OWNER TO "+
 										restoreSchema.getObjectOption().getOptions().getChildren().get("usename").getData());
+								}
 							}
-							//TODO Восстановление привилегий
 						}
 					}
 				}

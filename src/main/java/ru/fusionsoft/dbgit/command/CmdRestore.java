@@ -56,6 +56,9 @@ public class CmdRestore implements IDBGitCommand {
 
 		boolean toMakeChanges = cmdLine.hasOption("r");
 		boolean toMakeBackup = DBGitConfig.getInstance().getBoolean("core", "TO_MAKE_BACKUP", true);
+		// from cmdLine to temporary config bypass
+		// can be used as other config data by restore adapters
+		DBGitConfig.getInstance().setToIgnoreOnwer(cmdLine.hasOption("noowner"));
 
 		try {
 			adapter = AdapterFactory.createAdapter();

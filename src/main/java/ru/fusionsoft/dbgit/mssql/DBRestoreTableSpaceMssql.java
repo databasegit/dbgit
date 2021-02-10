@@ -2,6 +2,7 @@ package ru.fusionsoft.dbgit.mssql;
 
 import ru.fusionsoft.dbgit.adapters.DBRestoreAdapter;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
+import ru.fusionsoft.dbgit.core.DBGitConfig;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRestore;
 import ru.fusionsoft.dbgit.dbobjects.DBTableSpace;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
@@ -40,10 +41,12 @@ public class DBRestoreTableSpaceMssql extends DBRestoreAdapter{
 							String currentowner = tblspace.getOptions().getChildren().get("usename").getData();
 							String currentloc = tblspace.getOptions().getChildren().get("pg_tablespace_location").getData();
 
-							if(!restoreowner.equals(currentowner)) {
-								st.execute("alter tablespace "+ restorename +" owner to "+ restoreowner);
-							}
 
+							if(!DBGitConfig.getInstance().getToIgnoreOnwer(false)){
+								if(!restoreowner.equals(currentowner)) {
+									st.execute("alter tablespace "+ restorename +" owner to "+ restoreowner);
+								}
+							}
 							if(restoreTableSpace.getObjectOption().getOptions().getChildren().containsKey("spcoptions")) {
 								String options = restoreTableSpace.getObjectOption().getOptions().getChildren().get("spcoptions").getData().replaceAll("[\\{\\}]", "");
 								st.execute("alter tablespace "+ restorename +" set ("+ options+")");

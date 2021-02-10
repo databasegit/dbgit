@@ -7,6 +7,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import ru.fusionsoft.dbgit.adapters.DBRestoreAdapter;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
+import ru.fusionsoft.dbgit.core.DBGitConfig;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRestore;
 import ru.fusionsoft.dbgit.core.GitMetaDataManager;
@@ -345,11 +346,17 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 			,restoreTable.getTable().getOptions().getChildren().containsKey("tablespace")
 				? "tablespace " + restoreTable.getTable().getOptions().get("tablespace").getData()
 				: ""
-			,restoreTable.getTable().getOptions().getChildren().containsKey("owner")
-				? restoreTable.getTable().getOptions().get("owner").getData()
-				: "postgres"
 
 		);
+
+		if(!DBGitConfig.getInstance().getToIgnoreOnwer(false)){
+			createTableDdl += MessageFormat.format("\n alter table {0}.{1} owner to {2}\n;",
+				nme.getSchema() ,nme.getName(),
+				restoreTable.getTable().getOptions().getChildren().containsKey("owner")
+					? restoreTable.getTable().getOptions().get("owner").getData()
+					: "postgres"
+			);
+		}
 
 		if (restoreTable.getTable().getOptions().getChildren().containsKey("partkeydef")) {
 			createTableDdl = createTableDdl.replace(" ) ", ") PARTITION BY " +
@@ -359,20 +366,23 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 
 		st.execute(createTableDdl);
 	}
-	private void restoreTableOwner(StatementLogging st, MetaTable restoreTable, MetaTable existingTable) throws SQLException, ExceptionDBGit {
+	private void restoreTableOwner(StatementLogging st, MetaTable restoreTable, MetaTable existingTable) throws Exception {
 		String schema = adapter.escapeNameIfNeeded(getPhisicalSchema(restoreTable.getTable().getSchema().toLowerCase()));
 		String tblName = adapter.escapeNameIfNeeded(restoreTable.getTable().getName());
 
 		StringProperties exOwner= existingTable.getTable().getOptions().get("owner");
 		StringProperties restoreOwner = restoreTable.getTable().getOptions().get("owner");
-		if(restoreOwner != null && ( exOwner == null || !exOwner.getData().equals(restoreOwner.getData()) ) ){
-			String alterTableDdl = MessageFormat.format(
-				"alter table {0}.{1} owner to {2};\n"
-				,schema
-				,tblName
-				,restoreTable.getTable().getOptions().get("owner").getData()
-			);
-			st.execute(alterTableDdl);
+
+		if(!DBGitConfig.getInstance().getToIgnoreOnwer(false)){
+			if(restoreOwner != null && ( exOwner == null || !exOwner.getData().equals(restoreOwner.getData()) ) ){
+				String alterTableDdl = MessageFormat.format(
+					"alter table {0}.{1} owner to {2};\n"
+					,schema
+					,tblName
+					,restoreTable.getTable().getOptions().get("owner").getData()
+				);
+				st.execute(alterTableDdl);
+			}
 		}
 	}
 	private void restoreTableTablespace(StatementLogging st, MetaTable restoreTable, MetaTable existingTable) throws SQLException, ExceptionDBGit {

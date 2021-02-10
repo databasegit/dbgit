@@ -39,8 +39,8 @@ public class DBRestoreTableSpacePostgres extends DBRestoreAdapter{
 							String currentname = tblspace.getName();
 							String currentowner = tblspace.getOptions().getChildren().get("usename").getData();
 							String currentloc = tblspace.getOptions().getChildren().get("pg_tablespace_location").getData();
-							
-							if(!restoreowner.equals(currentowner)) {
+
+							if(!DBGitConfig.getInstance().getToIgnoreOnwer(false) && !restoreowner.equals(currentowner)) {
 								st.execute("alter tablespace "+ restorename +" owner to "+ restoreowner);
 							}
 							

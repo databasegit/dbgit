@@ -5,12 +5,11 @@ import java.util.Map;
 
 import ru.fusionsoft.dbgit.adapters.DBRestoreAdapter;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
+import ru.fusionsoft.dbgit.core.DBGitConfig;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRestore;
-import ru.fusionsoft.dbgit.dbobjects.DBFunction;
 import ru.fusionsoft.dbgit.dbobjects.DBSequence;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
-import ru.fusionsoft.dbgit.meta.MetaFunction;
 import ru.fusionsoft.dbgit.meta.MetaSequence;
 import ru.fusionsoft.dbgit.statement.StatementLogging;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
@@ -58,13 +57,17 @@ public class DBRestoreSequencePostgres extends DBRestoreAdapter {
 								query+="alter sequence "+sequence + " maxvalue "+restoreSeq.getSequence().getOptions().get("maximum_value")+";\n";
 							}
 
-							if(!restoreSeq.getSequence().getOptions().get("owner").equals(seq.getOptions().get("owner"))) {
-								if(seq.getOptions().get("blocking_table") != null){
-									String tableName = adapter.escapeNameIfNeeded(seq.getOptions().get("blocking_table").getData());
-									query+="alter table "+tableName+ " owner to "+restoreSeq.getSequence().getOptions().get("owner")+";\n";
+							if(!DBGitConfig.getInstance().getToIgnoreOnwer(false)){
+
+								if(!restoreSeq.getSequence().getOptions().get("owner").equals(seq.getOptions().get("owner"))) {
+									if(seq.getOptions().get("blocking_table") != null){
+										String tableName = adapter.escapeNameIfNeeded(seq.getOptions().get("blocking_table").getData());
+										query+="alter table "+tableName+ " owner to \""+restoreSeq.getSequence().getOptions().get("owner")+"\";\n";
+									}
+									query+="alter sequence "+sequence+" owner to \""+restoreSeq.getSequence().getOptions().get("owner")+"\";\n";
 								}
-								query+="alter sequence "+sequence+" owner to "+restoreSeq.getSequence().getOptions().get("owner")+";\n";
 							}
+
 							if(query.length()>1) {
 								st.execute(query);
 							}
@@ -84,7 +87,9 @@ public class DBRestoreSequencePostgres extends DBRestoreAdapter {
 								"start " + restoreSeq.getSequence().getOptions().get("start_value")+"\n"+
 								"minvalue "+ restoreSeq.getSequence().getOptions().get("minimum_value")+"\n"+
 								"maxvalue " + restoreSeq.getSequence().getOptions().get("maximum_value")+";\n";
-						query+="alter sequence \""+ schema + "\".\"" + seqName+"\" owner to\""+ restoreSeq.getSequence().getOptions().get("owner")+"\";";
+						if(!DBGitConfig.getInstance().getToIgnoreOnwer(false)){
+							query+="alter sequence \""+ schema + "\".\"" + seqName+"\" owner to\""+ restoreSeq.getSequence().getOptions().get("owner")+"\";";
+						}
 					}
 					else {
 						query+="create sequence \"" + schema + "\".\"" + seqName+"\"" +
@@ -93,7 +98,9 @@ public class DBRestoreSequencePostgres extends DBRestoreAdapter {
 								"start " + restoreSeq.getSequence().getOptions().get("start_value")+"\n"+
 								"minvalue "+ restoreSeq.getSequence().getOptions().get("minimum_value")+"\n"+
 								"maxvalue " + restoreSeq.getSequence().getOptions().get("maximum_value")+";\n";
-						query+="alter sequence \""+ schema + "\".\"" + seqName+"\" owner to \""+ restoreSeq.getSequence().getOptions().get("owner")+"\";";
+						if(!DBGitConfig.getInstance().getToIgnoreOnwer(false)){
+							query+="alter sequence \""+ schema + "\".\"" + seqName+"\" owner to \""+ restoreSeq.getSequence().getOptions().get("owner")+"\";";
+						}
 					}
 					st.execute(query);
 					//TODO Восстановление привилегий

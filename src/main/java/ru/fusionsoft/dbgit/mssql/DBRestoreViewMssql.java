@@ -2,6 +2,7 @@ package ru.fusionsoft.dbgit.mssql;
 
 import ru.fusionsoft.dbgit.adapters.DBRestoreAdapter;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
+import ru.fusionsoft.dbgit.core.DBGitConfig;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRestore;
 import ru.fusionsoft.dbgit.dbobjects.DBView;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
@@ -46,8 +47,12 @@ public class DBRestoreViewMssql extends DBRestoreAdapter {
 					if (!query.endsWith(";")) query = query + ";";
 					query = query + "\n";
 
-					query+= "ALTER VIEW "+restoreView.getSqlObject().getName() +" OWNER TO "+restoreView.getSqlObject().getOwner()+";\n";
+					if(!DBGitConfig.getInstance().getToIgnoreOnwer(false)){
+						query+= "ALTER VIEW "+restoreView.getSqlObject().getName() +" OWNER TO \""+restoreView.getSqlObject().getOwner()+"\";\n";
+					}
+
 					st.execute(query);
+
 					//TODO Восстановление привилегий	
 				}
 			}

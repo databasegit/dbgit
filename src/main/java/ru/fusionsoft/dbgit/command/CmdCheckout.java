@@ -22,6 +22,7 @@ public class CmdCheckout implements IDBGitCommand {
 		opts.addOption("r", false, getLang().getValue("help", "checkout-r").toString());
 		opts.addOption("u", false, getLang().getValue("help", "checkout-u").toString());
 		opts.addOption("nodb", false, getLang().getValue("help", "checkout-no-db").toString());
+		opts.addOption("noowner", false, getLang().getValue("help", "checkout-no-owner").toString());
 		opts.addOption("upgrade", false, getLang().getValue("help", "checkout-u").toString());
 		opts.addOption("ls", false, getLang().getValue("help", "checkout-ls").toString());
 	}
@@ -102,6 +103,9 @@ public class CmdCheckout implements IDBGitCommand {
 			
 			if (cmdLine.hasOption("r")) {
 				builder.addOption(new Option("r", false, ""));			
+			}
+			if (cmdLine.hasOption("noowner")) {
+				builder.addOption(new Option("noowner", false, ""));
 			}
 			if (cmdLine.hasOption("v")) {
 				builder.addOption(new Option("v", false, ""));			

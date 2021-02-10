@@ -1,6 +1,9 @@
 package ru.fusionsoft.dbgit.core;
 
 import java.io.File;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.ini4j.Ini;
 
@@ -11,6 +14,7 @@ public class DBGitConfig {
 	private static DBGitConfig config = null;
 	private Ini ini = null;
 	private Ini iniGlobal = null;
+	private Map<String, String> transientConfig = new HashMap<>();
 
 	private DBGitConfig() throws Exception {
 
@@ -84,16 +88,27 @@ public class DBGitConfig {
 
 	private String getString(String section, String option, String defaultValue, boolean global) {
 		try {
-			String result = global ? iniGlobal.get(section, option) : ini.get(section, option);
+			String result = global ? iniGlobal.get(section, option) : getIni().get(section, option);
 			return result == null ? defaultValue : result;
 		} catch (Exception e) {
 			return defaultValue;
 		}
 	}
 
+	private Ini getIni() throws ExceptionDBGit, IOException {
+		if(ini == null){
+			if (DBGit.checkIfRepositoryExists()) {
+				File file = new File(DBGitPath.getFullPath() + "/" + DBGitPath.DBGIT_CONFIG);
+				if (file.exists())
+					ini = new Ini(file);
+			}
+		}
+		return  ini;
+	}
+
 	private Boolean getBoolean(String section, String option, Boolean defaultValue, boolean global) {
 		try {
-			String result = global ? iniGlobal.get(section, option) : ini.get(section, option);
+			String result = global ? iniGlobal.get(section, option) : getIni().get(section, option);
 
 			return result == null ? defaultValue : Boolean.valueOf(result);
 		} catch (Exception e) {
@@ -103,7 +118,7 @@ public class DBGitConfig {
 
 	private Integer getInteger(String section, String option, Integer defaultValue, boolean global) {
 		try {
-			String result = global ? iniGlobal.get(section, option) : ini.get(section, option);
+			String result = global ? iniGlobal.get(section, option) : getIni().get(section, option);
 			return result == null ? defaultValue : Integer.valueOf(result);
 		} catch (Exception e) {
 			return defaultValue;
@@ -112,7 +127,7 @@ public class DBGitConfig {
 
 	private Double getDouble(String section, String option, Double defaultValue, boolean global) {
 		try {
-			String result = global ? iniGlobal.get(section, option) : ini.get(section, option);
+			String result = global ? iniGlobal.get(section, option) : getIni().get(section, option);
 			return result == null ? defaultValue : Double.valueOf(result);
 		} catch (Exception e) {
 			return defaultValue;
@@ -140,14 +155,14 @@ public class DBGitConfig {
 					iniGlobal.store(iniGlobal.getFile());
 				}
 			} else {
-				if (ini == null)
+				if (getIni() == null)
 					throw new ExceptionDBGit(DBGitLang.getInstance().getValue("errors", "gitRepNotFound"));
 
 				if (!ini.get("core").containsKey(parameter))
 					ConsoleWriter.detailsPrintln(DBGitLang.getInstance().getValue("errors", "config", "noParameter").withParams(parameter), messageLevel);
 				else {			
-					ini.get("core").put(parameter, value);
-					ini.store(new File(DBGitPath.getFullPath() + "/" + DBGitPath.DBGIT_CONFIG));
+					getIni().get("core").put(parameter, value);
+					getIni().store(new File(DBGitPath.getFullPath() + "/" + DBGitPath.DBGIT_CONFIG));
 				}
 			}
 		} catch (Exception e) {
@@ -155,4 +170,22 @@ public class DBGitConfig {
 		}
 	}
 
+
+	public static String TO_IGNORE_OWNER = "noowner";
+
+	public void setValueTransient(String parameter, String value) throws ExceptionDBGit{
+		transientConfig.put(parameter, value);
+	}
+
+	public String getValueTransient(String parameter, String defaultValue){
+		return transientConfig.getOrDefault(parameter, defaultValue);
+	}
+
+	public void setToIgnoreOnwer(boolean value) throws ExceptionDBGit{
+		transientConfig.put(TO_IGNORE_OWNER, value ? "true" : "false");
+	}
+
+	public boolean getToIgnoreOnwer(boolean defaultValue){
+		return Boolean.valueOf(getValueTransient(TO_IGNORE_OWNER, defaultValue ? "true" : "false"));
+	}
 }
