@@ -29,7 +29,6 @@ public class DBRestoreSchemaMySql extends DBRestoreAdapter {
                 ));
             }
         } catch (Exception e) {
-            ConsoleWriter.detailsPrintlnRed(lang.getValue("errors", "meta", "fail"));
             throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()), e);
         } finally {
             ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));

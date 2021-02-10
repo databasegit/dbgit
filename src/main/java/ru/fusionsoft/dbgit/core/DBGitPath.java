@@ -200,7 +200,6 @@ public class DBGitPath {
 			
 			return false;
 	    } catch(Exception e) {
-	    	e.printStackTrace();
 	    	throw new ExceptionDBGit(e);
 	    }
 	}

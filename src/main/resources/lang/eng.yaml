@@ -4,7 +4,7 @@ general:
   time: Time... {0} ms
   addToGit: Adding to git...
   commandSuccess: Execute command success!
-  showDbCredentials: "Getting database connection credentials... {0}:\\{1}@{2}{3}"
+  showDbCredentials: "Getting database connection credentials... {0}://{1}@{2}{3}"
   gettingRepoLink: Getting link to repo...
   repoLink: "Link: {0}"
   add:

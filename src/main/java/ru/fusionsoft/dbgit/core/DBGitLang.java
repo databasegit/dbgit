@@ -2,6 +2,7 @@ package ru.fusionsoft.dbgit.core;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.util.Arrays;
 import java.util.Map;
 
 import org.yaml.snakeyaml.Yaml;
@@ -29,9 +30,15 @@ public class DBGitLang {
 				path = path.substring(0, i);
 			}
 			
-			mapValue = (Map<String, Object>) 
-					new Yaml().load(new FileInputStream(new File(path + "/lang/" + 
-			DBGitConfig.getInstance().getString("core", "LANG", DBGitConfig.getInstance().getStringGlobal("core", "LANG", "no")).toLowerCase() + ".yaml")));
+			mapValue = new Yaml().load(
+				new FileInputStream(
+					new File(
+					path
+					+ "/lang/"
+					+ DBGitConfig.getInstance().getString("core", "LANG", DBGitConfig.getInstance().getStringGlobal("core", "LANG", "no")).toLowerCase()
+					+ ".yaml")
+				)
+			);
 		} catch (Exception e) {
 			throw new ExceptionDBGitRunTime(e);
 		}
@@ -42,7 +49,7 @@ public class DBGitLang {
 		return lang;
 	}
 	
-	public DBGitLang getValue(String... args) {
+	public DBGitLang getValue(String... args) throws ExceptionDBGitRunTime {
 		Object val = mapValue;
 		value = "";		
 		for (String arg : args) {
@@ -51,8 +58,13 @@ public class DBGitLang {
 	        val = newVal.get(arg);
 	    }
 		
-		if (val != null)
+		if (val != null){
 			value = val.toString();
+			if(value.equals("")) throw new ExceptionDBGitRunTime("Empty `lang` value for " + Arrays.toString(args));
+		}
+		else {
+			throw new ExceptionDBGitRunTime("Cannot find `lang` value for " + Arrays.toString(args));
+		}
 		
 		return this;
 	}

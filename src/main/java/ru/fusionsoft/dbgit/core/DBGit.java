@@ -555,10 +555,6 @@ public class DBGit {
 
 	private static CredentialsProvider getCredentialsProvider(String link) throws ExceptionDBGit {
 		try {
-			ConsoleWriter.println(DBGitLang.getInstance()
-			    .getValue("general", "parsingDbCredentials")
-			    , 0
-			);
 
 			URIish uri = new URIish(link);
 

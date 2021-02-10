@@ -22,7 +22,6 @@ public class DBRestoreViewMySql extends DBRestoreAdapter {
                 MetaView restoreView = (MetaView)obj;
                 String ddl = restoreView.getSqlObject().getSql();
                 st.execute(ddl);
-                //connect.commit();//FIXME ????
             } else {
                 throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "metaTypeError").withParams(
                     obj.getName()

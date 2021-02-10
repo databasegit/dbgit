@@ -1,6 +1,7 @@
 package ru.fusionsoft.dbgit.mysql.converters;
 
 import ru.fusionsoft.dbgit.adapters.IDBConvertAdapter;
+import ru.fusionsoft.dbgit.core.DBGitLang;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.db.DbType;
 import ru.fusionsoft.dbgit.dbobjects.DBConstraint;
