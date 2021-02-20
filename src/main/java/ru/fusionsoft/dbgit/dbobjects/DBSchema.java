@@ -1,12 +1,10 @@
 package ru.fusionsoft.dbgit.dbobjects;
 
 
+import ru.fusionsoft.dbgit.utils.StringProperties;
+
 public class DBSchema extends DBOptionsObject {
-	public DBSchema() {
-		super("");
-	}
-	
-	public DBSchema(String name) {
-		super(name);
+	public DBSchema(String name, StringProperties options) {
+		super(name, options);
 	}
 }

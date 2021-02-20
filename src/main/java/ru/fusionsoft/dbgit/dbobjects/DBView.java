@@ -1,13 +1,12 @@
 package ru.fusionsoft.dbgit.dbobjects;
 
-public class DBView extends DBSQLObject {
-	public DBView(String name) {
-		super();
-		this.name = name;
-	}
-	public DBView() {
-		super();
-	}
+import ru.fusionsoft.dbgit.utils.StringProperties;
 
+import java.util.Set;
+
+public class DBView extends DBSQLObject {
+	public DBView(String name, StringProperties options, String schema, String owner, Set<String> dependencies, String sql) {
+		super(name, options, schema, owner, dependencies, sql);
+	}
 }
 

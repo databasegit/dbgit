@@ -1,6 +1,8 @@
 package ru.fusionsoft.dbgit.dbobjects;
 
-import ru.fusionsoft.dbgit.meta.DBGitMetaType;
+import ru.fusionsoft.dbgit.utils.StringProperties;
+
+import java.util.Set;
 
 /**
  * Base class for all Objects BD with code style 
@@ -8,17 +10,7 @@ import ru.fusionsoft.dbgit.meta.DBGitMetaType;
  *
  */
 public class DBCode extends DBSQLObject {
-	/*
-	private DBGitMetaType type; //pkg, fun, prc, trg 
-
-	public DBGitMetaType getType() {
-		return type;
-	}
-
-	public void setType(DBGitMetaType type) {
-		this.type = type;
-	}
-	
-	*/
-	
+    public DBCode(String name, StringProperties options, String schema, String owner, Set<String> dependencies, String sql) {
+        super(name, options, schema, owner, dependencies, sql);
+    }
 }

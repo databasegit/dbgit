@@ -64,14 +64,14 @@ public class DBRestoreTableMySql extends DBRestoreAdapter {
     public void restoreTableMySql(IMetaObject obj) throws Exception {
         IDBAdapter adapter = getAdapter();
         Connection connect = adapter.getConnection();
-        StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
-        try {
+
+        try (StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());){
             if (obj instanceof MetaTable) {
                 MetaTable restoreTable = (MetaTable) obj;
                 String schema = getPhisicalSchema(restoreTable.getTable().getSchema().toLowerCase());
                 schema = (SchemaSynonym.getInstance().getSchema(schema) == null) ? schema : SchemaSynonym.getInstance().getSchema(schema);
                 String tblName = schema + ".`" + restoreTable.getTable().getName() + "`";
-                ConsoleWriter.detailsPrintLn(lang.getValue("general", "restore", "createTable"), 3);
+                ConsoleWriter.detailsPrintln(lang.getValue("general", "restore", "createTable"), messageLevel);
                 StringBuilder pk = new StringBuilder();
                 String ddl = "CREATE TABLE IF NOT EXISTS " + tblName + " ("
                         + restoreTable
@@ -104,8 +104,6 @@ public class DBRestoreTableMySql extends DBRestoreAdapter {
             }
         } catch (Exception e) {
             throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()), e);
-        } finally {
-            st.close();
         }
     }
 

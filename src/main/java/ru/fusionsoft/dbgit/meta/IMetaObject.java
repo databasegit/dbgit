@@ -7,6 +7,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.Constructor;
+import java.util.Map;
+
 
 import ru.fusionsoft.dbgit.core.DBGitLang;
 import ru.fusionsoft.dbgit.core.DBGitPath;
@@ -87,6 +89,8 @@ public interface IMetaObject {
 		return this;
 	};
 
+	public Map<String, Map> toMap();
+
 	/**
 	 * load current object from DB
 	 */
@@ -157,6 +161,7 @@ public interface IMetaObject {
 	default DBSchemaObject getUnderlyingDbObject(){
 		//All in one place
 		if(this instanceof MetaSql) return ((MetaSql) this).getSqlObject();
+		if(this instanceof MetaSequence) return ((MetaSequence) this).getSequence();
 		if(this instanceof MetaTable) return ((MetaTable) this).getTable();
 		return null;
 	}

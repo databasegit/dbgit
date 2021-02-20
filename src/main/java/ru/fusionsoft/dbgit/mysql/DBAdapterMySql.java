@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 
 import com.axiomalaska.jdbc.NamedParameterPreparedStatement;
@@ -101,21 +102,20 @@ public class DBAdapterMySql extends DBAdapter {
 
 	@Override
 	public Map<String, DBSchema> getSchemes() {
+		String query =
+			"select schema_name\r\n" +
+			"from information_schema.schemata";
+
 		Map<String, DBSchema> listScheme = new HashMap<String, DBSchema>();
-		try {
-			String query = "select schema_name\r\n" + 
-					"from information_schema.schemata";
-			Connection connect = getConnection();
-			Statement stmt = connect.createStatement();
-			ResultSet rs = stmt.executeQuery(query);
+		try (Statement stmt = getConnection().createStatement(); ResultSet rs = stmt.executeQuery(query);){
+
 			while(rs.next()){
 				String name = rs.getString("schema_name");
 				DBSchema scheme = new DBSchema(name);
 				rowToProperties(rs, scheme.getOptions());
 				listScheme.put(name, scheme);	
 			}	
-			stmt.close();
-		}catch(Exception e) {
+		} catch(Exception e) {
 			logger.error(lang.getValue("errors", "adapter", "schemes").toString(), e);
 			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "schemes").toString(), e);
 		} 
@@ -132,25 +132,27 @@ public class DBAdapterMySql extends DBAdapter {
 	@Override
 	public Map<String, DBSequence> getSequences(String schema) {
 		Map<String, DBSequence> sequences = new HashMap<String, DBSequence>();
-		try {
-			String query = "select column_name, table_name, column_type, extra from information_schema.columns" +
-					" where extra like '%auto_increment%' and table_schema='" + schema + "'";
-			Connection connect = getConnection();
-			Statement stmt = connect.createStatement();
-			ResultSet rs = stmt.executeQuery(query);
+
+		String query =
+			"select column_name, table_name, column_type, extra from information_schema.columns" +
+			" where extra like '%auto_increment%' and table_schema='" + schema + "'";
+
+		try(Statement stmt = getConnection().createStatement(); ResultSet rs = stmt.executeQuery(query);) {
+			String valueQuery =
+				"select coalesce(max(" + rs.getString("column_name") + "), 0) as nextval" +
+				" from " + schema + ".`" + rs.getString("table_name") + "`";
+
 			while(rs.next()) {
-				String name = rs.getString("column_name");
-				DBSequence seq = new DBSequence(name);
-				Statement stmtValue = connect.createStatement();
-				ResultSet rsValue = stmtValue.executeQuery("select coalesce(max(" + rs.getString("column_name") + "), 0) as nextval" +
-						" from " + schema + ".`" + rs.getString("table_name") + "`");
-				rsValue.next();
-				seq.setSchema(schema);
-				seq.setValue(rsValue.getLong("nextval"));
-				sequences.put(name, seq);
-				stmtValue.close();
+
+				try(Statement stmtValue = connect.createStatement(); ResultSet rsValue = stmtValue.executeQuery(valueQuery)){
+					rsValue.next();
+					String name = rs.getString("column_name");
+					Long value = rsValue.getLong("nextval");
+					DBSequence seq = new DBSequence(name, schema, value);
+					sequences.put(name, seq);
+				}
+
 			}
-			stmt.close();
 		} catch(Exception e) {
 			logger.error(lang.getValue("errors", "adapter", "seq").toString(), e);
 			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "seq").toString(), e);
@@ -160,134 +162,125 @@ public class DBAdapterMySql extends DBAdapter {
 
 	@Override
 	public DBSequence getSequence(String schema, String name) {
+		String query =
+			"select column_name, table_name, column_type, extra from information_schema.columns" +
+			" where extra like '%auto_increment%' and table_schema='" + schema + "' and column_name='" + name + "'";
+
 		DBSequence seq = null;
-		try {
-			String query = "select column_name, table_name, column_type, extra from information_schema.columns" +
-					" where extra like '%auto_increment%' and table_schema='" + schema + "' and column_name='" + name + "'";
-			Connection connect = getConnection();
-			Statement stmt = connect.createStatement();
-			ResultSet rs = stmt.executeQuery(query);
+		try (Statement stmt = getConnection().createStatement(); ResultSet rs = stmt.executeQuery(query);){
+
 			if(rs.next()) {
-				seq = new DBSequence(name);
-				Statement stmtValue = connect.createStatement();
-				ResultSet rsValue = stmtValue.executeQuery("select coalesce(max(" + rs.getString("column_name") + "), 0) as nextval" +
-						" from " + schema + ".`" + rs.getString("table_name") + "`");
-				rsValue.next();
-				seq.setSchema(schema);
-				seq.setValue(rsValue.getLong("nextval"));
-				stmtValue.close();
+
+				String valueQuery =
+					"select coalesce(max(" + rs.getString("column_name") + "), 0) as nextval" +
+					" from " + schema + ".`" + rs.getString("table_name") + "`";
+
+				try(Statement stmtValue = connect.createStatement(); ResultSet rsValue = stmtValue.executeQuery(valueQuery)){
+					rsValue.next();
+					Long value = rsValue.getLong("nextval");
+					seq = new DBSequence(name, schema, value);
+				}
 			}
-			stmt.close();
+
 		} catch (Exception e) {
 			logger.error(lang.getValue("errors", "adapter", "seq").toString(), e);
 			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "seq").toString(), e);
 		}
+
 		return seq;
 	}
 
 	@Override
 	public Map<String, DBTable> getTables(String schema) {
 		Map<String, DBTable> listTable = new HashMap<String, DBTable>();
-		try {
-			String query = "SELECT T.TABLE_NAME, T.TABLE_SCHEMA " + 
-					"FROM information_schema.tables T WHERE TABLE_SCHEMA = '" + schema + "' and TABLE_TYPE = 'BASE TABLE'";
-			Connection connect = getConnection();
-			
-			Statement stmt = connect.createStatement();
-			ResultSet rs = stmt.executeQuery(query);
-			
+		String query =
+			"SELECT T.TABLE_NAME, T.TABLE_SCHEMA " +
+			"FROM information_schema.tables T WHERE TABLE_SCHEMA = '" + schema + "' and TABLE_TYPE = 'BASE TABLE'";
+
+		try (Statement stmt = connect.createStatement(); ResultSet rs = stmt.executeQuery(query);){
+
 			while(rs.next()){
 				String nameTable = rs.getString("TABLE_NAME");
-				DBTable table = new DBTable(nameTable);
-				table.setSchema(schema);
+				//TODO retrieve table comment
+				DBTable table = new DBTable(nameTable, schema, null);
 				rowToProperties(rs, table.getOptions());
-				
-				Statement stmtDdl = connect.createStatement();
-				ResultSet rsDdl = stmtDdl.executeQuery("show create table " + schema + ".`" + nameTable + "`");
-				rsDdl.next();
-				
-				table.getOptions().addChild("ddl", cleanString(rsDdl.getString(2)));
-				
-				listTable.put(nameTable, table);
-				
-				stmtDdl.close();
-				rsDdl.close();
+
+				String ddlQuery = "show create table " + schema + ".`" + nameTable + "`";
+				try(Statement stmtDdl = connect.createStatement(); ResultSet rsDdl = stmtDdl.executeQuery(ddlQuery);){
+					rsDdl.next();
+					table.getOptions().addChild("ddl", cleanString(rsDdl.getString(2)));
+					listTable.put(nameTable, table);
+
+				}
 			}
-			rs.close();
-			stmt.close();			
-		}catch(Exception e) {
+		} catch(Exception e) {
 			logger.error(lang.getValue("errors", "adapter", "tables").toString(), e);			
 			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "tables").toString(), e);
 		}
+
 		return listTable;
 	}
 
 	@Override
 	public DBTable getTable(String schema, String name) {
-		try {
-			String query = "SELECT T.TABLE_NAME, T.TABLE_SCHEMA " + 
-					"FROM information_schema.tables T WHERE TABLE_SCHEMA = '" + schema + "' AND T.TABLE_NAME = '" + name + "'";
-			Connection connect = getConnection();
-			
-			Statement stmt = connect.createStatement();
-			ResultSet rs = stmt.executeQuery(query);
+		String query =
+			"SELECT T.TABLE_NAME, T.TABLE_SCHEMA FROM information_schema.tables T" +
+			" WHERE TABLE_SCHEMA = '" + schema + "'" +
+			" AND T.TABLE_NAME = '" + name + "'";
 
-			DBTable table = null;
-			
+		DBTable table = null;
+
+		try (Statement stmt = connect.createStatement(); ResultSet rs = stmt.executeQuery(query);){
+
 			while(rs.next()) {
 				String nameTable = rs.getString("TABLE_NAME");
-				table = new DBTable(nameTable);
-				table.setSchema(schema);
-				
-				Statement stmtDdl = connect.createStatement();
-				ResultSet rsDdl = stmtDdl.executeQuery("show create table " + schema + ".`" + nameTable + "`");
-				rsDdl.next();
-				table.getOptions().addChild("ddl", cleanString(rsDdl.getString(2)));
-				rowToProperties(rs, table.getOptions());
-				stmtDdl.close();
-				rsDdl.close();
+				String ddlQuery = "show create table " + schema + ".`" + nameTable + "`";
+				table = new DBTable(nameTable, schema, null);
+
+				try(Statement stmtDdl = connect.createStatement(); ResultSet rsDdl = stmtDdl.executeQuery(ddlQuery);){
+					rsDdl.next();
+					table.getOptions().addChild("ddl", cleanString(rsDdl.getString(2)));
+					rowToProperties(rs, table.getOptions());
+				}
 			}
-			rs.close();
-			stmt.close();
-			
-			return table;
-		
-		}catch(Exception e) {
+
+		} catch(Exception e) {
 			logger.error(lang.getValue("errors", "adapter", "tables").toString(), e);			
 			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "tables").toString(), e);
 		}
+
+		return table;
 	}
 
 	@Override
 	public Map<String, DBTableField> getTableFields(String schema, String nameTable) {
-		try {
-			Map<String, DBTableField> listField = new HashMap<String, DBTableField>();
-			
-			String query = 
-					"SELECT distinct col.column_name,col.is_nullable,col.data_type,col.character_maximum_length, tc.constraint_name, " +
-					"case\r\n" + 
-					"	when lower(data_type) in ('tinyint', 'smallint', 'mediumint', 'int', 'bigint', 'float', 'double', 'decimal') then 'number' \r\n" + 
-					"	when lower(data_type) in ('tinytext', 'text', 'char', 'mediumtext', 'longtext', 'varchar') then 'string'\r\n" + 
-					"	when lower(data_type) in ('datetime', 'timestamp', 'date') then 'date'\r\n" + 
-					"	when lower(data_type) in ('boolean') then 'boolean'\r\n" + 
-					"   when lower(data_type) in ('blob', 'mediumblob', 'longblob', 'binary', 'varbinary') then 'binary'" +
-					"	else 'native'\r\n" + 
-					"	end tp, " +
-					"    case when lower(data_type) in ('char', 'character') then true else false end fixed, " +
-					"col.*  FROM " + 
-					"information_schema.columns col  " + 
-					"left join information_schema.key_column_usage kc on col.table_schema = kc.table_schema and col.table_name = kc.table_name and col.column_name=kc.column_name " + 
-					"left join information_schema.table_constraints tc on col.table_schema = kc.table_schema and col.table_name = kc.table_name and kc.constraint_name = tc.constraint_name and tc.constraint_type = 'PRIMARY KEY' " + 
-					"where col.table_schema = :schema and col.table_name = :table " + 
-					"order by col.column_name ";
-			Connection connect = getConnection();			
-			
-			NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);			
+
+		Map<String, DBTableField> listField = new HashMap<String, DBTableField>();
+
+		String query =
+			"SELECT distinct col.column_name,col.is_nullable,col.data_type,col.character_maximum_length, tc.constraint_name, " +
+			"case\r\n" +
+			"	when lower(data_type) in ('tinyint', 'smallint', 'mediumint', 'int', 'bigint', 'float', 'double', 'decimal') then 'number' \r\n" +
+			"	when lower(data_type) in ('tinytext', 'text', 'char', 'mediumtext', 'longtext', 'varchar') then 'string'\r\n" +
+			"	when lower(data_type) in ('datetime', 'timestamp', 'date') then 'date'\r\n" +
+			"	when lower(data_type) in ('boolean') then 'boolean'\r\n" +
+			"   when lower(data_type) in ('blob', 'mediumblob', 'longblob', 'binary', 'varbinary') then 'binary'" +
+			"	else 'native'\r\n" +
+			"	end tp, " +
+			"    case when lower(data_type) in ('char', 'character') then true else false end fixed, " +
+			"col.*  FROM " +
+			"information_schema.columns col  " +
+			"left join information_schema.key_column_usage kc on col.table_schema = kc.table_schema and col.table_name = kc.table_name and col.column_name=kc.column_name " +
+			"left join information_schema.table_constraints tc on col.table_schema = kc.table_schema and col.table_name = kc.table_name and kc.constraint_name = tc.constraint_name and tc.constraint_type = 'PRIMARY KEY' " +
+			"where col.table_schema = :schema and col.table_name = :table " +
+			"order by col.column_name ";
+
+		try (NamedParameterPreparedStatement stmt = getParamStatement(query, getConnection()); ResultSet rs = stmt.executeQuery();){
+
 			stmt.setString("schema", schema);
 			stmt.setString("table", nameTable);
 
-			ResultSet rs = stmt.executeQuery();
-			while(rs.next()){				
+			while(rs.next()){
 				DBTableField field = new DBTableField();
 				field.setName(rs.getString("column_name").toLowerCase());  
 				if (rs.getString("constraint_name") != null) { 
@@ -307,44 +300,47 @@ public class DBAdapterMySql extends DBAdapter {
 			stmt.close();
 			
 			return listField;
-		}catch(Exception e) {
+		} catch(Exception e) {
 			logger.error(lang.getValue("errors", "adapter", "tables").toString(), e);			
 			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "tables").toString(), e);
 		}		
 	}
 
+
+
 	@Override
 	public Map<String, DBIndex> getIndexes(String schema, String nameTable) {
-		try {
-			Map<String, DBIndex> indexes = new HashMap<>();
-			String query = "select TABLE_NAME, INDEX_NAME, INDEX_TYPE, NON_UNIQUE, GROUP_CONCAT(COLUMN_NAME separator '`, `') as FIELDS "
-					+ "from INFORMATION_SCHEMA.STATISTICS where TABLE_SCHEMA = '" + schema + "' and INDEX_NAME != 'PRIMARY' "
-					+ "group by TABLE_NAME, INDEX_NAME, INDEX_TYPE, NON_UNIQUE order by TABLE_NAME, INDEX_NAME;";
-			Connection connect = getConnection();
-			Statement stmt = connect.createStatement();
-			ResultSet rs = stmt.executeQuery(query);
+		Map<String, DBIndex> indexes = new HashMap<>();
+
+		String query = "select TABLE_NAME, INDEX_NAME, INDEX_TYPE, NON_UNIQUE, GROUP_CONCAT(COLUMN_NAME separator '`, `') as FIELDS "
+				+ "from INFORMATION_SCHEMA.STATISTICS where TABLE_SCHEMA = '" + schema + "' and INDEX_NAME != 'PRIMARY' "
+				+ "group by TABLE_NAME, INDEX_NAME, INDEX_TYPE, NON_UNIQUE order by TABLE_NAME, INDEX_NAME;";
+
+		try(Statement stmt = getConnection().createStatement(); ResultSet rs = stmt.executeQuery(query);) {
 			while(rs.next()) {
-				DBIndex index = new DBIndex(rs.getString("INDEX_NAME"));
-				index.setSchema(schema);
-				index.setOwner(schema);
+
+				//TODO find real owner
+				DBIndex index = new DBIndex(rs.getString("INDEX_NAME"), schema, schema);
 				rowToProperties(rs, index.getOptions());
 
-				String ddl = "create " + (rs.getInt("NON_UNIQUE") == 1 ? "" : "unique ")
-						+ "index `" + rs.getString("INDEX_NAME")
-						+ "` using " + rs.getString("INDEX_TYPE")
-						+ " on " + schema + ".`" + rs.getString("TABLE_NAME") + "`"
-						+ "(`" + rs.getString("FIELDS") + "`)";
+				String ddl =
+					"create " + (rs.getInt("NON_UNIQUE") == 1 ? "" : "unique ")
+					+ "index `" + rs.getString("INDEX_NAME")
+					+ "` using " + rs.getString("INDEX_TYPE")
+					+ " on " + schema + ".`" + rs.getString("TABLE_NAME") + "`"
+					+ "(`" + rs.getString("FIELDS") + "`)";
 
 				index.getOptions().addChild("ddl", cleanString(ddl));
 				indexes.put(rs.getString("INDEX_NAME"), index);
 			}
-			stmt.close();
-			return indexes;
+
 		} catch(Exception e) {
 			logger.error(e.getMessage());
 			System.out.println(e.getMessage());
 			throw new ExceptionDBGitRunTime(e.getMessage());
 		}
+
+		return indexes;
 	}
 
 	@Override
@@ -356,54 +352,52 @@ public class DBAdapterMySql extends DBAdapter {
 	@Override
 	public Map<String, DBView> getViews(String schema) {
 		Map<String, DBView> listView = new HashMap<String, DBView>();
-		try {
-			String query = "show full tables in " + schema + " where TABLE_TYPE like 'VIEW'";
-			Connection connect = getConnection();
-			Statement stmt = connect.createStatement();
-			ResultSet rs = stmt.executeQuery(query);
+		String query = "show full tables in " + schema + " where TABLE_TYPE like 'VIEW'";
+
+		try (Statement stmt = getConnection().createStatement();ResultSet rs = stmt.executeQuery(query);) {
+
+			String name = rs.getString(1);
+			String ddlQuery = "show create view " + schema + "." + name;
 			while(rs.next()){
-				DBView view = new DBView(rs.getString(1));
-				view.setSchema(schema);
-				view.setOwner(schema);
+				//TODO try find real owner
+				DBView view = new DBView(name, schema, schema);
 				rowToProperties(rs, view.getOptions());
 				
-				Statement stmtDdl = connect.createStatement();
-				ResultSet rsDdl = stmtDdl.executeQuery("show create view " + schema + "." + rs.getString(1));
-				rsDdl.next();
-				
-				view.getOptions().addChild("ddl", cleanString(rsDdl.getString(2)));
-				listView.put(rs.getString(1), view);
-				
-				stmtDdl.close();
-				rsDdl.close();
+				try(Statement stmtDdl = getConnection().createStatement();ResultSet rsDdl = stmtDdl.executeQuery(ddlQuery);){
+					rsDdl.next();
+					view.getOptions().addChild("ddl", cleanString(rsDdl.getString(2)));
+					listView.put(name, view);
+				}
 			}
-			stmt.close();
-			return listView;
+
 		} catch(Exception e) {
 			logger.error(e.getMessage());
 			System.out.println(e.getMessage());
 			throw new ExceptionDBGitRunTime(e.getMessage());
 		}
+
+		return listView;
+
 	}
 
 	@Override
 	public DBView getView(String schema, String name) {
-		DBView view = new DBView(name);
-		view.setSchema(schema);
-		view.setOwner(schema);
-		try {
-			Statement stmtDdl = connect.createStatement();
-			ResultSet rsDdl = stmtDdl.executeQuery("show create view " + schema + ".`" + name + "`");
-			if(rsDdl.next())
+		//TODO find real owner
+		String query = "show create view " + schema + ".`" + name + "`";
+		DBView view = new DBView(name, schema, schema);
+
+		try (Statement stmtDdl = getConnection().createStatement();ResultSet rsDdl = stmtDdl.executeQuery(query);){
+
+			if(rsDdl.next()) {
 				view.getOptions().addChild("ddl", cleanString(rsDdl.getString(2)));
-			stmtDdl.close();
-			rsDdl.close();
-			return view;
-		}catch(Exception e) {
+			}
+
+		} catch(Exception e) {
 			logger.error(e.getMessage());
 			throw new ExceptionDBGitRunTime(e.getMessage());
 		}
-			
+
+		return view;
 	}
 
 	@Override
@@ -433,141 +427,159 @@ public class DBAdapterMySql extends DBAdapter {
 	@Override
 	public Map<String, DBFunction> getFunctions(String schema) {
 		Map<String, DBFunction> listFunction = new HashMap<String, DBFunction>();
-		try {
-			String query = "SELECT R.routine_schema as \"schema\", R.definer as \"rolname\", R.specific_name as \"name\"," +
-					"group_concat(concat(P.parameter_name, \" \", P.data_type)) as \"arguments\", R.routine_definition as \"ddl\"\r\n" +
-					"FROM information_schema.routines as R, information_schema.parameters as P\r\n" + 
-					"WHERE P.parameter_mode='IN' and P.routine_type=R.routine_type and P.specific_schema=R.routine_schema and\r\n" +
-					"P.specific_name=R.specific_name and R.routine_type='FUNCTION' and R.routine_schema='" + schema + "' GROUP BY R.specific_name,1,2,5,P.ordinal_position ORDER BY P.ordinal_position";
-			Statement stmt = getConnection().createStatement();
-			ResultSet rs = stmt.executeQuery(query);
+
+		String query =
+			"SELECT R.routine_schema as \"schema\", R.definer as \"rolname\", R.specific_name as \"name\"," +
+			"group_concat(concat(P.parameter_name, \" \", P.data_type)) as \"arguments\", R.routine_definition as \"ddl\"\r\n" +
+			"FROM information_schema.routines as R, information_schema.parameters as P\r\n" +
+			"WHERE P.parameter_mode='IN' and P.routine_type=R.routine_type and P.specific_schema=R.routine_schema and\r\n" +
+			"P.specific_name=R.specific_name and R.routine_type='FUNCTION' and R.routine_schema='" + schema + "'" +
+			" GROUP BY R.specific_name,1,2,5,P.ordinal_position ORDER BY P.ordinal_position";
+
+		try (Statement stmt = getConnection().createStatement(); ResultSet rs = stmt.executeQuery(query);){
+
 			while(rs.next()) {
 				String name = rs.getString("name");
 				String owner = rs.getString("rolname");
-				String args = rs.getString("arguments");
-				DBFunction func = new DBFunction(name);
-				func.setSchema(schema);
-				func.setOwner(owner);
+
+				DBFunction func = new DBFunction(name, schema, owner);
 				rowToProperties(rs, func.getOptions());
+				//String args = rs.getString("arguments");
 				//func.setArguments(args);
                 listFunction.put(name, func);
 			}
-			stmt.close();
+
 		} catch(Exception e) {
 			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "fnc").toString(), e);
 		}
+
 		return listFunction;
 	}
 
 	@Override
 	public DBFunction getFunction(String schema, String name) {
-        DBFunction function = new DBFunction(name);
-        try {
-            String query = "SELECT R.routine_schema as \"schema\", R.definer as \"rolname\", R.specific_name as \"name\"," +
-                    "group_concat(concat(P.parameter_name, \" \", P.data_type)) as \"arguments\", R.routine_definition as \"ddl\"\r\n" +
-                    "FROM information_schema.routines as R, information_schema.parameters as P\r\n" +
-                    "WHERE P.parameter_mode='IN' and P.routine_type=R.routine_type and P.specific_schema=R.routine_schema and\r\n" +
-                    "P.specific_name=R.specific_name and R.routine_type='FUNCTION' and R.routine_schema='" + schema + "' and R.specific_name='" + name + "'\r\n" +
-                    "GROUP BY R.specific_name,1,2,5,P.ordinal_position ORDER BY P.ordinal_position";
-            Statement stmt = getConnection().createStatement();
-            ResultSet rs = stmt.executeQuery(query);
+        DBFunction function = null;
+
+		String query =
+			"SELECT R.routine_schema as \"schema\", R.definer as \"rolname\", R.specific_name as \"name\"," +
+			"group_concat(concat(P.parameter_name, \" \", P.data_type)) as \"arguments\", R.routine_definition as \"ddl\"\r\n" +
+			"FROM information_schema.routines as R, information_schema.parameters as P\r\n" +
+			"WHERE P.parameter_mode='IN' and P.routine_type=R.routine_type and P.specific_schema=R.routine_schema and\r\n" +
+			"P.specific_name=R.specific_name and R.routine_type='FUNCTION' and R.routine_schema='" + schema + "'" +
+			" and R.specific_name='" + name + "'\r\n" +
+			"GROUP BY R.specific_name,1,2,5,P.ordinal_position ORDER BY P.ordinal_position";
+
+		try (Statement stmt = getConnection().createStatement(); ResultSet rs = stmt.executeQuery(query);){
+
             if(rs.next()) {
 				String owner = rs.getString("rolname");
-				String args = rs.getString("arguments");
-				function.setSchema(schema);
-				function.setOwner(owner);
+
+				function = new DBFunction(name, schema, owner);
 				rowToProperties(rs, function.getOptions());
+				//String args = rs.getString("arguments");
 				//function.setArguments(args);
 			}
-            stmt.close();
-        } catch(Exception e) {
+
+        } catch (Exception e) {
             throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "fnc").toString(), e);
         }
+
         return function;
 	}
 
 	@Override
 	public Map<String, DBTrigger> getTriggers(String schema) {
+
 		Map<String, DBTrigger> listTrigger = new HashMap<String, DBTrigger>();
-		try {
-			String query = "show triggers in " + schema;
-			
-			Connection connect = getConnection();
-			Statement stmt = connect.createStatement();
-			ResultSet rs = stmt.executeQuery(query);
+		String query = "show triggers in " + schema;
+
+		try (Statement stmt = getConnection().createStatement(); ResultSet rs = stmt.executeQuery(query);) {
+
 			while(rs.next()){
+				//TODO find real owner
 				String name = rs.getString(1);
-				DBTrigger trigger = new DBTrigger(name);
-				trigger.setSchema(schema);
-				trigger.setOwner(schema);				
-				
-				Statement stmtDdl = connect.createStatement();
-				ResultSet rsDdl = stmtDdl.executeQuery("show create trigger " + schema + "." + rs.getString(1));
-				rsDdl.next();
-				
-				trigger.getOptions().addChild("ddl", cleanString(rsDdl.getString(3)));
-				
-				stmtDdl.close();
-				rsDdl.close();				
-				
-				rowToProperties(rs, trigger.getOptions());
+				DBTrigger trigger = new DBTrigger(name, schema, schema);
+				String ddlQuery = "show create trigger " + schema + "." + name;
+
+				try(Statement stmtDdl = getConnection().createStatement(); ResultSet rsDdl = stmtDdl.executeQuery(ddlQuery);){
+					rsDdl.next();
+					trigger.setSql(rsDdl.getString(3));
+					rowToProperties(rs, trigger.getOptions());
+
+				}
+
 				listTrigger.put(name, trigger);
 			}
-			stmt.close();
-			return listTrigger;
-		}catch(Exception e) {
-			throw new ExceptionDBGitRunTime(e);	
+
+		} catch(Exception e) {
+			throw new ExceptionDBGitRunTime(e);
 		}
+
+		return listTrigger;
 	}
 
 	@Override
 	public DBTrigger getTrigger(String schema, String name) {
-		DBTrigger trigger = new DBTrigger(name);
-		try {
-			trigger.setSchema(schema);
-			trigger.setOwner(schema);
-			
-			Statement stmtDdl = connect.createStatement();
-			ResultSet rsDdl = stmtDdl.executeQuery("show create trigger " + schema + "." + name);
+
+		DBTrigger trigger = null;
+		String query = "show create trigger " + schema + "." + name;
+
+		try (Statement stmtDdl = getConnection().createStatement(); ResultSet rsDdl = stmtDdl.executeQuery(query);) {
+
 			rsDdl.next();
-			
+
+			//TODO find real owner
+			trigger = new DBTrigger(name, schema, schema);
 			trigger.getOptions().addChild("ddl", cleanString(rsDdl.getString(3)));
-			
-			stmtDdl.close();
-			rsDdl.close();
-			
-			return trigger;
-			
-		}catch(Exception e) {
-			throw new ExceptionDBGitRunTime(e);	
+
+
+		} catch(Exception e) {
+			throw new ExceptionDBGitRunTime(e);
 		}
+
+		return trigger;
 	}
 
 	@Override
 	public DBTableData getTableData(String schema, String nameTable) {
+		DBTableData data = new DBTableData();
 		String tableName = schema + ".`" + nameTable + "`";
+		String dataQuery = "select * from " + tableName;
+
 		try {
-			DBTableData data = new DBTableData();
-			
-			int maxRowsCount = DBGitConfig.getInstance().getInteger("core", "MAX_ROW_COUNT_FETCH", DBGitConfig.getInstance().getIntegerGlobal("core", "MAX_ROW_COUNT_FETCH", MAX_ROW_COUNT_FETCH));
-			
-			if (DBGitConfig.getInstance().getBoolean("core", "LIMIT_FETCH", DBGitConfig.getInstance().getBooleanGlobal("core", "LIMIT_FETCH", true))) {
-				Statement st = getConnection().createStatement();
-				String query = "select COALESCE(count(*), 0) kolvo from ( select 1 from "+
-						tableName + " limit " + (maxRowsCount + 1) + " ) tbl";
-				ResultSet rs = st.executeQuery(query);
-				rs.next();
-				if (rs.getInt("kolvo") > maxRowsCount) {
-					data.setErrorFlag(DBTableData.ERROR_LIMIT_ROWS);
-					return data;
+
+			int maxRowsCount = DBGitConfig.getInstance().getInteger(
+				"core", "MAX_ROW_COUNT_FETCH",
+				DBGitConfig.getInstance().getIntegerGlobal("core", "MAX_ROW_COUNT_FETCH", MAX_ROW_COUNT_FETCH)
+			);
+
+			boolean toLimitFetch = DBGitConfig.getInstance().getBoolean(
+				"core", "LIMIT_FETCH",
+				DBGitConfig.getInstance().getBooleanGlobal("core", "LIMIT_FETCH", true)
+			);
+
+			String query =
+				"select COALESCE(count(*), 0) kolvo" +
+				" from ( select 1 from " +  tableName + " limit " + (maxRowsCount + 1) + " ) tbl";
+
+
+			if (toLimitFetch) {
+
+				try (Statement st = getConnection().createStatement(); ResultSet rs = st.executeQuery(query);){
+					rs.next();
+
+					if (rs.getInt("kolvo") > maxRowsCount) {
+						data.setErrorFlag(DBTableData.ERROR_LIMIT_ROWS);
+					} else {
+						ResultSet dataResultSet = st.executeQuery(dataQuery);
+						data.setResultSet(dataResultSet);
+					}
+
+
 				}
-				
-				rs = st.executeQuery("select * from "+tableName);
-				data.setResultSet(rs);
-				return data;
+
 			}
 			
-			return data;
 		} catch(Exception e) {
 			throw new ExceptionDBGitRunTime(e);
 		}
@@ -577,10 +589,10 @@ public class DBAdapterMySql extends DBAdapter {
 	@Override
 	public Map<String, DBUser> getUsers() {
 		Map<String, DBUser> users = new HashMap<String, DBUser>();
-		try {
-			String query = "select User, authentication_string from mysql.user";
-			Statement stmt = getConnection().createStatement();
-			ResultSet rs = stmt.executeQuery(query);
+		String query = "select User, authentication_string from mysql.user";
+
+		try (Statement stmt = getConnection().createStatement(); ResultSet rs = stmt.executeQuery(query);){
+
 			while(rs.next()) {
 				String name = rs.getString(1);
 				String password = rs.getString(2);
@@ -589,11 +601,12 @@ public class DBAdapterMySql extends DBAdapter {
 				DBUser user = new DBUser(name, options);
 				users.put(name, user);
 			}
-			stmt.close();
-		}catch(Exception e) {
+
+		} catch(Exception e) {
 			logger.error(e.getMessage());
 			throw new ExceptionDBGitRunTime(e.getMessage());
 		}
+
 		return users;
 	}
 
@@ -637,21 +650,19 @@ public class DBAdapterMySql extends DBAdapter {
 
 	@Override
 	public void createSchemaIfNeed(String schemaName) throws ExceptionDBGit {
-		try {
-			Statement st = connect.createStatement();
-			ResultSet rs = st.executeQuery("select count(*) cnt from information_schema.schemata where upper(schema_name) = '" +
-					schemaName.toUpperCase() + "'");
+		String query =
+			"select count(*) cnt from information_schema.schemata where upper(schema_name) = '" +
+			schemaName.toUpperCase() + "'";
+
+		try (Statement st = connect.createStatement(); ResultSet rs = st.executeQuery(query);) {
 
 			rs.next();
-			if (rs.getInt("cnt") == 0) {
-				StatementLogging stLog = new StatementLogging(connect, getStreamOutputSqlCommand(), isExecSql());
-				stLog.execute("create schema " + schemaName);
+			if (rs.getInt("cnt") == 0)
+			try(StatementLogging stLog = new StatementLogging(connect, getStreamOutputSqlCommand(), isExecSql());) {
 
-				stLog.close();
+				stLog.execute("create schema " + schemaName);
 			}
 
-			rs.close();
-			st.close();
 		} catch (SQLException e) {
 			throw new ExceptionDBGit(lang.getValue("errors", "adapter", "createSchema") + ": " + e.getLocalizedMessage());
 		}
@@ -677,7 +688,7 @@ public class DBAdapterMySql extends DBAdapter {
 			}
 			
 			return type.toString();
-		}catch(Exception e) {
+		} catch(Exception e) {
 			logger.error(lang.getValue("errors", "adapter", "tables").toString(), e);			
 			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "tables").toString(), e);
 		}	
@@ -750,6 +761,10 @@ public class DBAdapterMySql extends DBAdapter {
 			}
 			throw new ExceptionDBGitRunTime(e.getMessage());
 		}
+	}
+
+	private NamedParameterPreparedStatement getParamStatement(String query, Connection connect) throws SQLException {
+		return NamedParameterPreparedStatement.createNamedParameterPreparedStatement(connect, query);
 	}
 
 	static {

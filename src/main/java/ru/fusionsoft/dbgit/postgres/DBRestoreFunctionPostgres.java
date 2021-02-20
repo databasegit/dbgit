@@ -21,8 +21,7 @@ public class DBRestoreFunctionPostgres extends DBRestoreAdapter {
 	public boolean restoreMetaObject(IMetaObject obj, int step) throws Exception {
 		IDBAdapter adapter = getAdapter();
 		Connection connect = adapter.getConnection();
-		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
-		try {
+		try(StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());) {
 			if (obj instanceof MetaFunction) {
 
 				MetaFunction restoreFunction = (MetaFunction)obj;
@@ -74,7 +73,6 @@ public class DBRestoreFunctionPostgres extends DBRestoreAdapter {
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()), e);
 		} finally {
 			ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
-			st.close();
 		}
 		return true;
 	}

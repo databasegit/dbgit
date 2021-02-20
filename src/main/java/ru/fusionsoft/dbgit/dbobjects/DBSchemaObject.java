@@ -1,6 +1,9 @@
 package ru.fusionsoft.dbgit.dbobjects;
 
 
+import ru.fusionsoft.dbgit.utils.StringProperties;
+import ru.fusionsoft.dbgit.yaml.YamlOrder;
+
 import java.util.HashSet;
 import java.util.Set;
 
@@ -9,17 +12,25 @@ import java.util.Set;
  * @author mikle
  *
  */
-public abstract class DBSchemaObject implements IDBObject {
-	protected String name;
+public abstract class DBSchemaObject extends DBOptionsObject {
+
+	@YamlOrder(1)
 	protected String schema;
-	private Set<String> dependencies = new HashSet<>();
-		
-	public String getName() {
-		return name;
+
+	@YamlOrder(2)
+	protected String owner;
+
+	@YamlOrder(3)
+	private Set<String> dependencies;
+
+
+	public DBSchemaObject(String name, StringProperties options, String schema, String owner, Set<String> dependencies) {
+		super(name, options);
+		this.schema = schema;
+		this.owner = owner;
+		this.dependencies = dependencies;
 	}
-	public void setName(String name) {
-		this.name = name;
-	}
+
 	public String getSchema() {
 		return schema;
 	}
@@ -32,6 +43,13 @@ public abstract class DBSchemaObject implements IDBObject {
 	}
 	public void setDependencies(Set<String> dependencies) {
 		this.dependencies = dependencies;
+	}
+
+	public String getOwner() {
+		return owner;
+	}
+	public void setOwner(String owner) {
+		this.owner=owner;
 	}
 		
 }

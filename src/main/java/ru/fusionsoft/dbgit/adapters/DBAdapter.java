@@ -1,5 +1,6 @@
 package ru.fusionsoft.dbgit.adapters;
 
+import com.axiomalaska.jdbc.NamedParameterPreparedStatement;
 import com.diogonunes.jcdp.color.api.Ansi;
 import ru.fusionsoft.dbgit.core.*;
 import ru.fusionsoft.dbgit.core.db.FieldType;
@@ -14,9 +15,11 @@ import ru.fusionsoft.dbgit.utils.StringProperties;
 import java.io.OutputStream;
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.MessageFormat;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
@@ -44,7 +47,7 @@ public abstract class DBAdapter implements IDBAdapter {
 	public Connection getConnection() {		
 		try {
 			int maxTriesCount = DBGitConfig.getInstance().getInteger("core", "TRY_COUNT", DBGitConfig.getInstance().getIntegerGlobal("core", "TRY_COUNT", 1000));
-			int pauseTimeSeconds = DBGitConfig.getInstance().getInteger("core", "TRY_DELAY", DBGitConfig.getInstance().getIntegerGlobal("core", "TRY_DELAY", 1000));
+			int pauseTimeSeconds = DBGitConfig.getInstance().getInteger("core", "TRY_DELAY", DBGitConfig.getInstance().getIntegerGlobal("core", "TRY_DELAY", 2));
 			int currentTry = 0;
 
 			if (connect.isValid(0)){
@@ -65,7 +68,7 @@ public abstract class DBAdapter implements IDBAdapter {
 					);
 					DBConnection conn = DBConnection.getInstance(false);
 					if (conn.testingConnection()) {
-						conn.flushConnection();
+//						conn.flushConnection();
 						conn = DBConnection.getInstance(true);
 						ConsoleWriter.println(DBGitLang.getInstance()
 							.getValue("general", "dbAdapter", "reconnectTrySuccess")
@@ -200,17 +203,7 @@ public abstract class DBAdapter implements IDBAdapter {
 		}
 	}
 
-	public void rowToProperties(ResultSet rs, StringProperties properties) {
-		try {
-			for (int i = 1; i <= rs.getMetaData().getColumnCount(); i++) {
-				if (rs.getString(i) == null) continue ;
 
-				properties.addChild(rs.getMetaData().getColumnName(i).toLowerCase(), cleanString(rs.getString(i)));
-			}
-		} catch(Exception e) {
-			throw new ExceptionDBGitRunTime(e);
-		}
-	}
 	public String cleanString(String str) {
 		String dt = str.replace("\r\n", "\n");
 		while (dt.contains(" \n")) dt = dt.replace(" \n", "\n");
@@ -355,5 +348,19 @@ public abstract class DBAdapter implements IDBAdapter {
 
 	public String escapeNameIfNeeded(String name) {
 		return name;
+	}
+
+	public NamedParameterPreparedStatement preparedStatement(Connection connection, String sql, Map<String, Object> values) throws SQLException, ExceptionDBGit {
+		NamedParameterPreparedStatement stmt = NamedParameterPreparedStatement.createNamedParameterPreparedStatement(getConnection(), sql);
+
+		for(Map.Entry<String, Object> entry : values.entrySet()){
+			Object value = entry.getValue();
+			if (value instanceof String) stmt.setString(entry.getKey(), (String) value);
+			else if (value instanceof Long) stmt.setLong(entry.getKey(), (Long) value);
+			else if (value instanceof Float) stmt.setDouble(entry.getKey(), ((Float) value).floatValue());
+			else throw new ExceptionDBGit("Unsupported type of value, see stacktrace");
+		}
+
+		return stmt;
 	}
 }

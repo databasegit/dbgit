@@ -63,7 +63,6 @@ public class DBAdapterOracle extends DBAdapter {
 	private FactoryDbConvertAdapterOracle convertFactory = new FactoryDbConvertAdapterOracle();
 	private FactoryDBBackupAdapterOracle backupFactory = new FactoryDBBackupAdapterOracle();
 
-	private String s;
 
 	@Override
 	public IFactoryDBAdapterRestoteMetaData getFactoryRestore() {
@@ -90,23 +89,22 @@ public class DBAdapterOracle extends DBAdapter {
 	@Override
 	public Map<String, DBSchema> getSchemes() {
 		Map<String, DBSchema> listScheme = new HashMap<String, DBSchema>();
-		try {
-			String query = "SELECT DISTINCT OWNER\n" + 
-					"FROM DBA_OBJECTS WHERE OWNER != 'PUBLIC' AND OWNER != 'SYSTEM'\n" + 
-					"AND OWNER != 'SYS' AND OWNER != 'APPQOSSYS' AND OWNER != 'OUTLN' \n" + 
-					"AND OWNER != 'DIP' AND OWNER != 'DBSNMP' AND OWNER != 'ORACLE_OCM'\n" + 
-					"ORDER BY OWNER";
-			Connection connect = getConnection();
-			Statement stmt = connect.createStatement();
-			ResultSet rs = stmt.executeQuery(query);
+		String query =
+			"SELECT DISTINCT OWNER\n" +
+			"FROM DBA_OBJECTS WHERE OWNER != 'PUBLIC' AND OWNER != 'SYSTEM'\n" +
+			"AND OWNER != 'SYS' AND OWNER != 'APPQOSSYS' AND OWNER != 'OUTLN' \n" +
+			"AND OWNER != 'DIP' AND OWNER != 'DBSNMP' AND OWNER != 'ORACLE_OCM'\n" +
+			"ORDER BY OWNER";
+		try (Statement stmt = getConnection().createStatement(); ResultSet rs = stmt.executeQuery(query);){
+
 			while(rs.next()){
 				String name = rs.getString("OWNER");
 				DBSchema scheme = new DBSchema(name);
 				rowToProperties(rs, scheme.getOptions());
 				listScheme.put(name, scheme);	
-			}	
-			stmt.close();
-		}catch(Exception e) {
+			}
+
+		} catch(Exception e) {
 			logger.error(lang.getValue("errors", "adapter", "schemes").toString(), e);
 			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "schemes").toString(), e);
 		} 
@@ -116,215 +114,207 @@ public class DBAdapterOracle extends DBAdapter {
 	
 	@Override
 	public Map<String, DBTableSpace> getTableSpaces() {
+
 		Map<String, DBTableSpace> listTableSpace = new HashMap<String, DBTableSpace>();
-		try {
-			String query = "SELECT owner,\n" + 
-					"       segment_name,\n" + 
-					"       partition_name,\n" + 
-					"       segment_type,\n" + 
-					"       bytes \n" + 
-					"  FROM dba_segments \n" + 
-					" WHERE OWNER != 'PUBLIC' AND OWNER != 'SYSTEM'\n" + 
-					"AND OWNER != 'SYS' AND OWNER != 'APPQOSSYS' AND OWNER != 'OUTLN' \n" + 
-					"AND OWNER != 'DIP' AND OWNER != 'DBSNMP' AND OWNER != 'ORACLE_OCM' and segment_name not like 'SYS%'";
-			Connection connect = getConnection();
-			Statement stmt = connect.createStatement();
-			ResultSet rs = stmt.executeQuery(query);
+		String query =
+			"SELECT owner,\n" +
+			"       segment_name,\n" +
+			"       partition_name,\n" +
+			"       segment_type,\n" +
+			"       bytes \n" +
+			"  FROM dba_segments \n" +
+			" WHERE OWNER != 'PUBLIC' AND OWNER != 'SYSTEM'\n" +
+			"AND OWNER != 'SYS' AND OWNER != 'APPQOSSYS' AND OWNER != 'OUTLN' \n" +
+			"AND OWNER != 'DIP' AND OWNER != 'DBSNMP' AND OWNER != 'ORACLE_OCM' and segment_name not like 'SYS%'";
+
+		try (Statement stmt = getConnection().createStatement(); ResultSet rs = stmt.executeQuery(query);){
+
 			while(rs.next()){
 				String name = rs.getString("segment_name");
 				DBTableSpace dbTableSpace = new DBTableSpace(name);
 				rowToProperties(rs, dbTableSpace.getOptions());
 				listTableSpace.put(name, dbTableSpace);
-			}	
-			stmt.close();
-		}catch(Exception e) {
+			}
+
+		} catch(Exception e) {
 			logger.error(e.getMessage());
 			throw new ExceptionDBGitRunTime(e);
 		}
+
 		return listTableSpace;
 	}
 
 	@Override
 	public Map<String, DBSequence> getSequences(String schema) {
 		Map<String, DBSequence> listSequence = new HashMap<String, DBSequence>();
-		try {
-			Connection connect = getConnection();
-			//variant 1 from DBA_OBJECTS
-			/*String query = 
-					"SELECT ROWNUM AS NUM, OWNER, OBJECT_NAME, SUBOBJECT_NAME, OBJECT_TYPE, STATUS,\n" + 
-					"(select dbms_metadata.get_ddl('SEQUENCE', O.OBJECT_NAME) AS DDL from dual) AS DDL\n" + 
-					"FROM DBA_OBJECTS O WHERE OBJECT_TYPE = 'SEQUENCE' AND OWNER = :schema";*/
-			
-			//variant 2 from DBA_SEQUENCES
-			String query = 
-					"SELECT S.SEQUENCE_NAME, (SELECT dbms_metadata.get_ddl('SEQUENCE', S.SEQUENCE_NAME, S.SEQUENCE_OWNER) from dual) AS DDL,\n" + 
-					"order_flag, increment_by, last_number, min_value, max_value, cache_size \n" +
-					"FROM DBA_SEQUENCES S WHERE S.SEQUENCE_OWNER = '" + schema + "'";
-			
-			Statement stmt = connect.createStatement();
-			ResultSet rs = stmt.executeQuery(query);
+
+		//variant 1 from DBA_OBJECTS
+		/*String query =
+			"SELECT ROWNUM AS NUM, OWNER, OBJECT_NAME, SUBOBJECT_NAME, OBJECT_TYPE, STATUS,\n" +
+			"(select dbms_metadata.get_ddl('SEQUENCE', O.OBJECT_NAME) AS DDL from dual) AS DDL\n" +
+			"FROM DBA_OBJECTS O WHERE OBJECT_TYPE = 'SEQUENCE' AND OWNER = :schema";*/
+
+		//variant 2 from DBA_SEQUENCES
+		String query =
+			"SELECT S.SEQUENCE_NAME, (SELECT dbms_metadata.get_ddl('SEQUENCE', S.SEQUENCE_NAME, S.SEQUENCE_OWNER) from dual) AS DDL,\n" +
+			"order_flag, increment_by, last_number, min_value, max_value, cache_size \n" +
+			"FROM DBA_SEQUENCES S WHERE S.SEQUENCE_OWNER = '" + schema + "'";
+
+		try (Statement stmt = getConnection().createStatement(); ResultSet rs = stmt.executeQuery(query);) {
 						
 			while(rs.next()){
 				String nameSeq = rs.getString("SEQUENCE_NAME");
-				DBSequence sequence = new DBSequence();
-				sequence.setName(nameSeq);
-				sequence.setSchema(schema);
-				sequence.setValue(0L);
+				//TODO find real sequence value
+				DBSequence sequence = new DBSequence(nameSeq, schema, 0L);
 				rowToProperties(rs, sequence.getOptions());
 				listSequence.put(nameSeq, sequence);
 			}
-			stmt.close();
-		}catch(Exception e) {
+
+		} catch(Exception e) {
 			logger.error(lang.getValue("errors", "adapter", "sequences").toString(), e);
 			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "sequences").toString(), e);
 		}
+
 		return listSequence;
 	}
 
 	@Override
 	public DBSequence getSequence(String schema, String name) {
-		try {
-			Connection connect = getConnection();
-			String query = 
-					"SELECT S.SEQUENCE_NAME, (SELECT dbms_metadata.get_ddl('SEQUENCE', S.SEQUENCE_NAME, S.SEQUENCE_OWNER) from dual) AS DDL, \n" +
-					"order_flag, increment_by, last_number, min_value, max_value, cache_size \n" +
-					"FROM DBA_SEQUENCES S WHERE S.SEQUENCE_OWNER = '" + schema + "' AND S.SEQUENCE_NAME = '" + name + "'";
-			
-			Statement stmt = connect.createStatement();
-			ResultSet rs = stmt.executeQuery(query);
-					
-			DBSequence sequence = null;
+		DBSequence sequence = null;
+
+		String query =
+			"SELECT S.SEQUENCE_NAME, (SELECT dbms_metadata.get_ddl('SEQUENCE', S.SEQUENCE_NAME, S.SEQUENCE_OWNER) from dual) AS DDL, \n" +
+			"order_flag, increment_by, last_number, min_value, max_value, cache_size \n" +
+			"FROM DBA_SEQUENCES S WHERE S.SEQUENCE_OWNER = '" + schema + "' AND S.SEQUENCE_NAME = '" + name + "'";
+
+		try (Statement stmt = getConnection().createStatement(); ResultSet rs = stmt.executeQuery(query);) {
+
 			while (rs.next()) {
 				String nameSeq = rs.getString("SEQUENCE_NAME");
-				sequence = new DBSequence();
-				sequence.setName(nameSeq);
-				sequence.setSchema(schema);
-				sequence.setValue(0L);
+
+				//TODO find real sequence value
+				sequence = new DBSequence(nameSeq, schema, 0L);
 				rowToProperties(rs, sequence.getOptions());
 			}
-			stmt.close();
-			return sequence;
-		}catch(Exception e) {
+
+		} catch(Exception e) {
 			logger.error(lang.getValue("errors", "adapter", "sequences").toString(), e);
 			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "sequences").toString(), e);
 		}
+
+		return sequence;
 	}
 
 	@Override
 	public Map<String, DBTable> getTables(String schema) {
 		Map<String, DBTable> listTable = new HashMap<String, DBTable>();
-		try {
-			String query = "SELECT T.TABLE_NAME, T.OWNER, (SELECT dbms_metadata.get_ddl('TABLE', T.TABLE_NAME, T.OWNER) from dual) AS DDL\n" + 
-					"FROM DBA_TABLES T WHERE upper(OWNER) = upper('" + schema + "') and nested = 'NO' and (iot_type <> 'IOT_OVERFLOW' or iot_type is null)";
-			Connection connect = getConnection();
-			
-			Statement stmt = connect.createStatement();
-			ResultSet rs = stmt.executeQuery(query);
-			
+
+		String query =
+			"SELECT T.TABLE_NAME, T.OWNER, (SELECT dbms_metadata.get_ddl('TABLE', T.TABLE_NAME, T.OWNER) from dual) AS DDL\n" +
+			"FROM DBA_TABLES T WHERE upper(OWNER) = upper('" + schema + "') and nested = 'NO' and (iot_type <> 'IOT_OVERFLOW' or iot_type is null)";
+
+		try (Statement stmt = getConnection().createStatement(); ResultSet rs = stmt.executeQuery(query);) {
+
 			while(rs.next()){
 				String nameTable = rs.getString("TABLE_NAME");
-				DBTable table = new DBTable(nameTable);
-				table.setSchema(schema);
+				DBTable table = new DBTable(nameTable, schema);
 				rowToProperties(rs, table.getOptions());
 				listTable.put(nameTable, table);
 			}
-			stmt.close();
-		}catch(Exception e) {
+
+		} catch(Exception e) {
 			logger.error(lang.getValue("errors", "adapter", "tables").toString(), e);			
 			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "tables").toString(), e);
 		}
+
 		return listTable;
 	}
 
 	@Override
 	public DBTable getTable(String schema, String name) {
-		try {
-			String query = "SELECT T.TABLE_NAME, T.OWNER, (SELECT dbms_metadata.get_ddl('TABLE', T.TABLE_NAME, T.OWNER) from dual) AS DDL\n" + 
-							"FROM DBA_TABLES T WHERE upper(T.OWNER) = upper('" + schema + "') AND upper(T.TABLE_NAME) = upper('" + name + "')";
-			Connection connect = getConnection();
-			
-			Statement stmt = connect.createStatement();
-			ResultSet rs = stmt.executeQuery(query);
+		DBTable table = null;
 
-			DBTable table = null;
-			
+		String query =
+			"SELECT T.TABLE_NAME, T.OWNER, (SELECT dbms_metadata.get_ddl('TABLE', T.TABLE_NAME, T.OWNER) from dual) AS DDL\n" +
+			"FROM DBA_TABLES T WHERE upper(T.OWNER) = upper('" + schema + "') AND upper(T.TABLE_NAME) = upper('" + name + "')";
+
+		try (Statement stmt = getConnection().createStatement(); ResultSet rs = stmt.executeQuery(query);) {
+
 			while(rs.next()) {
 				String nameTable = rs.getString("TABLE_NAME");
-				table = new DBTable(nameTable);
-				table.setSchema(schema);
+				table = new DBTable(nameTable, schema);
 				rowToProperties(rs, table.getOptions());
 			}
-			
-			stmt.close();
-			return table;
-		
-		}catch(Exception e) {
-			logger.error(lang.getValue("errors", "adapter", "tables").toString(), e);			
+
+		} catch(Exception e) {
+			logger.error(lang.getValue("errors", "adapter", "tables").toString(), e);
 			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "tables").toString(), e);
 		}
+
+		return table;
 	}
 
 	@Override
 	public Map<String, DBTableField> getTableFields(String schema, String nameTable) {
-		try {
-			Map<String, DBTableField> listField = new HashMap<String, DBTableField>();
-			
-			String query1 = 
-					"SELECT column_name FROM all_constraints cons, all_cons_columns cols\n"+
-					"WHERE upper(cols.table_name) = upper('" + nameTable + "')\n"+
-					"AND cons.constraint_type = 'P'\n" + 
-					"AND cons.constraint_name = cols.constraint_name\n" +
-					"AND cons.owner = cols.owner";			
-			Connection connect = getConnection();			
-			
-			Statement stmt = connect.createStatement();
-			ResultSet rs1 = stmt.executeQuery(query1);
-			
-			String s = "";
-			
-			while (rs1.next())
-				s = rs1.getString("COLUMN_NAME").toLowerCase();
-			
-			String query = 
-					"SELECT case \r\n" + 
-					"    when lower(data_type) in ('number', 'numeric', 'dec', 'decimal', 'pls_integer') then 'number'\r\n" + 
-					"    when lower(data_type) in ('varchar2', 'varchar', 'char', 'nchar', 'nvarchar2') then 'string'\r\n" + 
-					"    when substr(lower(data_type), 1, instr(data_type, '(') - 1) in ('date', 'timestamp') then 'date'\r\n" +
-					"    when lower(data_type) in ('date', 'timestamp') then 'date'\r\n" +
-					"    when lower(data_type) in ('clob') then 'text'\r\n" +
-					"    when lower(data_type) in ('blob') then 'binary'" +
-					"    else 'native'\r\n" + 
-					"    end type, " +
-					"    case when lower(data_type) in ('char', 'nchar') then 1 else 0 end fixed, " +
-					"    ROWNUM AS NUM, TC.* FROM DBA_TAB_COLS TC \n" + 
-					"WHERE lower(table_name) = lower('" + nameTable + "') AND lower(OWNER) = lower('" + schema + "') ORDER BY column_id";
-			
-			ResultSet rs = stmt.executeQuery(query);
-			while(rs.next()){				
+		Map<String, DBTableField> listField = new HashMap<String, DBTableField>();
+
+		String pkNameQuery =
+			"SELECT column_name FROM all_constraints cons, all_cons_columns cols\n"+
+			"WHERE upper(cols.table_name) = upper('" + nameTable + "')\n"+
+			"AND cons.constraint_type = 'P'\n" +
+			"AND cons.constraint_name = cols.constraint_name\n" +
+			"AND cons.owner = cols.owner";
+
+		String query =
+			"SELECT case \r\n" +
+			"    when lower(data_type) in ('number', 'numeric', 'dec', 'decimal', 'pls_integer') then 'number'\r\n" +
+			"    when lower(data_type) in ('varchar2', 'varchar', 'char', 'nchar', 'nvarchar2') then 'string'\r\n" +
+			"    when substr(lower(data_type), 1, instr(data_type, '(') - 1) in ('date', 'timestamp') then 'date'\r\n" +
+			"    when lower(data_type) in ('date', 'timestamp') then 'date'\r\n" +
+			"    when lower(data_type) in ('clob') then 'text'\r\n" +
+			"    when lower(data_type) in ('blob') then 'binary'" +
+			"    else 'native'\r\n" +
+			"    end type, " +
+			"    case when lower(data_type) in ('char', 'nchar') then 1 else 0 end fixed, " +
+			"    ROWNUM AS NUM, TC.* FROM DBA_TAB_COLS TC \n" +
+			"WHERE lower(table_name) = lower('" + nameTable + "') AND lower(OWNER) = lower('" + schema + "') ORDER BY column_id";
+
+		try (
+			Statement stmt = getConnection().createStatement();
+			ResultSet pkRs = stmt.executeQuery(pkNameQuery);
+			ResultSet fieldsRs = stmt.executeQuery(query);
+		){
+
+			String pkColumnName = "";
+			while (pkRs.next()) { pkColumnName = pkRs.getString("COLUMN_NAME").toLowerCase(); }
+
+			while(fieldsRs.next()){
+
 				DBTableField field = new DBTableField();
-				field.setName(rs.getString("COLUMN_NAME").toLowerCase());  
-				if (rs.getString("COLUMN_NAME").toLowerCase().equals(s)) { 
+
+				field.setName(fieldsRs.getString("COLUMN_NAME").toLowerCase());
+				if (fieldsRs.getString("COLUMN_NAME").toLowerCase().equals(pkColumnName)) {
 					field.setIsPrimaryKey(true);
 				}
-				String typeSQL = getFieldType(rs);
+				String typeSQL = getFieldType(fieldsRs);
 				field.setTypeSQL(typeSQL);
 				field.setIsNullable( !typeSQL.toLowerCase().contains("not null"));
-				field.setTypeUniversal(FieldType.fromString(rs.getString("TYPE").toUpperCase()));
-				field.setLength(rs.getInt("DATA_LENGTH"));
-				field.setScale(rs.getInt("DATA_SCALE"));
-				field.setPrecision(rs.getInt("DATA_PRECISION"));
-				field.setFixed(rs.getBoolean("fixed"));
-				field.setOrder(rs.getInt("column_id"));
+				field.setTypeUniversal(FieldType.fromString(fieldsRs.getString("TYPE").toUpperCase()));
+				field.setLength(fieldsRs.getInt("DATA_LENGTH"));
+				field.setScale(fieldsRs.getInt("DATA_SCALE"));
+				field.setPrecision(fieldsRs.getInt("DATA_PRECISION"));
+				field.setFixed(fieldsRs.getBoolean("fixed"));
+				field.setOrder(fieldsRs.getInt("column_id"));
+
 				listField.put(field.getName(), field);
 			}
-			
-			stmt.close();
-			
-			return listField;
-		}catch(Exception e) {
-			logger.error(lang.getValue("errors", "adapter", "tables").toString(), e);			
+
+		} catch(Exception e) {
+			logger.error(lang.getValue("errors", "adapter", "tables").toString(), e);
 			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "tables").toString(), e);
-		}		
+		}
+
+		return listField;
 	}
 
 	protected String getFieldType(ResultSet rs) {
@@ -342,7 +332,7 @@ public class DBAdapterOracle extends DBAdapter {
 			}			
 			
 			return type.toString();
-		}catch(Exception e) {
+		} catch(Exception e) {
 			logger.error(lang.getValue("errors", "adapter", "tables").toString(), e);			
 			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "tables").toString(), e);
 		}	
@@ -351,109 +341,109 @@ public class DBAdapterOracle extends DBAdapter {
 	@Override
 	public Map<String, DBIndex> getIndexes(String schema, String nameTable) {
 		Map<String, DBIndex> indexes = new HashMap<>();
-		try {
-			String query = "SELECT  ind.index_name, (select dbms_metadata.get_ddl('INDEX', ind.INDEX_NAME, owner) AS DDL from dual) AS DDL\n" + 
-					"FROM all_indexes ind\n" + 
-					"WHERE upper(table_name) = upper('" + nameTable + "') AND upper(owner) = upper('" + schema + "')";
-			
-			Statement stmt = connect.createStatement();
-			ResultSet rs = stmt.executeQuery(query);
+		String query =
+			"SELECT  ind.index_name, (select dbms_metadata.get_ddl('INDEX', ind.INDEX_NAME, owner) AS DDL from dual) AS DDL\n" +
+			"FROM all_indexes ind\n" +
+			"WHERE upper(table_name) = upper('" + nameTable + "') AND upper(owner) = upper('" + schema + "')";
+
+		try (Statement stmt = connect.createStatement(); ResultSet rs = stmt.executeQuery(query);){
 
 			while(rs.next()){
-				DBIndex index = new DBIndex();
-				index.setName(rs.getString("INDEX_NAME"));
-				index.setSchema(schema);	
+				//TODO find real owner
+				String name = rs.getString("INDEX_NAME");
+				DBIndex index = new DBIndex(name, schema, schema);
 				rowToProperties(rs, index.getOptions());
 				indexes.put(index.getName(), index);
 			}
-			stmt.close();
-			
-			return indexes;
-			
-		}catch(Exception e) {
-			logger.error(lang.getValue("errors", "adapter", "indexes").toString());
+
+		} catch(Exception e) {
+			logger.error(lang.getValue("errors", "adapter", "indexes").toString(), e);
 			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "indexes").toString(), e);
 		}
+
+		return indexes;
 	}
 
 	@Override
 	public Map<String, DBConstraint> getConstraints(String schema, String nameTable) {
 		Map<String, DBConstraint> constraints = new HashMap<>();
-		try {
-			String query = "SELECT cons.constraint_type, cons.CONSTRAINT_NAME, (select dbms_metadata.get_ddl('CONSTRAINT', cons.constraint_name, owner) AS DDL from dual) AS DDL\n" + 
-					"FROM all_constraints cons\n" + 
-					"WHERE upper(owner) = upper('" + schema + "') and upper(table_name) = upper('" + nameTable + "') and constraint_name not like 'SYS%' and cons.constraint_type = 'P'";
 
-			Statement stmt = connect.createStatement();
-			ResultSet rs = stmt.executeQuery(query);
-			
+		String query =
+			"SELECT cons.constraint_type, cons.CONSTRAINT_NAME, (select dbms_metadata.get_ddl('CONSTRAINT', cons.constraint_name, owner) AS DDL from dual) AS DDL\n" +
+			"FROM all_constraints cons\n" +
+			"WHERE upper(owner) = upper('" + schema + "') and upper(table_name) = upper('" + nameTable + "') and constraint_name not like 'SYS%' and cons.constraint_type = 'P'";
+
+		try (Statement stmt = connect.createStatement(); ResultSet rs = stmt.executeQuery(query);) {
+
 			while(rs.next()){
-				DBConstraint con = new DBConstraint();
-				con.setName(rs.getString("CONSTRAINT_NAME"));
+				String name = rs.getString("CONSTRAINT_NAME");
 				//This is DDL?
-				con.setConstraintType(rs.getString("CONSTRAINT_TYPE"));
-				con.setSchema(schema);
+				String type = rs.getString("CONSTRAINT_TYPE");
+				//TODO find real owner
+				DBConstraint con = new DBConstraint(name, schema, schema, type);
 				rowToProperties(rs, con.getOptions());
 				constraints.put(con.getName(), con);
 			}
-			stmt.close();
-			
-			return constraints;		
-			
-		}catch(Exception e) {
+
+		}
+		catch(Exception e) {
 			logger.error(lang.getValue("errors", "adapter", "constraints").toString());
 			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "constraints").toString(), e);
 		}
+
+		return constraints;
 	}
 
 	@Override
 	public Map<String, DBView> getViews(String schema) {
 		Map<String, DBView> listView = new HashMap<String, DBView>();
-		try {
-			String query = "SELECT f.owner, f.object_name, (select dbms_metadata.get_ddl('VIEW', f.object_name, f.owner) AS DDL from dual) AS DDL \n" + 
-					"FROM all_objects f WHERE f.owner = '" + schema + "' and f.object_type = 'VIEW'";
-			Connection connect = getConnection();
-			Statement stmt = connect.createStatement();
-			ResultSet rs = stmt.executeQuery(query);
+
+		String query =
+			"SELECT f.owner, f.object_name, (select dbms_metadata.get_ddl('VIEW', f.object_name, f.owner) AS DDL from dual) AS DDL \n" +
+			"FROM all_objects f WHERE f.owner = '" + schema + "' and f.object_type = 'VIEW'";
+		try (Statement stmt = getConnection().createStatement(); ResultSet rs = stmt.executeQuery(query);) {
+
 			while(rs.next()){
-				DBView view = new DBView(rs.getString("OBJECT_NAME"));
-				view.setSchema(rs.getString("OWNER"));
-				view.setOwner(rs.getString("OWNER"));
+				String name = rs.getString("OBJECT_NAME");
+				String owner = rs.getString("OWNER");
+
+				DBView view = new DBView(name, schema, owner);
 				rowToProperties(rs, view.getOptions());
 				listView.put(rs.getString("OBJECT_NAME"), view);
+
 			}
-			stmt.close();
-			return listView;
-		}catch(Exception e) {
+
+		} catch(Exception e) {
 			logger.error(lang.getValue("errors", "adapter", "views") + ": "+ e.getMessage());
-			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "views") + ": " + e.getMessage());
+			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "views") + ": " + e.getMessage(), e);
 		}
+
+		return listView;
 	}
 
 	@Override
 	public DBView getView(String schema, String name) {
-		DBView view = new DBView(name);
-		view.setSchema(schema);
-		try {
-			String query = "SELECT f.owner, f.object_name, (select dbms_metadata.get_ddl('VIEW', f.object_name, f.owner) AS DDL from dual) AS DDL \n" + 
-					"FROM all_objects f WHERE f.owner = '" + schema + "' and f.object_type = 'VIEW' and f.object_name = '" + name + "'";
-			Connection connect = getConnection();
-			Statement stmt = connect.createStatement();
-			ResultSet rs = stmt.executeQuery(query);
-			
-			view.setOwner(schema);
-			
+		DBView view = null;
+
+		String query =
+			"SELECT f.owner, f.object_name, (select dbms_metadata.get_ddl('VIEW', f.object_name, f.owner) AS DDL from dual) AS DDL \n" +
+			"FROM all_objects f WHERE f.owner = '" + schema + "' and f.object_type = 'VIEW' and f.object_name = '" + name + "'";
+
+		try (Statement stmt = getConnection().createStatement(); ResultSet rs = stmt.executeQuery(query); ){
+
 			while (rs.next()) {
-				view.setOwner(rs.getString("OWNER"));
+				String owner = rs.getString("OWNER");
+
+				view = new DBView(name, schema, owner);
 				rowToProperties(rs, view.getOptions());
 			}
-			stmt.close();
-			return view;
-			
-		}catch(Exception e) {
+
+		} catch(Exception e) {
 			logger.error(lang.getValue("errors", "adapter", "views").toString() + ": "+ e.getMessage());
 			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "views").toString(), e);
 		}
+
+		return view;
 	}
 	
 	public Map<String, DBTrigger> getTriggers(String schema) {
@@ -468,12 +458,14 @@ public class DBAdapterOracle extends DBAdapter {
 		try (Statement stmt = getConnection().createStatement(); ResultSet rs = stmt.executeQuery(query);) {
 
 			while(rs.next()){
+				//TODO find real owner
+				//what means owner? oracle/postgres or owner like database user/schema
+				String owner = "oracle";
 				String name = rs.getString("TRIGGER_NAME");
 				String sql = rs.getString("DDL");
-				DBTrigger trigger = new DBTrigger(name);
-				trigger.setSchema(schema);
-				//what means owner? oracle/postgres or owner like database user/schema
-				trigger.setOwner("oracle");
+
+				DBTrigger trigger = new DBTrigger(name, schema, owner);
+				trigger.setSql(sql);
 				rowToProperties(rs, trigger.getOptions());
 				listTrigger.put(name, trigger);
 			}
@@ -497,10 +489,12 @@ public class DBAdapterOracle extends DBAdapter {
 		try (Statement stmt = connect.createStatement(); ResultSet rs = stmt.executeQuery(query);) {
 
 			while(rs.next()){
-				trigger = new DBTrigger(name);	
-				trigger.setSchema(schema);
+
+				//TODO find real owner
 				//what means owner? oracle/postgres or owner like database user/schema
-				trigger.setOwner("oracle");
+				String owner = "oracle";
+
+				trigger = new DBTrigger(name, schema, owner);
 				rowToProperties(rs, trigger.getOptions());
 			}
 
@@ -524,11 +518,9 @@ public class DBAdapterOracle extends DBAdapter {
 			while(rs.next()){
 				String name = rs.getString("OBJECT_NAME");
 				String owner = rs.getString("OWNER");
-				//String args = rs.getString("arguments");
-				DBPackage pack = new DBPackage(name);
-				pack.setSchema(schema);
-				pack.setOwner(owner);
+				DBPackage pack = new DBPackage(name, schema, owner);
 				rowToProperties(rs,pack.getOptions());
+				//String args = rs.getString("arguments");
 				//pack.setArguments(args);
 				listPackage.put(name, pack);
 			}
@@ -551,11 +543,9 @@ public class DBAdapterOracle extends DBAdapter {
 		try (Statement stmt = getConnection().createStatement(); ResultSet rs = stmt.executeQuery(query);) {
 
 			while (rs.next()) {
-				pack = new DBPackage(name);
 				String owner = rs.getString("OWNER");
+				pack = new DBPackage(name, schema, owner);
 				//String args = rs.getString("arguments");
-				pack.setSchema(schema);
-				pack.setOwner(owner);
 				//pack.setArguments(args);
 				rowToProperties(rs,pack.getOptions());
 			}
@@ -581,12 +571,10 @@ public class DBAdapterOracle extends DBAdapter {
 			while(rs.next()){
 				String name = rs.getString("OBJECT_NAME");
 				String owner = rs.getString("OWNER");
-				//String args = rs.getString("arguments");
-				DBProcedure proc = new DBProcedure(name);
-				proc.setSchema(schema);
-				proc.setOwner(owner);
-				proc.setName(name);
+
+				DBProcedure proc = new DBProcedure(name, schema, owner);
 				rowToProperties(rs,proc.getOptions());
+				//String args = rs.getString("arguments");
 				//proc.setArguments(args);
 				listProcedure.put(name, proc);
 			}
@@ -610,11 +598,10 @@ public class DBAdapterOracle extends DBAdapter {
 		try (Statement stmt = getConnection().createStatement(); ResultSet rs = stmt.executeQuery(query);) {
 
 			while (rs.next()) {
-				proc = new DBProcedure(rs.getString("OBJECT_NAME"));
+				String objName = rs.getString("OBJECT_NAME");
 				String owner = rs.getString("OWNER");
+				proc = new DBProcedure(objName, schema, owner);
 				//String args = rs.getString("arguments");
-				proc.setSchema(schema);
-				proc.setOwner(owner);
 				//proc.setArguments(args);
 				rowToProperties(rs,proc.getOptions());
 			}
@@ -639,11 +626,9 @@ public class DBAdapterOracle extends DBAdapter {
 				String name = rs.getString("OBJECT_NAME");
 				String sql = rs.getString("DDL");
 				String owner = rs.getString("OWNER");
-				//String args = rs.getString("arguments");
-				DBFunction func = new DBFunction(name);
-				func.setSchema(schema);
-				func.setOwner(owner);
+				DBFunction func = new DBFunction(name, schema, owner);
 				rowToProperties(rs,func.getOptions());
+				//String args = rs.getString("arguments");
 				//func.setArguments(args);
 				listFunction.put(name, func);
 			}
@@ -668,11 +653,10 @@ public class DBAdapterOracle extends DBAdapter {
 		try (Statement stmt = getConnection().createStatement(); ResultSet rs = stmt.executeQuery(query);) {
 
 			while (rs.next()) {
-				func = new DBFunction(rs.getString("OBJECT_NAME"));
+				String objName = rs.getString("OBJECT_NAME");
 				String owner = rs.getString("OWNER");
+				func = new DBFunction(objName, schema, owner);
 				//String args = rs.getString("arguments");
-				func.setSchema(schema);
-				func.setOwner(owner);
 				//func.setArguments(args);
 				rowToProperties(rs,func.getOptions());
 			}
@@ -690,15 +674,20 @@ public class DBAdapterOracle extends DBAdapter {
 				
 		try {
 			int portionSize = DBGitConfig.getInstance().getInteger("core", "PORTION_SIZE", DBGitConfig.getInstance().getIntegerGlobal("core", "PORTION_SIZE", 1000));
-			
 			int begin = 1 + portionSize*portionIndex;
 			int end = portionSize + portionSize*portionIndex;
+			String dataQuery =
+				"SELECT * FROM (" +
+				"	SELECT f.*, ROW_NUMBER() OVER (ORDER BY rowid) DBGIT_ROW_NUM " +
+				" 	FROM " + schema + "." + nameTable + " f" +
+				") " +
+				"WHERE DBGIT_ROW_NUM BETWEEN " + begin  + " and " + end;
 
-			Statement st = getConnection().createStatement();
-			ResultSet rs = st.executeQuery("    SELECT * FROM \r\n" + 
-					"   (SELECT f.*, ROW_NUMBER() OVER (ORDER BY rowid) DBGIT_ROW_NUM FROM " + schema + "." + nameTable + " f)\r\n" + 
-					"   WHERE DBGIT_ROW_NUM BETWEEN " + begin  + " and " + end);
-			data.setResultSet(rs);	
+			try(Statement st = getConnection().createStatement(); ){
+				ResultSet rs = st.executeQuery(dataQuery);
+				data.setResultSet(rs);
+			}
+
 			return data;
 		} catch(Exception e) {
 
@@ -726,7 +715,7 @@ public class DBAdapterOracle extends DBAdapter {
 			}
 
 			try {
-				getConnection().rollback(); 
+				getConnection().rollback();
 			} catch (Exception e2) {
 				logger.error(lang.getValue("errors", "adapter", "rollback").toString(), e2);
 			}

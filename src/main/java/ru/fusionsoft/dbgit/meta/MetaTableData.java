@@ -103,9 +103,7 @@ public class MetaTableData extends MetaBase {
 	public void setName(String name) throws ExceptionDBGit {
 		if (table == null) {
 			NameMeta nm = MetaObjectFactory.parseMetaName(name);
-			table = new DBTable();
-			table.setSchema(nm.getSchema());
-			table.setName(nm.getName());
+			table = new DBTable(nm.getName(), nm.getSchema());
 		}
 
 		super.setName(name);
@@ -313,7 +311,7 @@ public class MetaTableData extends MetaBase {
 			} catch (Exception e1) {
 				// TODO Auto-generated catch block
 				e1.printStackTrace();
-			}			
+			}
 			
 			if (e instanceof ExceptionDBGit) throw (ExceptionDBGit)e;
 			throw new ExceptionDBGit(e);

@@ -1,7 +1,6 @@
 package ru.fusionsoft.dbgit.dbobjects;
 
 import ru.fusionsoft.dbgit.utils.CalcHash;
-import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 import ru.fusionsoft.dbgit.utils.StringProperties;
 
 import java.util.HashSet;
@@ -15,49 +14,30 @@ import java.util.Set;
 public class DBSQLObject extends DBSchemaObject {
 
 	protected String sql;
-	protected String owner;
-	private StringProperties options = new StringProperties();
+
+	public DBSQLObject(String name, StringProperties options, String schema, String owner, Set<String> dependencies, String sql) {
+		super(name, options, schema, owner, dependencies);
+		this.sql = sql;
+	}
 
 	public String getHash() {
-		CalcHash ch = new CalcHash();/*{
-			@Override public CalcHash addData(String data){
-				ConsoleWriter.detailsPrintlnGreen("CH| " + data);
-				return super.addData(data);
-			}
-			@Override public String calcHashStr(){
-				String result = super.calcHashStr();
-				ConsoleWriter.detailsPrintlnRed("RES| " + result + "\n");
-				return result;
-			}
+		CalcHash ch = new CalcHash();
 
-		};*/
-		ch.addData(getSchema());
-		ch.addData(getName());
-		ch.addData(getSql().trim().replaceAll("\\s+", ""));
-		if (getOwner() != null)
-			ch.addData(getOwner());
+		ch.addData(this.name);
+		ch.addData(this.schema);
+		ch.addData(this.owner);
+		ch.addData(this.options.toString());
+		ch.addData(this.sql);
 
 		return ch.calcHashStr();
 	}
 
 	public String getSql() {
-		return options.get("ddl") != null ? options.get("ddl").toString() : "";
+		return this.sql;
 	}
-	public void setSql(String ddl) { if(options.get("ddl") != null) options.get("ddl").setData(ddl); }
-
-	public String getOwner() {
-		return owner;
+	public void setSql(String ddl) {
+		this.sql = ddl;
 	}
 
-	public void setOwner(String owner) {
-		this.owner=owner;
-	}
-	public StringProperties getOptions() {
-		return options;
-	}
-
-	public void setOptions(StringProperties options) {
-		this.options = options;
-	}
 
 }

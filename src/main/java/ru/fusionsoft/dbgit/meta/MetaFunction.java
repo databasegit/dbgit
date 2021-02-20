@@ -22,11 +22,6 @@ public class MetaFunction extends MetaSql {
 	}
 
 	@Override
-	public String getName() {
-		return name;
-	}
-
-	@Override
 	public String getFileName(){
 		String res = name.replace(".fnc", "");
 		String schemaName = "";

@@ -1,18 +1,10 @@
 package ru.fusionsoft.dbgit.meta;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.StringWriter;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.util.Map;
 
-import org.apache.commons.io.IOUtils;
-
-import ru.fusionsoft.dbgit.core.DBGitLang;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
-import ru.fusionsoft.dbgit.core.ExceptionDBGitObjectNotFound;
-import ru.fusionsoft.dbgit.dbobjects.DBOptionsObject;
 import ru.fusionsoft.dbgit.dbobjects.DBSQLObject;
 
 /**
@@ -28,12 +20,12 @@ public abstract class MetaSql extends MetaBase {
 		setDbType();
 		setDbVersion();
 	}
-	
+
 	public MetaSql(DBSQLObject sqlObject) throws ExceptionDBGit {
 		this();
 		setSqlObject(sqlObject);
-	}	
-	
+	}
+
 	public DBSQLObject getSqlObject() {
 		return sqlObject;
 	}
@@ -45,7 +37,7 @@ public abstract class MetaSql extends MetaBase {
 	}
 
 	@Override
-	public boolean serialize(OutputStream stream) throws Exception {
+	public boolean serialize(OutputStream stream) throws IOException {
 		/*
 		String owner = "owner: "+getSqlObject().getOwner()+"\n";
 		stream.write(owner.getBytes(Charset.forName("UTF-8")));
@@ -59,7 +51,7 @@ public abstract class MetaSql extends MetaBase {
 	}
 
 	@Override
-	public IMetaObject deSerialize(InputStream stream) throws Exception {		
+	public IMetaObject deSerialize(InputStream stream)  {
 		NameMeta nm = MetaObjectFactory.parseMetaName(getName());
 		/*
 		sqlObject = new DBSQLObject();		
@@ -83,12 +75,13 @@ public abstract class MetaSql extends MetaBase {
 	public String getHash() {
 		return sqlObject != null ? sqlObject.getHash() : EMPTY_HASH;
 	}
-	public void setObjectOptionFromMap(Map<String, ? extends DBSQLObject> map) throws ExceptionDBGit {
-		NameMeta nm = MetaObjectFactory.parseMetaName(getName());
-		if (!map.containsKey(nm.getName())) {
-			throw new ExceptionDBGitObjectNotFound(DBGitLang.getInstance().getValue("errors", "meta", "notFound").withParams(getName()));
-		}
-		setSqlObject(map.get(nm.getName()));
-	}
+
+//	public void setSqlObjectFromMap(Map<String, ? extends DBSQLObject> map) throws ExceptionDBGit {
+//		NameMeta nm = MetaObjectFactory.parseMetaName(getName());
+//		if (!map.containsKey(nm.getName())) {
+//			throw new ExceptionDBGitObjectNotFound(DBGitLang.getInstance().getValue("errors", "meta", "notFound").withParams(getName()));
+//		}
+//		setSqlObject(map.get(nm.getName()));
+//	}
 
 }

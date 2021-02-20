@@ -6,11 +6,7 @@ import java.util.Map;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 
-import ru.fusionsoft.dbgit.core.DBGit;
-import ru.fusionsoft.dbgit.core.DBGitIndex;
-import ru.fusionsoft.dbgit.core.DBGitPath;
-import ru.fusionsoft.dbgit.core.ExceptionDBGit;
-import ru.fusionsoft.dbgit.core.GitMetaDataManager;
+import ru.fusionsoft.dbgit.core.*;
 import ru.fusionsoft.dbgit.meta.IMapMetaObject;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;

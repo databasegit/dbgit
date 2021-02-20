@@ -1,12 +1,10 @@
 package ru.fusionsoft.dbgit.dbobjects;
 
+import ru.fusionsoft.dbgit.utils.StringProperties;
+
 public class DBTableSpace extends DBOptionsObject {
-	
-	public DBTableSpace() {
-		super("");
-	}
-	
-	public DBTableSpace(String name) {
-		super(name);
+
+	public DBTableSpace(String name, StringProperties options) {
+		super(name, options);
 	}
 }

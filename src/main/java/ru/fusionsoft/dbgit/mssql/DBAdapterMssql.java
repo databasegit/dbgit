@@ -266,8 +266,7 @@ public class DBAdapterMssql extends DBAdapter {
 
             while(rs.next()){
                 String nameTable = rs.getString("name");
-                DBTable table = new DBTable(nameTable);
-                table.setSchema(schema);
+                DBTable table = new DBTable(nameTable, schema);
                 rowToProperties(rs, table.getOptions());
                 listTable.put(nameTable, table);
             }
@@ -296,8 +295,7 @@ public class DBAdapterMssql extends DBAdapter {
 
             while(rs.next()){
                 String nameTable = rs.getString("tableName");
-                table = new DBTable(nameTable);
-                table.setSchema(schema);
+                table = new DBTable(nameTable, schema);
                 rowToProperties(rs, table.getOptions());
             }
             return table;
@@ -505,11 +503,14 @@ public class DBAdapterMssql extends DBAdapter {
 
 			ResultSet rs = stmt.executeQuery(query);
 			while(rs.next()){
-				DBIndex index = new DBIndex();
-				index.setName(rs.getString("indexName"));
-				index.setSchema(schema);
+				String name = rs.getString("indexName");
+				String owner = rs.getString("owner");
+				DBIndex index = new DBIndex(name, schema, owner);
+
 				rowToProperties(rs, index.getOptions());
 				indexes.put(index.getName(), index);
+
+
 			}
 
 			return indexes;
@@ -586,10 +587,11 @@ public class DBAdapterMssql extends DBAdapter {
 
 
                 while (rs.next()) {
-                    DBConstraint con = new DBConstraint();
-                    con.setName(rs.getString("constraintName"));
-                    con.setConstraintType(rs.getString("constraintType"));
-                    con.setSchema(schema);
+                	String name = rs.getString("constraintName");
+                	String type = rs.getString("constraintType");
+                	String owner = "postgres";
+
+                    DBConstraint con = new DBConstraint(name, schema, owner, type);
                     rowToProperties(rs, con.getOptions());
                     constraints.put(con.getName(), con);
                 }
@@ -600,10 +602,8 @@ public class DBAdapterMssql extends DBAdapter {
 			Map<String, DBIndex> indexes = getIndexesWithPks(schema, nameTable);
 			indexes.values().removeIf(x->x.getOptions().getChildren().get("ispk").getData().equals("0"));
 			for(DBIndex pki:indexes.values()){
-				DBConstraint pkc = new DBConstraint();
-				pkc.setName(pki.getName());
-				pkc.setConstraintType(pki.getOptions().getChildren().get("typename").getData());
-				pkc.setSchema(pki.getSchema());
+				String constraintType = pki.getOptions().getChildren().get("typename").getData();
+				DBConstraint pkc = new DBConstraint(pki.getName(),pki.getSchema(),pki.getOwner(), constraintType);
 				pkc.setOptions(pki.getOptions());
 				constraints.put(pkc.getName(), pkc);
 			}
@@ -633,11 +633,12 @@ public class DBAdapterMssql extends DBAdapter {
 
             ResultSet rs = stmt.executeQuery(query);
             while(rs.next()){
-                DBView view = new DBView(rs.getString("viewName"));
-                view.setSchema(rs.getString("schemaName"));
-                view.setOwner(rs.getString("ownerName"));
+            	String name = rs.getString("viewName");
+				String schemaName = rs.getString("schemaName");
+				String owner = rs.getString("ownerName");
+				DBView view = new DBView(name, schema, owner);
                 rowToProperties(rs, view.getOptions());
-                listView.put(rs.getString("viewName"), view);
+                listView.put(name, view);
             }
             return listView;
         }catch(Exception e) {
@@ -688,14 +689,10 @@ public class DBAdapterMssql extends DBAdapter {
 			while(rs.next()){
 				String name = rs.getString("procedureName");
 				String owner = rs.getString("owner");
-				DBProcedure proc = new DBProcedure(name);
-				proc.setSchema(schema);
-				proc.setOwner(owner);
-				proc.setName(name);
+				DBProcedure proc = new DBProcedure(name, schema, owner);
 				rowToProperties(rs,proc.getOptions());
 				listProcedure.put(name, proc);
 			}
-			stmt.close();
 		}catch(Exception e) {
 			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "prc").toString(), e);
 		}
@@ -719,10 +716,9 @@ public class DBAdapterMssql extends DBAdapter {
 			DBProcedure proc = null;
 
 			while (rs.next()) {
-				proc = new DBProcedure(rs.getString("procedureName"));
 				String owner = rs.getString("owner");
-				proc.setSchema(schema);
-				proc.setOwner(owner);
+				String procedureName = rs.getString("procedureName");
+				proc = new DBProcedure(procedureName, schema, owner);
 				rowToProperties(rs,proc.getOptions());
 			}
 			stmt.close();
@@ -750,9 +746,7 @@ public class DBAdapterMssql extends DBAdapter {
 			while(rs.next()){
 				String name = rs.getString("functionName");
 				String owner = rs.getString("owner");
-				DBFunction func = new DBFunction(name);
-				func.setSchema(schema);
-				func.setOwner(owner);
+				DBFunction func = new DBFunction(name, schema, owner);
 				rowToProperties(rs,func.getOptions());
 
 				listFunction.put(name, func);
@@ -777,10 +771,9 @@ public class DBAdapterMssql extends DBAdapter {
 			DBFunction func = null;
 			ResultSet rs = stmt.executeQuery(query);
 			while (rs.next()) {
-				func = new DBFunction(rs.getString("functionName"));
+				String functionName = rs.getString("functionName");
 				String owner = rs.getString("owner");
-				func.setSchema(schema);
-				func.setOwner(owner);
+				func = new DBFunction(functionName, schema, owner);
 				rowToProperties(rs,func.getOptions());
 			}
 			return func;
@@ -814,7 +807,7 @@ public class DBAdapterMssql extends DBAdapter {
 			while(rs.next()){
 				String name = rs.getString("triggerName");
 				String owner = rs.getString("owner");
-				DBTrigger trigger = new DBTrigger(name);
+				DBTrigger trigger = new DBTrigger(name, schema, owner);
 				trigger.setSchema(schema);
 				trigger.setOwner(owner);
 				// -- what means owner? oracle/postgres or owner like database user/schema
@@ -850,7 +843,7 @@ public class DBAdapterMssql extends DBAdapter {
 			while(rs.next()){
 				String tname = rs.getString("triggerName");
 				String owner = rs.getString("owner");
-				trigger = new DBTrigger(tname);
+				trigger = new DBTrigger(tname, schema, owner);
 				trigger.setSchema(schema);
 				trigger.setOwner(owner);
 				rowToProperties(rs, trigger.getOptions());

@@ -1,39 +1,28 @@
 package ru.fusionsoft.dbgit.dbobjects;
 
 import ru.fusionsoft.dbgit.utils.CalcHash;
+import ru.fusionsoft.dbgit.utils.StringProperties;
+import ru.fusionsoft.dbgit.yaml.YamlOrder;
 
 import java.util.Objects;
+import java.util.Set;
 
 public class DBConstraint extends DBSQLObject {
+
+	@YamlOrder(4)
 	private String constraintType;
-	
+
+	public DBConstraint(String name, StringProperties options, String schema, String owner, Set<String> dependencies, String sql, String constraintType) {
+		super(name, options, schema, owner, dependencies, sql);
+		this.constraintType = constraintType;
+	}
+
+
 	public String getConstraintType() {
 		return constraintType;
 	}
 	public void setConstraintType(String constraintType) {
 		this.constraintType = constraintType;
-	}
-
-	@Override
-	public boolean equals(Object o) {
-		if (this == o) return true;
-		if (o == null || getClass() != o.getClass()) return false;
-		DBConstraint that = (DBConstraint) o;
-		return Objects.equals(constraintType, that.constraintType)
-			&& getName().equalsIgnoreCase(that.getName())
-			&& getSchema().equalsIgnoreCase(that.getSchema())
-			&& getSql().replaceAll("\\s+", "").equalsIgnoreCase(that.getSql().replaceAll("\\s+", ""));
-//			&& getOptions().get("tablespace").getData().equalsIgnoreCase(that.getOptions().get("tablespace").getData());
-	}
-
-	public String getHash() {
-		CalcHash ch = new CalcHash();
-		ch.addData(getSchema());
-		ch.addData(getName());
-		ch.addData(getSql().replaceAll("\\s+", "").toLowerCase());
-		//TODO !!!
-		
-		return ch.calcHashStr();
 	}
 
 }

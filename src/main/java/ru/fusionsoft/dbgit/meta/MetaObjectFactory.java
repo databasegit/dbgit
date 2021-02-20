@@ -46,21 +46,18 @@ public class MetaObjectFactory  {
 		
 	}
 		
-	public static NameMeta parseMetaName(String name) throws ExceptionDBGit {
-		try {
-			NameMeta nm = new NameMeta();
-			
-			Integer pos = name.lastIndexOf("/");
-			if (pos > 0) {
-				nm.setSchema(name.substring(0, pos));
-			}
-			Integer posDot = name.lastIndexOf(".");
-			nm.setName(name.substring(pos+1, posDot));
-			nm.setType(DBGitMetaType.valueByCode(name.substring(posDot + 1)));
+	public static NameMeta parseMetaName(String name)  {
+		NameMeta nm = new NameMeta();
 
-			return nm;
-		} catch(Exception e) {
-			throw new ExceptionDBGitRunTime(DBGitLang.getInstance().getValue("errors", "meta", "parseError").withParams(name), e);
+		Integer pos = name.lastIndexOf("/");
+		if (pos > 0) {
+			nm.setSchema(name.substring(0, pos));
 		}
+		Integer posDot = name.lastIndexOf(".");
+		nm.setName(name.substring(pos+1, posDot));
+		nm.setType(DBGitMetaType.valueByCode(name.substring(posDot + 1)));
+
+		return nm;
+
 	}
 }

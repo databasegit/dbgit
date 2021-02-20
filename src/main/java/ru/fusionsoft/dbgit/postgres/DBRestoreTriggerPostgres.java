@@ -52,9 +52,6 @@ public class DBRestoreTriggerPostgres extends DBRestoreAdapter {
                 ));
 			}
 
-
-
-
 		}
 		catch (Exception e) {
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(obj.getName()), e);

@@ -1,15 +1,13 @@
 package ru.fusionsoft.dbgit.meta;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.nio.charset.Charset;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
-import org.yaml.snakeyaml.DumperOptions.ScalarStyle;
 import org.yaml.snakeyaml.nodes.Tag;
 
 import ru.fusionsoft.dbgit.adapters.AdapterFactory;
@@ -18,7 +16,6 @@ import ru.fusionsoft.dbgit.core.DBGitPath;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
 import ru.fusionsoft.dbgit.core.db.DbType;
-import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 import ru.fusionsoft.dbgit.yaml.DBGitYamlConstructor;
 import ru.fusionsoft.dbgit.yaml.DBGitYamlRepresenter;
 import ru.fusionsoft.dbgit.yaml.YamlOrder;
@@ -36,7 +33,7 @@ public abstract class MetaBase implements IMetaObject {
 	@YamlOrder(1)
 	protected DbType dbType;
 	
-	@YamlOrder(1)
+	@YamlOrder(2)
 	protected String dbVersion;
 	
 	@Override
@@ -102,6 +99,13 @@ public abstract class MetaBase implements IMetaObject {
         IMetaObject meta = yaml.loadAs(stream, this.getClass());        
         return meta;
 	}
+
+	public Map<String, Map> toMap() {
+        Yaml yaml = createYaml();
+		String output = yaml.dumpAs(this, Tag.MAP, DumperOptions.FlowStyle.BLOCK);
+		Map<String, Map> meta = yaml.loadAs(output, Map.class);
+        return meta;
+	}
 	
 	public Yaml createYaml() {
 		DumperOptions options = new DumperOptions();
@@ -143,5 +147,16 @@ public abstract class MetaBase implements IMetaObject {
 
 	}
 
-	
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (!(o instanceof MetaBase)) return false;
+		MetaBase metaBase = (MetaBase) o;
+		return getHash().equals(metaBase.getHash());
+	}
+
+	@Override
+	public int hashCode() {
+		return getHash().hashCode();
+	}
 }

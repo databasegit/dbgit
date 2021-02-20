@@ -28,17 +28,36 @@ public class SortedListMetaObject {
         calculateImoCrossDependencies();
     }
 
+    public Collection<IMetaObject> getCollection(){
+        return collection;
+}
+    public List<IMetaObject> sortFromDependencies() throws ExceptionDBGit {
+        if (listFromDependant == null) {
+            listFromDependant = createSortedList(false);
+        }
+        return listFromDependant;
+
+    }
+    public List<IMetaObject> sortFromReferenced() throws ExceptionDBGit {
+        if (listFromFree == null) {
+            listFromFree = createSortedList(true);
+        }
+        return listFromFree;
+    }
+
     private void calculateImoCrossDependencies(){
-//        Timestamp timestampBefore = new Timestamp(System.currentTimeMillis());
 
         for(DBGitMetaType metaType : Sets.newHashSet(DBGitMetaType.DBGitTable, DBGitMetaType.DbGitFunction)){
 
-            List<IMetaObject> objectsOfType = collection.stream().filter(x->x.getType().equals(metaType) ).collect(Collectors.toList());
+            List<IMetaObject> objectsOfType = collection.stream()
+                .filter( x->x.getType().equals(metaType) )
+                .collect(Collectors.toList());
+
+
             Map<String, String> realNamesToMetaNames = objectsOfType.stream().collect(Collectors.toMap(
-                    x-> x.getUnderlyingDbObject().getSchema() + "." + x.getUnderlyingDbObject().getName(),
-                    IMetaObject::getName
-                )
-            );
+                x-> x.getUnderlyingDbObject().getSchema() + "." + x.getUnderlyingDbObject().getName(),
+                IMetaObject::getName
+            ));
 
             for(IMetaObject imo : objectsOfType){
                 if(imo.getType().equals(DBGitMetaType.DbGitFunction)){
@@ -52,20 +71,14 @@ public class SortedListMetaObject {
                 if(imo.getType().equals(DBGitMetaType.DBGitTable)){
                     DBTable dbTable = (DBTable) imo.getUnderlyingDbObject();
                     Set<String> deps = realNamesToMetaNames.values().stream()
-                            .filter( x -> dbTable.getDependencies().contains(x) /*&& !x.equals(imo.getName())*/  )
-                            .collect(Collectors.toSet());
-                    dbTable.setDependencies(deps);
+                        .filter( x -> dbTable.getDependencies().contains(x) /*&& !x.equals(imo.getName())*/  )
+                        .collect(Collectors.toSet());
+                    dbTable.getDependencies().addAll(deps);
                 }
             }
 
         }
 
-//        Timestamp timestampAfter = new Timestamp(System.currentTimeMillis());
-//        long diff = timestampAfter.getTime() - timestampBefore.getTime();
-//        ConsoleWriter.detailsPrintlnGreen(DBGitLang.getInstance().getValue("general", "time").withParams(Long.toString(diff)));
-    }
-    public Collection<IMetaObject> getCollection(){
-        return collection;
     }
 
     public List<IMetaObject> createSortedList(boolean isSortedFromFree) throws ExceptionDBGit {
@@ -129,19 +142,6 @@ public class SortedListMetaObject {
         return list;
     }
 
-    public List<IMetaObject> sortFromDependencies() throws ExceptionDBGit {
-        if (listFromDependant == null) {
-            listFromDependant = createSortedList(false);
-        }
-        return listFromDependant;
-
-    }
-    public List<IMetaObject> sortFromReferenced() throws ExceptionDBGit {
-        if (listFromFree == null) {
-            listFromFree = createSortedList(true);
-        }
-        return listFromFree;
-    }
 
     public static Comparator<IMetaObject> imoTypeComparator = Comparator.comparing(x->x.getType().getPriority());
     public static Comparator<IMetaObject> imoDependenceComparator = (o1, o2) -> {

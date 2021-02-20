@@ -38,10 +38,10 @@ import ru.fusionsoft.dbgit.utils.ConsoleWriter;
  */
 public class GitMetaDataManager {
 	private static GitMetaDataManager manager = null;
-	
-	protected IMapMetaObject dbObjs; 	
-	protected IMapMetaObject fileObjs; 
-	
+
+	protected IMapMetaObject dbObjs;
+	protected IMapMetaObject fileObjs;
+
 	private MetaTableData currentPortion = null;
 	private int currentPortionIndex = 0;
 	private static int messageLevel = 1;

@@ -4,15 +4,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Map;
+import java.util.Objects;
 
-import ru.fusionsoft.dbgit.adapters.AdapterFactory;
-import ru.fusionsoft.dbgit.adapters.IDBAdapter;
 import ru.fusionsoft.dbgit.core.DBGitLang;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitObjectNotFound;
 import ru.fusionsoft.dbgit.dbobjects.DBOptionsObject;
-import ru.fusionsoft.dbgit.dbobjects.DBUser;
 import ru.fusionsoft.dbgit.utils.CalcHash;
+import ru.fusionsoft.dbgit.yaml.YamlOrder;
 
 /**
  * Base Meta class for data use DBOptionsObject information. This data is tree string properties.
@@ -21,6 +20,7 @@ import ru.fusionsoft.dbgit.utils.CalcHash;
  */
 public abstract class MetaObjOptions extends MetaBase {
 
+	@YamlOrder(4)
 	private DBOptionsObject objectOption = null;
 	
 	public MetaObjOptions() {
@@ -48,7 +48,7 @@ public abstract class MetaObjOptions extends MetaBase {
 	}
 
 	@Override
-	public IMetaObject deSerialize(InputStream stream) throws IOException{
+	public IMetaObject deSerialize(InputStream stream) {
 		return yamlDeSerialize(stream);
 	}
 
@@ -75,4 +75,16 @@ public abstract class MetaObjOptions extends MetaBase {
 		setObjectOption(map.get(nm.getName()));
 	}
 
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (!(o instanceof MetaObjOptions)) return false;
+		MetaObjOptions that = (MetaObjOptions) o;
+		return getObjectOption().getHash().equals(that.getObjectOption().getHash());
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(getObjectOption());
+	}
 }

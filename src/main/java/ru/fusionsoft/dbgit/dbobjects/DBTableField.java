@@ -5,6 +5,8 @@ import ru.fusionsoft.dbgit.core.db.FieldType;
 import ru.fusionsoft.dbgit.utils.CalcHash;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
+import java.util.Objects;
+
 public class DBTableField implements IDBObject, Comparable<DBTableField> {
 	private String name;
 	private String description;
@@ -17,9 +19,48 @@ public class DBTableField implements IDBObject, Comparable<DBTableField> {
 	private Integer order = 0;
 	private Boolean isNullable;
 	private Boolean isNameExactly = false;
-	private String defaultValue;	
-	
+	private String defaultValue;
 	private Boolean isPrimaryKey = false;
+
+	@Override
+	public int compareTo(DBTableField o) {
+		int res = - isPrimaryKey.compareTo(o.getIsPrimaryKey());
+		if (res != 0) return res;
+		return order.compareTo(o.getOrder());
+//		return name.compareTo(o.getName());
+	}
+
+	@Override public boolean equals(Object obj){
+		boolean equals = obj == this;
+		if(!equals && obj instanceof DBTableField){
+			return ((DBTableField) obj).getHash().equals(this.getHash());
+		}
+		return equals;
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(getHash());
+	}
+
+	public String getHash() {
+		CalcHash ch = new CalcHash();
+
+		ch.addData(this.name);
+		ch.addData(this.typeSQL);
+		ch.addData(this.order);
+		ch.addData(this.isPrimaryKey);
+		ch.addData(this.isNullable);
+		ch.addData(this.description);
+		ch.addData(this.defaultValue);
+		ch.addData(this.fixed);
+		ch.addData(this.length);
+		ch.addData(this.precision);
+		ch.addData(this.scale);
+
+		return ch.calcHashStr();
+	}
+
 
 	public Boolean getIsPrimaryKey() {
 		return isPrimaryKey;
@@ -27,23 +68,6 @@ public class DBTableField implements IDBObject, Comparable<DBTableField> {
 
 	public void setIsPrimaryKey(Boolean isPrimaryKey) {
 		this.isPrimaryKey = isPrimaryKey;
-	}
-
-	public String getHash() {
-		CalcHash ch = new CalcHash();
-		ch.addData(this.getName());
-		ch.addData(this.getTypeSQL());
-		ch.addData(this.getFixed());
-		ch.addData(this.getLength());
-		ch.addData(this.getPrecision());
-		ch.addData(this.getScale());
-		if( this.getDefaultValue()!=null ) ch.addData(this.getDefaultValue());
-		if( this.getIsNullable()!=null ) ch.addData(this.getIsNullable());
-
-//		if( this.getOrder()!=null ) ch.addData(String.valueOf(this.getOrder()));
-		ch.addData(isPrimaryKey.toString());
-
-		return ch.calcHashStr();
 	}
 
 	public Boolean getIsNullable() { return isNullable; }
@@ -138,20 +162,7 @@ public class DBTableField implements IDBObject, Comparable<DBTableField> {
 		this.description = description;
 	}
 	
-	@Override
-	public int compareTo(DBTableField o) {
-		int res = - isPrimaryKey.compareTo(o.getIsPrimaryKey());
-		if (res != 0) return res;
-		return name.compareTo(o.getName());
-	}
 
-	@Override public boolean equals(Object obj){
-		boolean equals = obj == this;
-		if(!equals && obj instanceof DBTableField){
-			return ((DBTableField) obj).getHash().equals(this.getHash());
-		}
-		return equals;
-	}
 	
 
 }

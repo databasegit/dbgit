@@ -1,10 +1,12 @@
 package ru.fusionsoft.dbgit.utils;
 
-import java.util.HashMap;
+import java.sql.ResultSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.TreeMap;
 
 import org.apache.commons.lang3.StringUtils;
+import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
 
 /**
  * Tree string properties 
@@ -25,6 +27,22 @@ public class StringProperties {
         this();
         this.data = data;
     }
+
+	public StringProperties (ResultSet rs) {
+
+		try {
+			for (int i = 1; i <= rs.getMetaData().getColumnCount(); i++) {
+				if (rs.getString(i) == null) continue ;
+
+				String columnName = rs.getMetaData().getColumnName(i);
+				if (columnName.equalsIgnoreCase("dependencies")) continue ;
+
+				addChild(columnName.toLowerCase(), cleanString(rs.getString(i)));
+			}
+		} catch(Exception e) {
+			throw new ExceptionDBGitRunTime(e);
+		}
+	}
     
     
     public StringProperties addChild(String name) {
@@ -116,6 +134,34 @@ public class StringProperties {
 		return toString(0).toString();
 	}
 
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (o == null || getClass() != o.getClass()) return false;
+		StringProperties that = (StringProperties) o;
+		if(getData() != null){
+			return getData().equals(that.getData())
+			&& Objects.equals(getChildren(), that.getChildren());
+		} else {
+			return that.getData() == null
+			&& Objects.equals(getChildren(), that.getChildren());
+		}
+
+
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(getData(), getChildren());
+	}
+
+	public String cleanString(String str) {
+		String dt = str.replace("\r\n", "\n");
+		while (dt.contains(" \n")) dt = dt.replace(" \n", "\n");
+		dt = dt.replace("\t", "   ").trim();
+
+		return dt;
+	}
 }
 
 

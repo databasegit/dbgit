@@ -185,8 +185,7 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 		}			
 	}
 	
-	public void restoreTableFieldsOracle(IMetaObject obj) throws Exception
-	{
+	public void restoreTableFieldsOracle(IMetaObject obj) throws Exception {
 		IDBAdapter adapter = getAdapter();
 		Connection connect = adapter.getConnection();
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
@@ -267,8 +266,7 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 		}			
 	}
 	
-	public void restoreTableIndexesOracle(IMetaObject obj) throws Exception
-	{
+	public void restoreTableIndexesOracle(IMetaObject obj) throws Exception {
 		IDBAdapter adapter = getAdapter();
 		Connection connect = adapter.getConnection();
 		StatementLogging st = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
@@ -345,7 +343,7 @@ public class DBRestoreTableOracle extends DBRestoreAdapter {
 				for(DBConstraint constrs :restoreTable.getConstraints().values()) {
 					if(!constrs.getConstraintType().equalsIgnoreCase("P")) {				
 						//String tblName = schema+"."+restoreTable.getTable().getName();
-						
+
 						st.execute(constrs.getOptions().get("ddl").toString().replace(" " + constrs.getSchema() + ".", " " + schema + "."));
 					}
 				}

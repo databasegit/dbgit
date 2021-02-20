@@ -1,10 +1,10 @@
 package ru.fusionsoft.dbgit.dbobjects;
 
+import ru.fusionsoft.dbgit.utils.StringProperties;
+
 public class DBRole extends DBOptionsObject {
-	public DBRole() {}
 
-	public DBRole(String name) {
-		super(name);
+	public DBRole(String name, StringProperties options) {
+		super(name, options);
 	}
-
 }

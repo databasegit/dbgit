@@ -11,10 +11,7 @@ import ru.fusionsoft.dbgit.adapters.AdapterFactory;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
 import ru.fusionsoft.dbgit.core.DBGitIndex;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
-import ru.fusionsoft.dbgit.dbobjects.DBConstraint;
-import ru.fusionsoft.dbgit.dbobjects.DBIndex;
-import ru.fusionsoft.dbgit.dbobjects.DBTable;
-import ru.fusionsoft.dbgit.dbobjects.DBTableField;
+import ru.fusionsoft.dbgit.dbobjects.*;
 import ru.fusionsoft.dbgit.utils.CalcHash;
 import ru.fusionsoft.dbgit.yaml.YamlOrder;
 
@@ -25,17 +22,17 @@ import ru.fusionsoft.dbgit.yaml.YamlOrder;
  */
 public class MetaTable extends MetaBase {
 
-	@YamlOrder(1)
+	@YamlOrder(3)
 	private DBTable table;
 
-	@YamlOrder(2)
+	@YamlOrder(4)
 	//private IMapFields fields = new TreeMapFields();
 	private Map<String, DBTableField> fields = new TreeMap<>();
 
-	@YamlOrder(3)
+	@YamlOrder(5)
 	private Map<String, DBIndex> indexes = new TreeMap<>();
 
-	@YamlOrder(4)
+	@YamlOrder(6)
 	private Map<String, DBConstraint> constraints = new TreeMap<>();
 
 	public MetaTable() {
@@ -67,7 +64,7 @@ public class MetaTable extends MetaBase {
 	}
 
 	@Override
-	public IMetaObject deSerialize(InputStream stream) throws IOException {
+	public IMetaObject deSerialize(InputStream stream)  {
 		return yamlDeSerialize(stream);
 	}
 	
@@ -157,24 +154,6 @@ public class MetaTable extends MetaBase {
 
 		}
 
-//		if(this.getTable() != null && this.getTable().getName().contains("clients")){
-//			ConsoleWriter.printlnRed(MessageFormat.format("-\t-\t-\t-\t-\t-\ntable = {0} ; {1}, \nfields({2}) = \n{3}\nindexes({4}) = \n{5}\nconstraints({6}) = \n{7}"
-//				,this.getTable() != null ? this.getTable().getName() + " ; " + truncateHash(this.getTable().getHash()) : "noname"
-//				,this.getTable() != null ? this.getTable().getOptions().getChildren().entrySet().stream().map(x->"\n\t\t" + x.getKey() + " : " + x.getValue().getData()).collect(Collectors.joining("")) : "null"
-//				,fields.keySet().size()
-//				,fields.values().stream()
-//					.map(x->"\t\t" + x.getName() + ";" + x.getDefaultValue())
-//					.collect(Collectors.joining("\n"))
-//				,indexes.keySet().size()
-//				,indexes.values().stream()
-//					.map(x->"\t\t" + x.getName() + ";" + truncateHash(x.getHash()))
-//					.collect(Collectors.joining("\n"))
-//				,constraints.keySet().size()
-//				,constraints.values().stream()
-//					.map(x->"\t\t" + x.getName() + ";" + truncateHash(x.getHash()))
-//					.collect(Collectors.joining("\n"))
-//			));
-//		}
 		return ch.calcHashStr();		
 	}
 

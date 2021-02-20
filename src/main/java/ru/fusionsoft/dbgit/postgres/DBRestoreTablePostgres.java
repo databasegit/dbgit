@@ -204,29 +204,28 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 				MetaTable existingTable = new MetaTable(restoreTable.getTable());
 				existingTable.loadFromDB();
 
-				String schema = getPhisicalSchema(restoreTable.getTable().getSchema());
+				enrichWithNotNullConstraints(existingTable);
+				enrichWithNotNullConstraints(restoreTable);
 
 				MapDifference<String, DBConstraint> diff = Maps.difference(existingTable.getConstraints(), restoreTable.getConstraints());
 
-				//drop unneeded
+				// 0. drop unneeded
 				for(DBConstraint constr : diff.entriesOnlyOnLeft().values()){
-					st.execute(MessageFormat.format(
-							"alter table {0}.{1} drop constraint {2};\n"
-							, adapter.escapeNameIfNeeded(schema)
-							, adapter.escapeNameIfNeeded(existingTable.getTable().getName())
-							, adapter.escapeNameIfNeeded(constr.getName())
-					));
+					dropConstraint(existingTable, constr, st);
 				}
 
-				// restore not existing
-				// * not restore index if not exists and have the same named PK
+				// 1. restore not existing
 				Set<String> typesFirst = Sets.newHashSet("p", "u");
-				Comparator<DBConstraint> pksFirstComparator = Comparator.comparing(x->!typesFirst.contains(x.getConstraintType()));
-				for(DBConstraint constr : diff.entriesOnlyOnRight().values().stream().sorted(pksFirstComparator).collect(Collectors.toList()) )  {
+				List<DBConstraint> newConstraints = diff.entriesOnlyOnRight().values().stream()
+					.sorted(Comparator.comparing( x -> !typesFirst.contains(x.getConstraintType()) ))
+					.collect(Collectors.toList());
+
+				for(DBConstraint constr : newConstraints)  {
+					// * * * not restore index if not exists and have the same named PK
 					createConstraint(restoreTable, constr, st, false /* * */);
 				}
 
-				//process intersects
+				// 2. process intersects
 				for (ValueDifference<DBConstraint> constr : diff.entriesDiffering().values()){
 					//MapDifference<String, StringProperties> propsDiff = Maps.difference(constr.leftValue().getOptions().getChildren(), constr.leftValue().getOptions().getChildren());
 					//ConsoleWriter.printlnColor("Difference in constraints: " + propsDiff.toString(), Ansi.FColor.MAGENTA, 1);
@@ -247,6 +246,28 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 			st.close();
 		}
 	}
+
+	private void dropConstraint(MetaTable existingTable, DBConstraint constr, StatementLogging st) throws SQLException, ExceptionDBGit {
+		String schema = getPhisicalSchema(existingTable.getTable().getSchema());
+		String name = existingTable.getTable().getName();
+
+		if(constr.getConstraintType().equals("nn")){
+			st.execute(MessageFormat.format(
+				"ALTER TABLE {0}.{1} ALTER {2} DROP NOT NULL;\n"
+				, adapter.escapeNameIfNeeded(schema)
+				, adapter.escapeNameIfNeeded(name)
+				, adapter.escapeNameIfNeeded(constr.getOptions().get("column_name").getData())
+			));
+		} else {
+			st.execute(MessageFormat.format(
+				"ALTER TABLE {0}.{1} DROP CONSTRAINT {2};\n"
+				, adapter.escapeNameIfNeeded(schema)
+				, adapter.escapeNameIfNeeded(name)
+				, adapter.escapeNameIfNeeded(constr.getName())
+			));
+		}
+	}
+
 	private NameMeta getEscapedNameMeta(MetaTable table) throws ExceptionDBGit {
 		NameMeta nm = new NameMeta();
 		String schema = adapter.escapeNameIfNeeded(getPhisicalSchema(table.getTable().getSchema().toLowerCase()));
@@ -336,11 +357,11 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 			);
 		}
 	}
-	private void createTable(StatementLogging st, MetaTable restoreTable) throws SQLException, ExceptionDBGit {
+	private void createTable(StatementLogging st, MetaTable restoreTable) throws Exception {
 		NameMeta nme = getEscapedNameMeta(restoreTable);
 
 		String createTableDdl = MessageFormat.format(
-			"create table {0}.{1}() {2};\n alter table {0}.{1} owner to {3}"
+			"create table {0}.{1}() {2};"
 			,nme.getSchema()
 			,nme.getName()
 			,restoreTable.getTable().getOptions().getChildren().containsKey("tablespace")
@@ -468,22 +489,33 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 
 	//TODO restoreTableConstraintPostgres
 	private void createConstraint(MetaTable restoreTable, DBConstraint constr, StatementLogging st, boolean replaceExisting) throws Exception {
-		NameMeta nme = getEscapedNameMeta(restoreTable);
-		String tblSam = nme.getSchema()+"."+nme.getName();
-		String constrName = adapter.escapeNameIfNeeded(constr.getName());
-		String constrDdl = (replaceExisting) ? MessageFormat.format("alter table {0} drop constraint {1};\n", tblSam, constrName) : "";
-		constrDdl += MessageFormat.format(
-			"alter table {0} add constraint {1} {2};\n"
-			,tblSam
-			,constrName
-			,constr.getSql()
-				.replace(" " + constr.getSchema() + ".", " " + nme.getSchema() + ".")
-				.replace("REFERENCES ", "REFERENCES " +  nme.getSchema() + ".")
-		);
-
 		//dont create constraint on table with 'parent' key
-		if (!restoreTable.getTable().getOptions().getChildren().containsKey("parent"))
-			st.execute(constrDdl);
+		if (restoreTable.getTable().getOptions().getChildren().containsKey("parent")) return;
+
+		NameMeta nme = getEscapedNameMeta(restoreTable);
+		String tblSam = getPhisicalSchema(nme.getSchema())+"."+nme.getName();
+		String constrDdl;
+
+		if(constr.getConstraintType().equals("nn")){
+			constrDdl = MessageFormat.format("ALTER TABLE {0} {1};\n", tblSam, constr.getSql());
+
+		} else {
+			String constrName = adapter.escapeNameIfNeeded(constr.getName());
+
+			constrDdl = (replaceExisting)
+				? MessageFormat.format("ALTER TABLE {0} DROP CONSTRAINT {1};\n", tblSam, constrName)
+				: "";
+			constrDdl += MessageFormat.format(
+				"ALTER TABLE {0} ADD CONSTRAINT {1} {2};\n"
+				,tblSam
+				,constrName
+				,constr.getSql()
+					.replace(" " + constr.getSchema() + ".", " " + nme.getSchema() + ".")
+					.replace("REFERENCES ", "REFERENCES " +  nme.getSchema() + ".")
+			);
+		}
+
+		st.execute(constrDdl);
 	}
 
 
@@ -491,29 +523,22 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 	private void addColumn(String tblSam, DBTableField tblField, Statement st ) throws SQLException {
 		String fieldName = adapter.escapeNameIfNeeded(tblField.getName());
 		st.execute(
-				"alter table "+ tblSam +" add column "
-						+ fieldName + " "
-						+ tblField.getTypeSQL().replace("NOT NULL", "")
+			"alter table "+ tblSam +" add column "
+			+ fieldName + " "
+			+ tblField.getTypeSQL().replace("NOT NULL", "")
 		);
 		if (tblField.getDescription() != null && tblField.getDescription().length() > 0)
 			st.execute(
-					"COMMENT ON COLUMN " + tblSam + "."
-							+ fieldName
-							+ " IS '" + tblField.getDescription() + "'"
+				"COMMENT ON COLUMN " + tblSam + "."
+				+ fieldName
+				+ " IS '" + tblField.getDescription() + "'"
 			);
 
-		if (!tblField.getIsNullable()) {
-			st.execute(
-					"alter table " + tblSam
-							+ " alter column " + fieldName
-							+ " set not null"
-			);
-		}
 
 		if (tblField.getDefaultValue() != null && tblField.getDefaultValue().length() > 0) {
 			st.execute(
-					"alter table " + tblSam + " alter column " + fieldName
-							+ " SET DEFAULT " + tblField.getDefaultValue()
+				"alter table " + tblSam + " alter column " + fieldName
+				+ " SET DEFAULT " + tblField.getDefaultValue()
 			);
 		}
 
@@ -532,19 +557,14 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 	private void alterTypeColumn(String tblSam, ValueDifference<DBTableField> tblField, Statement st) throws SQLException
 	{
 		st.execute(MessageFormat.format("ALTER TABLE {0} ALTER COLUMN {1} TYPE {2} USING ({3}::{4})"
-				, tblSam
-				, adapter.escapeNameIfNeeded(tblField.leftValue().getName())
-				, tblField.leftValue().getTypeSQL().replace("NOT NULL", "")
-				, adapter.escapeNameIfNeeded(tblField.leftValue().getName())
-				, tblField.leftValue().getTypeSQL().replace("NOT NULL", "")
+			, tblSam
+			, adapter.escapeNameIfNeeded(tblField.leftValue().getName())
+			//NOT NULLs are created and dropped with other constraints as transient DBConstraint instances
+			, tblField.leftValue().getTypeSQL().replace("NOT NULL", "")
+			, adapter.escapeNameIfNeeded(tblField.leftValue().getName())
+			, tblField.leftValue().getTypeSQL().replace("NOT NULL", "")
 		));
 
-		if (!tblField.leftValue().getIsNullable()) {
-			st.execute(MessageFormat.format("ALTER TABLE {0} ALTER COLUMN {1} SET NOT NULL"
-					, tblSam
-					, adapter.escapeNameIfNeeded(tblField.leftValue().getName())
-			));
-		}
 	}
 	private void restoreTableFieldComment(String tableSam, ValueDifference<DBTableField> tblField, Statement st) throws SQLException
 	{
@@ -578,10 +598,10 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 			boolean needsUpdate = !existingDescPresent || !existingDefault.equals(restoreDefault);
 			if(needsUpdate){
 				st.execute(MessageFormat.format(
-						"ALTER TABLE {0} ALTER COLUMN {1} SET DEFAULT {2}"
-						,tableSam
-						,adapter.escapeNameIfNeeded(tblField.leftValue().getName())
-						,restoreDefault
+					"ALTER TABLE {0} ALTER COLUMN {1} SET DEFAULT {2}"
+					,tableSam
+					,adapter.escapeNameIfNeeded(tblField.leftValue().getName())
+					,restoreDefault
 				));
 			}
 		}
@@ -631,13 +651,10 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 				String schema = getPhisicalSchema(table.getTable().getSchema());
 				MetaTable dbTable = (MetaTable) GitMetaDataManager.getInstance().getCacheDBMetaObject(obj.getName());
 
-
+				enrichWithNotNullConstraints(table);
 				Map<String, DBConstraint> constraints = dbTable.getConstraints();
 				for(DBConstraint constrs :constraints.values()) {
-					st.execute(
-					"alter table "+ adapter.escapeNameIfNeeded(schema) +"."+adapter.escapeNameIfNeeded(table.getTable().getName())
-						+" drop constraint if exists "+adapter.escapeNameIfNeeded(constrs.getName())
-					);
+					dropConstraint(table, constrs, st);
 				}
 			}
 			else {
@@ -652,6 +669,25 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 			);
 		}
 		}
+
+	public void enrichWithNotNullConstraints(MetaTable table){
+		table.getFields().values().stream()
+			.filter( field -> field.getIsNullable())
+			.map( field -> constructNotNullDBConstraint(table, field))
+			.forEach( nnc -> table.getConstraints().put(nnc.getName(), nnc) );
+	}
+
+	public DBConstraint constructNotNullDBConstraint(MetaTable table, DBTableField field){
+		String name = "notnull_" + field.getName() + " (Transient)";
+		String type = "nn";
+		DBConstraint constraint = new DBConstraint(name, table.getTable().getSchema(), table.getTable().getOwner(), type);
+
+		constraint.getOptions().getChildren().put("column_name", new StringProperties(field.getName()));
+		constraint.setSql(MessageFormat.format(
+			"ALTER COLUMN {0} SET NOT NULL"
+			, adapter.escapeNameIfNeeded(field.getName()))
+		);
+		return constraint;
 	}
 	/*public void removeIndexesPostgres(IMetaObject obj) throws Exception {
 		IDBAdapter adapter = getAdapter();

@@ -247,6 +247,8 @@ errors:
     tables: Error load tables!
     tableFields: Error load table fields!
     tableData: Error load table data!
+    tableSpace: Error load tablespace!
+    sequence: Error load sequence!
     index: Error load indexes!
     constraint: Error load constraints!
     views: Error load views!

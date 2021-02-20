@@ -59,8 +59,8 @@ public abstract class DBBackupAdapter implements IDBBackupAdapter {
 
 	public void backupDatabase(IMapMetaObject updateObjs) throws Exception {
 
-		// Condition: we should not refer from backups on non-backup objects
-		// ->  we need to backup restoring objects dependencies
+		// Condition: we rewrite refs on backup objects adding BACKUP$ prefix on them
+		// ->  we need to find and add to backup list all updateObjs dependencies
 
 		// Condition: old backups can refer on each other
 		// ->  we need to drop old backups of the objects + old backup dependencies
@@ -80,7 +80,7 @@ public abstract class DBBackupAdapter implements IDBBackupAdapter {
 			.filter(x -> !updateObjs.containsKey(x.getName()))
 			.collect(Collectors.toList());
 
-		IMapMetaObject dbAllBackups = new TreeMapMetaObject(dbObjs.values().stream()
+		IMapMetaObject dbExistingBackups = new TreeMapMetaObject(dbObjs.values().stream()
 			.filter(this::isBackupObject)
 			.collect(Collectors.toList()));
 
@@ -95,39 +95,42 @@ public abstract class DBBackupAdapter implements IDBBackupAdapter {
 
 		// collect restore objects dependencies to satisfy all backups create needs
 		// so dependencies will be backed up too
-		Map<String, IMetaObject> addedObjs;
+		Map<String, IMetaObject> restoreObjsDependencies;
 		do{
-			addedObjs = dbNotToBackup.stream().filter( notToBackup ->
+			restoreObjsDependencies = dbNotToBackup.stream().filter( notToBackup ->
 				notToBackup.getUnderlyingDbObject() != null &&
 				dbToBackup.values().stream().anyMatch(
 					toBackup -> toBackup.dependsOn(notToBackup)
 				)
 			).collect(Collectors.toMap(IMetaObject::getName, Function.identity() ));
 
-			dbNotToBackup.removeAll(addedObjs.values());
-			dbToBackup.putAll(addedObjs);
+			dbNotToBackup.removeAll(restoreObjsDependencies.values());
+			dbToBackup.putAll(restoreObjsDependencies);
 
-			if(addedObjs.size() > 0) {
+			if(restoreObjsDependencies.size() > 0) {
 				ConsoleWriter.println(DBGitLang.getInstance()
 					.getValue("general", "backup", "dependingBackups")
 					.withParams(
-						String.valueOf(addedObjs.size()),
-						String.join(" ,", addedObjs.keySet())
+						String.valueOf(restoreObjsDependencies.size()),
+						String.join(" ,", restoreObjsDependencies.keySet())
 					), 2
 				);
 			}
-		} while (addedObjs.size() > 0);
+		} while (restoreObjsDependencies.size() > 0);
 
 		//so we have a full backup list, let's get a drop list
 		if(dbToBackup.size() > 0){
-			Set<String> suspectBackupNames = dbToBackup.values().stream().map( x->getBackupNameMeta(x).getMetaName()).collect(Collectors.toSet());
+			Set<String> suspectBackupNames = dbToBackup.values().stream()
+				.map( x->getBackupNameMeta(x).getMetaName())
+				.collect(Collectors.toSet());
+
 			List<IMetaObject> dropList = new ArrayList<>();
 
-			IMapMetaObject dbDroppingBackups = new TreeMapMetaObject(dbAllBackups.values().stream()
-				.filter(dbBackup -> suspectBackupNames.contains(dbBackup.getName()))
+			IMapMetaObject dbDroppingBackups = new TreeMapMetaObject(dbExistingBackups.values().stream()
+				.filter(existingBackup -> suspectBackupNames.contains(existingBackup.getName()))
 				.collect(Collectors.toList()));
 
-			List<IMetaObject> dbDroppingBackupsDeps = dbAllBackups.values().stream()
+			List<IMetaObject> dbDroppingBackupsDeps = dbExistingBackups.values().stream()
 				.filter( dbBackup ->
 					!dbDroppingBackups.containsKey(dbBackup.getName())
 					&& dbDroppingBackups.values().stream().anyMatch(dbBackup::dependsOn)
@@ -149,7 +152,6 @@ public abstract class DBBackupAdapter implements IDBBackupAdapter {
 			for(IMetaObject imo : dropListSorted){
 				ConsoleWriter.detailsPrintln(lang.getValue("general", "backup", "droppingBackup").withParams(imo.getName()), messageLevel);
 				dropIfExists(imo, stLog);
-
 				ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 			}
 
