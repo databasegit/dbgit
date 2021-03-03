@@ -15,60 +15,60 @@ import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
  *
  */
 public class StringProperties {
-	private String data = null;
-	private StringProperties parent = null;
-    private Map<String, StringProperties> children = null;
+	private String data;
+    private Map<String, StringProperties> children;
 
     public StringProperties() {        
-        this.children = new TreeMap<String, StringProperties>();
+        this.children = new TreeMap<>();
+        this.data = "";
     }
     
-    public StringProperties(String data) {        
-        this();
-        this.data = data;
+    public StringProperties(String data) {
+		this.children = new TreeMap<>();
+		this.data = data;
+    }
+    public StringProperties(Map<String, StringProperties> children) {
+		this.children = children == null ? new TreeMap<>() : children;
+		this.data = "";
     }
 
-	public StringProperties (ResultSet rs) {
-
+	public StringProperties(ResultSet rs) {
+		this.children = new TreeMap<>();
+		this.data = "";
 		try {
-			for (int i = 1; i <= rs.getMetaData().getColumnCount(); i++) {
-				if (rs.getString(i) == null) continue ;
+			final int columnCount = rs.getMetaData().getColumnCount();
+			for (int i = 1; i <= columnCount; i++) {
 
-				String columnName = rs.getMetaData().getColumnName(i);
+				final String columnName = rs.getMetaData().getColumnName(i);
+				final String columnValue = rs.getString(i);
+
 				if (columnName.equalsIgnoreCase("dependencies")) continue ;
+				if (columnValue == null) continue ;
 
-				addChild(columnName.toLowerCase(), cleanString(rs.getString(i)));
+				final String cleanValue = cleanString(columnValue);
+				final String cleanName = columnName.toLowerCase();
+
+				addChild(cleanName, cleanValue);
 			}
 		} catch(Exception e) {
 			throw new ExceptionDBGitRunTime(e);
 		}
 	}
+
     
-    
-    public StringProperties addChild(String name) {
-    	StringProperties childNode = new StringProperties();
-        childNode.parent = this;
-        this.children.put(name, childNode);
-        return childNode;
-    }
-    
-    public StringProperties addChild(String name, StringProperties properties) {
-    	this.children.put(name, properties);
-    	properties.parent = this;
-        return properties;
+    public void addChild(String name, String stringValue) {
+    	StringProperties valueOnlyNode = new StringProperties(stringValue);
+		this.children.put(name, valueOnlyNode);
     }
 
-    public StringProperties addChild(String name, String val) {
-    	StringProperties childNode = addChild(name);
-    	childNode.setData(val);
-        return childNode;
+    public void addChild(String name, StringProperties value) {
+		this.children.put(name, value);
     }
     
-    public StringProperties deleteChild(String name) {
+    public void deleteChild(String name) {
     	if (children.containsKey(name)) {
     		children.remove(name);
     	}
-    	return this;
     }
     
     public StringProperties xPath(String path) {
@@ -91,10 +91,6 @@ public class StringProperties {
 
 	public void setData(String data) {
 		this.data = data;
-	}
-
-	public StringProperties getParent() {
-		return parent;
 	}
 
 	public Map<String, StringProperties> getChildren() {

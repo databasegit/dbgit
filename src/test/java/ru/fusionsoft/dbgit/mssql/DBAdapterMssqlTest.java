@@ -3,28 +3,22 @@ package ru.fusionsoft.dbgit.mssql;
 import com.google.common.collect.Lists;
 
 import org.apache.commons.lang3.time.StopWatch;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
 import ru.fusionsoft.dbgit.adapters.AdapterFactory;
-import ru.fusionsoft.dbgit.adapters.IFactoryDBConvertAdapter;
 import ru.fusionsoft.dbgit.core.DBGitConfig;
 import ru.fusionsoft.dbgit.core.db.DbType;
 import ru.fusionsoft.dbgit.dbobjects.*;
 import ru.fusionsoft.dbgit.meta.*;
-import ru.fusionsoft.dbgit.oracle.DBRestorePackageOracle;
 import ru.fusionsoft.dbgit.statement.StatementLogging;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
-import javax.naming.Name;
 import java.sql.*;
 import java.text.MessageFormat;
 import java.util.*;
+import org.junit.jupiter.api.*;
+import static org.junit.jupiter.api.Assertions.*;
 
-import static org.junit.Assert.*;
 
-
+@Tag("mssqlTest")
 public class DBAdapterMssqlTest {
 
     public static Properties testProps;
@@ -39,11 +33,11 @@ public class DBAdapterMssqlTest {
     *  Protocols -> SQL EXPRESS protocols -> Protocol -> IP adresses -> IPAll -> TCP Port to 1433 and Dynamic TCP Port to blank
     * */
 
-    public static String TEST_CONN_URL = "localhost:1433";
-    public static String TEST_CONN_CATALOG = "MyDiet";
+    public static String TEST_CONN_URL = "23.105.226.179:1433";
+    public static String TEST_CONN_CATALOG = "testdatabasegit";
     public static String TEST_CONN_STRING = "jdbc:sqlserver://"+TEST_CONN_URL+";databaseName="+TEST_CONN_CATALOG+";integratedSecurity=false;";
-    public static String TEST_CONN_USER = "test";
-    public static String TEST_CONN_PASS = "test";
+    public static String TEST_CONN_USER = "sa";
+    public static String TEST_CONN_PASS = "s%G351as";
 
     private static DBAdapterMssql testAdapter;
     private static DBBackupAdapterMssql testBackup;
@@ -77,7 +71,7 @@ public class DBAdapterMssqlTest {
     private static int messageLevel = 0;
 
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         if(!isInitialized){
             try {
@@ -94,12 +88,13 @@ public class DBAdapterMssqlTest {
             catch (Exception ex){
                 fail(ex.getMessage());
             }
-            dropBackupTables();
+            dropBackupObjects();
         }
     }
 
-    @After
-    public void tearDown() throws Exception {
+    @AfterEach
+    public void tearDown() throws Exception
+    {
     }
 
     @Test
@@ -190,7 +185,7 @@ public class DBAdapterMssqlTest {
 
             Map<String, DBTableField> fields = testAdapter.getTableFields(schema, name);
             assertEquals("sql_variant(0)", fields.get("col10").getTypeSQL());
-            assertEquals("native", fields.get("col10").getTypeUniversal());
+            assertEquals("native",fields.get("col10").getTypeUniversal().toString());
 
             dropTable(schema + "." + name);
         }
@@ -209,7 +204,7 @@ public class DBAdapterMssqlTest {
             createTestTriggerProcedureFunctions(triggerTableName);
 
             DBTableData data = testAdapter.getTableData(testConnection.getSchema(), triggerTableName);
-            ResultSet rs = data.getResultSet();
+            ResultSet rs = data.resultSet();
             ResultSetMetaData md = rs.getMetaData();
             int cols = md.getColumnCount();
             rs.next();
@@ -223,7 +218,7 @@ public class DBAdapterMssqlTest {
             System.out.println(watch.toString());
         }
         catch (Exception ex) {
-            fail(ex.toString());
+            fail(ex.getLocalizedMessage());
         }
     }
 
@@ -239,7 +234,7 @@ public class DBAdapterMssqlTest {
             );
 
             DBTableData data = testAdapter.getTableDataPortion("tempdb.", "#bigDummyTable", 2, 0);
-            ResultSet rs = data.getResultSet();
+            ResultSet rs = data.resultSet();
             while (rs.next()) rowsAffected++;
 
 
@@ -629,6 +624,7 @@ public class DBAdapterMssqlTest {
 
     @Test
     public void backupMetaSql() throws Exception{
+        dropBackupObjects();
         createTestTriggerProcedureFunctions(triggerTableName);
         createTestView(schema, viewName);
 
@@ -921,7 +917,7 @@ public class DBAdapterMssqlTest {
 
     //heplers
 
-    public void dropBackupTables() throws Exception{
+    public void dropBackupObjects() throws Exception{
         Map<String, DBTable> tables = testAdapter.getTables(schema);
         for (DBTable table : tables.values()){
             if(table.getName().startsWith("BACKUP$")){
@@ -929,7 +925,43 @@ public class DBAdapterMssqlTest {
                 dropTable(schema+"."+table.getName());
             }
         }
+
+        Map<String, DBView> views = testAdapter.getViews(schema);
+        for (DBView view : views.values()){
+            if(view.getName().startsWith("BACKUP$")){
+                ConsoleWriter.println("drop "+view.getName(), messageLevel);
+                dropView(schema+"."+view.getName());
+            }
+        }
+
+        Map<String, DBTrigger> Triggers = testAdapter.getTriggers(schema);
+        for (DBTrigger Trigger : Triggers.values()){
+            if(Trigger.getName().startsWith("BACKUP$")){
+                ConsoleWriter.println("drop "+Trigger.getName(), messageLevel);
+                dropTrigger(schema+"."+Trigger.getName());
+            }
+        }
+
+        Map<String, DBProcedure> Procedures = testAdapter.getProcedures(schema);
+        for (DBProcedure Procedure : Procedures.values()){
+            if(Procedure.getName().startsWith("BACKUP$")){
+                ConsoleWriter.println("drop "+Procedure.getName(), messageLevel);
+                dropProcedure(schema+"."+Procedure.getName());
+            }
+        }
+
+        Map<String, DBFunction> Functions = testAdapter.getFunctions(schema);
+        for (DBFunction Function : Functions.values()){
+            if(Function.getName().startsWith("BACKUP$")){
+                ConsoleWriter.println("drop "+Function.getName(), messageLevel);
+                dropFunction(schema+"."+Function.getName());
+            }
+        }
+
+
     }
+
+
 
     public boolean trySetMasterCatalog(){
         try {
@@ -1076,6 +1108,42 @@ public class DBAdapterMssqlTest {
         String name = convertSchemaAndName(schemaAndName);
         String ddl = MessageFormat.format("IF OBJECT_ID(''{0}'', ''U'') IS NOT NULL DROP TABLE {0}", name);
         stmt.execute(ddl);
+        stmt.close();
+    }
+
+    public void dropView(String schemaAndName) throws Exception{
+        Statement stmt = testConnection.createStatement();
+        String name = convertSchemaAndName(schemaAndName);
+        String ddl = MessageFormat.format("IF OBJECT_ID(''{0}'', ''V'') IS NOT NULL DROP VIEW {0}", name);
+        stmt.execute(ddl);
+        stmt.close();
+    }
+
+    public void dropTrigger(String schemaAndName) throws Exception{
+        Statement stmt = testConnection.createStatement();
+        String name = convertSchemaAndName(schemaAndName);
+        String ddl = MessageFormat.format("IF OBJECT_ID(''{0}'', ''TR'') IS NOT NULL DROP TRIGGER {0}", name);
+        stmt.execute(ddl);
+        stmt.close();
+    }
+
+    public void dropProcedure(String schemaAndName) throws Exception{
+        Statement stmt = testConnection.createStatement();
+        String name = convertSchemaAndName(schemaAndName);
+        String ddl = MessageFormat.format("IF OBJECT_ID(''{0}'', ''P'') IS NOT NULL DROP PROCEDURE {0}", name);
+        stmt.execute(ddl);
+        stmt.close();
+    }
+
+    public void dropFunction(String schemaAndName) throws Exception{
+        Statement stmt = testConnection.createStatement();
+        String name = convertSchemaAndName(schemaAndName);
+        String ddl1 = MessageFormat.format("IF OBJECT_ID(''{0}'', ''FN'') IS NOT NULL DROP FUNCTION {0}", name);
+        String ddl2 = MessageFormat.format("IF OBJECT_ID(''{0}'', ''IF'') IS NOT NULL DROP FUNCTION {0}", name);
+        String ddl3 = MessageFormat.format("IF OBJECT_ID(''{0}'', ''TF'') IS NOT NULL DROP FUNCTION {0}", name);
+        stmt.execute(ddl1);
+        stmt.execute(ddl2);
+        stmt.execute(ddl3);
         stmt.close();
     }
 

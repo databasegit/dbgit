@@ -1,16 +1,14 @@
 package ru.fusionsoft.dbgit;
 
-import com.jcraft.jsch.jce.Random;
-/*
-import junit.framework.Test;
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
-*/
-import ru.fusionsoft.dbgit.dbobjects.DBTableField;
+import org.junit.jupiter.api.*;
+import static org.junit.jupiter.api.Assertions.*;
 
-import ru.fusionsoft.dbgit.utils.MaskFilter;
 
-public class UtilTest /*extends TestCase*/ {	
+
+
+public class UtilTest {
+
+	@Test
 	public void testMask() {
 		/*
 		MaskFilter mask = new MaskFilter("asd*.txt");
@@ -30,7 +28,7 @@ public class UtilTest /*extends TestCase*/ {
 		assertFalse(mask.match("pat\\ws612df.txt"));
 		*/
 	}
-	
+	@Test
 	public void testMapField() {
 		/*
 		IMapFields map = new TreeMapFields();

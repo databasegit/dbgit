@@ -1,15 +1,9 @@
 package ru.fusionsoft.dbgit.oracle;
 
-import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -17,7 +11,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.StringJoiner;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
@@ -43,7 +36,6 @@ import ru.fusionsoft.dbgit.dbobjects.DBConstraint;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
 import ru.fusionsoft.dbgit.meta.MetaTable;
 import ru.fusionsoft.dbgit.meta.MetaTableData;
-import ru.fusionsoft.dbgit.statement.PrepareStatementLogging;
 import ru.fusionsoft.dbgit.statement.StatementLogging;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 
@@ -81,7 +73,7 @@ public class DBRestoreTableDataOracle extends DBRestoreAdapter {
 				if (getAdapter().getTable(schema, currentTableData.getTable().getName()) != null) {
 					currentTableData.setDataTable(getAdapter().getTableData(schema, currentTableData.getTable().getName()));
 				
-					ResultSet rs = currentTableData.getDataTable().getResultSet();
+					ResultSet rs = currentTableData.getDataTable().resultSet();
 					
 					TreeMapRowData mapRows = new TreeMapRowData(); 
 					

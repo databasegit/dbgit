@@ -7,4 +7,8 @@ public class DBSchema extends DBOptionsObject {
 	public DBSchema(String name, StringProperties options) {
 		super(name, options);
 	}
+
+	public DBSchema(String name) {
+		super(name);
+	}
 }

@@ -3,10 +3,12 @@ package ru.fusionsoft.dbgit.postgres;
 
 import java.sql.*;
 import java.text.MessageFormat;
+import java.time.Period;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import com.diogonunes.jcdp.color.api.Ansi;
+import com.google.common.collect.ImmutableMap;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import ru.fusionsoft.dbgit.adapters.*;
 import ru.fusionsoft.dbgit.core.*;
@@ -14,6 +16,8 @@ import ru.fusionsoft.dbgit.core.db.DbType;
 import ru.fusionsoft.dbgit.core.db.FieldType;
 import ru.fusionsoft.dbgit.dbobjects.*;
 import ru.fusionsoft.dbgit.meta.IMapMetaObject;
+import ru.fusionsoft.dbgit.meta.IMetaObject;
+import ru.fusionsoft.dbgit.meta.TreeMapMetaObject;
 import ru.fusionsoft.dbgit.statement.StatementLogging;
 import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 import ru.fusionsoft.dbgit.utils.LoggerUtil;
@@ -24,11 +28,11 @@ import ru.fusionsoft.dbgit.utils.StringProperties;
 
 
 public class DBAdapterPostgres extends DBAdapter {
-	private Logger logger = LoggerUtil.getLogger(this.getClass());
-	private FactoryDBAdapterRestorePostgres restoreFactory = new FactoryDBAdapterRestorePostgres();
-	private FactoryDbConvertAdapterPostgres convertFactory = new FactoryDbConvertAdapterPostgres();
-	private FactoryDBBackupAdapterPostgres backupFactory = new FactoryDBBackupAdapterPostgres();
-	private static Set<String> reservedWords = new HashSet<>();
+	private final Logger logger = LoggerUtil.getLogger(this.getClass());
+	private final FactoryDBAdapterRestorePostgres restoreFactory = new FactoryDBAdapterRestorePostgres();
+	private final FactoryDbConvertAdapterPostgres convertFactory = new FactoryDbConvertAdapterPostgres();
+	private final FactoryDBBackupAdapterPostgres backupFactory = new FactoryDBBackupAdapterPostgres();
+	private final static Set<String> reservedWords = new HashSet<>();
 
 	@Override
 	public IFactoryDBAdapterRestoteMetaData getFactoryRestore() {
@@ -49,28 +53,29 @@ public class DBAdapterPostgres extends DBAdapter {
 
 	@Override
 	public IMapMetaObject loadCustomMetaObjects() {
-		return null;
+		return new TreeMapMetaObject(Collections.emptyList());
 	}
 
 	@Override
 	public Map<String, DBSchema> getSchemes() {
-		Map<String, DBSchema> listScheme = new HashMap<String, DBSchema>();
-		String query =
+		final Map<String, DBSchema> listScheme = new HashMap<String, DBSchema>();
+		final String query =
 			"select nspname,usename,nspacl from pg_namespace,pg_user where nspname!='pg_toast' and nspname!='pg_temp_1'"+
 			"and nspname!='pg_toast_temp_1' and nspname!='pg_catalog'"+
 			"and nspname!='information_schema' and nspname!='pgagent'"+
 			"and nspname!='pg_temp_3' and nspname!='pg_toast_temp_3'"+
 			"and usesysid = nspowner";
+
 		try (Statement stmt = getConnection().createStatement(); ResultSet rs = stmt.executeQuery(query);){
 
 			while(rs.next()){
-				String name = rs.getString("nspname");
-				DBSchema scheme = new DBSchema(name, new StringProperties(rs));
+				final String name = rs.getString("nspname");
+				final DBSchema scheme = new DBSchema(name, new StringProperties(rs));
 				listScheme.put(name, scheme);
 			}
 
 		} catch(Exception e) {
-			String msg = lang.getValue("errors", "adapter", "schemes").toString();
+			final String msg = lang.getValue("errors", "adapter", "schemes").toString();
 			throw new ExceptionDBGitRunTime(msg, e);
 		}
 
@@ -80,8 +85,8 @@ public class DBAdapterPostgres extends DBAdapter {
 
 	@Override
 	public Map<String, DBTableSpace> getTableSpaces() {
-		Map<String, DBTableSpace> listTableSpace = new HashMap<String, DBTableSpace>();
-		String query =
+		final Map<String, DBTableSpace> listTableSpace = new HashMap<String, DBTableSpace>();
+		final String query =
 			"SELECT tblspaces.spcname,tblspaces.spcacl,tblspaces.spcoptions,users.usename,pg_tablespace_location(tblspacesoid.oid) " +
 			"FROM pg_tablespace as tblspaces,pg_user as users,(Select oid FROM pg_tablespace where spcname!='pg_default' and spcname!='pg_global') as tblspacesoid " +
 			"WHERE users.usesysid=tblspaces.spcowner and spcname!='pg_default' and spcname!='pg_global' and tblspacesoid.oid=tblspaces.oid";
@@ -89,13 +94,13 @@ public class DBAdapterPostgres extends DBAdapter {
 		try (Statement stmt = getConnection().createStatement(); ResultSet rs = stmt.executeQuery(query);){
 
 			while(rs.next()){
-				String name = rs.getString("spcname");
-				DBTableSpace dbTableSpace = new DBTableSpace(name, new StringProperties(rs));
+				final String name = rs.getString("spcname");
+				final DBTableSpace dbTableSpace = new DBTableSpace(name, new StringProperties(rs));
 				listTableSpace.put(name, dbTableSpace);
 			}
 
 		} catch(Exception e) {
-			String msg = lang.getValue("errors", "adapter", "tablespace").toString();
+			final String msg = lang.getValue("errors", "adapter", "tablespace").toString();
 			throw new ExceptionDBGitRunTime(msg, e);
 		}
 		return listTableSpace;
@@ -103,8 +108,8 @@ public class DBAdapterPostgres extends DBAdapter {
 
 	@Override
 	public Map<String, DBSequence> getSequences(String schema) {
-		Map<String, DBSequence> listSequence = new HashMap<>();
-		String query = MessageFormat.format(
+		final Map<String, DBSequence> listSequence = new HashMap<>();
+		final String query = MessageFormat.format(
 			"select s.sequence_name, rol.rolname as owner, s.start_value, s.minimum_value, s.maximum_value, s.increment, s.cycle_option, cl.relname as blocking_table   \n" +
 			"from pg_class cls \n" +
 			"  join pg_roles rol on rol.oid = cls.relowner  \n" +
@@ -118,21 +123,20 @@ public class DBAdapterPostgres extends DBAdapter {
 			schema
 		);
 
-		try (Statement stmt = getConnection().createStatement(); ResultSet rs = stmt.executeQuery(query);)
-		{
+		try (Statement stmt = getConnection().createStatement(); ResultSet rs = stmt.executeQuery(query);) {
 
 			while(rs.next()){
-				String nameSeq = rs.getString("sequence_name");
-				String ownerSeq = rs.getString("blocking_table");
-				Long valueSeq = 0L;
+				final String nameSeq = rs.getString("sequence_name");
+				final String ownerSeq = rs.getString("blocking_table");
+				final Long valueSeq = 0L;
 				//TODO find actual value
 
-				DBSequence sequence = new DBSequence(nameSeq, new StringProperties(rs), schema, ownerSeq, Collections.emptySet(), valueSeq);
+				final DBSequence sequence = new DBSequence(nameSeq, new StringProperties(rs), schema, ownerSeq, Collections.emptySet(), valueSeq);
 				listSequence.put(nameSeq, sequence);
 			}
 
 		} catch(Exception e) {
-			String msg = lang.getValue("errors", "adapter", "sequence").toString();
+			final String msg = lang.getValue("errors", "adapter", "sequence").toString();
 			throw new ExceptionDBGitRunTime(msg, e);
 		}
 
@@ -142,7 +146,7 @@ public class DBAdapterPostgres extends DBAdapter {
 	@Override
 	public DBSequence getSequence(String schema, String name) {
 
-		String query =
+		final String query =
 			"select s.sequence_name, rol.rolname as owner, s.start_value, s.minimum_value, s.maximum_value, s.increment, s.cycle_option, cl.relname as blocking_table   \n" +
 			"from pg_class cls \n" +
 			"  join pg_roles rol on rol.oid = cls.relowner  \n" +
@@ -155,33 +159,31 @@ public class DBAdapterPostgres extends DBAdapter {
 			"  and cls.relkind = 'S' and s.sequence_schema = :schema and s.sequence_name = :name ";
 
 		try (
-			PreparedStatement stmt = preparedStatement(getConnection(), query, Map.of("schema", schema, "name", name));
+			PreparedStatement stmt = preparedStatement(getConnection(), query, ImmutableMap.of("schema", schema, "name", name));
 			ResultSet rs = stmt.executeQuery();
 		) {
 			if (rs.next()) {
-				String nameSeq = rs.getString("sequence_name");
-				String ownerSeq = rs.getString("blocking_table");
-				Long valueSeq = 0L;
 				//TODO find actual value
-
+				final Long valueSeq = 0L;
+				final String nameSeq = rs.getString("sequence_name");
+				final String ownerSeq = rs.getString("blocking_table");
 				return new DBSequence(nameSeq, new StringProperties(rs), schema, ownerSeq, Collections.emptySet(), valueSeq);
+
 			} else {
-				String msg = lang.getValue("errors", "adapter", "objectNotFoundInDb").toString();
+				final String msg = lang.getValue("errors", "adapter", "objectNotFoundInDb").toString();
 				throw new ExceptionDBGitObjectNotFound(msg);
 			}
 
 		} catch(Exception e) {
-
-			String msg = lang.getValue("errors", "adapter", "sequence").toString();
+			final String msg = lang.getValue("errors", "adapter", "sequence").toString();
 			throw new ExceptionDBGitRunTime(msg, e);
-
 		}
 	}
 
 	@Override
 	public Map<String, DBTable> getTables(String schema) {
-		Map<String, DBTable> listTable = new HashMap<String, DBTable>();
-		String query =
+		final Map<String, DBTable> listTable = new HashMap<String, DBTable>();
+		final String query =
 			"SELECT \n" +
 			"	tablename AS table_name,\n" +
 			"	tableowner AS owner,\n" +
@@ -197,7 +199,7 @@ public class DBAdapterPostgres extends DBAdapter {
 			"		and c1.relkind = 'r' AND c.contype = 'f'\n" +
 			"	) " +
 			"	AS dependencies, \n" +
-			( (getDbVersionNumber() > 10)
+			( (getDbVersionNumber() >= 10)
 					? 	"   pg_get_partkeydef((\n" +
 					"		SELECT oid \n" +
 					"		FROM pg_class \n" +
@@ -217,16 +219,16 @@ public class DBAdapterPostgres extends DBAdapter {
 			"WHERE upper(schemaname) = upper(:schema)";
 
 		try (
-			PreparedStatement stmt = preparedStatement(getConnection(), query, Map.of("schema", schema));
+			PreparedStatement stmt = preparedStatement(getConnection(), query, ImmutableMap.of("schema", schema));
 			ResultSet rs = stmt.executeQuery();
 		) {
 
 
 			while(rs.next()){
-				String nameTable = rs.getString("table_name");
-				String ownerTable = rs.getString("owner");
-				String commentTable = rs.getString("table_comment");
-				Set<String> dependencies = rs.getArray("dependencies") != null
+				final String nameTable = rs.getString("table_name");
+				final String ownerTable = rs.getString("owner");
+				final String commentTable = rs.getString("table_comment");
+				final Set<String> dependencies = rs.getArray("dependencies") != null
 					? new HashSet<>(Arrays.asList((String[])rs.getArray("dependencies").getArray()))
 					: Collections.emptySet();
 
@@ -234,11 +236,11 @@ public class DBAdapterPostgres extends DBAdapter {
 					dependencies.add(schema + "/" + rs.getString("parent") + ".tbl");
 				}
 
-				DBTable table = new DBTable(nameTable, new StringProperties(rs), schema, ownerTable, dependencies, commentTable);
+				final DBTable table = new DBTable(nameTable, new StringProperties(rs), schema, ownerTable, dependencies, commentTable);
 				listTable.put(nameTable, table);
 			}
 		} catch (Exception e) {
-			String msg = lang.getValue("errors", "adapter", "tables").toString();
+			final String msg = lang.getValue("errors", "adapter", "tables").toString();
 			throw new ExceptionDBGitRunTime(msg, e);
 		}
 		return listTable;
@@ -246,7 +248,7 @@ public class DBAdapterPostgres extends DBAdapter {
 
 	@Override
 	public DBTable getTable(String schema, String name) {
-		String query =
+		final String query =
 			"SELECT \n" +
 			"	tablename AS table_name,\n" +
 			"	tableowner AS owner,\n" +
@@ -262,7 +264,7 @@ public class DBAdapterPostgres extends DBAdapter {
 			"		and c1.relkind = 'r' AND c.contype = 'f'\n" +
 			"	) " +
 			"	AS dependencies, \n" +
-			( (getDbVersionNumber() > 10)
+			( (getDbVersionNumber() >= 10)
 					? 	"   pg_get_partkeydef((\n" +
 					"		SELECT oid \n" +
 					"		FROM pg_class \n" +
@@ -282,18 +284,17 @@ public class DBAdapterPostgres extends DBAdapter {
 			"WHERE upper(schemaname) = upper(:schema)" +
 			"AND tablename = :name";
 		try (
-			PreparedStatement stmt = preparedStatement(getConnection(), query, Map.of("schema", schema, "name", name));
+			PreparedStatement stmt = preparedStatement(getConnection(), query, ImmutableMap.of("schema", schema, "name", name));
 			ResultSet rs = stmt.executeQuery();
 		) {
 
-
 			if (rs.next()) {
-				String nameTable = rs.getString("table_name");
-				String ownerTable = rs.getString("owner");
-				String commentTable = rs.getString("table_comment");
-				Set<String> dependencies = rs.getArray("dependencies") != null
-						? new HashSet<>(Arrays.asList((String[])rs.getArray("dependencies").getArray()))
-						: Collections.emptySet();
+				final String nameTable = rs.getString("table_name");
+				final String ownerTable = rs.getString("owner");
+				final String commentTable = rs.getString("table_comment");
+				final Set<String> dependencies = rs.getArray("dependencies") != null
+					? new HashSet<>(Arrays.asList((String[])rs.getArray("dependencies").getArray()))
+					: Collections.emptySet();
 
 				if (rs.getString("parent") != null) {
 					dependencies.add(schema + "/" + rs.getString("parent") + ".tbl");
@@ -302,12 +303,12 @@ public class DBAdapterPostgres extends DBAdapter {
 				return new DBTable(nameTable, new StringProperties(rs), schema, ownerTable, dependencies, commentTable);
 
 			} else {
-				String msg = lang.getValue("errors", "adapter", "objectNotFoundInDb").toString();
+				final String msg = lang.getValue("errors", "adapter", "objectNotFoundInDb").toString();
 				throw new ExceptionDBGitObjectNotFound(msg);
 			}
 
 		} catch(Exception e) {
-			String msg = lang.getValue("errors", "adapter", "tables").toString();
+			final String msg = lang.getValue("errors", "adapter", "tables").toString();
 			throw new ExceptionDBGitRunTime(msg, e);
 		}
 	}
@@ -338,50 +339,39 @@ public class DBAdapterPostgres extends DBAdapter {
 			"order by col.column_name ";
 
 		try (
-			PreparedStatement stmt = preparedStatement(getConnection(), query, Map.of("schema", schema, "table", nameTable));
+			PreparedStatement stmt = preparedStatement(getConnection(), query, ImmutableMap.of("schema", schema, "table", nameTable));
 			ResultSet rs = stmt.executeQuery();
 		) {
 
 
 			while(rs.next()){
-				DBTableField field = new DBTableField();
-				String typeSQL = getFieldType(rs);
-				String nameField = rs.getString("column_name");
-				String descField = rs.getString("description");
-				String columnDefault = rs.getString("column_default");
-				boolean isFixed = rs.getBoolean("fixed");
-				boolean isNameExactly = !rs.getString("column_name").equals(rs.getString("column_name").toLowerCase());
-				boolean isPrimaryKey = rs.getString("constraint_name") != null;
-				boolean isNullable = !typeSQL.toLowerCase().contains("not null");
-				FieldType typeUniversal = FieldType.fromString(rs.getString("tp"));
-				int length = rs.getInt("character_maximum_length");
-				int precision = rs.getInt("numeric_precision");
-				int scale = rs.getInt("numeric_scale");
-				int ordinalPosition = rs.getInt("ordinal_position");
-				//TODO more verbose type override
-				typeUniversal = typeUniversal.equals(FieldType.TEXT) ? FieldType.STRING_NATIVE : typeUniversal;
+				final String typeSQL = getFieldType(rs);
+				final String nameField = rs.getString("column_name");
+				final String descField = rs.getString("description");
+				final String columnDefault = rs.getString("column_default");
+				final boolean isFixed = rs.getBoolean("fixed");
+				final boolean isPrimaryKey = rs.getString("constraint_name") != null;
+				final boolean isNullable = !typeSQL.toLowerCase().contains("not null");
+				final FieldType typeUniversal = FieldType.fromString(rs.getString("tp"));
+				final FieldType actualTypeUniversal = typeUniversal.equals(FieldType.TEXT) ? FieldType.STRING_NATIVE : typeUniversal;
+				final int length = rs.getInt("character_maximum_length");
+				final int precision = rs.getInt("numeric_precision");
+				final int scale = rs.getInt("numeric_scale");
+				final int ordinalPosition = rs.getInt("ordinal_position");
 
-				field.setName(nameField);
-				field.setDescription(descField);
-				field.setNameExactly(isNameExactly);
-				field.setIsPrimaryKey(isPrimaryKey);
-				field.setTypeUniversal(typeUniversal);
-				field.setTypeSQL(typeSQL);
-				field.setIsNullable(isNullable);
-				field.setFixed(false);
-				field.setLength(length);
-				field.setPrecision(precision);
-				field.setScale(scale);
-				field.setFixed(isFixed);
-				field.setOrder(ordinalPosition);
-				field.setDefaultValue(columnDefault);
+
+				final DBTableField field = new DBTableField(
+					nameField, descField, isPrimaryKey, isNullable,
+					typeSQL, actualTypeUniversal, ordinalPosition, columnDefault,
+					length, scale, precision, isFixed
+				);
 
 				listField.put(nameField, field);
 			}
 
 
 		} catch(Exception e) {
-			String msg = lang.getValue("errors", "adapter", "tables").toString();
+			final String msg = lang.getValue("errors", "adapter", "tableData").toString();
 			throw new ExceptionDBGitRunTime(msg, e);
 		}
 
@@ -390,7 +380,7 @@ public class DBAdapterPostgres extends DBAdapter {
 
 	private String getFieldType(ResultSet rs) {
 		try {
-			StringBuilder type = new StringBuilder();
+			final StringBuilder type = new StringBuilder();
 			type.append(rs.getString("dtype"));
 
 			Integer max_length = rs.getInt("character_maximum_length");
@@ -402,16 +392,16 @@ public class DBAdapterPostgres extends DBAdapter {
 			}
 
 			return type.toString();
-		}catch(Exception e) {
-			logger.error(lang.getValue("errors", "adapter", "tables").toString(), e);
-			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "tables").toString(), e);
+		} catch(Exception e) {
+			final String msg = lang.getValue("errors", "adapter", "tables").toString();
+			throw new ExceptionDBGitRunTime(msg, e);
 		}
 	}
 
 	@Override
 	public Map<String, DBIndex> getIndexes(String schema, String nameTable) {
-		Map<String, DBIndex> indexes = new HashMap<>();
-		String query =
+		final Map<String, DBIndex> indexes = new HashMap<>();
+		final String query =
 			"SELECT " +
 			"	i.schemaname,\r\n" +
 			"	i.tablename, \r\n" +
@@ -429,16 +419,16 @@ public class DBAdapterPostgres extends DBAdapter {
 			"-- AND idx.indisunique=false ";
 
 		try (
-			PreparedStatement stmt = preparedStatement(getConnection(), query, Map.of("schema", schema, "table", nameTable));
+			PreparedStatement stmt = preparedStatement(getConnection(), query, ImmutableMap.of("schema", schema, "table", nameTable));
 			ResultSet rs = stmt.executeQuery();
 		){
 
 			while(rs.next()){
-				String name = rs.getString("indexname");
-				String owner = rs.getString("owner");
-				String ddl = rs.getString("ddl");
-				DBIndex index = new DBIndex(name, new StringProperties(rs), schema, owner, Collections.emptySet(), ddl);
+				final String name = rs.getString("indexname");
+				final String owner = rs.getString("owner");
+				final String ddl = rs.getString("ddl");
 
+				final DBIndex index = new DBIndex(name, new StringProperties(rs), schema, owner, Collections.emptySet(), ddl);
 				indexes.put(name, index);
 			}
 
@@ -453,7 +443,7 @@ public class DBAdapterPostgres extends DBAdapter {
 
 	@Override
 	public Map<String, DBConstraint> getConstraints(String schema, String nameTable) {
-		Map<String, DBConstraint> constraints = new HashMap<>();
+		final Map<String, DBConstraint> constraints = new HashMap<>();
 		/*
 		String query = "select conname as constraint_name,contype as constraint_type, " +
 				"  pg_catalog.pg_get_constraintdef(r.oid, true) as ddl " +
@@ -465,7 +455,7 @@ public class DBAdapterPostgres extends DBAdapter {
 				"    relname = :table and nspname = :schema and c.relkind = 'r'";
 		*/
 
-		String query =
+		final String query =
 			"SELECT " +
 			"	t.tableowner as owner," +
 			"	conname as constraint_name," +
@@ -479,17 +469,17 @@ public class DBAdapterPostgres extends DBAdapter {
 			"AND rel.relname = :table";
 
 		try (
-			PreparedStatement stmt = preparedStatement(getConnection(), query, Map.of("schema", schema, "table", nameTable));
+			PreparedStatement stmt = preparedStatement(getConnection(), query, ImmutableMap.of("schema", schema, "table", nameTable));
 			ResultSet rs = stmt.executeQuery();
 		){
 
 			while(rs.next()){
-				String name = rs.getString("constraint_name");
-				String type = rs.getString("constraint_type");
-				String owner = rs.getString("owner");
-				String ddl = rs.getString("ddl");
-				StringProperties options = new StringProperties(rs);
-				DBConstraint con = new DBConstraint(name, options, schema, owner, Collections.emptySet(), ddl, type);
+				final String name = rs.getString("constraint_name");
+				final String type = rs.getString("constraint_type");
+				final String owner = rs.getString("owner");
+				final String ddl = rs.getString("ddl");
+				final StringProperties options = new StringProperties(rs);
+				final DBConstraint con = new DBConstraint(name, options, schema, owner, Collections.emptySet(), ddl, type);
 
 				constraints.put(con.getName(), con);
 			}
@@ -504,8 +494,8 @@ public class DBAdapterPostgres extends DBAdapter {
 
 	@Override
 	public Map<String, DBView> getViews(String schema) {
-		Map<String, DBView> listView = new HashMap<String, DBView>();
-		String query =
+		final Map<String, DBView> listView = new HashMap<String, DBView>();
+		final String query =
 			"select nsp.nspname as object_schema, cls.relname as object_name,  rol.rolname as owner, \n" +
 			"'create or replace view ' || nsp.nspname || '.' || cls.relname || ' as ' || pg_get_viewdef(cls.oid) as ddl, (\n" +
 			"	select array_agg(distinct source_ns.nspname || '/' || source_table.relname || '.vw') as dependencySam\n" +
@@ -532,12 +522,12 @@ public class DBAdapterPostgres extends DBAdapter {
 		try (Statement stmt = getConnection().createStatement(); ResultSet rs = stmt.executeQuery(query);){
 
 			while(rs.next()){
-				String objectName = rs.getString("object_name");
-				String objectSchema = rs.getString("object_schema");
-				String owner = rs.getString("owner");
-				String ddl = rs.getString("ddl");
-				StringProperties options = new StringProperties(rs);
-				Set<String> dependencies = rs.getArray("dependencies") == null
+				final String objectName = rs.getString("object_name");
+				final String objectSchema = rs.getString("object_schema");
+				final String owner = rs.getString("owner");
+				final String ddl = rs.getString("ddl");
+				final StringProperties options = new StringProperties(rs);
+				final Set<String> dependencies = rs.getArray("dependencies") == null
 					? Collections.emptySet()
 					: new HashSet<>(Arrays.asList((String[])rs.getArray("dependencies").getArray()));
 
@@ -546,9 +536,8 @@ public class DBAdapterPostgres extends DBAdapter {
 			}
 
 		} catch (Exception e) {
-			logger.error(e.getMessage());
-			System.out.println(lang.getValue("errors", "adapter", "views") + ": "+ e.getMessage());
-			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "views") + ": "+ e.getMessage());
+			final DBGitLang msg = lang.getValue("errors", "adapter", "views");
+			throw new ExceptionDBGitRunTime(msg, e);
 		}
 
 		return listView;
@@ -634,6 +623,7 @@ public class DBAdapterPostgres extends DBAdapter {
 				DBTrigger trigger = new DBTrigger(name, options, schema, owner, dependencies, sql);
 				listTrigger.put(name, trigger);
 			}
+
 		}catch(Exception e) {
 			throw new ExceptionDBGitRunTime(lang.getValue("errors", "adapter", "triggers").toString(), e);
 		}
@@ -694,7 +684,7 @@ public class DBAdapterPostgres extends DBAdapter {
 			"FROM pg_catalog.pg_proc p\n" +
 			"	JOIN pg_catalog.pg_roles u ON u.oid = p.proowner\n" +
 			"	LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace\n" +
-		( (getDbVersionNumber() > 10)
+		( (getDbVersionNumber() >= 10)
 			? 	"WHERE p.prokind = 'p' \n"
 			:	"WHERE 1=0 \n"
 		) +
@@ -735,7 +725,7 @@ public class DBAdapterPostgres extends DBAdapter {
 			"FROM pg_catalog.pg_proc p\n" +
 			"	JOIN pg_catalog.pg_roles u ON u.oid = p.proowner\n" +
 			"	LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace\n" +
-			( (getDbVersionNumber() > 10)
+			( (getDbVersionNumber() >= 10)
 					? "WHERE p.prokind = 'p' \n"
 					: "WHERE 1=0 \n"
 			) +
@@ -775,7 +765,7 @@ public class DBAdapterPostgres extends DBAdapter {
 			"FROM pg_catalog.pg_proc p\n" +
 			"	JOIN pg_catalog.pg_roles u ON u.oid = p.proowner\n" +
 			"	LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace\n" +
-			( (getDbVersionNumber() > 10)
+			( (getDbVersionNumber() >= 10)
 					? "WHERE p.prokind = 'f' \n"
 					: "WHERE 1=1 "
 			)+
@@ -815,7 +805,7 @@ public class DBAdapterPostgres extends DBAdapter {
 			"FROM pg_catalog.pg_proc p\n" +
 			"	JOIN pg_catalog.pg_roles u ON u.oid = p.proowner\n" +
 			"	LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace\n" +
-			( (getDbVersionNumber() > 10)
+			( (getDbVersionNumber() >= 10)
 					? "WHERE p.prokind = 'f' \n"
 					: "WHERE 1=1 \n"
 			) +
@@ -851,120 +841,109 @@ public class DBAdapterPostgres extends DBAdapter {
 
 	@Override
 	public DBTableData getTableDataPortion(String schema, String nameTable, int portionIndex, int tryNumber) {
-		DBTableData data = new DBTableData();
-
+		final DBGitConfig config = DBGitConfig.getInstance();
 		try {
-			final Integer maxRowsCountDefault = DBGitConfig.getInstance().getIntegerGlobal("core", "MAX_ROW_COUNT_FETCH", MAX_ROW_COUNT_FETCH);
-			int maxRowsCount = DBGitConfig.getInstance().getInteger("core", "MAX_ROW_COUNT_FETCH", maxRowsCountDefault);
+			final boolean isFetchLimitedDefault = config.getBooleanGlobal("core", "LIMIT_FETCH", true);
+			final boolean isFetchLimited        = config.getBoolean("core", "LIMIT_FETCH", isFetchLimitedDefault);
+			final int maxRowsCountDefault       = config.getIntegerGlobal("core", "MAX_ROW_COUNT_FETCH", MAX_ROW_COUNT_FETCH);
+			final int maxRowsCount              = config.getInteger("core", "MAX_ROW_COUNT_FETCH", maxRowsCountDefault);
+			final int portionSize 				= config.getInteger("core", "PORTION_SIZE", config.getIntegerGlobal("core", "PORTION_SIZE", 1000));
+			final int portionBegin = 1 + portionSize*portionIndex;
+			final int portionEnd = portionSize + portionSize*portionIndex;
 
-			final Boolean isFetchLimitedDefault = DBGitConfig.getInstance().getBooleanGlobal("core", "LIMIT_FETCH", true);
-			final Boolean isFetchLimited = DBGitConfig.getInstance().getBoolean("core", "LIMIT_FETCH", isFetchLimitedDefault);
-
-			String tableRowsCountQuery =
+			final String tableRowsCountQuery =
 				"select COALESCE(count(*), 0) kolvo " +
 				"from ( " +
 				"	select 1 from " + escapeNameIfNeeded(schema) + "." + escapeNameIfNeeded(nameTable) +
 				" 	limit " + (maxRowsCount + 1) + " " +
 				") tbl";
 
+			final String dataQuery =
+				"    SELECT * FROM \r\n" +
+				"   (SELECT f.*, ROW_NUMBER() OVER (ORDER BY ctid) DBGIT_ROW_NUM FROM " + escapeNameIfNeeded(schema) + "." + escapeNameIfNeeded(nameTable) + " f) s\r\n" +
+				"   WHERE DBGIT_ROW_NUM BETWEEN " + portionBegin  + " and " + portionEnd;
+
+
 			if (isFetchLimited) {
 				try(Statement st = getConnection().createStatement(); ResultSet rs = st.executeQuery(tableRowsCountQuery);){
 					if(!rs.next()) {
 						String msg = "error fetch table rows count";
 						throw new ExceptionDBGitRunTime(msg);
-					}
-					if (rs.getInt("kolvo") > maxRowsCount) {
-						data.setErrorFlag(DBTableData.ERROR_LIMIT_ROWS);
-						return data;
+					} else if (rs.getInt("kolvo") > maxRowsCount) {
+						return new DBTableData(DBTableData.ERROR_LIMIT_ROWS);
 					}
 				}
 
 			}
 
-			int portionSize = DBGitConfig.getInstance().getInteger("core", "PORTION_SIZE", DBGitConfig.getInstance().getIntegerGlobal("core", "PORTION_SIZE", 1000));
+			return new DBTableData(getConnection(), dataQuery);
 
-			int begin = 1 + portionSize*portionIndex;
-			int end = portionSize + portionSize*portionIndex;
-
-			//close statement or I should not? And what if trywithresources??
-			Statement st = getConnection().createStatement();
-			String query =
-				"    SELECT * FROM \r\n" +
-				"   (SELECT f.*, ROW_NUMBER() OVER (ORDER BY ctid) DBGIT_ROW_NUM FROM " + escapeNameIfNeeded(schema) + "." + escapeNameIfNeeded(nameTable) + " f) s\r\n" +
-				"   WHERE DBGIT_ROW_NUM BETWEEN " + begin  + " and " + end;
-			ResultSet rs = st.executeQuery(query);
-
-			data.setResultSet(rs);
-			return data;
 
 		} catch(Exception e) {
+
+			final int maxTriesCount = DBGitConfig.getInstance().getInteger("core", "TRY_COUNT", DBGitConfig.getInstance().getIntegerGlobal("core", "TRY_COUNT", 1000));
+			final int tryDelay = DBGitConfig.getInstance().getInteger("core", "TRY_DELAY", DBGitConfig.getInstance().getIntegerGlobal("core", "TRY_DELAY", 1000));
+
 			ConsoleWriter.println(e.getLocalizedMessage(), messageLevel);
 			ConsoleWriter.detailsPrintln(ExceptionUtils.getStackTrace(e), messageLevel);
-			logger.error(DBGitLang.getInstance().getValue("errors", "adapter", "tableData").toString(), e);
+			logger.error(lang.getValue("errors", "adapter", "tableData").toString(), e);
 
-			try {
-				final Integer tryCountDefault = DBGitConfig.getInstance().getIntegerGlobal("core", "TRY_COUNT", 1000);
-				final Integer tryCount = DBGitConfig.getInstance().getInteger("core", "TRY_COUNT", tryCountDefault);
+			if (tryNumber <= maxTriesCount) {
 
-				if (tryNumber <= tryCount) {
-					try {
-						TimeUnit.SECONDS.sleep(DBGitConfig.getInstance().getInteger("core", "TRY_DELAY", DBGitConfig.getInstance().getIntegerGlobal("core", "TRY_DELAY", 1000)));
-					} catch (InterruptedException interruptedException) {
-						throw new ExceptionDBGitRunTime(interruptedException);
-					}
+				final String waitMessage = DBGitLang.getInstance()
+						.getValue("errors", "dataTable", "wait")
+						.withParams(String.valueOf(tryDelay));
 
-					ConsoleWriter.println(DBGitLang.getInstance()
-					    .getValue("errors", "dataTable", "loadPortionError")
-					    .withParams(String.valueOf(tryNumber))
-					    , messageLevel
-					);
+				final String tryAgainMessage = DBGitLang.getInstance()
+						.getValue("errors", "dataTable", "tryAgain")
+						.withParams(String.valueOf(tryNumber));
 
-					getTableDataPortion(schema, nameTable, portionIndex, tryNumber++);
+				ConsoleWriter.println(waitMessage, messageLevel);
+				try { TimeUnit.SECONDS.sleep(tryDelay); } catch (InterruptedException e1) {
+					throw new ExceptionDBGitRunTime(e1.getMessage());
 				}
-			} catch (Exception e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
+
+				ConsoleWriter.println(tryAgainMessage, messageLevel);
+				return getTableDataPortion(schema, nameTable, portionIndex, tryNumber++);
+
+			} else {
+				final String msg = DBGitLang.getInstance().getValue("errors", "adapter", "tableData").toString();
+				throw new ExceptionDBGitRunTime(msg, e);
 			}
-
-
-			throw new ExceptionDBGitRunTime(e);
 		}
 	}
 
 	@Override
 	public DBTableData getTableData(String schema, String nameTable) {
-		String tableName = escapeNameIfNeeded(schema)+"."+ escapeNameIfNeeded(nameTable);
+		final String tableName = escapeNameIfNeeded(schema)+"."+ escapeNameIfNeeded(nameTable);
+		final int maxRowsCount = DBGitConfig.getInstance().getInteger("core", "MAX_ROW_COUNT_FETCH", DBGitConfig.getInstance().getIntegerGlobal("core", "MAX_ROW_COUNT_FETCH", MAX_ROW_COUNT_FETCH));
+		final Boolean isFetchLimited = DBGitConfig.getInstance().getBoolean("core", "LIMIT_FETCH", DBGitConfig.getInstance().getBooleanGlobal("core", "LIMIT_FETCH", true));
 		try {
-			DBTableData data = new DBTableData();
+			if (isFetchLimited) {
 
-			int maxRowsCount = DBGitConfig.getInstance().getInteger("core", "MAX_ROW_COUNT_FETCH", DBGitConfig.getInstance().getIntegerGlobal("core", "MAX_ROW_COUNT_FETCH", MAX_ROW_COUNT_FETCH));
+				String query =
+					"select COALESCE(count(*), 0) kolvo " +
+					"from ( " +
+					"	select 1 from "+ tableName +
+					" 	limit " + (maxRowsCount + 1) +
+					" ) tbl";
 
-			if (DBGitConfig.getInstance().getBoolean("core", "LIMIT_FETCH", DBGitConfig.getInstance().getBooleanGlobal("core", "LIMIT_FETCH", true))) {
-				Statement st = getConnection().createStatement();
-				String query = "select COALESCE(count(*), 0) kolvo from ( select 1 from "+
-						tableName + " limit " + (maxRowsCount + 1) + " ) tbl";
-				ResultSet rs = st.executeQuery(query);
-				rs.next();
-				if (rs.getInt("kolvo") > maxRowsCount) {
-					data.setErrorFlag(DBTableData.ERROR_LIMIT_ROWS);
-					return data;
+				try(Statement st = getConnection().createStatement(); ResultSet rs = st.executeQuery(query);){
+					if(!rs.next()) throw new ExceptionDBGitRunTime("Could not execute rows count query");
+					if (rs.getInt("kolvo") > maxRowsCount) {
+						return new DBTableData(DBTableData.ERROR_LIMIT_ROWS);
+					}
 				}
 			}
-			Statement st = getConnection().createStatement();
-			ResultSet rs = st.executeQuery("select * from "+tableName);
-			data.setResultSet(rs);
 
+			final String tdQuery = "select * from " + tableName;
+			return new DBTableData(getConnection(), tdQuery);
 			//TODO other state
+			//TODO find out what does 'other state' todo comment mean...
 
-			return data;
 		} catch(Exception e) {
-			logger.error(lang.getValue("errors", "adapter", "tableData").toString(), e);
-			try {
-				getConnection().rollback();
-			} catch (Exception e2) {
-				logger.error(lang.getValue("errors", "adapter", "rollback").toString(), e2);
-			}
-			throw new ExceptionDBGitRunTime(e.getMessage());
+			final String msg = DBGitLang.getInstance().getValue("errors", "adapter", "tableData").toString();
+			throw new ExceptionDBGitRunTime(msg, e);
 		}
 	}
 
@@ -984,7 +963,6 @@ public class DBAdapterPostgres extends DBAdapter {
 		} catch(Exception e) {
 			throw new ExceptionDBGitRunTime(e);
 		}
-		//connect.cre
 		//select *from pg_catalog.pg_namespace;
 		return listUser;
 	}
@@ -1022,97 +1000,95 @@ public class DBAdapterPostgres extends DBAdapter {
 	}
 
 	@Override
-	public boolean userHasRightsToGetDdlOfOtherUsers() {
-		return true;
-	}
-
+	public boolean userHasRightsToGetDdlOfOtherUsers() { return true; }
 	@Override
-	public IFactoryDBBackupAdapter getBackupAdapterFactory() {
-		return backupFactory;
-	}
-
+	public IFactoryDBBackupAdapter getBackupAdapterFactory() { return backupFactory; }
 	@Override
-	public DbType getDbType() {
-		return DbType.POSTGRES;
-	}
-
+	public IFactoryDBConvertAdapter getConvertAdapterFactory() { return convertFactory; }
+	@Override
+	public DbType getDbType() { return DbType.POSTGRES; }
 	@Override
 	public String getDbVersion() {
-		try {
-		PreparedStatement stmt = getConnection().prepareStatement("SHOW server_version");
-		ResultSet resultSet = stmt.executeQuery();
-		resultSet.next();
+		final String query = "SHOW server_version";
+		try (
+			PreparedStatement stmt = getConnection().prepareStatement(query);
+			ResultSet resultSet = stmt.executeQuery();
+		) {
 
-		String result = resultSet.getString("server_version");
-		resultSet.close();
-		stmt.close();
-
-		return result;
-		} catch (SQLException e) {
-			return "";
-		}
-	}
-
-	@Override
-	public IFactoryDBConvertAdapter getConvertAdapterFactory() {
-		return convertFactory;
-	}
-
-	@Override
-	public void createSchemaIfNeed(String schemaName) throws ExceptionDBGit {
-		try {
-			Statement st = connect.createStatement();
-			ResultSet rs = st.executeQuery("select count(*) cnt from information_schema.schemata where upper(schema_name) = '" +
-					schemaName.toUpperCase() + "'");
-
-			rs.next();
-			if (rs.getInt("cnt") == 0) {
-				StatementLogging stLog = new StatementLogging(connect, getStreamOutputSqlCommand(), isExecSql());
-				stLog.execute("create schema " + schemaName + ";\n");
-
-				stLog.close();
+			if(!resultSet.next()){
+				final String msg = "failed to get schema data";
+				throw new ExceptionDBGitRunTime(msg);
 			}
 
-			rs.close();
-			st.close();
-		} catch (SQLException e) {
-			throw new ExceptionDBGit(lang.getValue("errors", "adapter", "createSchema") + ": " + e.getLocalizedMessage());
-		}
+			return resultSet.getString("server_version");
 
+		} catch (SQLException e) {
+			final String msg = "failed to get database version";
+			throw new ExceptionDBGitRunTime(msg, e);
+		}
 	}
+	@Override
+	public String getDefaultScheme() throws ExceptionDBGit { return "public"; }
+	@Override
+	public boolean isReservedWord(String word) { return reservedWords.contains(word.toUpperCase()); }
 
 	@Override
-	public void createRoleIfNeed(String roleName) throws ExceptionDBGit {
-		try {
-			Statement st = connect.createStatement();
-			ResultSet rs = st.executeQuery("select count(*) cnt from pg_catalog.pg_roles where upper(rolname) = '" +
-					roleName.toUpperCase() + "'");
+	public void createSchemaIfNeed(String schemaName) {
+		final String query =
+			"select count(*) cnt " +
+			"from information_schema.schemata " +
+			"where upper(schema_name) = '" + schemaName.toUpperCase() + "'";
 
-			rs.next();
-			if (rs.getInt("cnt") == 0) {
-				StatementLogging stLog = new StatementLogging(connect, getStreamOutputSqlCommand(), isExecSql());
-				stLog.execute("CREATE ROLE " + roleName + " LOGIN PASSWORD '" + roleName +  "'");
+		try (Statement st = connect.createStatement(); ResultSet rs = st.executeQuery(query);){
 
-				stLog.close();
+			if(!rs.next()) {
+				final String msg = "failed to get schema data";
+				throw new ExceptionDBGitRunTime(msg);
 			}
 
-			rs.close();
-			st.close();
+			if (rs.getInt("cnt") == 0) {
+				try(StatementLogging stLog = new StatementLogging(connect, getStreamOutputSqlCommand(), isExecSql());){
+					stLog.execute("create schema " + schemaName + ";\n");
+				}
+			} else {
+				return;
+			}
+
 		} catch (SQLException e) {
-			throw new ExceptionDBGit(lang.getValue("errors", "adapter", "createSchema") + ": " + e.getLocalizedMessage());
+			final String msg = lang.getValue("errors", "adapter", "createSchema").toString();
+			throw new ExceptionDBGitRunTime(msg, e);
+		}
+
+	}
+
+	@Override
+	public void createRoleIfNeed(String roleName) {
+		final String query =
+			"select count(*) cnt " +
+			"from pg_catalog.pg_roles " +
+			"where upper(rolname) = '" + roleName.toUpperCase() + "'";
+
+		try (Statement st = connect.createStatement(); ResultSet rs = st.executeQuery(query);) {
+
+			if(!rs.next()) {
+				final String msg = "failed to get role data";
+				throw new ExceptionDBGitRunTime(msg);
+			}
+
+			if (rs.getInt("cnt") == 0){
+				try(StatementLogging stLog = new StatementLogging(connect, getStreamOutputSqlCommand(), isExecSql());) {
+					//TODO which kind of PASSWORD that equals to ROLE NAME?
+					stLog.execute("CREATE ROLE " + roleName + " LOGIN PASSWORD '" + roleName + "'");
+				}
+			} else {
+				return;
+			}
+
+		} catch (SQLException e) {
+			final DBGitLang msg = lang.getValue("errors", "adapter", "createSchema");
+			throw new ExceptionDBGitRunTime(msg, e);
 		}
 	}
-
-	@Override
-	public String getDefaultScheme() throws ExceptionDBGit {
-		return "public";
-	}
-
-	@Override
-	public boolean isReservedWord(String word) {
-		return reservedWords.contains(word.toUpperCase());
-	}
-
 
 	public String escapeNameIfNeeded(String name){
 		boolean shouldBeEscaped = !name.equals(name.toLowerCase())

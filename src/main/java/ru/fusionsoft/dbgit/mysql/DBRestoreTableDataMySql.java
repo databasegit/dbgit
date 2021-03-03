@@ -54,7 +54,7 @@ public class DBRestoreTableDataMySql extends DBRestoreAdapter {
                     currentTableData.getmapRows().clear();
                     if (getAdapter().getTable(schema, currentTableData.getTable().getName()) != null) {
                         currentTableData.setDataTable(getAdapter().getTableData(schema, currentTableData.getTable().getName()));
-                        ResultSet rs = currentTableData.getDataTable().getResultSet();
+                        ResultSet rs = currentTableData.getDataTable().resultSet();
                         TreeMapRowData mapRows = new TreeMapRowData();
                         MetaTable metaTable = new MetaTable(currentTableData.getTable());
                         metaTable.loadFromDB(currentTableData.getTable());

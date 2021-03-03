@@ -241,7 +241,9 @@ errors:
     differentCount: Different count columns title and line
     fieldNotFound: Field {0} not found
     filesNotFound: Cound not find .data files in directories '{0}', put NULL values instead
-    loadPortionError: Error while getting portion of data, try {0}
+    tryAgain: Making attempt {0} getting portion of data...
+    wait: Error while getting portion of data, waiting {0} seconds before next try...
+    errorTableData: There was error while getting table data, error flag was ({0})
   adapter:
     schemes: Error load schemes!
     tables: Error load tables!

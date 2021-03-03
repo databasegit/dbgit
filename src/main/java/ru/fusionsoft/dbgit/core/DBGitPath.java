@@ -5,16 +5,11 @@ import java.io.FileWriter;
 import java.sql.DriverManager;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.Properties;
-import java.util.stream.Stream;
-
-import javax.print.attribute.standard.DateTimeAtCompleted;
 
 import ru.fusionsoft.dbgit.adapters.AdapterFactory;
 import ru.fusionsoft.dbgit.meta.DBGitMetaType;
-import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 import ru.fusionsoft.dbgit.utils.Convertor;
 
 /**
@@ -89,7 +84,7 @@ public class DBGitPath {
 		return dbGit.getRootDirectory()+"/" + DB_GIT_PATH + "/" + SCRIPT_PATH + "/";
 	}
 	
-	public static String getFullPath() throws ExceptionDBGit {
+	public static String getFullPath()  {
 		DBGit dbGit = DBGit.getInstance();
 		return dbGit.getRootDirectory()+"/"+DB_GIT_PATH + "/";
 	}
@@ -100,7 +95,7 @@ public class DBGitPath {
 	}
 	
 	public static boolean isRepositoryExists() throws ExceptionDBGit {
-		return DBGit.checkIfRepositoryExists();		
+		return DBGit.repositoryExists();
 	}
 	
 	public static String getRootPath() throws ExceptionDBGit {

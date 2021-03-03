@@ -1,13 +1,10 @@
 package ru.fusionsoft.dbgit.meta;
 
 import java.io.*;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.sql.ResultSet;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
@@ -15,14 +12,11 @@ import java.util.concurrent.TimeUnit;
 import de.siegmar.fastcsv.reader.CsvParser;
 import de.siegmar.fastcsv.reader.CsvReader;
 import de.siegmar.fastcsv.reader.CsvRow;
-import org.apache.commons.codec.binary.Base64;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.csv.CSVRecord;
-
-import org.apache.commons.csv.QuoteMode;
 
 import com.diogonunes.jcdp.color.api.Ansi.FColor;
 
@@ -30,10 +24,8 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import ru.fusionsoft.dbgit.adapters.AdapterFactory;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
-import ru.fusionsoft.dbgit.core.DBGit;
 import ru.fusionsoft.dbgit.core.DBGitConfig;
 import ru.fusionsoft.dbgit.core.DBGitLang;
-import ru.fusionsoft.dbgit.core.DBGitPath;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
 import ru.fusionsoft.dbgit.core.GitMetaDataManager;
@@ -103,7 +95,7 @@ public class MetaTableData extends MetaBase {
 	public void setName(String name) throws ExceptionDBGit {
 		if (table == null) {
 			NameMeta nm = MetaObjectFactory.parseMetaName(name);
-			table = new DBTable(nm.getName(), nm.getSchema());
+			table = new DBTable.OnlyNamesDBTable(nm.getName(), nm.getSchema());
 		}
 
 		super.setName(name);
@@ -257,11 +249,11 @@ public class MetaTableData extends MetaBase {
 			
 			dataTable = adapter.getTableDataPortion(table.getSchema(), table.getName(), currentPortionIndex, 0);
 			
-			ResultSet rs = dataTable.getResultSet();
+			ResultSet rs = dataTable.resultSet();
 
-			if (dataTable.getErrorFlag() > 0) {
-				ConsoleWriter.printlnColor(DBGitLang.getInstance().getValue("errors", "meta", "tooManyRecords").
-						withParams(getName(), String.valueOf(IDBAdapter.MAX_ROW_COUNT_FETCH)), FColor.RED, 0);
+			if (dataTable.errorFlag() > 0) {
+				final String tooManyRecordsMsg = DBGitLang.getInstance().getValue("errors", "meta", "tooManyRecords").withParams(getName(), String.valueOf(IDBAdapter.MAX_ROW_COUNT_FETCH));
+				ConsoleWriter.printlnColor(tooManyRecordsMsg, FColor.RED, 0);
 				return false;
 			}
 
@@ -302,7 +294,7 @@ public class MetaTableData extends MetaBase {
 						throw new ExceptionDBGitRunTime(e1.getMessage());
 					}
 					ConsoleWriter.println(DBGitLang.getInstance()
-					    .getValue("errors", "dataTable", "loadPortionError")
+					    .getValue("errors", "dataTable", "tryAgain")
 					    .withParams(String.valueOf(tryNumber))
 					    , messageLevel
 					);
@@ -330,13 +322,13 @@ public class MetaTableData extends MetaBase {
 
 			dataTable = adapter.getTableData(table.getSchema(), table.getName());
 			
-			if (dataTable.getErrorFlag() > 0) {
+			if (dataTable.errorFlag() > 0) {
 				ConsoleWriter.printlnColor(DBGitLang.getInstance().getValue("errors", "meta", "tooManyRecords").
 						withParams(getName(), String.valueOf(IDBAdapter.MAX_ROW_COUNT_FETCH)), FColor.RED, 0);
 				return false;
 			}
 			
-			ResultSet rs = dataTable.getResultSet();
+			ResultSet rs = dataTable.resultSet();
 			
 			mapRows = new TreeMapRowData(); 
 			

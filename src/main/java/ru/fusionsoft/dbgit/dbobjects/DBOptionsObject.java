@@ -16,7 +16,10 @@ public class DBOptionsObject implements IDBObject {
 	@YamlOrder(99)
 	StringProperties options;
 
-
+	public DBOptionsObject(String name) {
+		this.name = name;
+		this.options = new StringProperties();
+	}
 	public DBOptionsObject(String name, StringProperties options) {
 		this.name = name;
 		this.options = options;

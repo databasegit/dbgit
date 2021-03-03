@@ -1,26 +1,52 @@
 package ru.fusionsoft.dbgit.dbobjects;
 
-import org.apache.http.annotation.Obsolete;
 import ru.fusionsoft.dbgit.core.db.FieldType;
 import ru.fusionsoft.dbgit.utils.CalcHash;
-import ru.fusionsoft.dbgit.utils.ConsoleWriter;
+import ru.fusionsoft.dbgit.yaml.YamlOrder;
 
 import java.util.Objects;
 
 public class DBTableField implements IDBObject, Comparable<DBTableField> {
+
+	@YamlOrder(0)
 	private String name;
+	@YamlOrder(1)
 	private String description;
-	private String typeSQL;
-	private FieldType typeUniversal;
-	private int length;
-	private int scale;
-	private int precision;
-	private boolean fixed;
-	private Integer order = 0;
+	@YamlOrder(2)
+	private Boolean isPrimaryKey;
+	@YamlOrder(3)
 	private Boolean isNullable;
-	private Boolean isNameExactly = false;
+	@YamlOrder(4)
+	private String typeSQL;
+	@YamlOrder(5)
+	private FieldType typeUniversal;
+	@YamlOrder(6)
+	private Integer order;
+	@YamlOrder(7)
 	private String defaultValue;
-	private Boolean isPrimaryKey = false;
+	@YamlOrder(8)
+	private int length;
+	@YamlOrder(9)
+	private int scale;
+	@YamlOrder(10)
+	private int precision;
+	@YamlOrder(11)
+	private boolean fixed;
+
+	public DBTableField(String name, String description, Boolean isPrimaryKey, Boolean isNullable, String typeSQL, FieldType typeUniversal, Integer order, String defaultValue, int length, int scale, int precision, boolean fixed) {
+		this.name = name;
+		this.description = description;
+		this.isPrimaryKey = isPrimaryKey;
+		this.isNullable = isNullable;
+		this.typeSQL = typeSQL;
+		this.typeUniversal = typeUniversal;
+		this.order = order;
+		this.defaultValue = defaultValue;
+		this.length = length;
+		this.scale = scale;
+		this.precision = precision;
+		this.fixed = fixed;
+	}
 
 	@Override
 	public int compareTo(DBTableField o) {
@@ -136,14 +162,6 @@ public class DBTableField implements IDBObject, Comparable<DBTableField> {
 	
 	public Integer getOrder() {
 		return order;
-	}
-	
-	public void setNameExactly(Boolean isNameExactly) {
-		this.isNameExactly = isNameExactly;
-	}
-	
-	public Boolean getNameExactly() {
-		return isNameExactly;
 	}
 	
 	public String getDefaultValue() {

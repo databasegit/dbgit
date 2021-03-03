@@ -2,6 +2,7 @@ package ru.fusionsoft.dbgit.core;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -16,16 +17,25 @@ public class DBGitConfig {
 	private Ini iniGlobal = null;
 	private Map<String, String> transientConfig = new HashMap<>();
 
-	private DBGitConfig() throws Exception {
-
-		if (DBGit.checkIfRepositoryExists()) {
-			File file = new File(DBGitPath.getFullPath() + "/" + DBGitPath.DBGIT_CONFIG);
-			if (file.exists())
-				ini = new Ini(file);
+	private DBGitConfig()  {
+		try{
+			findAndSetIni();
+			findAndSetIniGlobal();
+		} catch (Exception anyKindOfException){
+			//no reason to continue anything
+			throw new ExceptionDBGitRunTime(anyKindOfException);
 		}
+	}
 
-		String path = new File(DBGitConfig.class.getProtectionDomain().getCodeSource().getLocation()
-				.toURI()).getAbsolutePath();
+	public static DBGitConfig getInstance() {
+		if (config == null) config = new DBGitConfig();
+		return config;
+	}
+
+	private void findAndSetIniGlobal() throws URISyntaxException, IOException {
+		String path = new File(DBGitConfig.class.getProtectionDomain()
+				.getCodeSource().getLocation().toURI()
+		).getAbsolutePath();
 
 		//for debug:
 		if (path.contains("classes")) path = path + "/../dbgit";
@@ -43,49 +53,47 @@ public class DBGitConfig {
 			path = path + "/dbgitconfig";
 
 		File fileGlobal = new File(path);
-		if (fileGlobal.exists())
-			iniGlobal = new Ini(fileGlobal);
+		if (fileGlobal.exists()) iniGlobal = new Ini(fileGlobal);
 	}
 
-	public static DBGitConfig getInstance() throws Exception {
-		if (config == null)
-			config = new DBGitConfig();
+	private void findAndSetIni() throws IOException {
+		if (DBGit.repositoryExists()) {
+			File file = new File(DBGitPath.getFullPath() + "/" + DBGitPath.DBGIT_CONFIG);
+			if (file.exists()) ini = new Ini(file);
+		}
+	}
 
-		return config;
+	private Ini getIni() throws IOException {
+		if(ini == null){
+			findAndSetIni();
+		}
+		return  ini;
 	}
 
 	public String getString(String section, String option, String defaultValue) {
 		return getString(section, option, defaultValue, false);
 	}
-
 	public Boolean getBoolean(String section, String option, Boolean defaultValue) {
 		return getBoolean(section, option, defaultValue, false);
 	}
-
 	public Integer getInteger(String section, String option, Integer defaultValue) {
 		return getInteger(section, option, defaultValue, false);
 	}
-
 	public Double getDouble(String section, String option, Double defaultValue) {
 		return getDouble(section, option, defaultValue, false);
 	}
-
 	public String getStringGlobal(String section, String option, String defaultValue) {
 		return getString(section, option, defaultValue, true);
 	}
-
 	public Boolean getBooleanGlobal(String section, String option, Boolean defaultValue) {
 		return getBoolean(section, option, defaultValue, true);
 	}
-
 	public Integer getIntegerGlobal(String section, String option, Integer defaultValue) {
 		return getInteger(section, option, defaultValue, true);
 	}
-
 	public Double getDoubleGlobal(String section, String option, Double defaultValue) {
 		return getDouble(section, option, defaultValue, true);
 	}
-
 	private String getString(String section, String option, String defaultValue, boolean global) {
 		try {
 			String result = global ? iniGlobal.get(section, option) : getIni().get(section, option);
@@ -94,18 +102,6 @@ public class DBGitConfig {
 			return defaultValue;
 		}
 	}
-
-	private Ini getIni() throws ExceptionDBGit, IOException {
-		if(ini == null){
-			if (DBGit.checkIfRepositoryExists()) {
-				File file = new File(DBGitPath.getFullPath() + "/" + DBGitPath.DBGIT_CONFIG);
-				if (file.exists())
-					ini = new Ini(file);
-			}
-		}
-		return  ini;
-	}
-
 	private Boolean getBoolean(String section, String option, Boolean defaultValue, boolean global) {
 		try {
 			String result = global ? iniGlobal.get(section, option) : getIni().get(section, option);
@@ -115,7 +111,6 @@ public class DBGitConfig {
 			return defaultValue;
 		}
 	}
-
 	private Integer getInteger(String section, String option, Integer defaultValue, boolean global) {
 		try {
 			String result = global ? iniGlobal.get(section, option) : getIni().get(section, option);
@@ -124,7 +119,6 @@ public class DBGitConfig {
 			return defaultValue;
 		}
 	}
-
 	private Double getDouble(String section, String option, Double defaultValue, boolean global) {
 		try {
 			String result = global ? iniGlobal.get(section, option) : getIni().get(section, option);
@@ -133,15 +127,12 @@ public class DBGitConfig {
 			return defaultValue;
 		}
 	}
-
 	public void setValue(String parameter, String value) throws ExceptionDBGit {
 		setValue(parameter, value, false);
 	}
-
 	public void setValueGlobal(String parameter, String value) throws ExceptionDBGit {
 		setValue(parameter, value, true);
 	}
-
 	public void setValue(String parameter, String value, boolean global) throws ExceptionDBGit {
 		try {
 			if (global) {

@@ -678,9 +678,16 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 	}
 
 	public DBConstraint constructNotNullDBConstraint(MetaTable table, DBTableField field){
-		String name = "notnull_" + field.getName() + " (Transient)";
-		String type = "nn";
-		DBConstraint constraint = new DBConstraint(name, table.getTable().getSchema(), table.getTable().getOwner(), type);
+		final String name = "notnull_" + field.getName() + " (Transient)";
+		final String type = "nn";
+		final String sql = "";
+		final StringProperties options = new StringProperties();
+		final Set<String> dependencies = Collections.emptySet();
+		final DBTable dbTable = table.getTable();
+		final String schema = dbTable.getSchema();
+		final String owner = dbTable.getOwner();
+
+		DBConstraint constraint = new DBConstraint(name, options, schema, owner, dependencies, sql, type);
 
 		constraint.getOptions().getChildren().put("column_name", new StringProperties(field.getName()));
 		constraint.setSql(MessageFormat.format(
@@ -689,6 +696,7 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 		);
 		return constraint;
 	}
+
 	/*public void removeIndexesPostgres(IMetaObject obj) throws Exception {
 		IDBAdapter adapter = getAdapter();
 		Connection connect = adapter.getConnection();

@@ -181,7 +181,8 @@ public class GitMetaDataManager {
 		} else {
 			schemes = new HashMap<String, DBSchema>();
 			try {
-				schemes.put(adapter.getConnection().getSchema(), new DBSchema(adapter.getConnection().getSchema()));
+				final DBSchema dbSchema = new DBSchema(adapter.getConnection().getSchema());
+				schemes.put(adapter.getConnection().getSchema(), dbSchema);
 				ConsoleWriter.println(DBGitLang.getInstance().getValue("errors", "meta", "cantGetOtherUsersObjects"), messageLevel);
 			} catch (SQLException e) {
 				throw new ExceptionDBGit(DBGitLang.getInstance().getValue("errors", "meta", "cantGetCurrentSchema").toString(), e);

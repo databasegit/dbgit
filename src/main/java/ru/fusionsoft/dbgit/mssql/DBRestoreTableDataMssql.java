@@ -61,7 +61,7 @@ public class DBRestoreTableDataMssql extends DBRestoreAdapter {
 					if (getAdapter().getTable(schema, currentTableData.getTable().getName()) != null) {
 						currentTableData.setDataTable(getAdapter().getTableData(schema, currentTableData.getTable().getName()));
 
-						ResultSet rs = currentTableData.getDataTable().getResultSet();
+						ResultSet rs = currentTableData.getDataTable().resultSet();
 
 						TreeMapRowData mapRows = new TreeMapRowData();
 

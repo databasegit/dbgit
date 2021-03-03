@@ -18,22 +18,24 @@ import java.sql.SQLException;
 public class ExceptionDBGit extends Exception {
 
 	private static final long serialVersionUID = -4613368557825624023L;
-	protected Logger logger = LoggerUtil.getLogger(this.getClass());
-	protected static int messageLevel = 0;
-	private Throwable cause = null;
-	private String contextMessage = null;
+	protected static final int messageLevel = 0;
+	protected final Logger logger = LoggerUtil.getLogger(this.getClass());
+	private final Throwable cause;
+	private final String contextMessage;
 
 	public ExceptionDBGit(Object msg) {
-		this.setContextMessage(msg.toString());
+		this.contextMessage = msg.toString();
+		this.cause = null;
 		handleException();
 	}
 	public ExceptionDBGit(Object message, Throwable cause) {
-		this.setContextMessage(message.toString());
-		this.setCause(cause);
+		this.contextMessage = message.toString();
+		this.cause = cause;
 		handleException();
 	}
 	public ExceptionDBGit(Throwable cause) {
-		this.setCause(cause);
+		this.cause = cause;
+		this.contextMessage = "";
 		handleException();
 	}
 
@@ -42,9 +44,8 @@ public class ExceptionDBGit extends Exception {
 		rollbackConnection();
 		System.exit(1);
 	}
-
-	public void printMessageAndStackTrace(){
-		if(contextMessage != null && (cause == null || !cause.getMessage().equals(contextMessage))) {
+	protected void printMessageAndStackTrace(){
+		if(!contextMessage.isEmpty() && (cause == null || !cause.getMessage().equals(contextMessage))) {
 			ConsoleWriter.printlnRed(contextMessage, messageLevel);
 			ConsoleWriter.printLineBreak();
 		}
@@ -53,11 +54,11 @@ public class ExceptionDBGit extends Exception {
 			ConsoleWriter.printlnRed(cause.getLocalizedMessage(), messageLevel);
 			ConsoleWriter.printLineBreak();
 			ConsoleWriter.detailsPrintlnRed(ExceptionUtils.getStackTrace(cause), messageLevel);
-			logger.error(contextMessage != null ? contextMessage :  cause.getMessage(), cause);
+			logger.error(!contextMessage.isEmpty() ? contextMessage :  cause.getMessage(), cause);
 
 		} else {
 			ConsoleWriter.detailsPrintlnRed(ExceptionUtils.getStackTrace(this), messageLevel);
-			logger.error(contextMessage != null ? contextMessage :  "no error message provided..." , this);
+			logger.error(!contextMessage.isEmpty() ? contextMessage :  "no error message provided..." , this);
 		}
 	}
 	private void rollbackConnection() {
@@ -80,8 +81,5 @@ public class ExceptionDBGit extends Exception {
 			}
 		}
 	}
-
-	public void setCause(Throwable cause) { this.cause = cause; }
-	public void setContextMessage(String contextMessage) { this.contextMessage = contextMessage; }
 
 }

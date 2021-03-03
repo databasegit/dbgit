@@ -1,12 +1,11 @@
 package ru.fusionsoft.dbgit.core;
 
 import java.io.File;
-import java.text.MessageFormat;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import com.diogonunes.jcdp.color.api.Ansi;
 import org.eclipse.jgit.api.*;
 import org.eclipse.jgit.api.ListBranchCommand.ListMode;
 import org.eclipse.jgit.api.ResetCommand.ResetType;
@@ -29,81 +28,80 @@ import ru.fusionsoft.dbgit.utils.ConsoleWriter;
 import ru.fusionsoft.dbgit.utils.MaskFilter;
 
 public class DBGit {
-	private static DBGit dbGit = null;
-	private Repository repository;
-	private Git git;
-	private static int messageLevel = 0;
+	private static DBGit instance;
+	final private Repository repository;
+	final private Git git;
+	final private static int messageLevel = 0;
 
 
-	private DBGit() throws ExceptionDBGit {
+	private DBGit()  {
 		try {
 			FileRepositoryBuilder builder = new FileRepositoryBuilder();
 			repository = builder
-					.readEnvironment() // scan environment GIT_* variables
-					.findGitDir() // scan up the file system tree
-					.build();
+				.readEnvironment() // scan environment GIT_* variables
+				.findGitDir() // scan up the file system tree
+				.build();
 
 			git = new Git(repository);
-		} catch (Exception e) {
-			throw new ExceptionDBGit(e);
+			instance = this;
+		} catch (IOException e) {
+			final String msg = "Could not build file repository, never intended to do anything after that...";
+			throw new ExceptionDBGitRunTime(msg, e);
 		}
+
 	}
 
-	private DBGit(String url) throws ExceptionDBGit {
+	private DBGit(String url) {
 		try {
+			//TODO find out where this 'url' is in 'repository'
 			FileRepositoryBuilder builder = new FileRepositoryBuilder();
 			repository = builder
-					.setGitDir(new File(url))
-					.build();
+				.setGitDir(new File(url))
+				.build();
 
 			git = new Git(repository);
 		} catch (Exception e) {
-			throw new ExceptionDBGit(e);
+			throw new ExceptionDBGitRunTime(e);
 		}
 	}
 
-	public static DBGit getInstance() throws ExceptionDBGit {
-		if (dbGit == null) {
-			FileRepositoryBuilder builder = new FileRepositoryBuilder();
+	public static DBGit getInstance() {
+		if (instance == null) {
 
-			if (builder.readEnvironment().findGitDir().getGitDir() == null) {
-				throw new ExceptionDBGit(DBGitLang.getInstance().getValue("errors", "gitRepNotFound"));
+			if (!repositoryExists()) {
+				final DBGitLang msg = DBGitLang.getInstance().getValue("errors", "gitRepNotFound");
+				throw new ExceptionDBGitRunTime(msg);
 			}
 
-			dbGit = new DBGit();
+			instance = new DBGit();
 		}
-		return dbGit;
-	}
-	public static DBGit initUrlInstance(String gitDirUrl, boolean force) throws ExceptionDBGit {
-		if (dbGit != null && !force) {
-			throw new ExceptionDBGit("Already initialized");
-		}
-
-		dbGit = new DBGit(gitDirUrl);
-		return dbGit;
+		return instance;
 	}
 
-	public static boolean checkIfRepositoryExists() throws ExceptionDBGit {
-		if (dbGit == null) {
-			FileRepositoryBuilder builder = new FileRepositoryBuilder();
-
-			if (builder.readEnvironment().findGitDir().getGitDir() == null) {
-				return false;
-			} else {
-				return true;
+	public static void initUrlInstance(String gitDirUrl, boolean force)  {
+		if (instance != null) {
+			if(!force) {
+				final String msg = "DBGit is already initialized, btw u can set 'force' to 'true' or never make singletons...";
+				throw new ExceptionDBGitRunTime(msg);
 			}
+			instance.repository.close();
+			instance.git.close();
+			instance = new DBGit(gitDirUrl);
+		}
+	}
 
-		} else
-			return true;
+	public static boolean repositoryExists() {
+		if (instance == null) {
+			FileRepositoryBuilder builder = new FileRepositoryBuilder();
+			return builder.readEnvironment().findGitDir().getGitDir() != null;
+		}
+		else return true;
 	}
 
 	public Repository getRepository() {
 		return repository;
 	}
 
-	public void setRepository(Repository repository) {
-		this.repository = repository;
-	}
 
 	public String getRootDirectory() {
 		return repository.getDirectory().getParent();

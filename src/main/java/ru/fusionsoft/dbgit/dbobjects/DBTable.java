@@ -1,9 +1,11 @@
 package ru.fusionsoft.dbgit.dbobjects;
 
+import ru.fusionsoft.dbgit.core.NotImplementedExceptionDBGitRuntime;
 import ru.fusionsoft.dbgit.utils.CalcHash;
 import ru.fusionsoft.dbgit.utils.StringProperties;
 import ru.fusionsoft.dbgit.yaml.YamlOrder;
 
+import java.util.Collections;
 import java.util.Set;
 
 public class DBTable extends DBSchemaObject {
@@ -38,6 +40,58 @@ public class DBTable extends DBSchemaObject {
 
 	public String getComment() {
 		return this.comment;
+	}
+
+	public static class OnlyNamesDBTable extends DBTable{
+
+		public OnlyNamesDBTable(String name, String schema) {
+			super(name, new StringProperties(), schema, "", Collections.emptySet(), "");
+		}
+
+		@Override
+		public String getHash() {
+			throw new NotImplementedExceptionDBGitRuntime();
+		}
+
+		@Override
+		public void setComment(String comment) {
+			throw new NotImplementedExceptionDBGitRuntime();
+		}
+
+		@Override
+		public String getComment() {
+			throw new NotImplementedExceptionDBGitRuntime();
+		}
+
+		@Override
+		public Set<String> getDependencies() {
+			throw new NotImplementedExceptionDBGitRuntime();
+		}
+
+		@Override
+		public void setDependencies(Set<String> dependencies) {
+			throw new NotImplementedExceptionDBGitRuntime();
+		}
+
+		@Override
+		public String getOwner() {
+			throw new NotImplementedExceptionDBGitRuntime();
+		}
+
+		@Override
+		public void setOwner(String owner) {
+			throw new NotImplementedExceptionDBGitRuntime();
+		}
+
+		@Override
+		public StringProperties getOptions() {
+			throw new NotImplementedExceptionDBGitRuntime();
+		}
+
+		@Override
+		public void setOptions(StringProperties opt) {
+			throw new NotImplementedExceptionDBGitRuntime();
+		}
 	}
 
 }

@@ -78,7 +78,7 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 						//actually load data from database
 						currentTableData.setDataTable(getAdapter().getTableData(schema, currentTableData.getTable().getName()));
 					
-						ResultSet rs = currentTableData.getDataTable().getResultSet();
+						ResultSet rs = currentTableData.getDataTable().resultSet();
 						
 						TreeMapRowData mapRows = new TreeMapRowData(); 
 						

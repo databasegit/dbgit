@@ -19,7 +19,7 @@ public class ExceptionDBGitRunTime extends RuntimeException {
 
 	public ExceptionDBGitRunTime(Object message, Throwable cause) {
 		super(message.toString(), cause);
-		exceptionDBGit = new ExceptionDBGit(this);
+		exceptionDBGit = new ExceptionDBGit(message, this);
 	}
 
 	public ExceptionDBGitRunTime(Throwable cause) {

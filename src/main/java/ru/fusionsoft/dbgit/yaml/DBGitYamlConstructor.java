@@ -9,8 +9,8 @@ import org.yaml.snakeyaml.constructor.Constructor;
 import org.yaml.snakeyaml.nodes.MappingNode;
 import org.yaml.snakeyaml.nodes.Node;
 import org.yaml.snakeyaml.nodes.ScalarNode;
-import org.yaml.snakeyaml.nodes.Tag;
 
+import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
 import ru.fusionsoft.dbgit.utils.StringProperties;
 
 /**
@@ -46,34 +46,31 @@ public class DBGitYamlConstructor extends Constructor {
         @Override
         public Object construct(Node node) {
         	if (node instanceof MappingNode) {
-	        	Object obj = constructMapping((MappingNode)node);
-	    		
-	    		StringProperties properties = new StringProperties();
-	    		parseMap(properties, obj);
-	        	
-	        	return properties;
+
+				final Map<Object, Object> map = constructMapping((MappingNode)node);
+	        	return fromTreeNode(map);
         	}
         	if (node instanceof ScalarNode) {
 	        	
-	    		//TODO
-	    		StringProperties properties = new StringProperties();
-	        	
-	        	return properties;
+				final String stringValue = constructScalar((ScalarNode)node).toString();
+				return new StringProperties(stringValue);
         	}
-        	return null;
+
+        	throw new ExceptionDBGitRunTime("return null in construct! Gotcha!");
+//        	return null;
         }
-        
-        @SuppressWarnings("unchecked")
-        public void parseMap(StringProperties pr, Object obj) {
-        	if (obj instanceof Map) {
-        		Map<String, String> map =  (Map<String, String>)obj;
-        		for( String key : map.keySet()) {        			
-        			StringProperties newPr = (StringProperties)pr.addChild(key);
-        			parseMap(newPr, map.get(key));
-        		}
-        	} else {        		
-        		pr.setData((String)obj);
-        	}
-        }
+
+		public StringProperties fromTreeNode(Object treeNode) {
+			try {
+				final Map<String, Object> map = (Map<String, Object>) treeNode;
+				final StringProperties constructedNode = new StringProperties();
+
+				map.forEach((key, value) -> constructedNode.addChild(key, fromTreeNode(value)));
+				return constructedNode;
+
+			} catch (ClassCastException e) {
+				return new StringProperties(treeNode.toString());
+			}
+		}
     }
 }

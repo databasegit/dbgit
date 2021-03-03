@@ -108,28 +108,28 @@ public class MetaObjectTest /*extends TestCase*/ {
     
     */
 	
-	public void testMetaShema() throws Exception {
-		DBSchema sh = new DBSchema("myshema");
-    	StringProperties pr = sh.getOptions();
-    	pr.setData("info value");
-    	pr.addChild("param1", "val1");
-    	pr.addChild("param2", "val2");
-    	pr.addChild("param3", "val3");
-    	
-    	StringProperties sub = pr.addChild("subparams");
-    	sub.addChild("subparam1", "asd1");
-    	sub.addChild("subparam2", "asd2");
-    	
-    	MetaObjOptions meta = (MetaObjOptions)MetaObjectFactory.createMetaObject(DBGitMetaType.DBGitSchema);     	
-    	meta.setObjectOption(sh);
-    	
-    	//assertEquals("Assert hash!", meta.getHash(), "5c376e1836f4cbc763808fe077a84f2eaf9cdb9dc7e22107fc44a9567f4cf264");
-    	
-    	/*
-    	System.out.println(meta.getHash());
-    	
-    	System.out.println(pr.toString());
-    	*/
-    	//TODO to yaml and assert    	
-	}
+//	public void testMetaShema() throws Exception {
+//		DBSchema sh = new DBSchema("myshema");
+//    	StringProperties pr = sh.getOptions();
+//    	pr.setData("info value");
+//    	pr.addChild("param1", "val1");
+//    	pr.addChild("param2", "val2");
+//    	pr.addChild("param3", "val3");
+//
+//    	StringProperties sub = pr.addChild("subparams");
+//    	sub.addChild("subparam1", "asd1");
+//    	sub.addChild("subparam2", "asd2");
+//
+//    	MetaObjOptions meta = (MetaObjOptions)MetaObjectFactory.createMetaObject(DBGitMetaType.DBGitSchema);
+//    	meta.setObjectOption(sh);
+//
+//    	//assertEquals("Assert hash!", meta.getHash(), "5c376e1836f4cbc763808fe077a84f2eaf9cdb9dc7e22107fc44a9567f4cf264");
+//
+//    	/*
+//    	System.out.println(meta.getHash());
+//
+//    	System.out.println(pr.toString());
+//    	*/
+//    	//TODO to yaml and assert
+//	}
 }
