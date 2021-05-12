@@ -23,6 +23,7 @@ test:
     stage: test
     script:
         - time mvn test
+    allow_failure: true
 
 cache:
   paths:
