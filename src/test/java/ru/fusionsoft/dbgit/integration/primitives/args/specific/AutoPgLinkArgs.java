@@ -4,7 +4,7 @@ import ru.fusionsoft.dbgit.integration.primitives.args.ArgsLink;
 
 public class AutoPgLinkArgs extends ArgsLink {
     public AutoPgLinkArgs(String database) {
-        super(()->new LocalPgLinkArgs(database));
+        super(()->new DedicatedPgLinkArgs(database));
     }
     
 }
