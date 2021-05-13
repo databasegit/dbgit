@@ -95,7 +95,7 @@ public class MetaTableData extends MetaBase {
 	public void setName(String name) throws ExceptionDBGit {
 		if (table == null) {
 			NameMeta nm = MetaObjectFactory.parseMetaName(name);
-			table = new DBTable.OnlyNamesDBTable(nm.getName(), nm.getSchema());
+			table = new DBTable.OnlyNameDBTable(nm.getName(), nm.getSchema());
 		}
 
 		super.setName(name);

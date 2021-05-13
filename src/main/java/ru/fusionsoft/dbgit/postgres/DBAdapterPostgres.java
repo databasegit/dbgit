@@ -353,6 +353,14 @@ public class DBAdapterPostgres extends DBAdapter {
 				final boolean isPrimaryKey = rs.getString("constraint_name") != null;
 				final boolean isNullable = !typeSQL.toLowerCase().contains("not null");
 				final FieldType typeUniversal = FieldType.fromString(rs.getString("tp"));
+//				System.out.println((
+//					nameField
+//					+ " > "
+//					+ typeSQL
+//					+ " ("
+//					+ typeUniversal.toString()
+//					+ ")"
+//				));
 				final FieldType actualTypeUniversal = typeUniversal.equals(FieldType.TEXT) ? FieldType.STRING_NATIVE : typeUniversal;
 				final int length = rs.getInt("character_maximum_length");
 				final int precision = rs.getInt("numeric_precision");
@@ -616,9 +624,10 @@ public class DBAdapterPostgres extends DBAdapter {
 				String owner = "postgres";
 				String sql = rs.getString("ddl");
 				StringProperties options = new StringProperties(rs);
-				Set<String> dependencies = rs.getArray("dependencies") == null
-					? Collections.emptySet()
-					: new HashSet<>(Arrays.asList((String[])rs.getArray("dependencies").getArray()));
+				Set<String> dependencies = Collections.emptySet(); 
+//					rs.getArray("dependencies") == null
+//					? Collections.emptySet()
+//					: new HashSet<>(Arrays.asList((String[])rs.getArray("dependencies").getArray()));
 
 				DBTrigger trigger = new DBTrigger(name, options, schema, owner, dependencies, sql);
 				listTrigger.put(name, trigger);
@@ -664,8 +673,7 @@ public class DBAdapterPostgres extends DBAdapter {
 	}
 	@Override
 	public Map<String, DBPackage> getPackages(String schema) {
-		throw new ExceptionDBGitRunTime(new ExceptionDBGitObjectNotFound("cannot get packages on postgres"));
-//		return Collections.emptyMap();
+		return Collections.emptyMap();
 	}
 
 	@Override
@@ -779,9 +787,10 @@ public class DBAdapterPostgres extends DBAdapter {
 				String owner = rs.getString("rolname");
 				String sql = rs.getString("ddl");
 				StringProperties options = new StringProperties(rs);
-				Set<String> dependencies = rs.getArray("dependencies") == null
-						? Collections.emptySet()
-						: new HashSet<>(Arrays.asList((String[])rs.getArray("dependencies").getArray()));
+				Set<String> dependencies = Collections.emptySet();
+//					rs.getArray("dependencies") == null
+//						? Collections.emptySet()
+//						: new HashSet<>(Arrays.asList((String[])rs.getArray("dependencies").getArray()));
 
 				DBFunction dbFunction = new DBFunction(name, options, schema, owner, dependencies, sql);
 

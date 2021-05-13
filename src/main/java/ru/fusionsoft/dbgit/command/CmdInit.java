@@ -42,7 +42,6 @@ public class CmdInit implements IDBGitCommand {
 		}
 		
 		DBGit.gitInit(dir);
-
 	}
 
 }

@@ -365,8 +365,11 @@ public class DBAdapterMssql extends DBAdapter {
 		final int order = rs.getInt("order");
 
 		return new DBTableField(
-			columnName, columnDesc, isPrimaryKey, isNullable,
-			typeSQL, typeUniversal, order, columnDefault,
+			columnName, 
+			columnDesc == null ? "" : columnDesc,
+			isPrimaryKey, isNullable,
+			typeSQL, typeUniversal, order, 
+			columnDefault == null ? "" : columnDefault,
 			length, precision, scale, isFixed
 		);
 

@@ -136,7 +136,7 @@ public class DBGitConfig {
 	public void setValue(String parameter, String value, boolean global) throws ExceptionDBGit {
 		try {
 			if (global) {
-				if (!iniGlobal.get("core").containsKey(parameter))
+				if (!iniGlobal.get("core").containsKey(parameter) && !parameter.equals("CURRENT_OBJECT"))
 					ConsoleWriter.detailsPrintln(
 						DBGitLang.getInstance().getValue("errors", "config", "noParameter").withParams(parameter)
 						, messageLevel
@@ -149,7 +149,7 @@ public class DBGitConfig {
 				if (getIni() == null)
 					throw new ExceptionDBGit(DBGitLang.getInstance().getValue("errors", "gitRepNotFound"));
 
-				if (!ini.get("core").containsKey(parameter))
+				if (!ini.get("core").containsKey(parameter) && ! parameter.equals("CURRENT_OBJECT"))
 					ConsoleWriter.detailsPrintln(DBGitLang.getInstance().getValue("errors", "config", "noParameter").withParams(parameter), messageLevel);
 				else {			
 					getIni().get("core").put(parameter, value);

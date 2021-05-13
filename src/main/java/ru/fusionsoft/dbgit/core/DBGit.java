@@ -2,6 +2,8 @@ package ru.fusionsoft.dbgit.core;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -38,8 +40,12 @@ public class DBGit {
 		try {
 			FileRepositoryBuilder builder = new FileRepositoryBuilder();
 			repository = builder
-				.readEnvironment() // scan environment GIT_* variables
-				.findGitDir() // scan up the file system tree
+				.setGitDir(
+					Paths.get("")
+					.resolve(".git")
+					.toAbsolutePath()
+					.toFile()
+				)
 				.build();
 
 			git = new Git(repository);
@@ -86,8 +92,8 @@ public class DBGit {
 			}
 			instance.repository.close();
 			instance.git.close();
-			instance = new DBGit(gitDirUrl);
 		}
+		instance = new DBGit(gitDirUrl);
 	}
 
 	public static boolean repositoryExists() {
@@ -375,45 +381,67 @@ public class DBGit {
 			    , messageLevel+1
 			);
 
-			Iterable<PushResult> result = git.push()
-					.setCredentialsProvider(getCredentialsProviderByName(remoteName.equals("") ? Constants.DEFAULT_REMOTE_NAME : remoteName))
-					.setRemote(remoteName.equals("") ? Constants.DEFAULT_REMOTE_NAME : remoteName).call();
+			try {
 
-			ConsoleWriter.detailsPrintln("Push called ", messageLevel);
-			ConsoleWriter.println(DBGitLang.getInstance()
-			    .getValue("general", "push", "called")
-			    , messageLevel+1
-			);
+				Iterable<PushResult> result = git
+					.push()
+					.setCredentialsProvider(
+						getCredentialsProviderByName(
+							remoteName.equals("")
+								? Constants.DEFAULT_REMOTE_NAME
+								: remoteName
+						)
+					)
+					.setRemote(
+						remoteName.equals("")
+							? Constants.DEFAULT_REMOTE_NAME
+							: remoteName
+					)
+					.call();
 
-			result.forEach(pushResult -> {
-				if (pushResult == null){
-					ConsoleWriter.println(DBGitLang.getInstance()
-						.getValue("general", "push", "nullResult")
-						, 1
-					);
-				} else {
-					ConsoleWriter.println(DBGitLang.getInstance()
+
+				ConsoleWriter.println(DBGitLang.getInstance()
+					.getValue("general", "push", "called")
+					, messageLevel+1
+				);
+	
+				result.forEach(pushResult -> {
+					if (pushResult == null){
+						ConsoleWriter.println(DBGitLang.getInstance()
+							.getValue("general", "push", "nullResult")
+							, 1
+						);
+					} else {
+						ConsoleWriter.println(DBGitLang.getInstance()
+							.getValue("general", "push", "callResult")
+							.withParams(pushResult.toString())
+							, messageLevel+1
+						);
+					}
+					for (RemoteRefUpdate res : pushResult.getRemoteUpdates()) {
+						if (res.getStatus() == RemoteRefUpdate.Status.UP_TO_DATE){
+							ConsoleWriter.println(DBGitLang.getInstance()
+								.getValue("general", "push", "upToDate")
+								, 1
+							);
+						}
+						else {
+							ConsoleWriter.println(DBGitLang.getInstance()
+								.getValue("general", "push", "result")
+								.withParams(res.toString())
+								, 1
+							);
+						}
+					}
+				});
+
+			} catch (Exception ex) {
+				ConsoleWriter.println(DBGitLang.getInstance()
 						.getValue("general", "push", "callResult")
-						.withParams(pushResult.toString())
-						, messageLevel+1
-					);
-				}
-				for (RemoteRefUpdate res : pushResult.getRemoteUpdates()) {
-					if (res.getStatus() == RemoteRefUpdate.Status.UP_TO_DATE){
-						ConsoleWriter.println(DBGitLang.getInstance()
-							.getValue("general", "push", "upToDate")
-							, 1
-						);
-					}
-					else {
-						ConsoleWriter.println(DBGitLang.getInstance()
-							.getValue("general", "push", "result")
-							.withParams(res.toString())
-							, 1
-						);
-					}
-				}
-			});
+						.withParams(ex.getLocalizedMessage())
+					, messageLevel + 1
+				);
+			}
 
 		} catch (Exception e) {
 			throw new ExceptionDBGit(e);
@@ -451,7 +479,9 @@ public class DBGit {
 				.setCredentialsProvider(cp)
 				.setDirectory(directory);
 
-			cc.call();
+			final Git call = cc.call();
+			call.getRepository().close();
+			call.close();
 
 			ConsoleWriter.println(DBGitLang.getInstance().getValue("general", "clone", "cloned"), messageLevel);
 
@@ -474,6 +504,7 @@ public class DBGit {
 					remote.setName(name);
 					remote.setUri(new URIish(uri));
 					remote.call();
+					remote.getRepository().close();
 
 					ConsoleWriter.printlnGreen(DBGitLang.getInstance().getValue("general", "remote", "added"), messageLevel);
 
@@ -484,6 +515,7 @@ public class DBGit {
 					RemoteRemoveCommand remote = git.remoteRemove();
 					remote.setName(name);
 					remote.call();
+					remote.getRepository().close();
 
 					ConsoleWriter.printlnGreen(DBGitLang.getInstance().getValue("general", "remote", "removed"), messageLevel);
 
@@ -512,8 +544,14 @@ public class DBGit {
 
 	public void gitFetch(String remote) throws ExceptionDBGit {
 		try {
-			FetchCommand fetch = git.fetch()
-					.setCredentialsProvider(getCredentialsProviderByName(remote.equals("") ? Constants.DEFAULT_REMOTE_NAME : remote));
+			FetchCommand fetch = git
+			.fetch()
+			.setCredentialsProvider(getCredentialsProviderByName(
+				remote.equals("") 
+					? Constants.DEFAULT_REMOTE_NAME 
+					: remote
+				)
+			);
 
 			if (remote.length() > 0)
 				fetch = fetch.setRemote(remote);
@@ -521,6 +559,7 @@ public class DBGit {
 				fetch = fetch.setRemote(Constants.DEFAULT_REMOTE_NAME);
 
 			fetch.call();
+			fetch.getRepository().close();
 
 			ConsoleWriter.println(DBGitLang.getInstance().getValue("general", "done"), messageLevel);
 		} catch (Exception e) {

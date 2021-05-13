@@ -35,7 +35,7 @@ general:
     removed: Remote removed
     unknown: Unknown command
   init:
-    created: Repository created
+    created: Repository created 
   dump:
     checking: Checking files...
     dumping: Dumping...
@@ -264,6 +264,7 @@ errors:
     rollback: Error while rollback!
     createSchema: Cannot create schema
     nullSchema: Object {0} has no schema set!
+    objectNotFoundInDb: Object is not found in target database!
   backup:
     badCommand: Bad command. Object to backup doesn't specified!
     backupError: Error on backup {0}

@@ -1,5 +1,6 @@
 package ru.fusionsoft.dbgit.dbobjects;
 
+import java.util.Collections;
 import ru.fusionsoft.dbgit.utils.CalcHash;
 import ru.fusionsoft.dbgit.utils.StringProperties;
 
@@ -8,6 +9,9 @@ import java.util.Set;
 public class DBSequence extends DBSchemaObject {
 	protected Long value;
 
+	public DBSequence(){
+		super("", new StringProperties(), "", "", Collections.emptySet());
+	}
 	public DBSequence(String name, StringProperties options, String schema, String owner, Set<String> dependencies, Long value) {
 		super(name, options, schema, owner, dependencies);
 		this.value = value;

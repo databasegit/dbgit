@@ -96,7 +96,15 @@ public class CmdRm implements IDBGitCommand {
 		}
 		if (forgetImmediately) {
 			ConsoleWriter.detailsPrintln(getLang().getValue("general", "rm", "removingFromIndex"), messageLevel+1);
-			index.getTreeItems().values().stream().filter(ItemIndex::getIsDelete).collect(Collectors.toList()).forEach(x->index.getTreeItems().remove(x.getName()));
+			index.getTreeItems().values()
+				.stream()
+				.filter(ItemIndex::getIsDelete)
+				.collect(Collectors.toList())
+				.forEach(
+					x->index.getTreeItems()
+					.remove(x.getName())
+				);
+			
 			index.saveDBIndex();
 			index.addToGit();
 			ConsoleWriter.detailsPrintGreen(getLang().getValue("general", "ok"));

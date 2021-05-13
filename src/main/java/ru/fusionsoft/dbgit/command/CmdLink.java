@@ -46,7 +46,8 @@ public class CmdLink implements IDBGitCommand {
 
 		DBConnection conn = DBConnection.getInstance(false);
 		if(cmdLine.hasOption("ls")) {
-			ConsoleWriter.printlnGreen(DBConnection.loadFileDBLink(new Properties()), messageLevel);
+//			ConsoleWriter.printlnGreen(DBConnection.loadFileDBLink(new Properties()), messageLevel);
+			System.out.println(DBConnection.loadFileDBLink(new Properties()));
 			return;
 		}
 

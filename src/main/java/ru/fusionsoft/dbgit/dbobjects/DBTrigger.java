@@ -6,6 +6,7 @@ import java.util.Set;
 
 public class DBTrigger extends DBCode {
 
+	public DBTrigger() { }
 	public DBTrigger(String name, StringProperties options, String schema, String owner, Set<String> dependencies, String sql) {
 		super(name, options, schema, owner, dependencies, sql);
 	}

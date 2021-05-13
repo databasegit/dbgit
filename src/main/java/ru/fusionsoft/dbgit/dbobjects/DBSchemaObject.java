@@ -1,6 +1,7 @@
 package ru.fusionsoft.dbgit.dbobjects;
 
 
+import java.util.Collections;
 import ru.fusionsoft.dbgit.utils.StringProperties;
 import ru.fusionsoft.dbgit.yaml.YamlOrder;
 
@@ -27,8 +28,8 @@ public abstract class DBSchemaObject extends DBOptionsObject {
 	public DBSchemaObject(String name, StringProperties options, String schema, String owner, Set<String> dependencies) {
 		super(name, options);
 		this.schema = schema;
-		this.owner = owner;
-		this.dependencies = dependencies;
+		this.owner = owner == null ? "" : owner;
+		this.dependencies = dependencies == null ? Collections.emptySet() : dependencies;
 	}
 
 	public String getSchema() {

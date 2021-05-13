@@ -5,6 +5,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.MapDifference;
 import com.google.common.collect.MapDifference.ValueDifference;
 import com.google.common.collect.Maps;
+import java.util.regex.Pattern;
 import ru.fusionsoft.dbgit.adapters.DBRestoreAdapter;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRestore;
@@ -368,7 +369,6 @@ public class DBRestoreTableMssql extends DBRestoreAdapter {
 		if(pkConstraints.size() > 1) throw new SQLException();
 
 		for(DBConstraint pk : pkConstraints){
-
 			String ddl = pk.getSql();
 			ddl = ddl.replaceFirst("ALTER TABLE\\s+\\[?\\w+\\]?.\\[?\\w+\\]?\\s+ADD\\s+CONSTRAINT\\s+\\[?\\w+\\]?\\s+", "");
 			ddl = MessageFormat.format(

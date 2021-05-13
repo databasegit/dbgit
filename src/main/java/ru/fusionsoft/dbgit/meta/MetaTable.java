@@ -11,6 +11,7 @@ import ru.fusionsoft.dbgit.adapters.AdapterFactory;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
 import ru.fusionsoft.dbgit.core.DBGitIndex;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
+import ru.fusionsoft.dbgit.core.ExceptionDBGitObjectNotFound;
 import ru.fusionsoft.dbgit.dbobjects.*;
 import ru.fusionsoft.dbgit.utils.CalcHash;
 import ru.fusionsoft.dbgit.yaml.YamlOrder;
@@ -72,12 +73,15 @@ public class MetaTable extends MetaBase {
 	public boolean loadFromDB() throws ExceptionDBGit {
 		IDBAdapter adapter = AdapterFactory.createAdapter();
 		NameMeta nm = MetaObjectFactory.parseMetaName(getName());
-		
-		DBTable tbl = adapter.getTable(nm.getSchema(), nm.getName());
-		if (tbl != null)
-			return loadFromDB(tbl);
-		else
+		try {
+			DBTable tbl = adapter.getTable(nm.getSchema(), nm.getName());
+			if (tbl != null)
+				return loadFromDB(tbl);
+			else
+				return false;
+		} catch (ExceptionDBGitObjectNotFound exnf) {
 			return false;
+		}
 	}
 	
 	public boolean loadFromDB(DBTable tbl) throws ExceptionDBGit {

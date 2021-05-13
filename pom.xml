@@ -8,14 +8,13 @@
 	<packaging>jar</packaging>
 	<build>
 		<plugins>
-
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
 				<version>3.0.0-M5</version>
 				<configuration>
-<!--					<groups>none() | pgTest </groups>-->
-<!--					<excludedGroups>any()</excludedGroups>-->
+					<groups>none() | integration</groups>
+					<excludedGroups>deprecated</excludedGroups>
 				</configuration>
 			</plugin>
 
@@ -84,6 +83,16 @@
 
 		</plugins>
 
+		<testResources>
+			<testResource>
+				<filtering>false</filtering>
+				<directory>${project.basedir}/src/main/resources</directory>
+				<includes>
+					<include>logback-test.xml</include>
+				</includes>
+			</testResource>
+		</testResources>
+		
 		<resources>
 			<resource>
 				<directory>${project.basedir}/src/main/resources/</directory>

@@ -16,6 +16,7 @@ import ru.fusionsoft.dbgit.core.DBGitPath;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
 import ru.fusionsoft.dbgit.core.db.DbType;
+import ru.fusionsoft.dbgit.utils.StringProperties;
 import ru.fusionsoft.dbgit.yaml.DBGitYamlConstructor;
 import ru.fusionsoft.dbgit.yaml.DBGitYamlRepresenter;
 import ru.fusionsoft.dbgit.yaml.YamlOrder;
@@ -95,8 +96,8 @@ public abstract class MetaBase implements IMetaObject {
 	
 	public IMetaObject yamlDeSerialize(InputStream stream) {
         Yaml yaml = createYaml();
-        
-        IMetaObject meta = yaml.loadAs(stream, this.getClass());        
+		//Map<String, Map> some = yaml.loadAs(stream, Map.class);
+		IMetaObject meta = yaml.loadAs(stream, this.getClass());
         return meta;
 	}
 
@@ -111,6 +112,7 @@ public abstract class MetaBase implements IMetaObject {
 		DumperOptions options = new DumperOptions();
         options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);               
         options.setPrettyFlow(true);
+
         Yaml yaml = new Yaml(new DBGitYamlConstructor(), new DBGitYamlRepresenter(), options);
         return yaml;
 	}

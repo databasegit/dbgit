@@ -1,9 +1,9 @@
 package ru.fusionsoft.dbgit.dbobjects;
 
+import java.util.Collections;
 import ru.fusionsoft.dbgit.utils.CalcHash;
 import ru.fusionsoft.dbgit.utils.StringProperties;
 
-import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -15,6 +15,10 @@ public class DBSQLObject extends DBSchemaObject {
 
 	protected String sql;
 
+	public DBSQLObject() {
+		super("", new StringProperties(), "", "", Collections.emptySet());
+	}
+	
 	public DBSQLObject(String name, StringProperties options, String schema, String owner, Set<String> dependencies, String sql) {
 		super(name, options, schema, owner, dependencies);
 		this.sql = sql;
@@ -38,6 +42,5 @@ public class DBSQLObject extends DBSchemaObject {
 	public void setSql(String ddl) {
 		this.sql = ddl;
 	}
-
 
 }

@@ -63,14 +63,14 @@ public class CmdCheckout implements IDBGitCommand {
 				String headName = head.getName();
 				String message = walk.parseCommit(head.getObjectId()).getShortMessage();
 
-				ConsoleWriter.printlnGreen(DBGitLang.getInstance()
+				System.out.println(DBGitLang.getInstance()
 				    .getValue("general", "checkout", "printBranchAndCommit")
 				    .withParams(
 						!branch.equals(headNumber) ? branch + ": " + headName : headNumber,
 						headName,
 						message
 					)
-				    , messageLevel
+//				    , messageLevel
 				);
 
 			}

@@ -12,6 +12,7 @@ public class DBConstraint extends DBSQLObject {
 	@YamlOrder(4)
 	private String constraintType;
 
+	public DBConstraint() { }
 	public DBConstraint(String name, StringProperties options, String schema, String owner, Set<String> dependencies, String sql, String constraintType) {
 		super(name, options, schema, owner, dependencies, sql);
 		this.constraintType = constraintType;

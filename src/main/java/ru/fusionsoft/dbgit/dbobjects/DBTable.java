@@ -13,9 +13,13 @@ public class DBTable extends DBSchemaObject {
 	@YamlOrder(4)
 	private String comment;
 
+	public DBTable() {
+		super("", new StringProperties(), "", "", Collections.emptySet());
+	}
+
 	public DBTable(String name, StringProperties options, String schema, String owner, Set<String> dependencies, String comment) {
 		super(name, options, schema, owner, dependencies);
-		this.comment = comment;
+		this.comment = comment == null ? "" : comment;
 	}
 
 
@@ -35,16 +39,16 @@ public class DBTable extends DBSchemaObject {
 	}
 
 	public void setComment(String comment) {
-		this.comment = comment;
+		this.comment = comment == null ? "" : comment;
 	}
 
 	public String getComment() {
 		return this.comment;
 	}
 
-	public static class OnlyNamesDBTable extends DBTable{
+	public static class OnlyNameDBTable extends DBTable{
 
-		public OnlyNamesDBTable(String name, String schema) {
+		public OnlyNameDBTable(String name, String schema) {
 			super(name, new StringProperties(), schema, "", Collections.emptySet(), "");
 		}
 

@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 
 @Tag("mssqlTest")
+@Tag("deprecated")
 public class DBAdapterMssqlTest {
 
     public static Properties testProps;
@@ -31,7 +32,7 @@ public class DBAdapterMssqlTest {
     *  Setup of ip an ports via SQLServerManager11.msc also needed, mine was:
     *  Protocols -> SQL EXPRESS protocols -> Protocol -> Listen all to true and
     *  Protocols -> SQL EXPRESS protocols -> Protocol -> IP adresses -> IPAll -> TCP Port to 1433 and Dynamic TCP Port to blank
-    * */
+    */
 
     public static String TEST_CONN_URL = "23.105.226.179:1433";
     public static String TEST_CONN_CATALOG = "testdatabasegit";

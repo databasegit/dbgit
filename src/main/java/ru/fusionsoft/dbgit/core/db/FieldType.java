@@ -10,7 +10,9 @@ public enum FieldType {
     NUMBER("number"),
     STRING("string"),
     STRING_NATIVE("string native"),
-    TEXT("text");
+    ENUM("enum"),
+    TEXT("text"),
+    UNDEFINED("");
 
     private String typeName;
 

@@ -1,6 +1,6 @@
 package ru.fusionsoft.dbgit.core;
 
-public class ExceptionDBGitObjectNotFound extends ExceptionDBGit  {
+public class ExceptionDBGitObjectNotFound extends Error  {
 
 	private static final long serialVersionUID = 2163408974338332577L;
 

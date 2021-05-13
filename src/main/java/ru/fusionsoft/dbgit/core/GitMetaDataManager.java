@@ -97,10 +97,13 @@ public class GitMetaDataManager {
 	}
 	
 	public boolean loadFromDB(IMetaObject obj) throws ExceptionDBGit {		
-		boolean result = obj.loadFromDB();
-		if (result)
-			dbObjs.put(obj);
-		return result;
+		try {
+			boolean result = obj.loadFromDB();
+			if (result) dbObjs.put(obj);
+			return result;
+		} catch (ExceptionDBGitObjectNotFound ex) {
+			return false;
+		}
 	}
 	
 	public IMetaObject getCacheDBMetaObject(String name) {

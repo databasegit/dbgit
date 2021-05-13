@@ -34,12 +34,12 @@ import java.text.MessageFormat;
 import java.util.*;
 
 
-@Tag("pgTest")
+@Tag("deprecated")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class DBGitTest {
 
-    static Path RESOURCES_REPO_DIR = new File( "src/test/resources/repo").toPath();
+    static Path RESOURCES_REPO_DIR = new File("src/test/resources/repo").toPath();
     static Path RECOURCES_REPO_GIT_DIR = RESOURCES_REPO_DIR.resolve(".git");
 
     static String REPO_URL = "https://github.com/rocket-3/dbgit-test.git";
@@ -48,20 +48,16 @@ public class DBGitTest {
 
     static String TEST_DB_URL = "jdbc:postgresql://localhost/";
     static String TEST_DB_USER = "postgres";
-    static String TEST_DB_PASS = "Kan:al*098";
+    static String TEST_DB_PASS = "";
     static String TEST_DB_CATALOG = "test#databasegit";
     static boolean TO_CREATE_CATALOG = true;
     static int messageLevel = 0;
-
-    //static String pgTestDbUrl = "jdbc:postgresql://135.181.94.98:31007/";
-    //static String pgTestDbUser = "user";
-    //static String pgTestDbPass = "42PoapGLGVnTdEYoUYFaFWXK";
-
+    
     private static void addCatalogToUrl() {
         TEST_DB_URL = MessageFormat.format(
             "{0}{1}{2}",
             TEST_DB_URL,
-            !TEST_DB_URL.endsWith("/") ? "/" : "",
+            TEST_DB_URL.endsWith("/") ? "" : "/",
             TEST_DB_CATALOG
         );
     }
@@ -489,8 +485,7 @@ public class DBGitTest {
     }
 
     private static void loadCommitNumbersFromRepo() throws GitAPIException, IOException {
-        DfsRepositoryDescription repoDesc = new DfsRepositoryDescription();
-        InMemoryRepository repo = new InMemoryRepository(repoDesc);
+        InMemoryRepository repo = new InMemoryRepository(new DfsRepositoryDescription());
         Git git = new Git(repo);
         git.fetch()
             .setRemote(REPO_URL)

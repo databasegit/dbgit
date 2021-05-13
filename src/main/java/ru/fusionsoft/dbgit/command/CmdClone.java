@@ -13,7 +13,8 @@ public class CmdClone implements IDBGitCommand {
 	private Options opts = new Options();
 
 	public CmdClone() {
-		opts.addOption("directory", false, "subdirectory to clone into"/*getLang().getValue("help", "commit-a").toString()*/);
+		opts.addOption("directory", true, "subdirectory to clone into"/*getLang
+		().getValue("help", "commit-a").toString()*/);
 	}
 
 	@Override
