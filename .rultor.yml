@@ -8,7 +8,7 @@ merge:
     java -version
     mvn -version
     mvn clean install package appassembler:assemble -D skipTests
-test:
+deploy:
   script: |-
     java -version
     mvn -version
