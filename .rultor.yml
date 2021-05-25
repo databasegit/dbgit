@@ -1,0 +1,16 @@
+env:
+  MAVEN_OPTS: "-XX:MaxPermSize=256m -Xmx1g"
+assets:
+  pgSecret.txt: https://github.com/rocket-3/dbgit-test/blob/master/pgSecret.txt
+  gitSecret.txt: https://github.com/rocket-3/dbgit-test/blob/master/gitSecret.txt
+merge:
+  script: |-
+    java -version
+    mvn -version
+    mvn clean install package appassembler:assemble -D skipTests
+test:
+  script: |-
+    java -version
+    mvn -version
+    mvn clean install package appassembler:assemble -D skipTests
+    mvn test -Dtest=*selfTest,*DbGitIntegrationTestBasic*
