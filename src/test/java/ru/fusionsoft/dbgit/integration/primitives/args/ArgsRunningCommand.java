@@ -11,7 +11,7 @@ public class ArgsRunningCommand extends ArgsExplicit {
             "/C",
             commandName
         );
-    }   
+    }
     public ArgsRunningCommand(Path executablePath) {
         this(
             new CharsOf<>(
@@ -20,12 +20,5 @@ public class ArgsRunningCommand extends ArgsExplicit {
             )
         );
     } 
-    public ArgsRunningCommand(Path executablePath, Path workingDirectory) {
-        this(
-            new PathRelativeTo(
-                workingDirectory,
-                executablePath
-            )
-        );
-    }
+
 }

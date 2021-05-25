@@ -20,14 +20,13 @@ public class ConsoleWriter {
 		if(onlyDetailed && !showDetailedLog) return;
 
 		String tab = StringUtils.leftPad("", 4*level, " ");
-		String msg = MessageFormat.format("{0}{1}{2}",
-			newLine ? "\n" : "",
+		String msg = MessageFormat.format("{0}{1}",
 			tab,
 			message.toString()
 		);
-
-		cp.print(msg, Attribute.NONE, color, BColor.BLACK);
-		cp.clear();
+		System.out.print(( newLine ? "\n" : " " ) + msg );
+//		cp.print(msg, Attribute.NONE, color, BColor.BLACK);
+//		cp.clear();
 
 	}
 

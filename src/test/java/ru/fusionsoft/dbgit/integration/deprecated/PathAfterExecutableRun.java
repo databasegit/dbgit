@@ -3,11 +3,11 @@ package ru.fusionsoft.dbgit.integration.deprecated;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import ru.fusionsoft.dbgit.integration.primitives.Args;
-import ru.fusionsoft.dbgit.integration.primitives.NullPrintStream;
+import ru.fusionsoft.dbgit.integration.primitives.printstream.DefaultPrintStream;
 import ru.fusionsoft.dbgit.integration.primitives.args.ArgsExplicit;
 import ru.fusionsoft.dbgit.integration.primitives.args.ArgsWithPrepend;
 import ru.fusionsoft.dbgit.integration.primitives.chars.CharsOf;
-import ru.fusionsoft.dbgit.integration.primitives.path.PathAfterCommandRun;
+import ru.fusionsoft.dbgit.integration.primitives.path.PathAfterProcessRun;
 import ru.fusionsoft.dbgit.integration.primitives.path.PathEnvelope;
 
 public class PathAfterExecutableRun extends PathEnvelope {
@@ -20,7 +20,7 @@ public class PathAfterExecutableRun extends PathEnvelope {
     ) {
         super(
             () ->
-            new PathAfterCommandRun(
+            new PathAfterProcessRun(
                 new ArgsWithPrepend(
                     new ArgsWithPrepend(
                         command,
@@ -44,7 +44,7 @@ public class PathAfterExecutableRun extends PathEnvelope {
             commandInterface,
             executableName,
             executableArgs,
-            new NullPrintStream(),
+            new DefaultPrintStream(),
             workingDirectory
         );
     }
@@ -72,7 +72,7 @@ public class PathAfterExecutableRun extends PathEnvelope {
         this(
             executableName,
             args,
-            new NullPrintStream(),
+            new DefaultPrintStream(),
             workingDirectory
         );
     }

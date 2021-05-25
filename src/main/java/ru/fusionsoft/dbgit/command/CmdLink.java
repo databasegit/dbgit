@@ -60,10 +60,11 @@ public class CmdLink implements IDBGitCommand {
 		String url = args[0];
 		Properties props = CreateProperties(Arrays.copyOfRange(args, 1, args.length));
 
-		if(conn.testingConnection(url, props)) {
-			DBConnection.createFileDBLink(url, props, cmdLine.hasOption("d"));	
-			DBGitPath.createDefaultDbignore(DBGitPath.getFullPath(), url, props);
-		}			
+		DBConnection.createFileDBLink(url, props, cmdLine.hasOption("d"));
+		DBGitPath.createDefaultDbignore(DBGitPath.getFullPath(), url, props);
+		if(!conn.testingConnection(url, props)) {
+			throw new ExceptionDBGit("Db connection link seems not working");
+		}
 	}
 	
 	public Properties CreateProperties(String[] args) {

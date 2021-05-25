@@ -73,9 +73,10 @@ public class CmdRestore implements IDBGitCommand {
 		IMapMetaObject updateObjs = new TreeMapMetaObject();
 		IMapMetaObject deleteObjs = new TreeMapMetaObject();
 
-		if (toMakeBackup) { ConsoleWriter.printlnColor(getLang().getValue("general", "restore", "willMakeBackup").toString(), Ansi.FColor.GREEN, 1); }
-		if (toMakeChanges) { ConsoleWriter.printlnColor(getLang().getValue("general", "restore", "toMakeChanges").toString(), Ansi.FColor.GREEN, 1); }
-		else { ConsoleWriter.printlnColor(getLang().getValue("general", "restore", "notMakeChanges").withParams(autoScriptFile.getAbsolutePath()), Ansi.FColor.GREEN, 1); }
+		if (toMakeBackup) { ConsoleWriter.printlnColor(getLang().getValue("general", "restore", "willMakeBackup").toString(), Ansi.FColor.GREEN, messageLevel+1); } 
+		else { ConsoleWriter.printlnColor(getLang().getValue("general", "restore", "wontMakeBackup").toString(), Ansi.FColor.GREEN, messageLevel+1); }
+		if (toMakeChanges) { ConsoleWriter.printlnColor(getLang().getValue("general", "restore", "toMakeChanges").toString(), Ansi.FColor.GREEN, messageLevel+1); }
+		else { ConsoleWriter.printlnColor(getLang().getValue("general", "restore", "notMakeChanges").withParams(autoScriptFile.getAbsolutePath()), Ansi.FColor.GREEN, messageLevel+1); }
 
 		//delete that not present in HEAD
 		try {
@@ -140,19 +141,25 @@ public class CmdRestore implements IDBGitCommand {
 			// # steps 1,2 are in GitMetaDataManager::restoreDatabase
 
 			ConsoleWriter.println(getLang().getValue("general", "restore", "seekingToRestoreAdditional"),1);
-			Map<String, IMetaObject> affectedTables = dbObjs.values().stream().filter(excluded ->
-				excluded instanceof MetaTable &&
-				!updateObjs.containsKey(excluded.getName()) &&
-				updateObjs.values().stream().anyMatch( included -> excluded.dependsOn(included) )
-			).collect(Collectors.toMap( key -> key.getName(), val -> val));
-
-
+			Map<String, IMetaObject> affectedTables = new TreeMapMetaObject();
+			Map<String, IMetaObject> foundTables = new TreeMapMetaObject();
+			do {
+				foundTables = 
+					dbObjs.values().stream()
+					.filter(excluded -> {
+						return excluded instanceof MetaTable
+						&& ! updateObjs.containsKey(excluded.getName())
+						&& updateObjs.values().stream().anyMatch(excluded::dependsOn);
+					})
+					.collect(Collectors.toMap(IMetaObject::getName, val -> val));
+				affectedTables.putAll(foundTables);
+				updateObjs.putAll(foundTables);
+			} while (!foundTables.isEmpty());
+			
 			if(affectedTables.isEmpty()){
 				ConsoleWriter.println(getLang().getValue("general", "restore", "nothingToRestoreAdditional"), 2);
 			} else {
-//				ConsoleWriter.print(getLang().getValue("general", "restore", "toRestoreAdditional"));
 				affectedTables.forEach((k,v)->ConsoleWriter.println(k, 2));
-				updateObjs.putAll( affectedTables );
 			}
 
 
@@ -212,6 +219,7 @@ public class CmdRestore implements IDBGitCommand {
 		DBGitPath.createScriptsDir();
 		SimpleDateFormat format = new SimpleDateFormat("yyyyMMddHHmmss");
 		File scriptFile = new File(DBGitPath.getScriptsPath() + "script-" + format.format(new Date()) + ".sql");
+//		System.out.println(scriptFile.getAbsolutePath());
 		if (!scriptFile.exists()) { scriptFile.createNewFile(); }
 		return scriptFile;
 	}

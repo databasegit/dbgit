@@ -16,10 +16,13 @@ public class SafeScalarOf<Y> implements SafeScalar<Y> {
         try {
             return origin.value();
         } catch (Exception e) {
-            throw new Error(
-                "Exception occurs while constructing safe scalar value",
-                e
-            );
+            throw new SafeScalarError(e);
+        }
+    }
+
+    public static class SafeScalarError extends Error {
+        public SafeScalarError(Throwable cause) {
+            super("Error occurs while constructing safe scalar value", cause);
         }
     }
 }

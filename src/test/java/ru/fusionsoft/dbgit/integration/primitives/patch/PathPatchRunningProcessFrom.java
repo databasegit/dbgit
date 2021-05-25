@@ -9,7 +9,8 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import ru.fusionsoft.dbgit.integration.primitives.Args;
 import ru.fusionsoft.dbgit.integration.primitives.Patch;
-import ru.fusionsoft.dbgit.integration.primitives.chars.InputStreamChars;
+import ru.fusionsoft.dbgit.integration.primitives.chars.LinesFromInputStream;
+import ru.fusionsoft.dbgit.integration.primitives.chars.specific.test.CharsOfLines;
 
 public class PathPatchRunningProcessFrom implements Patch<Path> {
 
@@ -21,11 +22,6 @@ public class PathPatchRunningProcessFrom implements Patch<Path> {
         this.printStream = printStream;
     }
 
-//    public PathPatchRunningProcessFrom(Args processRunCommandLine) {
-//        this.processRunCommandLine = processRunCommandLine;
-//        this.printStream = System.out;
-//    }
-
     @Override
     public final void apply(Path root) throws Exception {
         try (
@@ -36,31 +32,37 @@ public class PathPatchRunningProcessFrom implements Patch<Path> {
                 "UTF-8"
             )
         ) {
+
             final Consumer<CharSequence> outputConsumer = (chars) -> {
                 cachedPrintStream.println(chars);
                 printStream.println(chars);
             };
-            
+
             outputConsumer.accept(MessageFormat.format(
                 "{0} # {1}",
                 root.toString(),
-                String.join(" ", processRunCommandLine.values())
+                String.join(
+                    " ",
+                    processRunCommandLine.values()
+                )
             ));
 
             final Process process = new ProcessBuilder()
-            .directory(root.toAbsolutePath().toFile())
-            .command(
-                Arrays.stream(processRunCommandLine.values())
-                .map(String::valueOf)
-                .collect(Collectors.toList())
-            )
-            .start();
+                .directory(root.toAbsolutePath().toFile())
+                .command(
+                    Arrays.stream(processRunCommandLine.values())
+                        .map(String::valueOf)
+                        .collect(Collectors.toList())
+                )
+                .start();
 
-            final CharSequence processOutput = String.valueOf(new InputStreamChars(
-                process.getInputStream()
-            ));
-            final CharSequence processErrOutput = new InputStreamChars(
-                process.getErrorStream(), "Cp866"
+            final CharSequence processOutput = String.valueOf(
+                new CharsOfLines(
+                    new LinesFromInputStream(process.getInputStream()), "> "
+                )
+            );
+            final CharSequence processErrOutput = new CharsOfLines(
+                new LinesFromInputStream(process.getErrorStream(), "Utf-8"), "> "
             );
 
             final int exitCode = process.waitFor();
@@ -68,17 +70,17 @@ public class PathPatchRunningProcessFrom implements Patch<Path> {
             outputConsumer.accept(processOutput);
 
             if (exitCode != 0) {
-                throw new RuntimeException(MessageFormat.format(
-                    "Process exited with error, code {0}" 
-                    + "\nErrors: {1}" 
-                    + "\nOriginal output: {2}"
-                    ,exitCode
-                    ,processErrOutput.length() != 0 
-                        ? "\n" + processErrOutput 
+                throw new Exception(MessageFormat.format(
+                    "Process exited with error, code {0}"
+                    + "\nErrors: {1}"
+//                    + "\nOriginal output: {2}"
+                    , exitCode
+                    , processErrOutput.length() != 0
+                        ? "\n" + processErrOutput
                         : "...error stream was empty"
-                    ,cachedOutputStream.size() != 0
-                        ? "\n" + cachedOutputStream.toString()
-                        : "...output stream was empty"
+//                    ,cachedOutputStream.size() != 0
+//                        ? "\n" + cachedOutputStream.toString()
+//                        : "...output stream was empty"
                 ));
             }
         }

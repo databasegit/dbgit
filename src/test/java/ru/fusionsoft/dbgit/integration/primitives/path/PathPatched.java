@@ -11,4 +11,9 @@ public class PathPatched extends PathEnvelope {
             new PatchedScalar<>(origin, patch)
         );
     }
+    public PathPatched(final Patch<Path> patch, final Path origin) {
+        super(
+            new PatchedScalar<>(origin, patch)
+        );
+    }
 }

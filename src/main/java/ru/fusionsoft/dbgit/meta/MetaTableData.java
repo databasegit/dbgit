@@ -173,6 +173,7 @@ public class MetaTableData extends MetaBase {
 
 		CsvReader csvReader = new CsvReader();
 		csvReader.setFieldSeparator(';');
+		csvReader.setContainsHeader(false);
 		int i = 1;
 
 		try (CsvParser csvParser = csvReader.parse(file, StandardCharsets.UTF_8)) {
@@ -186,6 +187,7 @@ public class MetaTableData extends MetaBase {
 				if (!flag) {
 					titleColumns = row;
 					fields = row.getFields();
+//					System.err.println("fields = " + fields);
 				} else {
 					RowData rd = new RowData(row, metaTable, titleColumns);
 					mapRows.put(rd);
@@ -194,11 +196,11 @@ public class MetaTableData extends MetaBase {
 				flag = true;
 			}
 		} catch (Throwable ex){
-			ConsoleWriter.detailsPrintlnRed(DBGitLang.getInstance().getValue("general", "meta", "loadRow").withParams(String.valueOf(i) ), messageLevel);
+			ConsoleWriter.detailsPrint(DBGitLang.getInstance().getValue("general", "meta", "loadRow").withParams(String.valueOf(i) ));
 			warnFilesNotFound();
 			throw ex;
 		}
-		ConsoleWriter.detailsPrintlnGreen(DBGitLang.getInstance().getValue("general", "meta", "loadedRow").withParams(String.valueOf(i) ), messageLevel);
+		ConsoleWriter.detailsPrint(DBGitLang.getInstance().getValue("general", "meta", "loadedRow").withParams(String.valueOf(i) ));
 		warnFilesNotFound();
 
 		return this;
@@ -206,6 +208,7 @@ public class MetaTableData extends MetaBase {
 
 
 	@Override
+	@Deprecated
 	public IMetaObject deSerialize(InputStream stream) throws Exception {
 
 		MetaTable metaTable = getMetaTableFromFile();

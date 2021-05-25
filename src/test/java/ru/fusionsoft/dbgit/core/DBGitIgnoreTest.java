@@ -12,11 +12,9 @@ public class DBGitIgnoreTest {
     DBGitIgnore dbGitIgnore;
     Map<String, MaskFilter> filters = new HashMap<>();
     Map<String, MaskFilter> exclusions = new HashMap<>();
-    String textTbl = "public/ad_group_roles.tbl";
 
     private void createDbGitIgnore(){
         dbGitIgnore = new DBGitIgnore(filters, exclusions);
-        addExcl("public/*.*");
     }
 
     private void addFilter(String mask){ filters.put(mask, new MaskFilter(mask)); }
@@ -27,6 +25,9 @@ public class DBGitIgnoreTest {
     @Test
     public void matchOne() {
         createDbGitIgnore();
+        addExcl("public/*.*");
+        
+        final String textTbl = "public/ad_group_roles.tbl";
         assertFalse(dbGitIgnore.matchOne(textTbl));
     }
 }

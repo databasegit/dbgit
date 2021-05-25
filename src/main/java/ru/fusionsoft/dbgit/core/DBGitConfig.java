@@ -136,7 +136,7 @@ public class DBGitConfig {
 	public void setValue(String parameter, String value, boolean global) throws ExceptionDBGit {
 		try {
 			if (global) {
-				if (!iniGlobal.get("core").containsKey(parameter) && !parameter.equals("CURRENT_OBJECT"))
+				if (!iniGlobal.get("core").containsKey(parameter) /*&& !parameter.equals("CURRENT_OBJECT")*/)
 					ConsoleWriter.detailsPrintln(
 						DBGitLang.getInstance().getValue("errors", "config", "noParameter").withParams(parameter)
 						, messageLevel

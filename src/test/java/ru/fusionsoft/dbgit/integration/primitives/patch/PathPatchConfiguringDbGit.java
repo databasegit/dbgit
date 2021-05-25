@@ -1,9 +1,9 @@
 package ru.fusionsoft.dbgit.integration.primitives.patch;
 
 import java.nio.file.Path;
-import ru.fusionsoft.dbgit.integration.primitives.PatchSequental;
+import ru.fusionsoft.dbgit.integration.primitives.PatchSequential;
 
-public class PathPatchConfiguringDbGit extends PatchSequental<Path> {
+public class PathPatchConfiguringDbGit extends PatchSequential<Path> {
 
     public PathPatchConfiguringDbGit(final String linkContent, final String ignoreContent, final String configContent, final String indexContent) {
         super(

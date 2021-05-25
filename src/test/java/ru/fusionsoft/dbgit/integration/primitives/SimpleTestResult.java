@@ -1,18 +1,12 @@
 package ru.fusionsoft.dbgit.integration.primitives;
 
-import ru.fusionsoft.dbgit.integration.primitives.chars.TestSuccessMarkChars;
-import ru.fusionsoft.dbgit.integration.primitives.chars.TestResultDetailedChars;
+import ru.fusionsoft.dbgit.integration.primitives.chars.specific.test.LabelOfTestRunResult;
+import ru.fusionsoft.dbgit.integration.primitives.chars.specific.test.ReportOfTestRun;
 
 public class SimpleTestResult<Subj> implements TestResult {
-    
     private final CharSequence text;
-    
     public SimpleTestResult(Subj subject, Test<Subj> test) {
-        this.text = new TestResultDetailedChars<>(subject, test);
-    }    
-    
-    public SimpleTestResult(Subj subject, Function<Subj, Boolean> testFunction) {
-        this.text = new TestResultDetailedChars<>(subject, new SimpleTest<>(testFunction));
+        this.text = new ReportOfTestRun<>(subject, test);
     }
 
     @Override
@@ -22,8 +16,8 @@ public class SimpleTestResult<Subj> implements TestResult {
 
     @Override
     public final boolean value() {
-        return this.text().contains(
-            String.valueOf(new TestSuccessMarkChars(true))
-        );
+        return this
+            .text()
+            .contains(String.valueOf(new LabelOfTestRunResult(true)));
     }
 }

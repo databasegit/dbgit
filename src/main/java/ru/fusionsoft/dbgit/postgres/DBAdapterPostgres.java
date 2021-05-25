@@ -188,7 +188,9 @@ public class DBAdapterPostgres extends DBAdapter {
 			"	tablename AS table_name,\n" +
 			"	tableowner AS owner,\n" +
 			"	tablespace, hasindexes, hasrules, hastriggers, \n" +
-			"	obj_description( (('\"' || schemaname || '\".\"' || tablename || '\"')::regclass)::oid) AS table_comment,\n" +
+			"	obj_description( " + 
+			"		(('\"' || schemaname || '\".\"' || tablename || '\"')::regclass)::oid" + 
+			"	) AS table_comment,\n" +
 			"	(\n" +
 			"		SELECT array_agg( distinct n2.nspname || '/' || c2.relname || '.tbl' ) AS dependencies\n" +
 			"	 	FROM pg_catalog.pg_constraint c  \n" +
@@ -253,7 +255,7 @@ public class DBAdapterPostgres extends DBAdapter {
 			"	tablename AS table_name,\n" +
 			"	tableowner AS owner,\n" +
 			"	tablespace, hasindexes, hasrules, hastriggers, \n" +
-			"	obj_description( (('\"' || schemaname || '\".\"' || tablename || '\"')::regclass)::oid) AS table_comment,\n" +
+			"	obj_description((('\"' || schemaname || '\".\"' || tablename || '\"')::regclass)::oid) AS table_comment,\n" +
 			"	(\n" +
 			"		SELECT array_agg( distinct n2.nspname || '/' || c2.relname || '.tbl' ) AS dependencies\n" +
 			"	 	FROM pg_catalog.pg_constraint c  \n" +
@@ -775,7 +777,7 @@ public class DBAdapterPostgres extends DBAdapter {
 			"	LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace\n" +
 			( (getDbVersionNumber() >= 10)
 					? "WHERE p.prokind = 'f' \n"
-					: "WHERE 1=1 "
+					: "WHERE p.proisagg is false "
 			)+
 			"AND n.nspname not in('pg_catalog', 'information_schema')\n" +
 			"AND n.nspname = '"+schema+"'";

@@ -323,22 +323,22 @@ public class GitMetaDataManager {
 			    			objs.put(obj);
 			    		}
 		    		} catch (Exception e) {
-		    			isSuccessful = false;
-		    			ConsoleWriter.printlnRed(DBGitLang.getInstance().getValue("errors", "meta", "loadMetaFile")
-							.withParams(filename)
-							, messageLevel
-						);
-		    			ConsoleWriter.detailsPrintln(e.getMessage(), messageLevel);
-		    			
-		    			IMetaObject obj = MetaObjectFactory.createMetaObject(filename);
-						objs.put(obj);
+//		    			ConsoleWriter.printlnRed(DBGitLang.getInstance().getValue("errors", "meta", "loadMetaFile")
+						final String msg = DBGitLang.getInstance()
+							.getValue("errors", "meta", "cantLoadMetaFile")
+							.withParams(filename);
+		    			throw new ExceptionDBGit(msg, e);
+//						isSuccessful = false;
+//						ConsoleWriter.detailsPrintln(e.getMessage(), messageLevel);
+//		    			IMetaObject obj = MetaObjectFactory.createMetaObject(filename);
+//						objs.put(obj);
 		    		}	
 	    		}	    			    		
 	    	}
 			
-			if (!isSuccessful && !force) {
-				throw new ExceptionDBGit(DBGitLang.getInstance().getValue("errors", "meta", "invalidFiles"));
-			}
+//			if (!isSuccessful && !force) {
+//				throw new ExceptionDBGit(DBGitLang.getInstance().getValue("errors", "meta", "invalidFiles"));
+//			}
 			
 			return objs;
 		} catch(Exception e) {

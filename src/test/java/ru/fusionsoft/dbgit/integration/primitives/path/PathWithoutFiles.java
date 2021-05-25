@@ -4,23 +4,19 @@ import java.nio.file.Path;
 import ru.fusionsoft.dbgit.integration.primitives.patch.PathPatchDeletingFiles;
 import ru.fusionsoft.dbgit.integration.primitives.patch.PathPatchDeletingFilesWildcard;
 
-public class PathWithoutFiles extends PathEnvelope {
+public class PathWithoutFiles extends PathPatched {
 
     public PathWithoutFiles(String[] names, Path origin) {
         super(
-            () -> {
-                new PathPatchDeletingFiles(names).apply(origin);
-                return origin;
-            }
+            new PathPatchDeletingFiles(names),
+            origin
         );
     }
-    
+
     public PathWithoutFiles(String filterMask, Path origin) {
         super(
-            () -> {
-                new PathPatchDeletingFilesWildcard(filterMask).apply(origin);
-                return origin;
-            }
+            new PathPatchDeletingFilesWildcard(filterMask),
+            origin
         );
     }
 }

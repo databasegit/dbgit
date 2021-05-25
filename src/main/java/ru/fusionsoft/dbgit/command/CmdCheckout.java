@@ -58,6 +58,7 @@ public class CmdCheckout implements IDBGitCommand {
 
 		if (cmdLine.hasOption("ls")){
 			try(RevWalk walk = new RevWalk(repo)){
+				
 				String branch = repo.getBranch();
 				String headNumber = head.getObjectId().getName();
 				String headName = head.getName();
@@ -66,7 +67,7 @@ public class CmdCheckout implements IDBGitCommand {
 				System.out.println(DBGitLang.getInstance()
 				    .getValue("general", "checkout", "printBranchAndCommit")
 				    .withParams(
-						!branch.equals(headNumber) ? branch + ": " + headName : headNumber,
+						!branch.equals(headNumber) ? branch + ": " + headNumber : headNumber,
 						headName,
 						message
 					)

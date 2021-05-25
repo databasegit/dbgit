@@ -10,10 +10,10 @@ import org.eclipse.jgit.lib.AnyObjectId;
 import org.eclipse.jgit.transport.RefSpec;
 
 public class CommitsFromRepo {
-    private final String repoUrl;
-    private final String branchName;
+    private final CharSequence repoUrl;
+    private final CharSequence branchName;
 
-    public CommitsFromRepo(String repoUrl, String branchName) {
+    public CommitsFromRepo(CharSequence repoUrl, CharSequence branchName) {
         this.repoUrl = repoUrl;
         this.branchName = branchName;
     }
@@ -28,11 +28,11 @@ public class CommitsFromRepo {
             )
         ) {
             git.fetch()
-            .setRemote(repoUrl)
+            .setRemote(String.valueOf(repoUrl))
             .setRefSpecs(
                 new RefSpec(
                     "+refs/heads/" + branchName
-                        + ":refs/heads/" + branchName
+                    + ":refs/heads/" + branchName
                 )
             )
             .call();

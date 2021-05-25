@@ -3,16 +3,17 @@ package ru.fusionsoft.dbgit.integration.primitives.path;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import ru.fusionsoft.dbgit.integration.primitives.Args;
-import ru.fusionsoft.dbgit.integration.primitives.NullPrintStream;
+import ru.fusionsoft.dbgit.integration.primitives.path.specific.dbgit.PathOfBuiltDbGitExecutable;
+import ru.fusionsoft.dbgit.integration.primitives.printstream.DefaultPrintStream;
 import ru.fusionsoft.dbgit.integration.primitives.args.ArgsRunningCommand;
 import ru.fusionsoft.dbgit.integration.primitives.args.ArgsWithAppend;
 import ru.fusionsoft.dbgit.integration.primitives.path.specific.CurrentWorkingDirectory;
 
-public class PathAfterDbGitRun extends PathAfterCommandRun {
+public class PathAfterDbGitRun extends PathAfterProcessRun {
     public PathAfterDbGitRun(Args args, Path executablePath, PrintStream printStream, Path workingDirectory) {
         super(
             new ArgsWithAppend(
-                new ArgsRunningCommand(executablePath, workingDirectory),
+                new ArgsRunningCommand(executablePath),
                 args
             ),
             printStream,
@@ -33,7 +34,7 @@ public class PathAfterDbGitRun extends PathAfterCommandRun {
         this(
             args,
             executablePath,
-            new NullPrintStream(),
+            new DefaultPrintStream(),
             workingDirectory
         );
     }

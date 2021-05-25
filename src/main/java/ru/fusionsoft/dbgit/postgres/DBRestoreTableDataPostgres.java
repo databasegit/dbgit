@@ -128,6 +128,7 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 	
 	public void restoreTableDataPostgres(MetaTableData restoreTableData, MetaTableData currentTableData) throws Exception{
 		List<String> fieldsList = restoreTableData.getFields();
+//		System.err.println("fieldsList = " + String.join(",", fieldsList));
 		if(fieldsList.size() == 0 ) {
 			ConsoleWriter.printlnRed(DBGitLang.getInstance()
 			    .getValue("errors", "restore", "emptyFieldsList")
@@ -160,7 +161,8 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 					.map(DBTableField::getName)
 					.collect(Collectors.toSet());
 
-
+			System.out.println("\ndiffTableData.entriesOnlyOnRight().isEmpty() = "
+							   + diffTableData.entriesOnlyOnRight().isEmpty());
 			//DELETE
 			if (!diffTableData.entriesOnlyOnRight().isEmpty()) {
 				ConsoleWriter.detailsPrintln(lang.getValue("general", "restore", "deleting"), messageLevel);
@@ -180,23 +182,28 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 					String delFields = "(" + fieldJoiner.toString() + ")";
 					String delValues = "(" + valuejoiner.toString() + ")";
 
-					if (delValues.length() > 3){
+					if (delValues.length() > 2){
 						deleteQuery.append("DELETE FROM ").append(tblNameEscaped)
 							.append(" WHERE ").append(delFields).append(" = ")
 							.append(delValues).append(";\n");
 					}
 					if (deleteQuery.length() > 50000) {
+						ConsoleWriter.detailsPrintln(deleteQuery, messageLevel + 1);
 						st.execute(deleteQuery.toString());
 						deleteQuery = new StringBuilder();
 					}
 				}
 				if (deleteQuery.length() > 1) {
+					ConsoleWriter.detailsPrintln(deleteQuery, messageLevel + 1);
 					st.execute(deleteQuery.toString());
 				}
 				ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 			}
 
+			System.out.println("\nentriesDiffering().isEmpty() = "
+							   + diffTableData.entriesDiffering().isEmpty());
 			//UPDATE
+			ConsoleWriter.detailsPrintln("Entries differing count: " + diffTableData.entriesDiffering().keySet().size(), messageLevel);
 			if (!diffTableData.entriesDiffering().isEmpty()) {
 				ConsoleWriter.detailsPrintln(lang.getValue("general", "restore", "updating"), messageLevel);
 				String updateQuery = "";
@@ -256,15 +263,15 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 				ConsoleWriter.detailsPrintln(lang.getValue("general", "restore", "inserting"), messageLevel);
 				for (RowData rowData : diffTableData.entriesOnlyOnLeft().values()) {
 
-					String insertQuery = MessageFormat.format("INSERT INTO {0}{1}{2};\n"
-							, tblNameEscaped, fields
-							, valuesToString(rowData.getData(fieldsList).values(), colTypes, fieldsList)
+					String insertQuery = MessageFormat.format("INSERT INTO {0}{1}{2};"
+						, tblNameEscaped, fields
+						, valuesToString(rowData.getData(fieldsList).values(), colTypes, fieldsList)
 					);
 
-					ConsoleWriter.detailsPrintln(insertQuery, messageLevel);
+					ConsoleWriter.detailsPrintln(insertQuery, messageLevel+1);
 					st.execute(insertQuery);
 				}
-				ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
+				ConsoleWriter.detailsPrintln(lang.getValue("general", "ok"), messageLevel);
 			}
 
 		} catch (Exception e) {
@@ -440,7 +447,7 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 		StatementLogging stCnt = new StatementLogging(connect, adapter.getStreamOutputSqlCommand(), adapter.isExecSql());
 		String schema = getPhisicalSchema(table.getTable().getSchema());
 		schema = (SchemaSynonym.getInstance().getSchema(schema) == null) ? schema : SchemaSynonym.getInstance().getSchema(schema);
-		String tblName = schema + "." +table.getTable().getName();
+		String tblName = adapter.escapeNameIfNeeded(schema) + "." + adapter.escapeNameIfNeeded(table.getTable().getName());
 		ConsoleWriter.detailsPrintln(lang.getValue("general", "restore", "delConstr").withParams(table.getName()), messageLevel);
 		try {					
 			ResultSet rs = stCnt.executeQuery("SELECT *\r\n" + 
@@ -465,7 +472,8 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 				
 				while (rs.next()) {
 					if(!rs.getString("contype").equals("p")) {
-						st.execute("alter table "+schema+"."+ table.getTable().getName() +" drop constraint if exists "+rs.getString("conname"));
+						st.execute(
+							"alter table "+ tblName +" drop constraint if exists "+adapter.escapeNameIfNeeded(rs.getString("conname")));
 					}					
 				}
 			//}	

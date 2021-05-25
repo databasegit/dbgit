@@ -1,20 +1,19 @@
 package ru.fusionsoft.dbgit.integration.primitives;
 import java.text.MessageFormat;
-import java.util.regex.Pattern;
-import ru.fusionsoft.dbgit.integration.primitives.chars.TestSuccessMarkChars;
+import ru.fusionsoft.dbgit.integration.primitives.chars.CharsQuotedToRegexPattern;
+import ru.fusionsoft.dbgit.integration.primitives.chars.specific.test.LabelOfTestRunResult;
 
 public class DescribedTestResult<Subj> implements TestResult {
     private final String description;
     private final TestResult testResult;
 
-    public DescribedTestResult(String description, Subj subject, Test<Subj> test) {
+    public DescribedTestResult(String description, TestResult testResult) {
         this.description = description;
-        this.testResult = new SimpleTestResult<>(subject, test);
+        this.testResult = testResult;
     }
-    
-    public DescribedTestResult(String description, TestResult simpleTestResult) {
-        this.description = description;
-        this.testResult = simpleTestResult;
+
+    public DescribedTestResult(String description, Subj subject, Test<Subj> test) {
+        this(description, new SimpleTestResult<>(subject, test));
     }
 
     @Override
@@ -24,16 +23,16 @@ public class DescribedTestResult<Subj> implements TestResult {
 
     @Override
     public final String text() {
-        final String valueChars = String.valueOf(
-            new TestSuccessMarkChars(this.testResult.value())
+        final CharSequence valueChars = new CharsQuotedToRegexPattern(
+            new LabelOfTestRunResult(this.testResult.value())
         );
         
         return this.testResult
         .text()
         .replaceFirst(
-            Pattern.quote(valueChars), 
+            String.valueOf(valueChars), 
             MessageFormat.format(
-                "{0} {1} -",
+                "{0} {1}",
                 valueChars,
                 this.description
             )

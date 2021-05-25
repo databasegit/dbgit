@@ -26,7 +26,7 @@ public class ProjectTestResourcesCleanDirectoryPath extends PathEnvelope {
             );
             directory.mkdirs();
             FileUtils.cleanDirectory(directory);
-            return directory.toPath();
+            return directory.toPath().toAbsolutePath();
         });
     }
 }

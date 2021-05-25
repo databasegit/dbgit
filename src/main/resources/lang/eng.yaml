@@ -98,6 +98,7 @@ general:
     updating: Updating...
     unsupportedTypes: Table {0} contains unsupported types, it will be skipped
     willMakeBackup: Backup option enabled, all objects will be backed up before making changes
+    wontMakeBackup: Backup option DISABLED, no objects will be backed up before making changes
     toMakeChanges: Restore key specified, the operation will make changes to database
     notMakeChanges: The operation will NOT make changes to database
   rm:
@@ -165,7 +166,7 @@ errors:
   cmdException: "Error execute dbgit: {0}"
   onExceptionTransactionRollbackError: "Failed to rollback connection: {0}"
   commandNotFound: Command {0} not found!
-  executionError: Error execute dbgit {0}
+  executionError: Error execute dbgit
   gitRepNotFound: Git repository not found
   gitLoginNotFound: Can't find git login
   gitPasswordNotFound: Can't find git password
@@ -236,6 +237,7 @@ errors:
     tooManyRecords: Table {0} has more than {1} records. dbgit can't save this table data.
     compareMetaError: compareMeta Error! {0} to {1}
     loadMetaFile: Could not load meta file {0}, using dummy version instead!
+    cantLoadMetaFile: Could not load meta file {0}
   dataTable:
     errorCellData: Error create CellData for type {0}
     differentCount: Different count columns title and line

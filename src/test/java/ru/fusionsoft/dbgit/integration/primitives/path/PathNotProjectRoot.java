@@ -2,29 +2,14 @@ package ru.fusionsoft.dbgit.integration.primitives.path;
 
 
 import java.nio.file.Path;
+import ru.fusionsoft.dbgit.integration.primitives.patch.PathPatchAssertsNotMvnProjectRoot;
 
-public class PathNotProjectRoot extends PathEnvelope{
+public class PathNotProjectRoot extends PathPatched{
     public PathNotProjectRoot(Path origin) {
-        super(()-> {
-            if(
-                origin.resolve(".git").toFile().exists() &&
-                origin.resolve("pom.xml").toFile().exists()
-            ){
-                throw new PathIsProjectRootException(origin);
-            }
-            return origin;
-        });
+        super(new PathPatchAssertsNotMvnProjectRoot(), origin);
     }
 
-    private static class PathIsProjectRootException extends RuntimeException {
-        PathIsProjectRootException(Path path) {
-            super(
-                "\nGiven path " + path.toString() + " " +
-                "points to a project root directory.\n" +
-                "I'm here not to allow that."
-            );
-        }
-    }
+
 }
 
 

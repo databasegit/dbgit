@@ -11,6 +11,7 @@ import java.util.Set;
 import org.eclipse.jgit.api.*;
 import org.eclipse.jgit.api.ListBranchCommand.ListMode;
 import org.eclipse.jgit.api.ResetCommand.ResetType;
+import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.dircache.DirCache;
 import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.Ref;
@@ -259,66 +260,109 @@ public class DBGit {
 		}
 	}
 
-	public void gitCheckout(String branch, String commit, boolean isNewBranch) throws ExceptionDBGit {
-		try {
-			ConsoleWriter.detailsPrintln(DBGitLang.getInstance().getValue("general", "checkout", "do"), messageLevel);
-			ConsoleWriter.detailsPrintlnGreen(DBGitLang.getInstance().getValue("general", "checkout", "toCreateBranch")
-				.withParams(String.valueOf(isNewBranch))
-				, messageLevel+1
+	public void printCurrentCommit() throws IOException {
+		try (RevWalk walk = new RevWalk(repository)) {
+			ConsoleWriter.detailsPrintlnGreen(
+				DBGitLang.getInstance().getValue("general", "checkout", "commitMessage")
+					.withParams(walk.parseCommit(repository.getAllRefs().get("HEAD").getObjectId()).getShortMessage())
+				, messageLevel + 1
 			);
-			ConsoleWriter.detailsPrintlnGreen(DBGitLang.getInstance().getValue("general", "checkout", "branchName")
-				.withParams(branch)
-				, messageLevel+1
+		}
+	}
+	
+	public boolean nameInLocalRepoExistence(String name) throws IOException {
+		return git.getRepository().findRef(name) != null;
+	}
+	
+	public boolean nameInRemoteRepoExistence(String name) throws GitAPIException {
+		return git.branchList().setListMode(ListMode.REMOTE).call().stream()
+		.anyMatch(ref -> ref.getName().equals("refs/remotes/origin/" + name));
+	}
+	
+	public void gitCheckoutName(String name) throws Exception {
+		final CheckoutCommand checkoutCommand = git.checkout().setName(name);
+
+		if (nameInLocalRepoExistence(name)) {
+			ConsoleWriter.detailsPrintlnGreen(
+				DBGitLang.getInstance().getValue("general", "checkout", "branchName").withParams(name), messageLevel + 1
 			);
-			if (commit != null){
-				ConsoleWriter.detailsPrintlnGreen(DBGitLang.getInstance().getValue("general", "checkout", "commitName")
-					.withParams(commit)
-					, messageLevel+1
-				);
+			if(nameInRemoteRepoExistence(name)) {
+				checkoutCommand.setStartPoint("origin/" + name);
 			}
+		} else {
+			ConsoleWriter.detailsPrintlnGreen(
+				DBGitLang.getInstance().getValue("general", "checkout", "commitName").withParams(name), messageLevel + 1
+			);
+		}
 
-			Ref result;
-			if (git.getRepository().findRef(branch) != null || isNewBranch) {
-
-				CheckoutCommand checkout = git.checkout().setCreateBranch(isNewBranch).setName(branch);
-
-				if (commit != null){
-					checkout = checkout.setName(commit);
-				} else {
-					if (git.branchList().setListMode(ListMode.REMOTE).call().stream()
-						.filter(ref -> ref.getName().equals("refs/remotes/origin/" + branch))
-						.count() > 0
-					)checkout = checkout.setStartPoint("remotes/origin/" + branch);
-				}
-
-				result = checkout.call();
-
-				try(RevWalk walk = new RevWalk(repository)){
-					ConsoleWriter.detailsPrintlnGreen(DBGitLang.getInstance().getValue("general", "checkout", "commitMessage")
-						.withParams(walk.parseCommit(repository.getAllRefs().get("HEAD").getObjectId()).getShortMessage())
-						, messageLevel+1
-					);
-				}
-
-
+		checkoutCommand.call();
+		printCurrentCommit();
+	}
+	
+	public void gitCheckoutNewBranch(String branchName, String commitHash) throws Exception {
+		final CheckoutCommand checkoutCommand = git.checkout();
+		ConsoleWriter.println(DBGitLang.getInstance().getValue("general", "checkout", "branchName").withParams(branchName), messageLevel + 1);
+		if(commitHash != null) {
+			ConsoleWriter.println(DBGitLang.getInstance().getValue("general", "checkout", "commitName").withParams(commitHash), messageLevel + 1);
+		}
+		ConsoleWriter.println(DBGitLang.getInstance().getValue("general", "checkout", "toCreateBranch").withParams(String.valueOf(true)), messageLevel + 1);
+		
+		checkoutCommand.setCreateBranch(true);
+		checkoutCommand.setName(branchName);
+		if(commitHash != null) {
+			if(nameInLocalRepoExistence(commitHash)) {
+				checkoutCommand.setStartPoint(commitHash);
 			} else {
-				MaskFilter maskAdd = new MaskFilter(branch);
-
-				int counter = 0;
-				for (String path: getGitIndexFiles(DBGitPath.DB_GIT_PATH)) {
-					if (maskAdd.match(path)) {
-						result = git.checkout().setName(git.getRepository().getBranch()).addPath(DBGitPath.DB_GIT_PATH + "/" + path).call();
-						counter++;
-					}
-				}
-				String s = "";
-				if (counter != 1) s = "s";
-				ConsoleWriter.println(DBGitLang.getInstance().getValue("general", "checkout", "updatedFromIndex").withParams(String.valueOf(counter), s), 1);
+				throw new ExceptionDBGit("Can not find the local commit specified: " + commitHash);
 			}
+		} else if (nameInRemoteRepoExistence(branchName)){
+			checkoutCommand.setStartPoint("origin/" + branchName);
+		} 
+		//else {
+		//	you would checkout HEAD - create new branch from current one's HEAD
+		//	https://stackoverflow.com/a/37131407
+		//}
+		checkoutCommand.call();
+	}
+	
+	public void gitCheckoutFileName(String fileName) throws Exception{
+		MaskFilter maskAdd = new MaskFilter(fileName);
+		ConsoleWriter.println("Checking out files...", messageLevel+1);
 
+		int counter = 0;
+		for (String path : getGitIndexFiles(DBGitPath.DB_GIT_PATH)) {
+			if (maskAdd.match(path)) {
+				git.checkout()
+					.setName(git.getRepository()
+					.getBranch())
+					.addPath(DBGitPath.DB_GIT_PATH + "/"+ path)
+					.call();
+				counter++;
+			}
+		}
+		String messageTailChars = counter != 1 ? "s" : "";
+		ConsoleWriter.println(
+			DBGitLang.getInstance().getValue("general", "checkout", "updatedFromIndex")
+			.withParams(String.valueOf(counter), messageTailChars)
+			, messageLevel+1
+		);
+	}
+	
+	public void gitCheckout(String arg1, String arg2, boolean isNewBranch) throws ExceptionDBGit {
+		try {
+			ConsoleWriter.println(DBGitLang.getInstance().getValue("general", "checkout", "do"), messageLevel);
+			if(isNewBranch) {
+				gitCheckoutNewBranch(arg1, arg2);
+			} else {
+//				if(nameInRemoteRepoExistence(arg1) || nameInLocalRepoExistence(arg1)) {
+					gitCheckoutName(arg1);
+//				} else {
+//					gitCheckoutFileName(arg1);
+//				}
+			}
 
 		} catch (Exception e) {
-			throw new ExceptionDBGit(e);
+			throw new ExceptionDBGit("Failed to do checkout", e);
 		}
 	}
 

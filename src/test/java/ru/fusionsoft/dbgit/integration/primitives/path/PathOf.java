@@ -10,6 +10,6 @@ public class PathOf extends PathEnvelope {
     }
     
     public PathOf(String path, Path origin) {
-        super(()->origin.resolve(path));
+        super(()->origin.resolve(path).toAbsolutePath());
     }
 }

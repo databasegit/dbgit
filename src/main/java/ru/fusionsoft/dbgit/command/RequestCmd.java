@@ -96,11 +96,9 @@ public class RequestCmd {
 		if (opts.getOption("h") == null) {
 			opts.addOption("h", false, DBGitLang.getInstance().getValue("help", "h").toString());
 		}
-
 		if (opts.getOption("v") == null) {
 			opts.addOption("v", false, DBGitLang.getInstance().getValue("help", "v").toString());
 		}
-
 		return opts;
 	}	
 	
@@ -108,11 +106,8 @@ public class RequestCmd {
 		if (!commands.containsKey(command)) {
 			throw new ExceptionCmdNotFound(DBGitLang.getInstance().getValue("errors", "commandNotFound").withParams(command));
 		}
-				
 		IDBGitCommand cmdObj = commands.get(command);
-		
 		HelpFormatter helpFormatter = new HelpFormatter();
-		
         helpFormatter.printHelp(
         		"dbgit "+command+" "+cmdObj.getParams(), 
         		cmdObj.getHelperInfo(), 
@@ -123,69 +118,66 @@ public class RequestCmd {
 	}
 	
 	
-	public static void main( String[] args ) throws Exception
-    {    	
-    	ConsoleWriter.println( "dbgit utils - Hello!", 0);
-        
-        //configureLogback();
-               
-        try {
-        	CommandLineParser clParse = new DefaultParser();
-            Options opts = new Options();
-            opts.addOption("a", false, "Option A");
-            opts.addOption("b", true, "Option B");
-            opts.addOption("c", false, "Option C");
-            opts.addOption("f", false, "Flag F");
-            
-            addHelpOptions(opts);
-
-            CommandLine cmdLine = clParse.parse(opts, args); 
-            System.out.println(cmdLine.getArgs().length);
-            
-            System.out.println(cmdLine.hasOption('a'));
-            System.out.println(cmdLine.hasOption('c'));
-            
-            
-            HelpFormatter helpFormatter = new HelpFormatter();
-            //helpFormatter.setArgName("argument");
-            helpFormatter.printHelp("this help", "header", opts, "footer", true);
-           
-            
-            /*
-            printHelp(
-            		opts, // опции по которым составляем help
-            		80, // ширина строки вывода
-            		"Options", // строка предшествующая выводу
-            		"-- HELP --", // строка следующая за выводом
-            		3, // число пробелов перед выводом опции 
-            		5, // число пробелов перед выводом опцисания опции
-            		true, // выводить ли в строке usage список команд
-            		System.out // куда производить вывод
-            	);
-            
-            */
-            
-            for (int i = 0; i < cmdLine.getArgs().length; i++) {
-            	System.out.println(cmdLine.getArgs()[i]);
-            }
-            
-            
-        	
-            ConsoleWriter.println(DBGitLang.getInstance()
-                .getValue("general", "commandSuccess")
-                , 0
-            );
-        } catch (Exception e) {
-        	ConsoleWriter.printlnRed(DBGitLang.getInstance()
-        	    .getValue("errors", "cmdException")
-        	    .withParams(e.getMessage())
-        	    , 0
-        	);
-        	LoggerUtil.getGlobalLogger().error(e.getMessage(), e);
-        }
-        
-    }
-	
-
-	 
+//	public static void main( String[] args ) throws Exception
+//    {    	
+//    	ConsoleWriter.println( "dbgit utils - Hello!", 0);
+//        
+//        //configureLogback();
+//               
+//        try {
+//        	CommandLineParser clParse = new DefaultParser();
+//            Options opts = new Options();
+//            opts.addOption("a", false, "Option A");
+//            opts.addOption("b", true, "Option B");
+//            opts.addOption("c", false, "Option C");
+//            opts.addOption("f", false, "Flag F");
+//            
+//            addHelpOptions(opts);
+//
+//            CommandLine cmdLine = clParse.parse(opts, args); 
+//            System.out.println(cmdLine.getArgs().length);
+//            
+//            System.out.println(cmdLine.hasOption('a'));
+//            System.out.println(cmdLine.hasOption('c'));
+//            
+//            
+//            HelpFormatter helpFormatter = new HelpFormatter();
+//            //helpFormatter.setArgName("argument");
+//            helpFormatter.printHelp("this help", "header", opts, "footer", true);
+//           
+//            
+//            /*
+//            printHelp(
+//            		opts, // опции по которым составляем help
+//            		80, // ширина строки вывода
+//            		"Options", // строка предшествующая выводу
+//            		"-- HELP --", // строка следующая за выводом
+//            		3, // число пробелов перед выводом опции 
+//            		5, // число пробелов перед выводом опцисания опции
+//            		true, // выводить ли в строке usage список команд
+//            		System.out // куда производить вывод
+//            	);
+//            
+//            */
+//            
+//            for (int i = 0; i < cmdLine.getArgs().length; i++) {
+//            	System.out.println(cmdLine.getArgs()[i]);
+//            }
+//            
+//            
+//        	
+//            ConsoleWriter.println(DBGitLang.getInstance()
+//                .getValue("general", "commandSuccess")
+//                , 0
+//            );
+//        } catch (Exception e) {
+//        	ConsoleWriter.printlnRed(DBGitLang.getInstance()
+//        	    .getValue("errors", "cmdException")
+//        	    .withParams(e.getMessage())
+//        	    , 0
+//        	);
+//        	LoggerUtil.getGlobalLogger().error(e.getMessage(), e);
+//        }
+//        
+//    }
 }
