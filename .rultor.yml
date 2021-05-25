@@ -1,8 +1,8 @@
 env:
   MAVEN_OPTS: "-XX:MaxPermSize=256m -Xmx1g"
 assets:
-  pgSecret.txt: https://github.com/rocket-3/dbgit-test/blob/master/pgSecret.txt
-  gitSecret.txt: https://github.com/rocket-3/dbgit-test/blob/master/gitSecret.txt
+  pgSecret.txt: https://raw.githubusercontent.com/rocket-3/dbgit-test/master/pgSecret.txt
+  gitSecret.txt: https://raw.githubusercontent.com/rocket-3/dbgit-test/master/gitSecret.txt
 merge:
   script: |-
     java -version
