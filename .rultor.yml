@@ -8,6 +8,7 @@ merge:
     java -version --batch-mode
     mvn -version --batch-mode
     mvn clean install package appassembler:assemble -D skipTests --batch-mode
+    mvn test -Dtest=*selfTest,*DbGitIntegrationTestBasic* --batch-mode
 deploy:
   script: |-
     java -version
