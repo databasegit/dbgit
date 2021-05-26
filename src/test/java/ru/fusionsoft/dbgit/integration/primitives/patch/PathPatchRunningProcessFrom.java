@@ -48,22 +48,21 @@ public class PathPatchRunningProcessFrom implements Patch<Path> {
             ));
 
             final Process process = new ProcessBuilder()
-                .directory(root.toAbsolutePath().toFile())
-                .command(
-                    Arrays.stream(processRunCommandLine.values())
-                        .map(String::valueOf)
-                        .collect(Collectors.toList())
-                )
-                .start();
+            .directory(root.toAbsolutePath().toFile())
+            .command(
+                Arrays.stream(processRunCommandLine.values())
+                    .map(String::valueOf)
+                    .collect(Collectors.toList())
+            )
+            .start();
+            process.getOutputStream().close();
 
-            final CharSequence processOutput = String.valueOf(
-                new CharsOfLines(
-                    new LinesFromInputStream(process.getInputStream()), "> "
-                )
-            );
+            final CharSequence processOutput = new CharsOfLines(
+                new LinesFromInputStream(process.getInputStream(), "Utf-8"), "> "
+            ).toString();
             final CharSequence processErrOutput = new CharsOfLines(
                 new LinesFromInputStream(process.getErrorStream(), "Utf-8"), "> "
-            );
+            ).toString();
 
             final int exitCode = process.waitFor();
             process.destroyForcibly();
