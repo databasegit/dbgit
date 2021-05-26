@@ -7,8 +7,8 @@ import ru.fusionsoft.dbgit.integration.primitives.path.PathRelativeTo;
 public class ArgsRunningCommand extends ArgsExplicit {
     public ArgsRunningCommand(CharSequence commandName) {
         super(
-            System.getenv("ComSpec"),
-            "/C",
+            (System.getenv("ComSpec") == null) ? "sh" : System.getenv("ComSpec"),
+            (System.getenv("ComSpec") == null) ? "-c" : "/C",
             commandName
         );
     }

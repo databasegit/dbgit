@@ -84,7 +84,6 @@ public class SelfTest {
                         )
                     );
 
-                System.out.println(testResult.text());
                 Assertions.assertFalse(testResult.value());
             }
         );
@@ -119,7 +118,6 @@ public class SelfTest {
                 }
             )
         );
-        System.out.println(result.text());
         Assertions.assertFalse(result.value());
     }
 
@@ -141,13 +139,13 @@ public class SelfTest {
             ),
 
             new SimpleTest<>(
-                "Файл существует",
+                "File exists",
                 path -> {
                     return path.resolve(fileName).toFile().exists();
                 }
             ),
             new SimpleTest<>(
-                "Содержимое файла как ожидалось",
+                "File content as expected",
                 path -> {
                     return FileUtils.readFileToString(
                         path.resolve(fileName).toFile()

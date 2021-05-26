@@ -18,11 +18,9 @@ import ru.fusionsoft.dbgit.integration.primitives.args.ArgsExplicit;
 import ru.fusionsoft.dbgit.integration.primitives.args.specific.ArgsDbGitLinkPgAuto;
 import ru.fusionsoft.dbgit.integration.primitives.args.specific.ArgsDbGitAddRemoteTestRepo;
 import ru.fusionsoft.dbgit.integration.primitives.chars.CommitsFromRepo;
-import ru.fusionsoft.dbgit.integration.primitives.chars.specific.test.CharsOfLines;
 import ru.fusionsoft.dbgit.integration.primitives.chars.specific.test.LinesOf;
 import ru.fusionsoft.dbgit.integration.primitives.patch.specific.PathPatchDbGitCheckout;
 import ru.fusionsoft.dbgit.integration.primitives.patch.specific.PathPatchDbGitClonesRepo;
-import ru.fusionsoft.dbgit.integration.primitives.patch.specific.PathPatchDbGitReset;
 import ru.fusionsoft.dbgit.integration.primitives.patch.specific.PathPatchDbGitRestore;
 import ru.fusionsoft.dbgit.integration.primitives.chars.CharsOfConsoleWhenRunning;
 import ru.fusionsoft.dbgit.integration.primitives.chars.specific.dbgit.CharsDbIgnoreWithTableData;
@@ -40,7 +38,6 @@ import ru.fusionsoft.dbgit.integration.primitives.path.PathNotProjectRoot;
 import ru.fusionsoft.dbgit.integration.primitives.path.specific.dbgit.PathWithDbGitRepoCloned;
 import ru.fusionsoft.dbgit.integration.primitives.path.PathWithoutFiles;
 import ru.fusionsoft.dbgit.integration.primitives.path.specific.ProjectTestResourcesCleanDirectoryPath;
-import ru.fusionsoft.dbgit.integration.primitives.printstream.PrintStreamToConsole;
 
 @Tag("integration")
 public class DbGitIntegrationTestBasic {
