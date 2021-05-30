@@ -7,13 +7,13 @@ merge:
   script: |-
     java -version --batch-mode
     mvn -version --batch-mode
-    mvn clean install package appassembler:assemble -D skipTests --batch-mode
+    mvn clean install package appassembler:assemble -D skipTests --batch-mode --quiet
     chmod u+r+x target/dbgit/bin/dbgit
     mvn test -Dtest=*selfTest,*DbGitIntegrationTestBasic* --batch-mode
 deploy:
   script: |-
     java -version --batch-mode
     mvn -version --batch-mode
-    mvn clean install package appassembler:assemble -D skipTests --batch-mode
+    mvn clean install package appassembler:assemble -D skipTests --batch-mode --quiet
     chmod u+r+x target/dbgit/bin/dbgit
     mvn test -Dtest=*selfTest,*DbGitIntegrationTestBasic* --batch-mode
