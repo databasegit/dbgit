@@ -12,13 +12,8 @@ public class CharsOfConsoleWhenRunning extends CharsOf<PrintStream> {
             final PrintStream original = System.out;
             try (final ByteArrayOutputStream cachedOutputStream = new ByteArrayOutputStream();) {
                 try {
-
-                    System.setOut(new PrintStream(
-                        cachedOutputStream,
-                        true,
-                        "UTF-8"
-                    ));
-
+                    System.setOut(new PrintStream(cachedOutputStream, true, "UTF-8"));
+                    
                     runnable.run();
                     return cachedOutputStream.toString();
 
@@ -34,11 +29,10 @@ public class CharsOfConsoleWhenRunning extends CharsOf<PrintStream> {
     public static class CharsOfConsoleWhenRunningException extends Error {
         public CharsOfConsoleWhenRunningException(String text, Throwable cause) {
             super(
-                text.isEmpty() ? "" : "Execution broken after:\n"+text, 
-                text.isEmpty() ? cause : cause.getCause()
+                (text.isEmpty() ? "Execution broken after:\n" : "") + text, 
+                cause
             );
         }
-
         public CharsOfConsoleWhenRunningException(ByteArrayOutputStream byteArrayOutputStream, Throwable cause) {
             this(byteArrayOutputStream.toString(), cause);
         }

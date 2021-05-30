@@ -32,13 +32,13 @@ public class App {
 			.getValue("errors", "executionError")
 			.toString();
 
-			LoggerUtil.getGlobalLogger().error(msg, e);
 			System.err.println(MessageFormat.format(
-				"{0}:\n{1}", 
+				"\n{0}: {1}", 
 				msg, 
 				ExceptionUtils.readStackTrace(e)
 			));
 
+			LoggerUtil.getGlobalLogger().error(msg, e);
 			rollbackConnection();
 			System.exit(1);
 		} finally {

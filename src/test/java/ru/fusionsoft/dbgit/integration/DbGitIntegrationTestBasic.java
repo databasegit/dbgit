@@ -18,7 +18,7 @@ import ru.fusionsoft.dbgit.integration.primitives.args.ArgsExplicit;
 import ru.fusionsoft.dbgit.integration.primitives.args.specific.ArgsDbGitLinkPgAuto;
 import ru.fusionsoft.dbgit.integration.primitives.args.specific.ArgsDbGitAddRemoteTestRepo;
 import ru.fusionsoft.dbgit.integration.primitives.chars.CommitsFromRepo;
-import ru.fusionsoft.dbgit.integration.primitives.chars.specific.test.LinesOf;
+import ru.fusionsoft.dbgit.integration.primitives.chars.LinesOfUnsafeScalar;
 import ru.fusionsoft.dbgit.integration.primitives.patch.specific.PathPatchDbGitCheckout;
 import ru.fusionsoft.dbgit.integration.primitives.patch.specific.PathPatchDbGitClonesRepo;
 import ru.fusionsoft.dbgit.integration.primitives.patch.specific.PathPatchDbGitRestore;
@@ -105,7 +105,7 @@ public class DbGitIntegrationTestBasic {
                         new PathAfterDbGitRun(new ArgsExplicit("checkout", "-ls", "-v"), path).toString();
                     });
                     System.out.println(consoleOutput);
-                    return new LinesOf(consoleOutput)
+                    return new LinesOfUnsafeScalar(consoleOutput)
                     .list()
                     .stream()
                     .anyMatch(x -> x.contains(commitNameOfDs2));
@@ -180,9 +180,9 @@ public class DbGitIntegrationTestBasic {
                 }
             ),
             new SimpleTest<>(
-                "'city' table data (small) is not empty",
+                "city table data (small) is not empty",
                 (path) -> {
-                    return ! Files.readAllLines(path.resolve(".dbgit/public/rental.csv")).isEmpty();
+                    return ! Files.readAllLines(path.resolve(".dbgit/public/city.csv")).isEmpty();
                 }
             ),
             new SimpleTest<>(

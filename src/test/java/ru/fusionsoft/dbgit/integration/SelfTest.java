@@ -1,14 +1,18 @@
 package ru.fusionsoft.dbgit.integration;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import ru.fusionsoft.dbgit.integration.primitives.TestResult;
+import ru.fusionsoft.dbgit.integration.primitives.files.AutoDeletingTempFilePath;
 import ru.fusionsoft.dbgit.integration.primitives.patch.PathPatchCreatingFile;
 import ru.fusionsoft.dbgit.integration.primitives.path.PathNotProjectRoot;
 import ru.fusionsoft.dbgit.integration.primitives.path.PathPatched;
 import ru.fusionsoft.dbgit.integration.primitives.path.PathPrintsToConsole;
+import ru.fusionsoft.dbgit.integration.primitives.path.specific.CurrentWorkingDirectory;
 import ru.fusionsoft.dbgit.integration.primitives.path.specific.ProjectTestResourcesCleanDirectoryPath;
 import ru.fusionsoft.dbgit.integration.primitives.DescribedTestResult;
 import ru.fusionsoft.dbgit.integration.primitives.GroupedTestResult;
@@ -191,4 +195,15 @@ public class SelfTest {
 
     }
     
+    @Test
+    public final void tempFileWorks() throws IOException {
+        Path path = new CurrentWorkingDirectory();
+        try (AutoDeletingTempFilePath tempFilePath = new AutoDeletingTempFilePath(new CurrentWorkingDirectory(), "some")) {
+            path = tempFilePath;
+            final String data = "123";
+            FileUtils.writeStringToFile(tempFilePath.toFile(), data);
+            Files.readAllLines(tempFilePath.toFile().toPath()).contains(data);
+        }
+        Assertions.assertFalse(path.toFile().exists());
+    }
 }

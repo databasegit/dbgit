@@ -1,7 +1,8 @@
-package ru.fusionsoft.dbgit.integration.primitives.chars.specific.test;
+package ru.fusionsoft.dbgit.integration.primitives.chars;
 
 import java.util.Arrays;
 import java.util.List;
+import ru.fusionsoft.dbgit.integration.primitives.chars.Lines;
 
 public class LinesOfString implements Lines {
     private final String string;

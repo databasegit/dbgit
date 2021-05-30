@@ -17,7 +17,9 @@ public class StickyFunction<X, Y> implements Function<X, Y> {
     }
 
     public StickyFunction(Scalar<Y> origin){
-        this((x) -> origin.value());
+        this((x) -> {
+            return origin.value();
+        });
     }
 
     @Override

@@ -28,14 +28,15 @@ public class ReportOfTestGroupRun<Subj> extends CharSequenceEnvelope {
                     return new ReportOfTestFormat(
                         new LabelOfTestRunResult(testResults.stream().allMatch(TestResult::value)), 
                         description,
-                        new CharsOfLines(new LinesOf(subjectConsoleOutput), ""),
-                        new CharsOfLines(testResults.stream().map(TestResult::text).collect(Collectors.toList()), "")
+                        subjectConsoleOutput,
+                        testResults.stream().map(TestResult::text).collect(Collectors.joining("\n"))
                     );
                 } catch (CharsOfConsoleWhenRunning.CharsOfConsoleWhenRunningException e) {
                     return new ReportOfTestFormat(
                         new LabelOfTestRunBrokenSubject(), 
                         description, 
-                        "Thrown: " + ExceptionUtils.readStackTrace(e)
+                        e.getMessage(),
+                        ExceptionUtils.readStackTrace(e.getCause().getCause())
                     );
                 } 
 

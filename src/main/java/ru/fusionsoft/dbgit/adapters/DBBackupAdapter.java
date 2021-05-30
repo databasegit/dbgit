@@ -52,7 +52,6 @@ public abstract class DBBackupAdapter implements IDBBackupAdapter {
 		try {
 			return isExists(nm.getSchema(), nm.getName());
 		} catch (Exception ex){
-			ex.printStackTrace();
 			throw new RuntimeException(ex);
 		}
 	}
