@@ -1,16 +1,18 @@
 package ru.fusionsoft.dbgit.integration.primitives.patch;
 
-import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.MessageFormat;
 import java.util.Arrays;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import ru.fusionsoft.dbgit.integration.primitives.Args;
 import ru.fusionsoft.dbgit.integration.primitives.Patch;
-import ru.fusionsoft.dbgit.integration.primitives.chars.LinesFromInputStream;
-import ru.fusionsoft.dbgit.integration.primitives.chars.specific.test.CharsOfLines;
+import ru.fusionsoft.dbgit.integration.primitives.chars.CharsOf;
+import ru.fusionsoft.dbgit.integration.primitives.chars.CharsOfLines;
+import ru.fusionsoft.dbgit.integration.primitives.files.AutoDeletingTempFilePath;
 
 public class PathPatchRunningProcessFrom implements Patch<Path> {
 
@@ -23,65 +25,47 @@ public class PathPatchRunningProcessFrom implements Patch<Path> {
     }
 
     @Override
-    public final void apply(Path root) throws Exception {
+    public final void apply(Path workingDirectory) throws Exception {
+        final Consumer<CharSequence> outputConsumer = printStream::println;
+        outputConsumer.accept(MessageFormat.format(
+            "{0} # {1}",
+            workingDirectory.toString(),
+            String.join(" ", processRunCommandLine.values())
+        ));
+        
         try (
-            final ByteArrayOutputStream cachedOutputStream = new ByteArrayOutputStream();
-            final PrintStream cachedPrintStream = new PrintStream(
-                cachedOutputStream,
-                true,
-                "UTF-8"
-            )
+            final AutoDeletingTempFilePath tempOutPath = new AutoDeletingTempFilePath(workingDirectory.resolve("../"), "out");
+            final AutoDeletingTempFilePath tempErrPath = new AutoDeletingTempFilePath(workingDirectory.resolve("../"), "err");
         ) {
 
-            final Consumer<CharSequence> outputConsumer = (chars) -> {
-                cachedPrintStream.println(chars);
-                printStream.println(chars);
-            };
-
-            outputConsumer.accept(MessageFormat.format(
-                "{0} # {1}",
-                root.toString(),
-                String.join(
-                    " ",
-                    processRunCommandLine.values()
-                )
-            ));
-
             final Process process = new ProcessBuilder()
-            .directory(root.toAbsolutePath().toFile())
+            .directory(workingDirectory.toFile())
             .command(
                 Arrays.stream(processRunCommandLine.values())
                     .map(String::valueOf)
                     .collect(Collectors.toList())
             )
+            .redirectOutput(tempOutPath.toFile())
+            .redirectError(tempErrPath.toFile())
             .start();
             process.getOutputStream().close();
-
-            final CharSequence processOutput = new CharsOfLines(
-                new LinesFromInputStream(process.getInputStream(), "Utf-8"), "> "
-            ).toString();
-            final CharSequence processErrOutput = new CharsOfLines(
-                new LinesFromInputStream(process.getErrorStream(), "Utf-8"), "> "
-            ).toString();
-
+            
             final int exitCode = process.waitFor();
-            process.destroyForcibly();
-            outputConsumer.accept(processOutput);
-
+            outputConsumer.accept(new CharsOfLines(Files.readAllLines(tempOutPath.toFile().toPath()), "\n", "> "));
+            
             if (exitCode != 0) {
                 throw new Exception(MessageFormat.format(
-                    "Process exited with error, code {0}"
-                    + "\nErrors: {1}"
-//                    + "\nOriginal output: {2}"
-                    , exitCode
-                    , processErrOutput.length() != 0
-                        ? "\n" + processErrOutput
-                        : "...error stream was empty"
-//                    ,cachedOutputStream.size() != 0
-//                        ? "\n" + cachedOutputStream.toString()
-//                        : "...output stream was empty"
+                    "Process exited with error, code {0}\nErrors: {1}", 
+                    exitCode, 
+                    new CharsOf<>(()->{
+                        final List<String> lines = Files.readAllLines(tempErrPath.toFile().toPath());
+                        return lines.isEmpty()
+                            ? "...error stream was empty"
+                            : new CharsOfLines(lines, "", "\n> ");
+                    })
                 ));
             }
+            
         }
     }
 }

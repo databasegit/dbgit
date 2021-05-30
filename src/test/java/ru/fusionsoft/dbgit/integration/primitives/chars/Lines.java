@@ -1,4 +1,4 @@
-package ru.fusionsoft.dbgit.integration.primitives.chars.specific.test;
+package ru.fusionsoft.dbgit.integration.primitives.chars;
 
 import java.util.List;
 

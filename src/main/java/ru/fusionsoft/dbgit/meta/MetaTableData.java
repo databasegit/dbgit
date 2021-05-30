@@ -304,8 +304,9 @@ public class MetaTableData extends MetaBase {
 					return loadPortionFromDB(currentPortionIndex, tryNumber++);
 				}
 			} catch (Exception e1) {
+				throw new ExceptionDBGitRunTime(e1);
 				// TODO Auto-generated catch block
-				e1.printStackTrace();
+//				e1.printStackTrace();
 			}
 			
 			if (e instanceof ExceptionDBGit) throw (ExceptionDBGit)e;
@@ -346,10 +347,7 @@ public class MetaTableData extends MetaBase {
 			System.out.println();
 			*/
 		} catch (Exception e) {
-			e.printStackTrace();
-			if (e instanceof ExceptionDBGit) 
-				throw (ExceptionDBGit)e;
-			throw new ExceptionDBGit(e);
+			throw new ExceptionDBGit("Error loading table data from DB", e);
 		}
 
 	}

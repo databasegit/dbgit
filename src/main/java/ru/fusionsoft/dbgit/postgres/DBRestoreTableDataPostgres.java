@@ -161,8 +161,6 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 					.map(DBTableField::getName)
 					.collect(Collectors.toSet());
 
-			System.out.println("\ndiffTableData.entriesOnlyOnRight().isEmpty() = "
-							   + diffTableData.entriesOnlyOnRight().isEmpty());
 			//DELETE
 			if (!diffTableData.entriesOnlyOnRight().isEmpty()) {
 				ConsoleWriter.detailsPrintln(lang.getValue("general", "restore", "deleting"), messageLevel);
@@ -183,25 +181,24 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 					String delValues = "(" + valuejoiner.toString() + ")";
 
 					if (delValues.length() > 2){
-						deleteQuery.append("DELETE FROM ").append(tblNameEscaped)
-							.append(" WHERE ").append(delFields).append(" = ")
-							.append(delValues).append(";\n");
+						final String ddl = MessageFormat.format(
+							"DELETE FROM {0} WHERE {1} = {2};",
+							tblNameEscaped, delFields, delValues
+						);
+						deleteQuery.append(ddl).append("\n");
+						ConsoleWriter.detailsPrintln(ddl, messageLevel + 1);
 					}
 					if (deleteQuery.length() > 50000) {
-						ConsoleWriter.detailsPrintln(deleteQuery, messageLevel + 1);
 						st.execute(deleteQuery.toString());
 						deleteQuery = new StringBuilder();
 					}
 				}
 				if (deleteQuery.length() > 1) {
-					ConsoleWriter.detailsPrintln(deleteQuery, messageLevel + 1);
 					st.execute(deleteQuery.toString());
 				}
 				ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 			}
 
-			System.out.println("\nentriesDiffering().isEmpty() = "
-							   + diffTableData.entriesDiffering().isEmpty());
 			//UPDATE
 			ConsoleWriter.detailsPrintln("Entries differing count: " + diffTableData.entriesDiffering().keySet().size(), messageLevel);
 			if (!diffTableData.entriesDiffering().isEmpty()) {
