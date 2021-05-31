@@ -3,8 +3,7 @@ env:
 assets:
   pgSecret.txt: rocket-3/dbgit-test#pgSecret.txt
   gitSecret.txt: rocket-3/dbgit-test#gitSecret.txt
-install:
-  script: |-
+install: |-
     java -version --batch-mode
     mvn -version --batch-mode
     mvn clean install package appassembler:assemble -D skipTests --batch-mode --quiet
