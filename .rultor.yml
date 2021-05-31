@@ -3,17 +3,15 @@ env:
 assets:
   pgSecret.txt: rocket-3/dbgit-test#pgSecret.txt
   gitSecret.txt: rocket-3/dbgit-test#gitSecret.txt
-merge:
+install:
   script: |-
     java -version --batch-mode
     mvn -version --batch-mode
     mvn clean install package appassembler:assemble -D skipTests --batch-mode --quiet
     chmod u+r+x target/dbgit/bin/dbgit
+merge:
+  script: |-
     mvn test -Dtest=*selfTest,*DbGitIntegrationTestBasic* --batch-mode
 deploy:
   script: |-
-    java -version --batch-mode
-    mvn -version --batch-mode
-    mvn clean install package appassembler:assemble -D skipTests --batch-mode --quiet
-    chmod u+r+x target/dbgit/bin/dbgit
-    mvn test -Dtest=*selfTest,*DbGitIntegrationTestBasic* --batch-mode
+    mvn test -Dtest=$tests --batch-mode
