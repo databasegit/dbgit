@@ -1,10 +1,12 @@
 package ru.fusionsoft.dbgit.data_table;
 
-import java.io.IOException;
 import java.sql.ResultSet;
+import java.text.MessageFormat;
 import java.util.*;
 
 import de.siegmar.fastcsv.reader.CsvRow;
+import java.util.stream.Collectors;
+
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.csv.CSVRecord;
 
@@ -33,12 +35,13 @@ public class RowData {
 		loadDataFromCSVRecord(record, titleColumns, metaTable);
 	}
 
+	@Deprecated
 	public RowData(CSVRecord record, MetaTable metaTable, CSVRecord titleColumns) throws Exception {
 		//this.metaTable = metaTable;
 		loadDataFromCSVRecord(record, titleColumns, metaTable);
 	}
 
-	public void loadDataFromRS(ResultSet rs, MetaTable metaTable) throws Exception {
+	private void loadDataFromRS(ResultSet rs, MetaTable metaTable) throws Exception {
 		for (int i = 0; i < rs.getMetaData().getColumnCount(); i++) {
 			String columnName = rs.getMetaData().getColumnName(i+1);
 
@@ -80,6 +83,7 @@ public class RowData {
 
 	}
 
+	@Deprecated
 	private void loadDataFromCSVRecord(CSVRecord record, CSVRecord titleColumns, MetaTable metaTable) throws Exception {
 
 		if (record.size() != titleColumns.size()) {
