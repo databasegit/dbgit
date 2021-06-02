@@ -20,6 +20,7 @@ import ru.fusionsoft.dbgit.integration.primitives.args.specific.ArgsDbGitAddRemo
 import ru.fusionsoft.dbgit.integration.primitives.chars.CommitsFromRepo;
 import ru.fusionsoft.dbgit.integration.primitives.chars.LinesOfUnsafeScalar;
 import ru.fusionsoft.dbgit.integration.primitives.patch.specific.PathPatchDbGitCheckout;
+import ru.fusionsoft.dbgit.integration.primitives.patch.specific.PathPatchDbGitCheckoutHard;
 import ru.fusionsoft.dbgit.integration.primitives.patch.specific.PathPatchDbGitClonesRepo;
 import ru.fusionsoft.dbgit.integration.primitives.patch.specific.PathPatchDbGitRestore;
 import ru.fusionsoft.dbgit.integration.primitives.chars.CharsOfConsoleWhenRunning;
@@ -252,10 +253,10 @@ public class DbGitIntegrationTestBasic {
                     new PathPatchDbGitCheckout(commitNames.get(0), "-nodb", "-v"),
                     new PathPatchDbGitLink(linkArgs),
                     new PathPatchDbGitRestore("-r", "-v"),
-                    new PathPatchDbGitCheckout(commitNames.get(1), "-nodb", "-v"),
+                    new PathPatchDbGitCheckoutHard(commitNames.get(1), "-nodb", "-v"),
                     new PathPatchDbGitLink(linkArgs),
                     new PathPatchDbGitRestore("-r", "-v"),
-                    new PathPatchDbGitCheckout(commitNames.get(2), "-nodb", "-v"),
+                    new PathPatchDbGitCheckoutHard(commitNames.get(2), "-nodb", "-v"),
                     new PathPatchDbGitLink(linkArgs),
                     new PathPatchDbGitRestore("-r", "-v")
                 ),

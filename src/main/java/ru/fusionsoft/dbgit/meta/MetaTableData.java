@@ -88,8 +88,10 @@ public class MetaTableData extends MetaBase {
 		this.table = table;
 		setName(table.getSchema()+"/"+table.getName()+"."+getType().getValue());
 	}
-
-
+	
+	public void setFields(List<String> fields) {
+	 	this.fields = fields;
+	}
 
 	@Override
 	public void setName(String name) throws ExceptionDBGit {

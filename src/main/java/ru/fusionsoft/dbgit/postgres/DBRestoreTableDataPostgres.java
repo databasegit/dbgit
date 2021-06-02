@@ -77,6 +77,13 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 					if (getAdapter().getTable(schema, currentTableData.getTable().getName()) != null) {
 						//actually load data from database
 						currentTableData.setDataTable(getAdapter().getTableData(schema, currentTableData.getTable().getName()));
+						currentTableData.setFields(
+							getAdapter().getTableFields(schema, currentTableData.getTable().getName())
+								.entrySet().stream()
+								.sorted(Comparator.comparing(x->x.getValue().getOrder()))
+								.map( x->x.getKey() )
+								.collect(Collectors.toList())
+						);
 					
 						ResultSet rs = currentTableData.getDataTable().resultSet();
 						
@@ -127,9 +134,7 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 	}
 	
 	public void restoreTableDataPostgres(MetaTableData restoreTableData, MetaTableData currentTableData) throws Exception{
-		List<String> fieldsList = restoreTableData.getFields();
-//		System.err.println("fieldsList = " + String.join(",", fieldsList));
-		if(fieldsList.size() == 0 ) {
+		if(restoreTableData.getFields().size() == 0 || currentTableData.getFields().size() == 0 ) {
 			ConsoleWriter.printlnRed(DBGitLang.getInstance()
 			    .getValue("errors", "restore", "emptyFieldsList")
 			    , 1
@@ -163,6 +168,18 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 
 			//DELETE
 			if (!diffTableData.entriesOnlyOnRight().isEmpty()) {
+				diffTableData.entriesOnlyOnRight().values().forEach( x->{
+					System.err.print(
+						MessageFormat.format(
+							"\n{0}",
+							x.getData(currentTableData.getFields())
+								.entrySet()
+								.stream()
+								.map(y -> y.getKey() + " = " + y.getValue().getSQLData().substring(0, Integer.min(y.getValue().getSQLData().length(), 8)))
+								.collect(Collectors.joining("\t"))
+						)
+					);
+				});
 				ConsoleWriter.detailsPrintln(lang.getValue("general", "restore", "deleting"), messageLevel);
 				StringBuilder deleteQuery = new StringBuilder();
 
@@ -170,10 +187,15 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 					StringJoiner fieldJoiner = new StringJoiner(",");
 					StringJoiner valuejoiner = new StringJoiner(",");
 
-					for( Map.Entry<String, ICellData> entry : rowData.getData(fieldsList).entrySet()) {
+					for( Map.Entry<String, ICellData> entry : rowData.getData(currentTableData.getFields()).entrySet()) {
 						if (keyNames.contains(entry.getKey())) {
 							fieldJoiner.add("\"" + entry.getKey() + "\"");
-							valuejoiner.add(entry.getValue().convertToString());
+							final String value = entry.getValue().convertToString();
+							if( value.matches("-?\\d+(\\.0)?") ) {
+								valuejoiner.add( String.valueOf( (long) Double.parseDouble(value) ) );
+							} else {
+								valuejoiner.add("'" + value + "'");
+							}
 						}
 					}
 
@@ -200,7 +222,6 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 			}
 
 			//UPDATE
-			ConsoleWriter.detailsPrintln("Entries differing count: " + diffTableData.entriesDiffering().keySet().size(), messageLevel);
 			if (!diffTableData.entriesDiffering().isEmpty()) {
 				ConsoleWriter.detailsPrintln(lang.getValue("general", "restore", "updating"), messageLevel);
 				String updateQuery = "";
@@ -209,7 +230,7 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 				for (ValueDifference<RowData> diffRowData : diffTableData.entriesDiffering().values()) {
 					if (!diffRowData.leftValue().getHashRow().equals(diffRowData.rightValue().getHashRow())) {
 
-						Map<String, ICellData> tempCols = diffRowData.leftValue().getData(fieldsList);
+						Map<String, ICellData> tempCols = diffRowData.leftValue().getData(restoreTableData.getFields());
 						for (String key : tempCols.keySet()) {
 							if (tempCols.get(key) == null || tempCols.get(key).convertToString() == null) continue;
 							if (keyNames.contains(key)) {
@@ -236,7 +257,7 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 
 
 							updateQuery = "UPDATE " + tblNameEscaped + " SET (" + updFieldJoiner.toString() + ") = "
-							+ valuesToString(tempCols.values(), colTypes, fieldsList) + " "
+							+ valuesToString(tempCols.values(), colTypes, restoreTableData.getFields()) + " "
 							+ "WHERE (" + keyFieldsJoiner.toString() + ") = (" + keyValuesJoiner.toString() + ");\n";
 
 
@@ -262,7 +283,7 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 
 					String insertQuery = MessageFormat.format("INSERT INTO {0}{1}{2};"
 						, tblNameEscaped, fields
-						, valuesToString(rowData.getData(fieldsList).values(), colTypes, fieldsList)
+						, valuesToString(rowData.getData(restoreTableData.getFields()).values(), colTypes, restoreTableData.getFields())
 					);
 
 					ConsoleWriter.detailsPrintln(insertQuery, messageLevel+1);
