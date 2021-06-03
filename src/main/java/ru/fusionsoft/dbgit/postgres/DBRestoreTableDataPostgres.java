@@ -134,21 +134,14 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 	}
 	
 	public void restoreTableDataPostgres(MetaTableData restoreTableData, MetaTableData currentTableData) throws Exception{
-		if(restoreTableData.getFields().size() == 0 || currentTableData.getFields().size() == 0 ) {
-			ConsoleWriter.printlnRed(DBGitLang.getInstance()
-			    .getValue("errors", "restore", "emptyFieldsList")
-			    , 1
-			);
-			ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
-			return;
+		//if empty restore table data -> delete all currentTableData
+		if (currentTableData.getFields().size() == 0 ) {
+			final CharSequence msg = DBGitLang.getInstance().getValue("errors", "restore", "currentFieldsListIsEmpty").toString();
+			throw new ExceptionDBGit(msg);
 		}
 		if (restoreTableData.getmapRows() == null) {
-			ConsoleWriter.printlnRed(DBGitLang.getInstance()
-				.getValue("errors", "restore", "emptyRowsList")
-				, 1
-			);
-			ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
-			return;
+			final CharSequence msg = DBGitLang.getInstance().getValue("errors", "restore", "emptyRowsList").toString();
+			throw new ExceptionDBGit(msg);
 		}
 
 		IDBAdapter adapter = getAdapter();
@@ -168,18 +161,6 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 
 			//DELETE
 			if (!diffTableData.entriesOnlyOnRight().isEmpty()) {
-				diffTableData.entriesOnlyOnRight().values().forEach( x->{
-					System.err.print(
-						MessageFormat.format(
-							"\n{0}",
-							x.getData(currentTableData.getFields())
-								.entrySet()
-								.stream()
-								.map(y -> y.getKey() + " = " + y.getValue().getSQLData().substring(0, Integer.min(y.getValue().getSQLData().length(), 8)))
-								.collect(Collectors.joining("\t"))
-						)
-					);
-				});
 				ConsoleWriter.detailsPrintln(lang.getValue("general", "restore", "deleting"), messageLevel);
 				StringBuilder deleteQuery = new StringBuilder();
 
