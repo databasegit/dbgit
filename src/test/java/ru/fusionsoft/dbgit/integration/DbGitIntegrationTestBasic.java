@@ -187,9 +187,9 @@ public class DbGitIntegrationTestBasic {
                 }
             ),
             new SimpleTest<>(
-                "rental table data (10K+ rows) is not empty",
+                "rental table data (10K+ rows) exists and is empty",
                 (path) -> {
-                    return ! Files.readAllLines(path.resolve(".dbgit/public/rental.csv")).isEmpty();
+                    return Files.readAllLines(path.resolve(".dbgit/public/rental.csv")).isEmpty();
                 }
             )
         );
