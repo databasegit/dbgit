@@ -77,8 +77,7 @@ public class DBGitIndex {
 			saveDBIndex();
 			return true;
 		} catch (Exception ex){
-			ex.printStackTrace();
-			return false;
+			throw new ExceptionDBGitRunTime("Remove item from index error", ex);
 		}
 	}
 

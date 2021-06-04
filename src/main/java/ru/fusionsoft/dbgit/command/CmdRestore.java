@@ -210,8 +210,9 @@ public class CmdRestore implements IDBGitCommand {
 			final boolean exists = GitMetaDataManager.getInstance().loadFromDB(dbObj);
 			isRestore = !exists || !dbObj.getHash().equals(obj.getHash());
 		} catch (ExceptionDBGit e) {
-			isRestore = true;
-			e.printStackTrace();
+			throw new ExceptionDBGitRunTime(e);
+//			isRestore = true;
+//			e.printStackTrace();
 		}
 		return isRestore;
 	}
