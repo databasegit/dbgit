@@ -67,11 +67,8 @@ public class SelfTest {
                                 new Patch<Path>() {
                                     @Override
                                     public void apply(Path root) throws Exception {
-                                        System.out.println("access "
-                                                           + root.toString());
-                                        throw new Error(
-                                            "dummy error"
-                                        );
+                                        System.out.println("access " + root.toString());
+                                        throw new RuntimeException("dummy error");
                                     }
                                 }
                             ),
