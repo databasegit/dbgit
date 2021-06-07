@@ -7,6 +7,8 @@ import java.util.Map;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.db.DbType;
 import ru.fusionsoft.dbgit.dbobjects.DBConstraint;
+import ru.fusionsoft.dbgit.dbobjects.DBDomain;
+import ru.fusionsoft.dbgit.dbobjects.DBEnum;
 import ru.fusionsoft.dbgit.dbobjects.DBFunction;
 import ru.fusionsoft.dbgit.dbobjects.DBIndex;
 import ru.fusionsoft.dbgit.dbobjects.DBPackage;
@@ -21,6 +23,7 @@ import ru.fusionsoft.dbgit.dbobjects.DBTableRow;
 import ru.fusionsoft.dbgit.dbobjects.DBTableSpace;
 import ru.fusionsoft.dbgit.dbobjects.DBTrigger;
 import ru.fusionsoft.dbgit.dbobjects.DBUser;
+import ru.fusionsoft.dbgit.dbobjects.DBUserDefinedType;
 import ru.fusionsoft.dbgit.dbobjects.DBView;
 import ru.fusionsoft.dbgit.meta.IMapMetaObject;
 
@@ -143,7 +146,13 @@ public interface IDBAdapter {
 	
 	public Map<String, DBUser> getUsers();
 	public Map<String, DBRole> getRoles();
-	
+	Map<String, DBUserDefinedType> getUDTs(String schema);
+	Map<String, DBDomain> getDomains(String schema);
+	Map<String, DBEnum> getEnums(String schema);
+	DBUserDefinedType getUDT(String schema, String name);
+	DBDomain getDomain(String schema, String name);
+	DBEnum getEnum(String schema, String name);
+
 	public boolean userHasRightsToGetDdlOfOtherUsers();
 
 	public IFactoryDBBackupAdapter getBackupAdapterFactory();

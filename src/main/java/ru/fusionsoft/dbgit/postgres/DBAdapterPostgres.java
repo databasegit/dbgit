@@ -1011,6 +1011,39 @@ public class DBAdapterPostgres extends DBAdapter {
 	}
 
 	@Override
+	public Map<String, DBUserDefinedType> getUDTs(String schema) {
+		return Collections.emptyMap();
+	}
+
+	@Override
+	public Map<String, DBDomain> getDomains(String schema) {
+		return Collections.emptyMap();
+	}
+
+	@Override
+	public Map<String, DBEnum> getEnums(String schema) {
+		return Collections.emptyMap();
+	}
+
+	@Override
+	public DBUserDefinedType getUDT(String schema, String name) {
+		final String msg = lang.getValue("errors", "adapter", "objectNotFoundInDb").toString();
+		throw new ExceptionDBGitObjectNotFound(msg);
+	}
+
+	@Override
+	public DBDomain getDomain(String schema, String name) {
+		final String msg = lang.getValue("errors", "adapter", "objectNotFoundInDb").toString();
+		throw new ExceptionDBGitObjectNotFound(msg);
+	}
+
+	@Override
+	public DBEnum getEnum(String schema, String name) {
+		final String msg = lang.getValue("errors", "adapter", "objectNotFoundInDb").toString();
+		throw new ExceptionDBGitObjectNotFound(msg);
+	}
+
+	@Override
 	public boolean userHasRightsToGetDdlOfOtherUsers() { return true; }
 	@Override
 	public IFactoryDBBackupAdapter getBackupAdapterFactory() { return backupFactory; }

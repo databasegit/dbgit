@@ -27,6 +27,8 @@ import ru.fusionsoft.dbgit.data_table.MapFileData;
 import ru.fusionsoft.dbgit.data_table.StringData;
 import ru.fusionsoft.dbgit.data_table.TextFileData;
 import ru.fusionsoft.dbgit.dbobjects.DBConstraint;
+import ru.fusionsoft.dbgit.dbobjects.DBDomain;
+import ru.fusionsoft.dbgit.dbobjects.DBEnum;
 import ru.fusionsoft.dbgit.dbobjects.DBFunction;
 import ru.fusionsoft.dbgit.dbobjects.DBIndex;
 import ru.fusionsoft.dbgit.dbobjects.DBPackage;
@@ -41,6 +43,7 @@ import ru.fusionsoft.dbgit.dbobjects.DBTableRow;
 import ru.fusionsoft.dbgit.dbobjects.DBTableSpace;
 import ru.fusionsoft.dbgit.dbobjects.DBTrigger;
 import ru.fusionsoft.dbgit.dbobjects.DBUser;
+import ru.fusionsoft.dbgit.dbobjects.DBUserDefinedType;
 import ru.fusionsoft.dbgit.dbobjects.DBView;
 import ru.fusionsoft.dbgit.meta.IMapMetaObject;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
@@ -958,7 +961,39 @@ public class DBAdapterOracle extends DBAdapter {
 		return listRole;
 	}
 
-	
+	@Override
+	public Map<String, DBUserDefinedType> getUDTs(String schema) {
+		return Collections.emptyMap();
+	}
+
+	@Override
+	public Map<String, DBDomain> getDomains(String schema) {
+		return Collections.emptyMap();
+	}
+
+	@Override
+	public Map<String, DBEnum> getEnums(String schema) {
+		return Collections.emptyMap();
+	}
+
+	@Override
+	public DBUserDefinedType getUDT(String schema, String name) {
+		final String msg = lang.getValue("errors", "adapter", "objectNotFoundInDb").toString();
+		throw new ExceptionDBGitObjectNotFound(msg);
+	}
+
+	@Override
+	public DBDomain getDomain(String schema, String name) {
+		final String msg = lang.getValue("errors", "adapter", "objectNotFoundInDb").toString();
+		throw new ExceptionDBGitObjectNotFound(msg);
+	}
+
+	@Override
+	public DBEnum getEnum(String schema, String name) {
+		final String msg = lang.getValue("errors", "adapter", "objectNotFoundInDb").toString();
+		throw new ExceptionDBGitObjectNotFound(msg);
+	}
+
 	static {
 		reservedWords.add("ACCESS");
 		reservedWords.add("ADD");
