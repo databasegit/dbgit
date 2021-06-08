@@ -20,6 +20,7 @@ import ru.fusionsoft.dbgit.integration.primitives.args.specific.ArgsDbGitAddRemo
 import ru.fusionsoft.dbgit.integration.primitives.chars.CommitsFromRepo;
 import ru.fusionsoft.dbgit.integration.primitives.chars.LinesOfUnsafeScalar;
 import ru.fusionsoft.dbgit.integration.primitives.chars.specific.dbgit.CharsDbIgnoreWithDataAndTypes;
+import ru.fusionsoft.dbgit.integration.primitives.chars.specific.dbgit.CharsDbGitConfigBackupEnabled;
 import ru.fusionsoft.dbgit.integration.primitives.patch.specific.PathPatchDbGitCheckout;
 import ru.fusionsoft.dbgit.integration.primitives.patch.specific.PathPatchDbGitCheckoutHard;
 import ru.fusionsoft.dbgit.integration.primitives.patch.specific.PathPatchDbGitClonesRepo;
@@ -265,12 +266,15 @@ public class DbGitIntegrationTestBasic {
                     new PathPatchDbGitCheckout(nameOfSourceBranch, "-b", "-nodb"),
                     new PathPatchDbGitCheckout(commitNames.get(0), "-nodb", "-v"),
                     new PathPatchDbGitLink(linkArgs),
+                    new PathPatchCreatingFile(".dbgit/dbgitconfig", new CharsDbGitConfigBackupEnabled()),
                     new PathPatchDbGitRestore("-r", "-v"),
                     new PathPatchDbGitCheckoutHard(commitNames.get(1), "-nodb", "-v"),
                     new PathPatchDbGitLink(linkArgs),
+                    new PathPatchCreatingFile(".dbgit/dbgitconfig", new CharsDbGitConfigBackupEnabled()),
                     new PathPatchDbGitRestore("-r", "-v"),
                     new PathPatchDbGitCheckoutHard(commitNames.get(2), "-nodb", "-v"),
                     new PathPatchDbGitLink(linkArgs),
+                    new PathPatchCreatingFile(".dbgit/dbgitconfig", new CharsDbGitConfigBackupEnabled()),
                     new PathPatchDbGitRestore("-r", "-v")
                 ),
                 new ProjectTestResourcesCleanDirectoryPath("04")
