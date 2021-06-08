@@ -58,7 +58,7 @@ public enum DBGitMetaType implements IDBGitMetaType {
 	
 	DBGitEnum("enum"){		
 		public Class<?> getMetaClass() {
-			return MetaUDT.class;
+			return MetaEnum.class;
 		}
 		
 		public Integer getPriority() {
@@ -68,7 +68,7 @@ public enum DBGitMetaType implements IDBGitMetaType {
 	
 	DBGitDomain("domain"){		
 		public Class<?> getMetaClass() {
-			return MetaUDT.class;
+			return MetaDomain.class;
 		}
 		
 		public Integer getPriority() {

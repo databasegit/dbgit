@@ -9,6 +9,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.diogonunes.jcdp.color.api.Ansi;
 import com.google.common.collect.ImmutableMap;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import ru.fusionsoft.dbgit.adapters.*;
 import ru.fusionsoft.dbgit.core.*;
@@ -1012,17 +1013,130 @@ public class DBAdapterPostgres extends DBAdapter {
 
 	@Override
 	public Map<String, DBUserDefinedType> getUDTs(String schema) {
+		System.out.println("getting UDT's");
 		return Collections.emptyMap();
 	}
 
 	@Override
 	public Map<String, DBDomain> getDomains(String schema) {
-		return Collections.emptyMap();
+		System.out.println("getting domains");
+		final Map<String, DBDomain> objects = new HashMap<>();
+		final String query =
+			"SELECT \n"
+			+ "    n.nspname,\n"
+			+ "	   t.typname, \n"
+			+ "    dom.data_type, \n"
+			+ "    dom.domain_default,\n"
+			+ "    r.rolname,\n"
+			+ "    pg_catalog.obj_description ( t.oid, 'pg_type' ) AS description\n"
+			+ "FROM        pg_type t \n"
+			+ "LEFT JOIN   pg_catalog.pg_namespace n ON n.oid = t.typnamespace \n"
+			+ "RIGHT JOIN  information_schema.domains dom ON dom.domain_name = t.typname AND dom.domain_schema = n.nspname\n"
+			+ "LEFT JOIN   pg_roles r ON r.oid = t.typowner\n"
+			+ "WHERE       (t.typrelid = 0 OR (SELECT c.relkind = 'c' FROM pg_catalog.pg_class c WHERE c.oid = t.typrelid)) \n"
+			+ "AND     NOT EXISTS(SELECT 1 FROM pg_catalog.pg_type el WHERE el.oid = t.typelem AND el.typarray = t.oid)\n"
+			+ "AND     n.nspname NOT IN ('pg_catalog', 'information_schema')\n"
+			+ "AND dom.domain_schema = '"+schema+"'";
+
+		System.out.println("query = " + query);
+		try (Statement stmt = getConnection().createStatement(); ResultSet rs = stmt.executeQuery(query);) {
+
+			while (rs.next()) {
+				final String name = rs.getString("typname");
+				final String owner = rs.getString("rolname");
+				final String type = rs.getString("data_type");
+				final String defaultValue = rs.getString("domain_default");
+				
+				final List<String> constraintSqls = new ArrayList<>();
+				final String constraintsQuery = 
+					"SELECT con.conname, con.convalidated, con.consrc\n"
+					+ "FROM information_schema.domains dom\n"
+					+ "INNER JOIN information_schema.domain_constraints dcon ON dcon.domain_schema = dom.domain_schema AND dcon.domain_name = dom.domain_name\n"
+					+ "INNER JOIN pg_catalog.pg_constraint con ON dcon.constraint_name = con.conname\n"
+					+ "WHERE dom.domain_schema = '"+schema+"' AND dom.domain_name = '"+name+"'";
+				try (Statement stmt2 = getConnection().createStatement(); ResultSet conRs = stmt2.executeQuery(constraintsQuery)) {
+					while (conRs.next()) {
+						final String conName = conRs.getString("conname");
+						final String conSrc = conRs.getString("consrc");
+						final Boolean conIsValidated = conRs.getBoolean("convalidated");
+						final String conSql = MessageFormat.format(
+							"ALTER DOMAIN {0}.{1} ADD CONSTRAINT {2} CHECK {3} {4};",
+							escapeNameIfNeeded(schema), 
+							escapeNameIfNeeded(name), 
+							escapeNameIfNeeded(conName), 
+							conSrc, 
+							conIsValidated ? "" : "NOT VALID"
+						);
+						constraintSqls.add(conSql);
+						System.out.println("conSql = " + conSql);
+					}
+				}
+				
+				final StringProperties options = new StringProperties(rs);
+				final String sql = MessageFormat.format(
+					"CREATE DOMAIN {0}.{1} AS {2} {3}; ALTER DOMAIN {0}.{1} OWNER TO {4};\n{5}",
+					escapeNameIfNeeded(schema), escapeNameIfNeeded(name), type, defaultValue != null ? "DEFAULT " + defaultValue : "", owner,
+					String.join("\n", constraintSqls)
+				);
+				System.out.println("sql = " + sql);
+
+				DBDomain object = new DBDomain(name, options, schema, owner, Collections.emptySet(), sql);
+				objects.put(name, object);
+			}
+
+		} catch (Exception e) {
+			throw new ExceptionDBGitRunTime(e);
+		}
+
+		return objects;
 	}
 
 	@Override
 	public Map<String, DBEnum> getEnums(String schema) {
-		return Collections.emptyMap();
+		System.out.println("getting enums");
+		final Map<String, DBEnum> objects = new HashMap<>();
+		final String query = 
+			"SELECT t.typname, r.rolname, pg_catalog.obj_description ( t.oid, 'pg_type' ) AS description," 
+			 + "ARRAY( \n"
+			 + "    SELECT e.enumlabel\n"
+			 + "    FROM pg_catalog.pg_enum e\n"
+			 + "    WHERE e.enumtypid = t.oid\n"
+			 + "    ORDER BY e.oid \n"
+			 + ") AS elements\n"
+			 + "FROM        pg_type t \n"
+			 + "LEFT JOIN   pg_catalog.pg_namespace n ON n.oid = t.typnamespace \n"
+			 + "LEFT JOIN   pg_roles r ON r.oid = t.typowner\n"
+			 + "WHERE       (t.typrelid = 0 OR (SELECT c.relkind = 'c' FROM pg_catalog.pg_class c WHERE c.oid = t.typrelid)) \n"
+			 + "AND     NOT EXISTS(SELECT 1 FROM pg_catalog.pg_type el WHERE el.oid = t.typelem AND el.typarray = t.oid)\n"
+			 + "AND     n.nspname NOT IN ('pg_catalog', 'information_schema')\n"
+			 + "AND n.nspname = '"+schema+"'"
+			 + "AND t.typtype = 'e'";
+
+		System.out.println("query = " + query);
+		try (Statement stmt = getConnection().createStatement(); ResultSet rs = stmt.executeQuery(query);) {
+
+			while (rs.next()) {
+				final String name = rs.getString("typname");
+				final String owner = rs.getString("rolname");
+				final StringProperties options = new StringProperties(rs);
+				final List<String> elements = Arrays.stream((String[]) rs.getArray("elements").getArray())
+					.map( x->"'"+x+"'")
+					.collect(Collectors.toList());
+				final String sql = MessageFormat.format( 
+					"CREATE TYPE {0}.{1} AS ENUM ({2});\nALTER TYPE {0}.{1} ONWER TO {3}",
+					schema, name, String.join(",", elements), owner
+				);
+				System.out.println("sql = " + sql);
+
+				DBEnum object = new DBEnum(name, options, schema, owner, Collections.emptySet(), sql);
+				objects.put(name, object);
+			}
+
+		} catch (Exception e) {
+			throw new ExceptionDBGitRunTime(e);
+		}
+
+		return objects;
 	}
 
 	@Override

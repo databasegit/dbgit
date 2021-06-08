@@ -3,6 +3,7 @@ package ru.fusionsoft.dbgit.integration;
 import java.nio.file.Path;
 import java.text.MessageFormat;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import ru.fusionsoft.dbgit.integration.primitives.PatchSequential;
@@ -29,6 +30,7 @@ import ru.fusionsoft.dbgit.integration.primitives.path.specific.ProjectTestResou
 import ru.fusionsoft.dbgit.integration.primitives.path.specific.dbgit.scenarios.PathAfterDbGitDumpsDbSchemaToGit;
 
 @Tag("notebook")
+@Disabled
 public class DbGitIntegrationTestNotebook {
     @Test
     public final void appendsDbSchemaToBranchOfTestRepo() {
