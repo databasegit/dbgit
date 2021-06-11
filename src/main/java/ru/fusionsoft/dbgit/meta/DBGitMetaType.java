@@ -46,6 +46,36 @@ public enum DBGitMetaType implements IDBGitMetaType {
 		}
 	},
 	
+	DBGitUserDefinedType("udt"){		
+		public Class<?> getMetaClass() {
+			return MetaUDT.class;
+		}
+		
+		public Integer getPriority() {
+			return 11;
+		}
+	},		
+	
+	DBGitEnum("enum"){		
+		public Class<?> getMetaClass() {
+			return MetaEnum.class;
+		}
+		
+		public Integer getPriority() {
+			return 12;
+		}
+	},	
+	
+	DBGitDomain("domain"){		
+		public Class<?> getMetaClass() {
+			return MetaDomain.class;
+		}
+		
+		public Integer getPriority() {
+			return 13;
+		}
+	},	
+	
 	DBGitSequence("seq"){		
 		public Class<?> getMetaClass() {
 			return MetaSequence.class;
@@ -134,8 +164,7 @@ public enum DBGitMetaType implements IDBGitMetaType {
 		public Integer getPriority() {
 			return 210;
 		}
-	}
-	;
+	};
 	
 	private static Map<String, IDBGitMetaType> listAllTypes;
 	static {

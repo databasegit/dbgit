@@ -19,6 +19,7 @@ import ru.fusionsoft.dbgit.integration.primitives.args.specific.ArgsDbGitLinkPgA
 import ru.fusionsoft.dbgit.integration.primitives.args.specific.ArgsDbGitAddRemoteTestRepo;
 import ru.fusionsoft.dbgit.integration.primitives.chars.CommitsFromRepo;
 import ru.fusionsoft.dbgit.integration.primitives.chars.LinesOfUnsafeScalar;
+import ru.fusionsoft.dbgit.integration.primitives.chars.specific.dbgit.CharsDbIgnoreWithDataAndTypes;
 import ru.fusionsoft.dbgit.integration.primitives.chars.specific.dbgit.CharsDbGitConfigBackupEnabled;
 import ru.fusionsoft.dbgit.integration.primitives.patch.specific.PathPatchDbGitCheckout;
 import ru.fusionsoft.dbgit.integration.primitives.patch.specific.PathPatchDbGitCheckoutHard;
@@ -155,10 +156,10 @@ public class DbGitIntegrationTestBasic {
                 new ArgsExplicit("add", "\"*\""),
 
                 new PathWithFiles(
-                    new PathPatchCreatingFile(".dbgit/.dbignore", new CharsDbIgnoreWithTableData()),
+                    new PathPatchCreatingFile(".dbgit/.dbignore", new CharsDbIgnoreWithDataAndTypes()),
 
                     new PathAfterDbGitRun(
-                        new ArgsDbGitLinkPgAuto("pagilla"),
+                        new ArgsDbGitLinkPgAuto("dvdrental"),
 
                         new PathAfterDbGitRun(
                             new ArgsExplicit("init"),
@@ -191,6 +192,24 @@ public class DbGitIntegrationTestBasic {
                 "rental table data (10K+ rows) exists and is empty",
                 (path) -> {
                     return Files.readAllLines(path.resolve(".dbgit/public/rental.csv")).isEmpty();
+                }
+            ),
+            new SimpleTest<>(
+                "mpaa_rating.enum exists",
+                (path) -> {
+                    return path.resolve(".dbgit/public/mpaa_rating.enum").toFile().exists();
+                }
+            ),
+            new SimpleTest<>(
+                "year.domain exists",
+                (path) -> {
+                    return path.resolve(".dbgit/public/year.domain").toFile().exists();
+                }
+            ),
+            new SimpleTest<>(
+                "film_summary.udt exists",
+                (path) -> {
+                    return path.resolve(".dbgit/public/film_summary.udt").toFile().exists();
                 }
             )
         );
@@ -295,7 +314,7 @@ public class DbGitIntegrationTestBasic {
                         //pagilla to local repo
                         new PathAfterDbGitLinkAndAdd(
                             new ArgsDbGitLinkPgAuto("pagilla"),
-                            new CharsDbIgnoreWithTableData(),
+                            new CharsDbIgnoreWithDataAndTypes(),
 
                             //dvdrental to test#databasegit
                             new PathAfterDbGitRun(
@@ -307,7 +326,7 @@ public class DbGitIntegrationTestBasic {
                                     //dvdrental to local repo
                                     new PathAfterDbGitLinkAndAdd(
                                         new ArgsDbGitLinkPgAuto("dvdrental"),
-                                        new CharsDbIgnoreWithTableData(),
+                                        new CharsDbIgnoreWithDataAndTypes(),
 
                                         new PathAfterDbGitRun(
                                             new ArgsExplicit("init"),

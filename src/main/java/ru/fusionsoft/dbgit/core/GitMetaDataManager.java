@@ -94,7 +94,7 @@ public class GitMetaDataManager {
 			
 			objs.put(obj);
 		 }
-	}
+	}	
 	
 	public boolean loadFromDB(IMetaObject obj) throws ExceptionDBGit {		
 		try {
@@ -241,6 +241,12 @@ public class GitMetaDataManager {
 				addToMapSqlObject(dbObjs, adapter.getProcedures(schema.getName()), DBGitMetaType.DbGitProcedure);
 			if (!ignore.matchOne(schema.getName() + "/*." + DBGitMetaType.DbGitView.getValue()))
 				addToMapSqlObject(dbObjs, adapter.getViews(schema.getName()), DBGitMetaType.DbGitView);
+			if (!ignore.matchOne(schema.getName() + "/*." + DBGitMetaType.DBGitEnum.getValue()))
+				addToMapSqlObject(dbObjs, adapter.getEnums(schema.getName()), DBGitMetaType.DBGitEnum);
+			if (!ignore.matchOne(schema.getName() + "/*." + DBGitMetaType.DBGitUserDefinedType.getValue()))
+				addToMapSqlObject(dbObjs, adapter.getUDTs(schema.getName()), DBGitMetaType.DBGitUserDefinedType);
+			if (!ignore.matchOne(schema.getName() + "/*." + DBGitMetaType.DBGitDomain.getValue()))
+				addToMapSqlObject(dbObjs, adapter.getDomains(schema.getName()), DBGitMetaType.DBGitDomain);
 		}
 
 		//data tables

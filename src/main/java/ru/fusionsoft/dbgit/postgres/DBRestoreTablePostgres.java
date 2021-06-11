@@ -324,6 +324,8 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 							&&(restoreField.getTypeUniversal() != FieldType.BOOLEAN)
 							&&(existingField.getTypeUniversal() != FieldType.STRING_NATIVE)
 							&&(restoreField.getTypeUniversal() != FieldType.STRING_NATIVE)
+							&&(existingField.getTypeUniversal() != FieldType.NATIVE)
+							&&(restoreField.getTypeUniversal() != FieldType.NATIVE)
 							&& hasNotTypeSql(tblField, "json")
 							&& hasNotTypeSql(tblField, "text[]")
 							&& hasNotTypeSql(tblField, "text")

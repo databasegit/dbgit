@@ -9,6 +9,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.diogonunes.jcdp.color.api.Ansi;
 import com.google.common.collect.ImmutableMap;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import ru.fusionsoft.dbgit.adapters.*;
 import ru.fusionsoft.dbgit.core.*;
@@ -1008,6 +1009,220 @@ public class DBAdapterPostgres extends DBAdapter {
 		}
 
 		return listRole;
+	}
+
+	@Override
+	public Map<String, DBUserDefinedType> getUDTs(String schema) {
+		final Map<String, DBUserDefinedType> objects = new HashMap<>();
+		final String query =
+			"SELECT \n"
+			+ "    n.nspname AS schema,\n"
+			+ "    t.typname AS name, \n"
+			+ "    r.rolname AS owner,\n"
+			+ "    pg_catalog.obj_description ( t.oid, 'pg_type' ) AS description\n"
+			+ "FROM        pg_type t \n"
+			+ "LEFT JOIN   pg_catalog.pg_namespace n ON n.oid = t.typnamespace \n"
+			+ "LEFT JOIN   pg_roles r ON r.oid = t.typowner\n"
+			+ "WHERE       (t.typrelid = 0 OR (SELECT c.relkind = 'c' FROM pg_catalog.pg_class c WHERE c.oid = t.typrelid)) \n"
+			+ "AND     NOT EXISTS(SELECT 1 FROM pg_catalog.pg_type el WHERE el.oid = t.typelem AND el.typarray = t.oid)\n"
+			+ "AND     t.typtype = 'c'\n" 
+			+ "AND 	   n.nspname = '"+schema+"'";
+
+		try (Statement stmt = getConnection().createStatement(); ResultSet rs = stmt.executeQuery(query);) {
+			while (rs.next()) {
+				final String name = rs.getString("name");
+				final String owner = rs.getString("owner");
+				final List<String> attributesSqls = new ArrayList<>();
+				final String attributesQuery =
+					"SELECT \n"
+					+ "    attribute_name   AS \"name\", \n"
+					+ "    data_type 	    AS \"type\", \n"
+					+ "    ordinal_position AS \"order\"\n"
+					+ "FROM information_schema.attributes a\n"
+					+ "WHERE udt_schema = '"+schema+"' AND udt_name = '"+name+"'\n"
+					+ "ORDER BY ordinal_position";
+				try (Statement stmt2 = getConnection().createStatement(); ResultSet attributeRs = stmt2.executeQuery(
+					attributesQuery)) {
+					while (attributeRs.next()) {
+						final String attrName = attributeRs.getString("name");
+						final String attrType = attributeRs.getString("type");
+						final String udtAttrDefinition = MessageFormat.format(
+							"{0} {1}",
+							escapeNameIfNeeded(attrName),
+							attrType
+						);
+						attributesSqls.add(udtAttrDefinition);
+					}
+				}
+				final StringProperties options = new StringProperties();
+				final String sql = MessageFormat.format(
+					"CREATE TYPE {0}.{1} AS (\n{2}\n);\n"
+					+ "ALTER TYPE {0}.{1} OWNER TO {3};",
+					escapeNameIfNeeded(schema),
+					escapeNameIfNeeded(name),
+					String.join(",\n    ", attributesSqls),
+					owner
+				);
+
+				DBUserDefinedType object = new DBUserDefinedType(name, options, schema, owner, Collections.emptySet(), sql);
+				options.addChild("attributes", String.join(",", attributesSqls));
+				options.addChild("description", rs.getString("description"));
+				objects.put(name, object);
+			}
+
+		} catch (Exception e) {
+			throw new ExceptionDBGitRunTime(e);
+		}
+
+		return objects;
+	}
+
+	@Override
+	public Map<String, DBDomain> getDomains(String schema) {
+		System.out.println("getting domains");
+		final Map<String, DBDomain> objects = new HashMap<>();
+		final String query =
+			"SELECT \n"
+			+ "    n.nspname,\n"
+			+ "    t.typname, \n"
+			+ "    dom.data_type, \n"
+			+ "    dom.domain_default,\n"
+			+ "    r.rolname,\n"
+			+ "    pg_catalog.obj_description ( t.oid, 'pg_type' ) AS description\n"
+			+ "FROM        pg_type t \n"
+			+ "LEFT JOIN   pg_catalog.pg_namespace n ON n.oid = t.typnamespace \n"
+			+ "RIGHT JOIN  information_schema.domains dom ON dom.domain_name = t.typname AND dom.domain_schema = n.nspname\n"
+			+ "LEFT JOIN   pg_roles r ON r.oid = t.typowner\n"
+			+ "WHERE       (t.typrelid = 0 OR (SELECT c.relkind = 'c' FROM pg_catalog.pg_class c WHERE c.oid = t.typrelid)) \n"
+			+ "AND     NOT EXISTS(SELECT 1 FROM pg_catalog.pg_type el WHERE el.oid = t.typelem AND el.typarray = t.oid)\n"
+			+ "AND     n.nspname NOT IN ('pg_catalog', 'information_schema')\n"
+			+ "AND dom.domain_schema = '"+schema+"'";
+
+		try (Statement stmt = getConnection().createStatement(); ResultSet rs = stmt.executeQuery(query);) {
+
+			while (rs.next()) {
+				final String name = rs.getString("typname");
+				final String owner = rs.getString("rolname");
+				final String type = rs.getString("data_type");
+				final String defaultValue = rs.getString("domain_default");
+				
+				final List<String> constraintSqls = new ArrayList<>();
+				final String constraintsQuery = 
+					"SELECT con.conname, con.convalidated, con.consrc\n"
+					+ "FROM information_schema.domains dom\n"
+					+ "INNER JOIN information_schema.domain_constraints dcon ON dcon.domain_schema = dom.domain_schema AND dcon.domain_name = dom.domain_name\n"
+					+ "INNER JOIN pg_catalog.pg_constraint con ON dcon.constraint_name = con.conname\n"
+					+ "WHERE dom.domain_schema = '"+schema+"' AND dom.domain_name = '"+name+"'";
+				try (Statement stmt2 = getConnection().createStatement(); ResultSet conRs = stmt2.executeQuery(constraintsQuery)) {
+					while (conRs.next()) {
+						final String conName = conRs.getString("conname");
+						final String conSrc = conRs.getString("consrc");
+						final Boolean conIsValidated = conRs.getBoolean("convalidated");
+						constraintSqls.add(MessageFormat.format(
+							"ALTER DOMAIN {0}.{1} ADD CONSTRAINT {2} CHECK {3} {4};",
+							escapeNameIfNeeded(schema),
+							escapeNameIfNeeded(name),
+							escapeNameIfNeeded(conName),
+							conSrc,
+							conIsValidated ? "" : "NOT VALID"
+						));
+					}
+				}
+				
+				final StringProperties options = new StringProperties(rs);
+				final String sql = MessageFormat.format(
+					"CREATE DOMAIN {0}.{1} AS {2} {3}; ALTER DOMAIN {0}.{1} OWNER TO {4};\n{5}",
+					escapeNameIfNeeded(schema), escapeNameIfNeeded(name), type, defaultValue != null ? "DEFAULT " + defaultValue : "", owner,
+					String.join("\n", constraintSqls)
+				);
+
+				DBDomain object = new DBDomain(name, options, schema, owner, Collections.emptySet(), sql);
+				objects.put(name, object);
+			}
+
+		} catch (Exception e) {
+			throw new ExceptionDBGitRunTime(e);
+		}
+
+		return objects;
+	}
+
+	@Override
+	public Map<String, DBEnum> getEnums(String schema) {
+		System.out.println("getting enums");
+		final Map<String, DBEnum> objects = new HashMap<>();
+		final String query = 
+			"SELECT t.typname, r.rolname, pg_catalog.obj_description ( t.oid, 'pg_type' ) AS description," 
+			 + "ARRAY( \n"
+			 + "    SELECT e.enumlabel\n"
+			 + "    FROM pg_catalog.pg_enum e\n"
+			 + "    WHERE e.enumtypid = t.oid\n"
+			 + "    ORDER BY e.oid \n"
+			 + ") AS elements\n"
+			 + "FROM        pg_type t \n"
+			 + "LEFT JOIN   pg_catalog.pg_namespace n ON n.oid = t.typnamespace \n"
+			 + "LEFT JOIN   pg_roles r ON r.oid = t.typowner\n"
+			 + "WHERE       (t.typrelid = 0 OR (SELECT c.relkind = 'c' FROM pg_catalog.pg_class c WHERE c.oid = t.typrelid)) \n"
+			 + "AND     NOT EXISTS(SELECT 1 FROM pg_catalog.pg_type el WHERE el.oid = t.typelem AND el.typarray = t.oid)\n"
+			 + "AND     n.nspname NOT IN ('pg_catalog', 'information_schema')\n"
+			 + "AND n.nspname = '"+schema+"'"
+			 + "AND t.typtype = 'e'";
+
+		try (Statement stmt = getConnection().createStatement(); ResultSet rs = stmt.executeQuery(query);) {
+
+			while (rs.next()) {
+				final String name = rs.getString("typname");
+				final String owner = rs.getString("rolname");
+				final String elements = String.join(
+					",",
+					Arrays.stream((String[]) rs.getArray("elements").getArray()).map( x->"'"+x+"'").collect(Collectors.toList())
+				);
+				final StringProperties options = new StringProperties();
+				final String sql = MessageFormat.format( 
+					"CREATE TYPE {0}.{1} AS ENUM ({2});\nALTER TYPE {0}.{1} OWNER TO {3}",
+					schema, name, elements, owner
+				);
+
+				DBEnum object = new DBEnum(name, options, schema, owner, Collections.emptySet(), sql);
+				options.addChild("elements", elements);
+				objects.put(name, object);
+			}
+
+		} catch (Exception e) {
+			throw new ExceptionDBGitRunTime(e);
+		}
+
+		return objects;
+	}
+
+	@Override
+	public DBUserDefinedType getUDT(String schema, String name) {
+		final Map<String, DBUserDefinedType> udTs = getUDTs(schema);
+		if (udTs.containsKey(name)) {
+			return udTs.get(name);
+		} else {
+			throw new ExceptionDBGitObjectNotFound(lang.getValue("errors", "adapter", "objectNotFoundInDb").toString());
+		}
+	}
+
+	@Override
+	public DBDomain getDomain(String schema, String name) {
+		final Map<String, DBDomain> domains = getDomains(schema);
+		if (domains.containsKey(name)) {
+			return domains.get(name);
+		} else {
+			throw new ExceptionDBGitObjectNotFound(lang.getValue("errors", "adapter", "objectNotFoundInDb").toString());
+		}
+	}
+
+	@Override
+	public DBEnum getEnum(String schema, String name) {
+		final Map<String, DBEnum> enums = getEnums(schema);
+		if (enums.containsKey(name)) {
+			return enums.get(name);
+		} else {
+			throw new ExceptionDBGitObjectNotFound(lang.getValue("errors", "adapter", "objectNotFoundInDb").toString());
+		}
 	}
 
 	@Override

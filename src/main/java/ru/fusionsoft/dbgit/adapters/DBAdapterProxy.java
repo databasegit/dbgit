@@ -8,6 +8,8 @@ import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.core.SchemaSynonym;
 import ru.fusionsoft.dbgit.core.db.DbType;
 import ru.fusionsoft.dbgit.dbobjects.DBConstraint;
+import ru.fusionsoft.dbgit.dbobjects.DBDomain;
+import ru.fusionsoft.dbgit.dbobjects.DBEnum;
 import ru.fusionsoft.dbgit.dbobjects.DBFunction;
 import ru.fusionsoft.dbgit.dbobjects.DBIndex;
 import ru.fusionsoft.dbgit.dbobjects.DBPackage;
@@ -22,6 +24,7 @@ import ru.fusionsoft.dbgit.dbobjects.DBTableField;
 import ru.fusionsoft.dbgit.dbobjects.DBTableSpace;
 import ru.fusionsoft.dbgit.dbobjects.DBTrigger;
 import ru.fusionsoft.dbgit.dbobjects.DBUser;
+import ru.fusionsoft.dbgit.dbobjects.DBUserDefinedType;
 import ru.fusionsoft.dbgit.dbobjects.DBView;
 import ru.fusionsoft.dbgit.meta.IMapMetaObject;
 
@@ -186,7 +189,37 @@ public class DBAdapterProxy implements IDBAdapter {
 	public Map<String, DBRole> getRoles() {
 		return adapter.getRoles();
 	}
-	
+
+	@Override
+	public Map<String, DBUserDefinedType> getUDTs(String schema) {
+		return adapter.getUDTs(schema);
+	}
+
+	@Override
+	public Map<String, DBDomain> getDomains(String schema) {
+		return adapter.getDomains(schema);
+	}
+
+	@Override
+	public Map<String, DBEnum> getEnums(String schema) {
+		return adapter.getEnums(schema);
+	}
+
+	@Override
+	public DBUserDefinedType getUDT(String schema, String name) {
+		return adapter.getUDT(schema, name);
+	}
+
+	@Override
+	public DBDomain getDomain(String schema, String name) {
+		return adapter.getDomain(schema, name);
+	}
+
+	@Override
+	public DBEnum getEnum(String schema, String name) {
+		return adapter.getEnum(schema, name);
+	}
+
 	public <T extends DBSchemaObject> T schemaSynonymMap(T object) {
 		if (object == null) 
 			return null;
