@@ -47,33 +47,34 @@ public class SortedListMetaObject {
 
     private void calculateImoCrossDependencies(){
 
-        for(DBGitMetaType metaType : Sets.newHashSet(DBGitMetaType.DBGitTable, DBGitMetaType.DbGitFunction)){
+        for(DBGitMetaType metaType : Sets.newHashSet(
+            DBGitMetaType.DBGitTable, DBGitMetaType.DbGitFunction, DBGitMetaType.DbGitProcedure, DBGitMetaType.DbGitTrigger
+        )){
 
-            List<IMetaObject> objectsOfType = collection.stream()
+            final List<IMetaObject> objectsOfType = collection.stream()
                 .filter( x->x.getType().equals(metaType) )
                 .collect(Collectors.toList());
-
-
-            Map<String, String> realNamesToMetaNames = objectsOfType.stream().collect(Collectors.toMap(
-                x-> x.getUnderlyingDbObject().getSchema() + "." + x.getUnderlyingDbObject().getName(),
-                IMetaObject::getName
-            ));
-
+            
             for(IMetaObject imo : objectsOfType){
-                if(imo.getType().equals(DBGitMetaType.DbGitFunction)){
-                    DBSQLObject dbsql = (DBSQLObject) imo.getUnderlyingDbObject();
-                    Set<String> deps = realNamesToMetaNames.keySet().stream()
-                            .filter( x -> dbsql.getSql().contains(x) /*&& !(dbsql.getSchema()+"."+dbsql.getName()).equals(x)*/ )
-                            .map(realNamesToMetaNames::get)
-                            .collect(Collectors.toSet());
-                    dbsql.setDependencies(deps);
-                }
                 if(imo.getType().equals(DBGitMetaType.DBGitTable)){
-                    DBTable dbTable = (DBTable) imo.getUnderlyingDbObject();
-                    Set<String> deps = realNamesToMetaNames.values().stream()
-                        .filter( x -> dbTable.getDependencies().contains(x) /*&& !x.equals(imo.getName())*/  )
-                        .collect(Collectors.toSet());
-                    dbTable.getDependencies().addAll(deps);
+                    final DBTable dbTable = (DBTable) imo.getUnderlyingDbObject();
+                    dbTable.getDependencies().addAll(
+                        objectsOfType
+                        .stream()
+                        .filter(x -> dbTable.getDependencies().contains(x.getName()) /*&& !x.equals(imo.getName())*/)
+                        .map(IMetaObject::getName)
+                        .collect(Collectors.toSet())
+                    );
+                }
+                else if (imo instanceof MetaSql) {
+                    final DBSQLObject dbsql = (DBSQLObject) imo.getUnderlyingDbObject();
+                    dbsql.setDependencies(
+                        objectsOfType
+                        .stream()
+                        .filter(x -> dbsql.getSql().contains(x.getUnderlyingDbObject().getName()) /*&& !(dbsql.getSchema()+"."+dbsql.getName()).equals(x)*/)
+                        .map(IMetaObject::getName)
+                        .collect(Collectors.toSet())
+                    );
                 }
             }
 
