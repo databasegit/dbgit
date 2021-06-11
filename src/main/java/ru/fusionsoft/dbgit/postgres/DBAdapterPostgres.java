@@ -1013,8 +1013,68 @@ public class DBAdapterPostgres extends DBAdapter {
 
 	@Override
 	public Map<String, DBUserDefinedType> getUDTs(String schema) {
-		System.out.println("getting UDT's");
-		return Collections.emptyMap();
+		final Map<String, DBUserDefinedType> objects = new HashMap<>();
+		final String query =
+			"SELECT \n"
+			+ "    n.nspname AS schema,\n"
+			+ "    t.typname AS name, \n"
+			+ "    r.rolname AS owner,\n"
+			+ "    pg_catalog.obj_description ( t.oid, 'pg_type' ) AS description\n"
+			+ "FROM        pg_type t \n"
+			+ "LEFT JOIN   pg_catalog.pg_namespace n ON n.oid = t.typnamespace \n"
+			+ "LEFT JOIN   pg_roles r ON r.oid = t.typowner\n"
+			+ "WHERE       (t.typrelid = 0 OR (SELECT c.relkind = 'c' FROM pg_catalog.pg_class c WHERE c.oid = t.typrelid)) \n"
+			+ "AND     NOT EXISTS(SELECT 1 FROM pg_catalog.pg_type el WHERE el.oid = t.typelem AND el.typarray = t.oid)\n"
+			+ "AND     t.typtype = 'c'\n" 
+			+ "AND 	   n.nspname = '"+schema+"'";
+
+		try (Statement stmt = getConnection().createStatement(); ResultSet rs = stmt.executeQuery(query);) {
+			while (rs.next()) {
+				final String name = rs.getString("name");
+				final String owner = rs.getString("owner");
+				final List<String> attributesSqls = new ArrayList<>();
+				final String attributesQuery =
+					"SELECT \n"
+					+ "    attribute_name   AS \"name\", \n"
+					+ "    data_type 	    AS \"type\", \n"
+					+ "    ordinal_position AS \"order\"\n"
+					+ "FROM information_schema.attributes a\n"
+					+ "WHERE udt_schema = '"+schema+"' AND udt_name = '"+name+"'\n"
+					+ "ORDER BY ordinal_position";
+				try (Statement stmt2 = getConnection().createStatement(); ResultSet attributeRs = stmt2.executeQuery(
+					attributesQuery)) {
+					while (attributeRs.next()) {
+						final String attrName = attributeRs.getString("name");
+						final String attrType = attributeRs.getString("type");
+						final String udtAttrDefinition = MessageFormat.format(
+							"{0} {1}",
+							escapeNameIfNeeded(attrName),
+							attrType
+						);
+						attributesSqls.add(udtAttrDefinition);
+					}
+				}
+				final StringProperties options = new StringProperties();
+				final String sql = MessageFormat.format(
+					"CREATE TYPE {0}.{1} AS (\n{2}\n);\n"
+					+ "ALTER TYPE {0}.{1} OWNER TO {3};",
+					escapeNameIfNeeded(schema),
+					escapeNameIfNeeded(name),
+					String.join(",\n    ", attributesSqls),
+					owner
+				);
+
+				DBUserDefinedType object = new DBUserDefinedType(name, options, schema, owner, Collections.emptySet(), sql);
+				options.addChild("attributes", String.join(",", attributesSqls));
+				options.addChild("description", rs.getString("description"));
+				objects.put(name, object);
+			}
+
+		} catch (Exception e) {
+			throw new ExceptionDBGitRunTime(e);
+		}
+
+		return objects;
 	}
 
 	@Override
@@ -1024,7 +1084,7 @@ public class DBAdapterPostgres extends DBAdapter {
 		final String query =
 			"SELECT \n"
 			+ "    n.nspname,\n"
-			+ "	   t.typname, \n"
+			+ "    t.typname, \n"
 			+ "    dom.data_type, \n"
 			+ "    dom.domain_default,\n"
 			+ "    r.rolname,\n"
@@ -1038,7 +1098,6 @@ public class DBAdapterPostgres extends DBAdapter {
 			+ "AND     n.nspname NOT IN ('pg_catalog', 'information_schema')\n"
 			+ "AND dom.domain_schema = '"+schema+"'";
 
-		System.out.println("query = " + query);
 		try (Statement stmt = getConnection().createStatement(); ResultSet rs = stmt.executeQuery(query);) {
 
 			while (rs.next()) {
@@ -1059,16 +1118,14 @@ public class DBAdapterPostgres extends DBAdapter {
 						final String conName = conRs.getString("conname");
 						final String conSrc = conRs.getString("consrc");
 						final Boolean conIsValidated = conRs.getBoolean("convalidated");
-						final String conSql = MessageFormat.format(
+						constraintSqls.add(MessageFormat.format(
 							"ALTER DOMAIN {0}.{1} ADD CONSTRAINT {2} CHECK {3} {4};",
-							escapeNameIfNeeded(schema), 
-							escapeNameIfNeeded(name), 
-							escapeNameIfNeeded(conName), 
-							conSrc, 
+							escapeNameIfNeeded(schema),
+							escapeNameIfNeeded(name),
+							escapeNameIfNeeded(conName),
+							conSrc,
 							conIsValidated ? "" : "NOT VALID"
-						);
-						constraintSqls.add(conSql);
-						System.out.println("conSql = " + conSql);
+						));
 					}
 				}
 				
@@ -1078,7 +1135,6 @@ public class DBAdapterPostgres extends DBAdapter {
 					escapeNameIfNeeded(schema), escapeNameIfNeeded(name), type, defaultValue != null ? "DEFAULT " + defaultValue : "", owner,
 					String.join("\n", constraintSqls)
 				);
-				System.out.println("sql = " + sql);
 
 				DBDomain object = new DBDomain(name, options, schema, owner, Collections.emptySet(), sql);
 				objects.put(name, object);
@@ -1112,23 +1168,23 @@ public class DBAdapterPostgres extends DBAdapter {
 			 + "AND n.nspname = '"+schema+"'"
 			 + "AND t.typtype = 'e'";
 
-		System.out.println("query = " + query);
 		try (Statement stmt = getConnection().createStatement(); ResultSet rs = stmt.executeQuery(query);) {
 
 			while (rs.next()) {
 				final String name = rs.getString("typname");
 				final String owner = rs.getString("rolname");
-				final StringProperties options = new StringProperties(rs);
-				final List<String> elements = Arrays.stream((String[]) rs.getArray("elements").getArray())
-					.map( x->"'"+x+"'")
-					.collect(Collectors.toList());
-				final String sql = MessageFormat.format( 
-					"CREATE TYPE {0}.{1} AS ENUM ({2});\nALTER TYPE {0}.{1} ONWER TO {3}",
-					schema, name, String.join(",", elements), owner
+				final String elements = String.join(
+					",",
+					Arrays.stream((String[]) rs.getArray("elements").getArray()).map( x->"'"+x+"'").collect(Collectors.toList())
 				);
-				System.out.println("sql = " + sql);
+				final StringProperties options = new StringProperties();
+				final String sql = MessageFormat.format( 
+					"CREATE TYPE {0}.{1} AS ENUM ({2});\nALTER TYPE {0}.{1} OWNER TO {3}",
+					schema, name, elements, owner
+				);
 
 				DBEnum object = new DBEnum(name, options, schema, owner, Collections.emptySet(), sql);
+				options.addChild("elements", elements);
 				objects.put(name, object);
 			}
 
@@ -1141,20 +1197,32 @@ public class DBAdapterPostgres extends DBAdapter {
 
 	@Override
 	public DBUserDefinedType getUDT(String schema, String name) {
-		final String msg = lang.getValue("errors", "adapter", "objectNotFoundInDb").toString();
-		throw new ExceptionDBGitObjectNotFound(msg);
+		final Map<String, DBUserDefinedType> udTs = getUDTs(schema);
+		if (udTs.containsKey(name)) {
+			return udTs.get(name);
+		} else {
+			throw new ExceptionDBGitObjectNotFound(lang.getValue("errors", "adapter", "objectNotFoundInDb").toString());
+		}
 	}
 
 	@Override
 	public DBDomain getDomain(String schema, String name) {
-		final String msg = lang.getValue("errors", "adapter", "objectNotFoundInDb").toString();
-		throw new ExceptionDBGitObjectNotFound(msg);
+		final Map<String, DBDomain> domains = getDomains(schema);
+		if (domains.containsKey(name)) {
+			return domains.get(name);
+		} else {
+			throw new ExceptionDBGitObjectNotFound(lang.getValue("errors", "adapter", "objectNotFoundInDb").toString());
+		}
 	}
 
 	@Override
 	public DBEnum getEnum(String schema, String name) {
-		final String msg = lang.getValue("errors", "adapter", "objectNotFoundInDb").toString();
-		throw new ExceptionDBGitObjectNotFound(msg);
+		final Map<String, DBEnum> enums = getEnums(schema);
+		if (enums.containsKey(name)) {
+			return enums.get(name);
+		} else {
+			throw new ExceptionDBGitObjectNotFound(lang.getValue("errors", "adapter", "objectNotFoundInDb").toString());
+		}
 	}
 
 	@Override

@@ -169,7 +169,7 @@ public abstract class DBAdapter implements IDBAdapter {
 		if(obj instanceof MetaView){ leafName = "restoreView"; }
 		if(obj instanceof MetaTrigger){ leafName = "restoreTrigger"; }
 		if(obj instanceof MetaSchema){ leafName = "restoreSchema"; }
-		if(obj instanceof MetaSchema){ leafName = "restoreUDT"; }
+		if(obj instanceof MetaUDT){ leafName = "restoreUDT"; }
 		if(obj instanceof MetaEnum){ leafName = "restoreEnum"; }
 		if(obj instanceof MetaDomain){ leafName = "restoreDomain"; }
 		if(obj instanceof MetaRole){ leafName = "restoreRole"; }

@@ -205,6 +205,12 @@ public class DbGitIntegrationTestBasic {
                 (path) -> {
                     return path.resolve(".dbgit/public/year.domain").toFile().exists();
                 }
+            ),
+            new SimpleTest<>(
+                "film_summary.udt exists",
+                (path) -> {
+                    return path.resolve(".dbgit/public/film_summary.udt").toFile().exists();
+                }
             )
         );
 
@@ -308,7 +314,7 @@ public class DbGitIntegrationTestBasic {
                         //pagilla to local repo
                         new PathAfterDbGitLinkAndAdd(
                             new ArgsDbGitLinkPgAuto("pagilla"),
-                            new CharsDbIgnoreWithTableData(),
+                            new CharsDbIgnoreWithDataAndTypes(),
 
                             //dvdrental to test#databasegit
                             new PathAfterDbGitRun(
@@ -320,7 +326,7 @@ public class DbGitIntegrationTestBasic {
                                     //dvdrental to local repo
                                     new PathAfterDbGitLinkAndAdd(
                                         new ArgsDbGitLinkPgAuto("dvdrental"),
-                                        new CharsDbIgnoreWithTableData(),
+                                        new CharsDbIgnoreWithDataAndTypes(),
 
                                         new PathAfterDbGitRun(
                                             new ArgsExplicit("init"),
