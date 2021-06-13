@@ -37,7 +37,7 @@ public class ReportOfTestRun<Subj> extends CharSequenceEnvelope {
                         new LabelOfTestRunBrokenSubject(), 
                         test.description(), 
                         e.getMessage(),
-                        ExceptionUtils.readStackTrace(e.getCause().getCause())
+                        e.getCause().getCause().getMessage()
                     );
                 }
                 

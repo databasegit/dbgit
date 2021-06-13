@@ -628,9 +628,6 @@ public class DBAdapterPostgres extends DBAdapter {
 				String sql = rs.getString("ddl");
 				StringProperties options = new StringProperties(rs);
 				Set<String> dependencies = Collections.emptySet(); 
-//					rs.getArray("dependencies") == null
-//					? Collections.emptySet()
-//					: new HashSet<>(Arrays.asList((String[])rs.getArray("dependencies").getArray()));
 
 				DBTrigger trigger = new DBTrigger(name, options, schema, owner, dependencies, sql);
 				listTrigger.put(name, trigger);
@@ -656,13 +653,9 @@ public class DBAdapterPostgres extends DBAdapter {
 			if(rs.next()){
 				String sql = rs.getString("ddl");
 				String owner = "postgres";
-
 				StringProperties options = new StringProperties(rs);
-				Set<String> dependencies = rs.getArray("dependencies") == null
-					? Collections.emptySet()
-					: new HashSet<>(Arrays.asList((String[])rs.getArray("dependencies").getArray()));
 
-				return new DBTrigger(name, options, schema, owner, dependencies, sql);
+				return new DBTrigger(name, options, schema, owner, Collections.emptySet(), sql);
 
 			} else {
 				String msg = lang.getValue("errors", "adapter", "objectNotFoundInDb").toString();
@@ -709,11 +702,8 @@ public class DBAdapterPostgres extends DBAdapter {
 				String owner = rs.getString("rolname");
 				String sql = rs.getString("ddl");
 				StringProperties options = new StringProperties(rs);
-				Set<String> dependencies = rs.getArray("dependencies") == null
-					? Collections.emptySet()
-					: new HashSet<>(Arrays.asList((String[])rs.getArray("dependencies").getArray()));
 
-				DBProcedure proc = new DBProcedure(name, options, schema, owner, dependencies, sql);
+				DBProcedure proc = new DBProcedure(name, options, schema, owner, Collections.emptySet(), sql);
 
 				String nameInMap = mapProcs.containsKey(name) ? name + "_" + proc.getHash() : name;
 				mapProcs.put(nameInMap, proc);
@@ -750,11 +740,8 @@ public class DBAdapterPostgres extends DBAdapter {
 				String owner = rs.getString("rolname");
 				String sql = rs.getString("ddl");
 				StringProperties options = new StringProperties(rs);
-				Set<String> dependencies = rs.getArray("dependencies") == null
-						? Collections.emptySet()
-						: new HashSet<>(Arrays.asList((String[])rs.getArray("dependencies").getArray()));
 
-				return new DBProcedure(name, options, schema, owner, dependencies, sql);
+				return new DBProcedure(name, options, schema, owner, Collections.emptySet(), sql);
 
 			} else {
 				String msg = lang.getValue("errors", "adapter", "objectNotFoundInDb").toString();
@@ -769,19 +756,37 @@ public class DBAdapterPostgres extends DBAdapter {
 	@Override
 	public Map<String, DBFunction> getFunctions(String schema) {
 		Map<String, DBFunction> listFunction = new HashMap<String, DBFunction>();
-		String query =
-			"SELECT n.nspname AS \"schema\", u.rolname, p.proname AS \"name\", \n" +
-			"	pg_catalog.pg_get_function_arguments(p.oid) AS \"arguments\",\n" +
-			"	pg_get_functiondef(p.oid) AS ddl\n" +
-			"FROM pg_catalog.pg_proc p\n" +
-			"	JOIN pg_catalog.pg_roles u ON u.oid = p.proowner\n" +
-			"	LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace\n" +
-			( (getDbVersionNumber() >= 10)
-					? "WHERE p.prokind = 'f' \n"
-					: "WHERE p.proisagg is false "
-			)+
-			"AND n.nspname not in('pg_catalog', 'information_schema')\n" +
-			"AND n.nspname = '"+schema+"'";
+		String query = 
+			"SELECT n.nspname AS schema, u.rolname, p.proname AS name,  \n"
+			+ "    pg_catalog.pg_get_function_arguments(p.oid) AS arguments, \n"
+			+ "    CASE WHEN p.proisagg \n"
+			+ "        THEN format(\n"
+			+ "            E'CREATE AGGREGATE %s (\\n%s\\n);'\n"
+			+ "            , (pg_identify_object('pg_proc'::regclass, aggfnoid, 0)).identity\n"
+			+ "            , array_to_string(\n"
+			+ "                ARRAY[\n"
+			+ "                    format(E'\\tSFUNC = %s', aggtransfn::regproc)\n"
+			+ "                    , format(E'\\tSTYPE = %s', format_type(aggtranstype, NULL))\n"
+			+ "                    , CASE aggfinalfn WHEN '-'::regproc THEN NULL ELSE format(E'\\tFINALFUNC = %s',aggfinalfn::text) END\n"
+			+ "                    , CASE aggsortop WHEN 0 THEN NULL ELSE format(E'\\tSORTOP = %s', oprname) END\n"
+			+ "                    , CASE WHEN agginitval IS NULL THEN NULL ELSE format(E'\\tINITCOND = %s', agginitval) END\n"
+			+ "                ]\n"
+			+ "            , E',\\n'\n"
+			+ "            )\n"
+			+ "        ) \n"
+			+ "        ELSE pg_get_functiondef(p.oid) \n"
+			+ "    END AS ddl \n"
+			+ "FROM pg_catalog.pg_proc p \n"
+			+ "    JOIN pg_catalog.pg_roles u ON u.oid = p.proowner \n"
+			+ "    LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace\n"
+			+ "    LEFT JOIN pg_aggregate a ON a.aggfnoid = p.oid \n"
+			+ "    LEFT JOIN pg_operator op ON op.oid = a.aggsortop \n"
+			+( ( getDbVersionNumber() >= 10 )
+				? "WHERE p.prokind IN ('a', 'f') \n"
+				: "WHERE 1=1 \n "
+			) 
+			+ "AND n.nspname not in('pg_catalog', 'information_schema') \n"
+			+ "AND n.nspname = '"+schema+"'";
 
 		try (Statement stmt = getConnection().createStatement();ResultSet rs = stmt.executeQuery(query);){
 
@@ -790,12 +795,8 @@ public class DBAdapterPostgres extends DBAdapter {
 				String owner = rs.getString("rolname");
 				String sql = rs.getString("ddl");
 				StringProperties options = new StringProperties(rs);
-				Set<String> dependencies = Collections.emptySet();
-//					rs.getArray("dependencies") == null
-//						? Collections.emptySet()
-//						: new HashSet<>(Arrays.asList((String[])rs.getArray("dependencies").getArray()));
 
-				DBFunction dbFunction = new DBFunction(name, options, schema, owner, dependencies, sql);
+				DBFunction dbFunction = new DBFunction(name, options, schema, owner, Collections.emptySet(), sql);
 
 				String nameInMap = listFunction.containsKey(name) ? name + "_" + dbFunction.getHash() : name;
 				listFunction.put(nameInMap, dbFunction);
@@ -811,18 +812,37 @@ public class DBAdapterPostgres extends DBAdapter {
 	@Override
 	public DBFunction getFunction(String schema, String name) {
 		String query =
-			"SELECT n.nspname AS \"schema\", u.rolname, p.proname AS \"name\", \n" +
-			"	pg_catalog.pg_get_function_arguments(p.oid) AS \"arguments\",\n" +
-			"	pg_get_functiondef(p.oid) AS ddl\n" +
-			"FROM pg_catalog.pg_proc p\n" +
-			"	JOIN pg_catalog.pg_roles u ON u.oid = p.proowner\n" +
-			"	LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace\n" +
-			( (getDbVersionNumber() >= 10)
-					? "WHERE p.prokind = 'f' \n"
-					: "WHERE 1=1 \n"
-			) +
-			"AND n.nspname not in('pg_catalog', 'information_schema')\n" +
-			"AND n.nspname = '"+schema+"' AND p.proname = '"+name+"'";
+			"SELECT n.nspname AS schema, u.rolname, p.proname AS name,  \n"
+			+ "    pg_catalog.pg_get_function_arguments(p.oid) AS arguments, \n"
+			+ "    CASE WHEN p.proisagg \n"
+			+ "        THEN format(\n"
+			+ "            E'CREATE AGGREGATE %s (\\n%s\\n);'\n"
+			+ "            , (pg_identify_object('pg_proc'::regclass, aggfnoid, 0)).identity\n"
+			+ "            , array_to_string(\n"
+			+ "                ARRAY[\n"
+			+ "                    format(E'\\tSFUNC = %s', aggtransfn::regproc)\n"
+			+ "                    , format(E'\\tSTYPE = %s', format_type(aggtranstype, NULL))\n"
+			+ "                    , CASE aggfinalfn WHEN '-'::regproc THEN NULL ELSE format(E'\\tFINALFUNC = %s',aggfinalfn::text) END\n"
+			+ "                    , CASE aggsortop WHEN 0 THEN NULL ELSE format(E'\\tSORTOP = %s', oprname) END\n"
+			+ "                    , CASE WHEN agginitval IS NULL THEN NULL ELSE format(E'\\tINITCOND = %s', agginitval) END\n"
+			+ "                ]\n"
+			+ "            , E',\\n'\n"
+			+ "            )\n"
+			+ "        ) \n"
+			+ "        ELSE pg_get_functiondef(p.oid) \n"
+			+ "    END AS ddl \n"
+			+ "FROM pg_catalog.pg_proc p \n"
+			+ "    JOIN pg_catalog.pg_roles u ON u.oid = p.proowner \n"
+			+ "    LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace\n"
+			+ "    LEFT JOIN pg_aggregate a ON a.aggfnoid = p.oid \n"
+			+ "    LEFT JOIN pg_operator op ON op.oid = a.aggsortop \n"
+			+ (
+				( getDbVersionNumber() >= 10 )
+					? "WHERE p.prokind IN ('a', 'f') \n"
+					: "WHERE 1=1 \n "
+			)
+			+ "AND n.nspname not in('pg_catalog', 'information_schema') \n"
+			+ "AND n.nspname = '"+schema+"' AND p.proname = '"+name+"'";
 
 		try (Statement stmt = getConnection().createStatement();ResultSet rs = stmt.executeQuery(query);){
 
@@ -831,13 +851,7 @@ public class DBAdapterPostgres extends DBAdapter {
 				String owner = rs.getString("rolname");
 				String sql = rs.getString("ddl");
 				StringProperties options = new StringProperties(rs);
-				Set<String> dependencies = rs.getArray("dependencies") == null
-						? Collections.emptySet()
-						: new HashSet<>(Arrays.asList((String[])rs.getArray("dependencies").getArray()));
-
-				return new DBFunction(name, options, schema, owner, dependencies, sql);
-				//String args = rs.getString("arguments");
-				//func.setArguments(args);
+				return new DBFunction(name, options, schema, owner, Collections.emptySet(), sql);
 
 			} else {
 				String msg = lang.getValue("errors", "adapter", "objectNotFoundInDb").toString();
@@ -1079,7 +1093,6 @@ public class DBAdapterPostgres extends DBAdapter {
 
 	@Override
 	public Map<String, DBDomain> getDomains(String schema) {
-		System.out.println("getting domains");
 		final Map<String, DBDomain> objects = new HashMap<>();
 		final String query =
 			"SELECT \n"
@@ -1149,7 +1162,6 @@ public class DBAdapterPostgres extends DBAdapter {
 
 	@Override
 	public Map<String, DBEnum> getEnums(String schema) {
-		System.out.println("getting enums");
 		final Map<String, DBEnum> objects = new HashMap<>();
 		final String query = 
 			"SELECT t.typname, r.rolname, pg_catalog.obj_description ( t.oid, 'pg_type' ) AS description," 
