@@ -89,8 +89,23 @@ public class DBRestoreFunctionPostgres extends DBRestoreAdapter {
 			DBFunction fnc = (DBFunction) fncMeta.getSqlObject();
 			if (fnc == null) return;
 
+			final StringProperties restoreProcArgs = fnc.getOptions().get("arguments");
+			final String objectTypeName = 
+				fnc.getOptions().get("proisagg") == null || 
+				! Boolean.parseBoolean(fnc.getOptions().get("proisagg").getData())
+					? "FUNCTION"
+					: "AGGREGATE";
+			final String args = restoreProcArgs != null 
+				? restoreProcArgs.getData().replaceAll("(\\w+ \\w+) (DEFAULT [^\\,\\n]+)(\\,|\\b)", "$1") 
+				: "";
 			String schema = getPhisicalSchema(fnc.getSchema());
-			st.execute("DROP FUNCTION "+adapter.escapeNameIfNeeded(schema)+"."+adapter.escapeNameIfNeeded(fnc.getName()));
+			st.execute(MessageFormat.format(
+				"DROP {3} {0}.{1}({2});\n", 
+				adapter.escapeNameIfNeeded(schema), 
+				adapter.escapeNameIfNeeded(fnc.getName()),
+				args,
+				objectTypeName
+			));
 		} catch (Exception e) {
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRemoveError").withParams(obj.getName()), e);
 		} finally {

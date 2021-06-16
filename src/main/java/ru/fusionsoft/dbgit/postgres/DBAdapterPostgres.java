@@ -756,10 +756,11 @@ public class DBAdapterPostgres extends DBAdapter {
 	@Override
 	public Map<String, DBFunction> getFunctions(String schema) {
 		Map<String, DBFunction> listFunction = new HashMap<String, DBFunction>();
-		String query = 
+		String proisaggQuery = getDbVersionNumber() >= 10 ? "p.prokind IN('a')" : "p.proisagg";
+		String query =
 			"SELECT n.nspname AS schema, u.rolname, p.proname AS name,  \n"
 			+ "    pg_catalog.pg_get_function_arguments(p.oid) AS arguments, \n"
-			+ "    CASE WHEN p.proisagg \n"
+			+ "    CASE WHEN "+proisaggQuery+"\n"
 			+ "        THEN format(\n"
 			+ "            E'CREATE AGGREGATE %s (\\n%s\\n);'\n"
 			+ "            , (pg_identify_object('pg_proc'::regclass, aggfnoid, 0)).identity\n"
@@ -775,18 +776,19 @@ public class DBAdapterPostgres extends DBAdapter {
 			+ "            )\n"
 			+ "        ) \n"
 			+ "        ELSE pg_get_functiondef(p.oid) \n"
-			+ "    END AS ddl \n"
+			+ "    END AS ddl, \n"
+			+ "    CASE WHEN "+proisaggQuery+" THEN 'true' ELSE 'false' END AS proisagg \n"
 			+ "FROM pg_catalog.pg_proc p \n"
 			+ "    JOIN pg_catalog.pg_roles u ON u.oid = p.proowner \n"
 			+ "    LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace\n"
 			+ "    LEFT JOIN pg_aggregate a ON a.aggfnoid = p.oid \n"
 			+ "    LEFT JOIN pg_operator op ON op.oid = a.aggsortop \n"
-			+( ( getDbVersionNumber() >= 10 )
+			+ ( ( getDbVersionNumber() >= 10 )
 				? "WHERE p.prokind IN ('a', 'f') \n"
 				: "WHERE 1=1 \n "
-			) 
+			)
 			+ "AND n.nspname not in('pg_catalog', 'information_schema') \n"
-			+ "AND n.nspname = '"+schema+"'";
+			+ "AND n.nspname = '" + schema + "'";
 
 		try (Statement stmt = getConnection().createStatement();ResultSet rs = stmt.executeQuery(query);){
 
@@ -811,10 +813,11 @@ public class DBAdapterPostgres extends DBAdapter {
 
 	@Override
 	public DBFunction getFunction(String schema, String name) {
+		String proisaggQuery = getDbVersionNumber() >= 10 ? "p.prokind IN('a')" : "p.proisagg";
 		String query =
 			"SELECT n.nspname AS schema, u.rolname, p.proname AS name,  \n"
 			+ "    pg_catalog.pg_get_function_arguments(p.oid) AS arguments, \n"
-			+ "    CASE WHEN p.proisagg \n"
+			+ "    CASE WHEN " + proisaggQuery + "\n"
 			+ "        THEN format(\n"
 			+ "            E'CREATE AGGREGATE %s (\\n%s\\n);'\n"
 			+ "            , (pg_identify_object('pg_proc'::regclass, aggfnoid, 0)).identity\n"
@@ -830,7 +833,8 @@ public class DBAdapterPostgres extends DBAdapter {
 			+ "            )\n"
 			+ "        ) \n"
 			+ "        ELSE pg_get_functiondef(p.oid) \n"
-			+ "    END AS ddl \n"
+			+ "    END AS ddl, \n"
+			+ "    CASE WHEN "+proisaggQuery+" THEN 'true' ELSE 'false' END AS proisagg \n"
 			+ "FROM pg_catalog.pg_proc p \n"
 			+ "    JOIN pg_catalog.pg_roles u ON u.oid = p.proowner \n"
 			+ "    LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace\n"
@@ -842,7 +846,7 @@ public class DBAdapterPostgres extends DBAdapter {
 					: "WHERE 1=1 \n "
 			)
 			+ "AND n.nspname not in('pg_catalog', 'information_schema') \n"
-			+ "AND n.nspname = '"+schema+"' AND p.proname = '"+name+"'";
+			+ "AND n.nspname = '" + schema + "' AND p.proname = '" + name + "'";
 
 		try (Statement stmt = getConnection().createStatement();ResultSet rs = stmt.executeQuery(query);){
 
