@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Map;
@@ -140,7 +141,7 @@ public class CmdRestore implements IDBGitCommand {
 
 			// # steps 1,2 are in GitMetaDataManager::restoreDatabase
 
-			ConsoleWriter.println(getLang().getValue("general", "restore", "seekingToRestoreAdditional"),1);
+			ConsoleWriter.println(getLang().getValue("general", "restore", "seekingToRestoreAdditional"), messageLevel+2);
 			Map<String, IMetaObject> affectedTables = new TreeMapMetaObject();
 			Map<String, IMetaObject> foundTables = new TreeMapMetaObject();
 			do {
@@ -157,11 +158,37 @@ public class CmdRestore implements IDBGitCommand {
 			} while (!foundTables.isEmpty());
 			
 			if(affectedTables.isEmpty()){
-				ConsoleWriter.println(getLang().getValue("general", "restore", "nothingToRestoreAdditional"), 2);
+				ConsoleWriter.println(getLang().getValue("general", "restore", "nothingToRestoreAdditional"), messageLevel+2);
 			} else {
-				affectedTables.forEach((k,v)->ConsoleWriter.println(k, 2));
+				affectedTables.forEach((k,v)->ConsoleWriter.println(k, messageLevel+3));
 			}
 
+			//delete MetaSql (but no UDT's, domains or enums) that are in files and in db to fix errors on table restore
+			ConsoleWriter.println(getLang().getValue("general", "restore", "droppingSqlObjects"), messageLevel+2);
+			for (final IMetaObject object : 
+				new SortedListMetaObject(
+					dbObjs.entrySet().stream()
+					.filter(x -> fileObjs.containsKey(x.getKey()))
+					.map(Map.Entry::getValue)
+					.filter(x -> 
+						x instanceof MetaFunction || 
+						x instanceof MetaProcedure || 
+						x instanceof MetaView || 
+						x instanceof MetaTrigger
+					)
+					.collect(Collectors.toList())
+				).sortFromDependencies()
+			) {
+				ConsoleWriter.println(
+					getLang().getValue("general", "restore", "droppingObject").withParams(object.getName()),
+					messageLevel + 3
+				);
+				adapter
+				.getFactoryRestore()
+				.getAdapterRestore(object.getType(), adapter)
+				.removeMetaObject(object);
+				updateObjs.put(object);
+			}
 
 
 			if(toMakeBackup && toMakeChanges) {

@@ -2,6 +2,7 @@ package ru.fusionsoft.dbgit.meta;
 
 import com.diogonunes.jcdp.color.api.Ansi;
 import com.google.common.collect.Sets;
+import java.text.MessageFormat;
 import ru.fusionsoft.dbgit.core.DBGitLang;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.dbobjects.DBSQLObject;
@@ -47,12 +48,18 @@ public class SortedListMetaObject {
 
     private void calculateImoCrossDependencies(){
 
-        for(DBGitMetaType metaType : Sets.newHashSet(
-            DBGitMetaType.DBGitTable, DBGitMetaType.DbGitFunction, DBGitMetaType.DbGitProcedure, DBGitMetaType.DbGitTrigger
+        for(Set<DBGitMetaType> metaTypeSet : Sets.newHashSet(
+            Sets.newHashSet(DBGitMetaType.DBGitTable),
+            Sets.newHashSet(
+                DBGitMetaType.DbGitFunction, 
+                DBGitMetaType.DbGitProcedure, 
+                DBGitMetaType.DbGitTrigger,
+                DBGitMetaType.DbGitView
+            )
         )){
 
             final List<IMetaObject> objectsOfType = collection.stream()
-                .filter( x->x.getType().equals(metaType) )
+                .filter( x->metaTypeSet.contains(x.getType()) )
                 .collect(Collectors.toList());
             
             for(IMetaObject imo : objectsOfType){
@@ -67,11 +74,19 @@ public class SortedListMetaObject {
                     );
                 }
                 else if (imo instanceof MetaSql) {
-                    final DBSQLObject dbsql = (DBSQLObject) imo.getUnderlyingDbObject();
-                    dbsql.setDependencies(
+                    final DBSQLObject imoDbSql = (DBSQLObject) imo.getUnderlyingDbObject();
+                    imoDbSql.setDependencies(
                         objectsOfType
                         .stream()
-                        .filter(x -> dbsql.getSql().contains(x.getUnderlyingDbObject().getName()) /*&& !(dbsql.getSchema()+"."+dbsql.getName()).equals(x)*/)
+                        .filter(
+                            other -> {
+                                return new DbObjectNameInSqlPresence(
+                                    other.getUnderlyingDbObject().getName(), 
+                                    imoDbSql.getSql()
+                                ).matches() && 
+                                ! other.getName().equals(imo.getName());
+                            }
+                        )
                         .map(IMetaObject::getName)
                         .collect(Collectors.toSet())
                     );
@@ -123,7 +138,11 @@ public class SortedListMetaObject {
                                 .collect(Collectors.toList());
                         if (objectsL1.isEmpty()) {
                             warnNotAdded(objectsOfType);
-                            throw new ExceptionDBGit("infinite loop");
+                            final String details = objectsOfType
+                                .stream()
+                                .map( x-> MessageFormat.format("\n{0} ({1})", x.getName(), x.getUnderlyingDbObject().getDependencies().toString()))
+                                .collect(Collectors.joining());
+                            throw new ExceptionDBGit("infinite loop\n" + details);
                         }
                         objectsOfType.removeAll(objectsL1);
                         if(isSortedFromFree)    { objectsL0.addAll(objectsL1); }
