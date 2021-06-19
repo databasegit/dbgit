@@ -105,16 +105,6 @@ public enum DBGitMetaType implements IDBGitMetaType {
 			return 40;
 		}
 	},
-    
-    DbGitTrigger("trg") {		
-		public Class<?> getMetaClass() {
-			return MetaTrigger.class;
-		}
-		
-		public Integer getPriority() {
-			return 80;
-		}
-	},
 	
 	DbGitProcedure("prc") {		
 		public Class<?> getMetaClass() {
@@ -133,6 +123,16 @@ public enum DBGitMetaType implements IDBGitMetaType {
 		
 		public Integer getPriority() {
 			return 70;
+		}
+	},
+
+	DbGitTrigger("trg") {
+		public Class<?> getMetaClass() {
+			return MetaTrigger.class;
+		}
+
+		public Integer getPriority() {
+			return 80;
 		}
 	},
 	

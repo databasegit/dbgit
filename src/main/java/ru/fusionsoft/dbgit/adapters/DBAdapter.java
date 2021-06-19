@@ -109,17 +109,9 @@ public abstract class DBAdapter implements IDBAdapter {
 
 		try {
 			SortedListMetaObject tables = new SortedListMetaObject(updateObjs.values().stream().filter(x->x instanceof MetaTable ).collect(Collectors.toList()));
-			SortedListMetaObject tablesExists = new SortedListMetaObject(updateObjs.values().stream().filter(x->x instanceof MetaTable && isExists(x)).collect(Collectors.toList()));
 
 			Set<String> createdSchemas = getSchemes().values().stream().map(DBOptionsObject::getName).collect(Collectors.toSet());
 			Set<String> createdRoles = getRoles().values().stream().map(DBRole::getName).collect(Collectors.toSet());
-
-			// remove table indexes and constraints, which is step(-2) of restoreMetaObject(MetaTable)
-			ConsoleWriter.println(lang.getValue("general", "restore", "droppingTablesConstraints"), messageLevel);
-			for (IMetaObject table : tablesExists.sortFromDependencies()) {
-				ConsoleWriter.println(lang.getValue("general", "restore", "droppingTableConstraints").withParams(table.getName()), messageLevel+1);
-				getFactoryRestore().getAdapterRestore(DBGitMetaType.DBGitTable, this).restoreMetaObject(table, -2);
-			}
 
 			for (IMetaObject obj : updateObjs.getSortedList().sortFromReferenced()) {
 				Timestamp timestampBefore = new Timestamp(System.currentTimeMillis());
@@ -128,7 +120,6 @@ public abstract class DBAdapter implements IDBAdapter {
 
 				IDBAdapterRestoreMetaData restoreAdapter = getFactoryRestore().getAdapterRestore(obj.getType(), this) ;
 				if(restoreAdapter == null) throw new Exception("restore adapter is null");
-//				ConsoleWriter.printlnGreen(lang.getValue("general", "restore", "restoreType").withParams(obj.getType().toString().substring(5), obj.getName()));
 
 				obj = tryConvert(obj);
 				createRoleIfNeed(obj, createdRoles);
@@ -143,11 +134,6 @@ public abstract class DBAdapter implements IDBAdapter {
 				}
 
     			Long timeDiff = new Timestamp(System.currentTimeMillis()).getTime() - timestampBefore.getTime();
-//				ConsoleWriter.detailsPrintColor(MessageFormat.format(" ({1} {2})"
-//					, obj.getName()
-//					, timeDiff
-//					, lang.getValue("general", "add", "ms")), 0, Ansi.FColor.CYAN
-//				);
 			}
 
 			// restore table constraints, which is step(-1) of restoreMetaObject(MetaTable)

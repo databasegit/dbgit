@@ -95,9 +95,16 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 
 				//find existing table and set tablespace or create
 				if (existingTable.loadFromDB()){
-
-					restoreTableTablespace(st, restoreTable, existingTable);
-					restoreTableOwner(st, restoreTable, existingTable);
+					StringProperties existingPKD = existingTable.getTable().getOptions().get("partkeydef");
+					StringProperties restorePKD = restoreTable.getTable().getOptions().get("partkeydef");
+					if(restorePKD != null && (existingPKD == null || !restorePKD.getData().equals(existingPKD.getData()))) {
+						removeMetaObject(existingTable);
+						createTable(st, restoreTable);
+						existingTable.loadFromDB();
+					} else {
+						restoreTableTablespace(st, restoreTable, existingTable);
+						restoreTableOwner(st, restoreTable, existingTable);
+					}
 					ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 
 				} else {
@@ -372,21 +379,20 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 
 		);
 
-		if(!DBGitConfig.getInstance().getToIgnoreOnwer(false)){
-			createTableDdl += MessageFormat.format("\n alter table {0}.{1} owner to {2}\n;",
-				nme.getSchema() ,nme.getName(),
+		if (restoreTable.getTable().getOptions().getChildren().containsKey("partkeydef")) {
+			createTableDdl = createTableDdl.replace(") ", ") PARTITION BY " +
+					restoreTable.getTable().getOptions().getChildren().get("partkeydef")
+			+ " ");
+		}
+		if (! DBGitConfig.getInstance().getToIgnoreOnwer(false)) {
+			createTableDdl += MessageFormat.format("\nalter table {0}.{1} owner to {2}\n;",
+				nme.getSchema(), nme.getName(),
 				restoreTable.getTable().getOptions().getChildren().containsKey("owner")
 					? restoreTable.getTable().getOptions().get("owner").getData()
 					: "postgres"
 			);
 		}
-
-		if (restoreTable.getTable().getOptions().getChildren().containsKey("partkeydef")) {
-			createTableDdl = createTableDdl.replace(" ) ", ") PARTITION BY " +
-					restoreTable.getTable().getOptions().getChildren().get("partkeydef")
-			+ " ");
-		}
-
+		
 		st.execute(createTableDdl);
 	}
 	private void restoreTableOwner(StatementLogging st, MetaTable restoreTable, MetaTable existingTable) throws Exception {
@@ -472,6 +478,7 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 	}
 	private void restoreTablePartition(MetaTable restoreTable, Statement st) throws ExceptionDBGit, SQLException
 	{
+		ConsoleWriter.detailsPrintln(lang.getValue("general", "restore", "restoreTablePartition").withParams(restoreTable.getName()), messageLevel);
 		NameMeta nme = getEscapedNameMeta(restoreTable);
 		StringProperties parent = restoreTable.getTable().getOptions().getChildren().get("parent");
 		StringProperties pg_get_expr = restoreTable.getTable().getOptions().getChildren().get("pg_get_expr");

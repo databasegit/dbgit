@@ -147,6 +147,11 @@
 
 	<dependencies>
 
+		<dependency>
+			<groupId>org.cactoos</groupId>
+			<artifactId>cactoos</artifactId>
+			<version>0.50</version>
+		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.apache.commons/commons-lang3 -->
 		<dependency>
 			<groupId>org.apache.commons</groupId>

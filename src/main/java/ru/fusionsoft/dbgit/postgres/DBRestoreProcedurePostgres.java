@@ -92,8 +92,17 @@ public class DBRestoreProcedurePostgres extends DBRestoreAdapter {
 			DBProcedure prc = (DBProcedure) prcMeta.getSqlObject();
 			if (prc == null) return;
 
-			String schema = getPhisicalSchema(prc.getSchema());
-			st.execute("DROP PROCEDURE "+schema+"."+adapter.escapeNameIfNeeded(prc.getName()));
+			final String schema = getPhisicalSchema(prc.getSchema());
+			final StringProperties restoreProcArgs = prc.getOptions().get("arguments");
+			final String args = restoreProcArgs != null 
+				? restoreProcArgs.getData().replaceAll("(\\w+ \\w+) (DEFAULT [^\\,\\n]+)(\\,|\\b)", "$1") 
+				: "";
+			st.execute(MessageFormat.format(
+				"DROP PROCEDURE {0}.{1}({2});\n",
+				adapter.escapeNameIfNeeded(schema),
+				adapter.escapeNameIfNeeded(prc.getName()),
+				args
+			));
 		} catch (Exception e) {
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRemoveError").withParams(obj.getName()), e);
 		} finally {

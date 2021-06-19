@@ -2,6 +2,7 @@ package ru.fusionsoft.dbgit.meta;
 
 import com.diogonunes.jcdp.color.api.Ansi;
 import com.google.common.collect.Sets;
+import java.text.MessageFormat;
 import ru.fusionsoft.dbgit.core.DBGitLang;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.dbobjects.DBSQLObject;
@@ -47,33 +48,48 @@ public class SortedListMetaObject {
 
     private void calculateImoCrossDependencies(){
 
-        for(DBGitMetaType metaType : Sets.newHashSet(DBGitMetaType.DBGitTable, DBGitMetaType.DbGitFunction)){
+        for(Set<DBGitMetaType> metaTypeSet : Sets.newHashSet(
+            Sets.newHashSet(DBGitMetaType.DBGitTable),
+            Sets.newHashSet(
+                DBGitMetaType.DbGitFunction, 
+                DBGitMetaType.DbGitProcedure, 
+                DBGitMetaType.DbGitTrigger,
+                DBGitMetaType.DbGitView
+            )
+        )){
 
-            List<IMetaObject> objectsOfType = collection.stream()
-                .filter( x->x.getType().equals(metaType) )
+            final List<IMetaObject> objectsOfType = collection.stream()
+                .filter( x->metaTypeSet.contains(x.getType()) )
                 .collect(Collectors.toList());
-
-
-            Map<String, String> realNamesToMetaNames = objectsOfType.stream().collect(Collectors.toMap(
-                x-> x.getUnderlyingDbObject().getSchema() + "." + x.getUnderlyingDbObject().getName(),
-                IMetaObject::getName
-            ));
-
+            
             for(IMetaObject imo : objectsOfType){
-                if(imo.getType().equals(DBGitMetaType.DbGitFunction)){
-                    DBSQLObject dbsql = (DBSQLObject) imo.getUnderlyingDbObject();
-                    Set<String> deps = realNamesToMetaNames.keySet().stream()
-                            .filter( x -> dbsql.getSql().contains(x) /*&& !(dbsql.getSchema()+"."+dbsql.getName()).equals(x)*/ )
-                            .map(realNamesToMetaNames::get)
-                            .collect(Collectors.toSet());
-                    dbsql.setDependencies(deps);
-                }
                 if(imo.getType().equals(DBGitMetaType.DBGitTable)){
-                    DBTable dbTable = (DBTable) imo.getUnderlyingDbObject();
-                    Set<String> deps = realNamesToMetaNames.values().stream()
-                        .filter( x -> dbTable.getDependencies().contains(x) /*&& !x.equals(imo.getName())*/  )
-                        .collect(Collectors.toSet());
-                    dbTable.getDependencies().addAll(deps);
+                    final DBTable dbTable = (DBTable) imo.getUnderlyingDbObject();
+                    dbTable.getDependencies().addAll(
+                        objectsOfType
+                        .stream()
+                        .filter(x -> dbTable.getDependencies().contains(x.getName()) /*&& !x.equals(imo.getName())*/)
+                        .map(IMetaObject::getName)
+                        .collect(Collectors.toSet())
+                    );
+                }
+                else if (imo instanceof MetaSql) {
+                    final DBSQLObject imoDbSql = (DBSQLObject) imo.getUnderlyingDbObject();
+                    imoDbSql.setDependencies(
+                        objectsOfType
+                        .stream()
+                        .filter(
+                            other -> {
+                                return new DbObjectNameInSqlPresence(
+                                    other.getUnderlyingDbObject().getName(), 
+                                    imoDbSql.getSql()
+                                ).matches() && 
+                                ! other.getName().equals(imo.getName());
+                            }
+                        )
+                        .map(IMetaObject::getName)
+                        .collect(Collectors.toSet())
+                    );
                 }
             }
 
@@ -122,7 +138,11 @@ public class SortedListMetaObject {
                                 .collect(Collectors.toList());
                         if (objectsL1.isEmpty()) {
                             warnNotAdded(objectsOfType);
-                            throw new ExceptionDBGit("infinite loop");
+                            final String details = objectsOfType
+                                .stream()
+                                .map( x-> MessageFormat.format("\n{0} ({1})", x.getName(), x.getUnderlyingDbObject().getDependencies().toString()))
+                                .collect(Collectors.joining());
+                            throw new ExceptionDBGit("infinite loop\n" + details);
                         }
                         objectsOfType.removeAll(objectsL1);
                         if(isSortedFromFree)    { objectsL0.addAll(objectsL1); }

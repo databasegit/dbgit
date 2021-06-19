@@ -21,6 +21,8 @@ import ru.fusionsoft.dbgit.integration.primitives.chars.CommitsFromRepo;
 import ru.fusionsoft.dbgit.integration.primitives.chars.LinesOfUnsafeScalar;
 import ru.fusionsoft.dbgit.integration.primitives.chars.specific.dbgit.CharsDbIgnoreWithDataAndTypes;
 import ru.fusionsoft.dbgit.integration.primitives.chars.specific.dbgit.CharsDbGitConfigBackupEnabled;
+import ru.fusionsoft.dbgit.integration.primitives.patch.ConnectionPatchExecutingStatement;
+import ru.fusionsoft.dbgit.integration.primitives.patch.PathPatchUsingConnectionFromDbLink;
 import ru.fusionsoft.dbgit.integration.primitives.patch.specific.PathPatchDbGitCheckout;
 import ru.fusionsoft.dbgit.integration.primitives.patch.specific.PathPatchDbGitCheckoutHard;
 import ru.fusionsoft.dbgit.integration.primitives.patch.specific.PathPatchDbGitClonesRepo;
@@ -320,21 +322,26 @@ public class DbGitIntegrationTestBasic {
                             new PathAfterDbGitRun(
                                 new ArgsExplicit("restore", "-r", "-v"),
 
-                                new PathAfterDbGitRun(
-                                    new ArgsDbGitLinkPgAuto(new NameOfDefaultTargetTestDatabase()),
-
-                                    //dvdrental to local repo
-                                    new PathAfterDbGitLinkAndAdd(
-                                        new ArgsDbGitLinkPgAuto("dvdrental"),
-                                        new CharsDbIgnoreWithDataAndTypes(),
-
-                                        new PathAfterDbGitRun(
-                                            new ArgsExplicit("init"),
-
-                                            new PathWithoutFiles(
-                                                "*",
-                                                new PathNotProjectRoot(
-                                                    new ProjectTestResourcesCleanDirectoryPath("05")
+                                new PathPatched(
+                                    new PathPatchUsingConnectionFromDbLink(new ConnectionPatchExecutingStatement(
+                                        "DROP SCHEMA IF EXISTS public CASCADE;"
+                                    )),
+                                    new PathAfterDbGitRun(
+                                        new ArgsDbGitLinkPgAuto(new NameOfDefaultTargetTestDatabase()),
+    
+                                        //dvdrental to local repo
+                                        new PathAfterDbGitLinkAndAdd(
+                                            new ArgsDbGitLinkPgAuto("dvdrental"),
+                                            new CharsDbIgnoreWithDataAndTypes(),
+    
+                                            new PathAfterDbGitRun(
+                                                new ArgsExplicit("init"),
+    
+                                                new PathWithoutFiles(
+                                                    "*",
+                                                    new PathNotProjectRoot(
+                                                        new ProjectTestResourcesCleanDirectoryPath("05")
+                                                    )
                                                 )
                                             )
                                         )
