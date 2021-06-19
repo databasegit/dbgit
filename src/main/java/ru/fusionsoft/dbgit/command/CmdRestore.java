@@ -7,13 +7,19 @@ import java.nio.file.Files;
 import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import com.diogonunes.jcdp.color.api.Ansi;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 
+import org.cactoos.Scalar;
+import org.cactoos.list.ListEnvelope;
+import org.cactoos.scalar.ScalarOf;
+import org.cactoos.scalar.Sticky;
 import ru.fusionsoft.dbgit.adapters.AdapterFactory;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
 import ru.fusionsoft.dbgit.core.*;
@@ -190,6 +196,30 @@ public class CmdRestore implements IDBGitCommand {
 				updateObjs.put(object);
 			}
 
+			// remove table indexes and constraints, which is step(-2) of restoreMetaObject(MetaTable)
+			ConsoleWriter.println(getLang().getValue("general", "restore", "droppingTablesConstraints"), messageLevel + 2);
+			for (IMetaObject table : new ScalarOf<List<IMetaObject>>(
+				ipt -> {
+					ipt.forEach(x -> ConsoleWriter.println(
+						MessageFormat.format("{0} ({1})", x.getName(), x.getUnderlyingDbObject().getDependencies()), 
+						messageLevel + 3
+					));
+					return ipt;
+				},
+				new SortedListMetaObject(
+					dbObjs.entrySet().stream()
+					.filter(x -> updateObjs.containsKey(x.getKey()))
+					.map(Map.Entry::getValue)
+					.filter(x -> x instanceof MetaTable)
+					.collect(Collectors.toList())
+				).sortFromDependencies()
+			).value()) {
+				ConsoleWriter.println(
+					getLang().getValue("general", "restore", "droppingTableConstraints").withParams(table.getName()), 
+					messageLevel + 3
+				);
+				adapter.getFactoryRestore().getAdapterRestore(DBGitMetaType.DBGitTable, adapter).restoreMetaObject(table, - 2);
+			}
 
 			if(toMakeBackup && toMakeChanges) {
 				IMapMetaObject backupObjs = new TreeMapMetaObject();
