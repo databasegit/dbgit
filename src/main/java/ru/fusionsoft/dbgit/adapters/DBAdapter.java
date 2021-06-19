@@ -116,6 +116,10 @@ public abstract class DBAdapter implements IDBAdapter {
 
 			// remove table indexes and constraints, which is step(-2) of restoreMetaObject(MetaTable)
 			ConsoleWriter.println(lang.getValue("general", "restore", "droppingTablesConstraints"), messageLevel);
+			tablesExists.sortFromDependencies().forEach( x -> {
+				ConsoleWriter.println(MessageFormat.format("\n{0} ({1})", x.getName(), x.getUnderlyingDbObject().getDependencies()),
+					messageLevel + 1);
+			});
 			for (IMetaObject table : tablesExists.sortFromDependencies()) {
 				ConsoleWriter.println(lang.getValue("general", "restore", "droppingTableConstraints").withParams(table.getName()), messageLevel+1);
 				getFactoryRestore().getAdapterRestore(DBGitMetaType.DBGitTable, this).restoreMetaObject(table, -2);
