@@ -19,7 +19,6 @@ import ru.fusionsoft.dbgit.integration.primitives.args.specific.ArgsDbGitLinkPgA
 import ru.fusionsoft.dbgit.integration.primitives.args.specific.ArgsDbGitAddRemoteTestRepo;
 import ru.fusionsoft.dbgit.integration.primitives.chars.CommitsFromRepo;
 import ru.fusionsoft.dbgit.integration.primitives.chars.LinesOfUnsafeScalar;
-import ru.fusionsoft.dbgit.integration.primitives.chars.specific.dbgit.CharsDbGitIgnoreWithTypes;
 import ru.fusionsoft.dbgit.integration.primitives.chars.specific.dbgit.CharsDbIgnoreWithDataAndTypes;
 import ru.fusionsoft.dbgit.integration.primitives.chars.specific.dbgit.CharsDbGitConfigBackupEnabled;
 import ru.fusionsoft.dbgit.integration.primitives.patch.ConnectionPatchExecutingStatement;
@@ -317,7 +316,7 @@ public class DbGitIntegrationTestBasic {
                         //pagilla to local repo
                         new PathAfterDbGitLinkAndAdd(
                             new ArgsDbGitLinkPgAuto("pagilla"),
-                            new CharsDbGitIgnoreWithTypes(),
+                            new CharsDbIgnoreWithDataAndTypes(),
 
                             //dvdrental to test#databasegit
                             new PathAfterDbGitRun(
@@ -333,7 +332,7 @@ public class DbGitIntegrationTestBasic {
                                         //dvdrental to local repo
                                         new PathAfterDbGitLinkAndAdd(
                                             new ArgsDbGitLinkPgAuto("dvdrental"),
-                                            new CharsDbGitIgnoreWithTypes(),
+                                            new CharsDbIgnoreWithDataAndTypes(),
     
                                             new PathAfterDbGitRun(
                                                 new ArgsExplicit("init"),

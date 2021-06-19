@@ -2,8 +2,8 @@ package ru.fusionsoft.dbgit.integration.primitives.chars.specific.dbgit;
 
 import ru.fusionsoft.dbgit.integration.primitives.chars.CharSequenceEnvelope;
 
-public class CharsDbGitIgnoreWithTypes extends CharSequenceEnvelope {
-    public CharsDbGitIgnoreWithTypes() {
+public class CharsDbIgnoreWithTypes extends CharSequenceEnvelope {
+    public CharsDbIgnoreWithTypes() {
         super(()->{
             return "*\n" +
                    "!public/*.ts\n" +
