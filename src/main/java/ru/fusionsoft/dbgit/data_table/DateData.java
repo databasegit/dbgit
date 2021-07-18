@@ -2,6 +2,7 @@ package ru.fusionsoft.dbgit.data_table;
 
 import java.sql.Date;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
@@ -16,7 +17,7 @@ public class DateData implements ICellData {
 	public static SimpleDateFormat format = new SimpleDateFormat("yyyyMMddHHmmss");
 
 	@Override
-	public boolean loadFromDB(ResultSet rs, String fieldname) throws Exception {
+	public boolean loadFromDB(ResultSet rs, String fieldname) throws SQLException {
 		if (rs.getDate(fieldname) == null) {
 			isNull = true;
 			value = 0;

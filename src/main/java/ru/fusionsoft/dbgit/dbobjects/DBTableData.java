@@ -30,7 +30,7 @@ public class DBTableData implements AutoCloseable, Closeable {
 	public int errorFlag() {
 		return errorFlag;
 	}
-	public ResultSet resultSet() throws ExceptionDBGitTableData {
+	public ResultSet resultSet() {
 
 		return resultSet;
 // 		TODO find usages and adapt to recover from the ExceptionDBGitTableData

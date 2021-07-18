@@ -4,17 +4,19 @@ import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.ResultSet;
 
+import java.sql.SQLException;
 import org.postgresql.largeobject.LargeObject;
 import org.postgresql.largeobject.LargeObjectManager;
 
 import ru.fusionsoft.dbgit.adapters.AdapterFactory;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
+import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.data_table.MapFileData;
 
 public class LargeBlobPg extends MapFileData {
 
 	@Override
-	public InputStream getBlobData(ResultSet rs, String fieldname) throws Exception {
+	public InputStream getBlobData(ResultSet rs, String fieldname) throws SQLException, ExceptionDBGit {
 		IDBAdapter adapter = AdapterFactory.createAdapter();
 		Connection connect =  adapter.getConnection();
 		System.out.println(connect.getClass().getName());

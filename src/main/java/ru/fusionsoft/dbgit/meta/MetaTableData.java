@@ -3,6 +3,7 @@ package ru.fusionsoft.dbgit.meta;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -20,15 +21,15 @@ import org.apache.commons.csv.CSVRecord;
 
 import com.diogonunes.jcdp.color.api.Ansi.FColor;
 
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import ru.fusionsoft.dbgit.adapters.AdapterFactory;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
-import ru.fusionsoft.dbgit.core.DBGitConfig;
+import ru.fusionsoft.dbgit.config.TryCount;
+import ru.fusionsoft.dbgit.config.TryDelaySeconds;
 import ru.fusionsoft.dbgit.core.DBGitLang;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
-import ru.fusionsoft.dbgit.core.ExceptionDBGitRunTime;
 import ru.fusionsoft.dbgit.core.GitMetaDataManager;
+import ru.fusionsoft.dbgit.core.SleepSeconds;
 import ru.fusionsoft.dbgit.data_table.ICellData;
 import ru.fusionsoft.dbgit.data_table.MapFileData;
 import ru.fusionsoft.dbgit.data_table.RowData;
@@ -285,34 +286,32 @@ public class MetaTableData extends MetaBase {
 
 
 			return true;
-		} catch (Exception e) {
-
-			ConsoleWriter.println(e.getLocalizedMessage(), messageLevel);
-			ConsoleWriter.detailsPrintln(ExceptionUtils.getStackTrace(e), messageLevel);
-			logger.error(DBGitLang.getInstance().getValue("errors", "adapter", "tableData").toString(), e);
-
-			try {
-				if (tryNumber <= DBGitConfig.getInstance().getInteger("core", "TRY_COUNT", DBGitConfig.getInstance().getIntegerGlobal("core", "TRY_COUNT", 1000))) {
-					try {
-						TimeUnit.SECONDS.sleep(DBGitConfig.getInstance().getInteger("core", "TRY_DELAY", DBGitConfig.getInstance().getIntegerGlobal("core", "TRY_DELAY", 1000)));
-					} catch (InterruptedException e1) {
-						throw new ExceptionDBGitRunTime(e1.getMessage());
-					}
-					ConsoleWriter.println(DBGitLang.getInstance()
-					    .getValue("errors", "dataTable", "tryAgain")
-					    .withParams(String.valueOf(tryNumber))
-					    , messageLevel
-					);
-					return loadPortionFromDB(currentPortionIndex, tryNumber++);
-				}
-			} catch (Exception e1) {
-				throw new ExceptionDBGitRunTime(e1);
-				// TODO Auto-generated catch block
-//				e1.printStackTrace();
+		} catch (SQLException sqlEx){
+			if(
+				new TryCount().get() < tryNumber && (
+					sqlEx.getSQLState().equals("ORA-17008"/*Connection closed code*/) ||
+					sqlEx.getSQLState().equals("ORA-17016"/*Statement timed out*/) ||
+					sqlEx.getSQLState().equals("ORA-17126"/*Fixed Wait timeout elapsed*/)
+				)
+			){
+				ConsoleWriter.println(sqlEx.getMessage(), messageLevel);
+				ConsoleWriter.println(DBGitLang.getInstance()
+					.getValue("errors", "dataTable", "tryAgain")
+					.withParams(String.valueOf(tryNumber))
+					, messageLevel
+				);
+				new SleepSeconds().accept(new TryDelaySeconds().get());
+				return loadPortionFromDB(currentPortionIndex, tryNumber+1);
+			} else {
+				throw new ExceptionDBGit(DBGitLang.getInstance().getValue("errors", "adapter", "tableData").toString(), sqlEx);
 			}
-			
-			if (e instanceof ExceptionDBGit) throw (ExceptionDBGit)e;
-			throw new ExceptionDBGit(e);
+
+		} 
+		catch (Exception ex){
+			throw new ExceptionDBGit(
+				DBGitLang.getInstance().getValue("errors", "adapter", "tableData").toString(),
+				ex
+			);
 		}
 	}
 

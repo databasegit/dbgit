@@ -2,6 +2,7 @@ package ru.fusionsoft.dbgit.data_table;
 
 import java.sql.ResultSet;
 
+import java.sql.SQLException;
 import ru.fusionsoft.dbgit.dbobjects.DBTable;
 
 
@@ -10,7 +11,7 @@ public class LongData implements ICellData {
 	private boolean isNull = false;
 	
 	@Override
-	public boolean loadFromDB(ResultSet rs, String fieldname) throws Exception {		
+	public boolean loadFromDB(ResultSet rs, String fieldname) throws SQLException {		
 		value = rs.getDouble(fieldname);
 		if (rs.wasNull()) {
 			isNull = true;
