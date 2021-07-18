@@ -233,7 +233,7 @@ public class DBAdapterPostgres extends DBAdapter {
 				final String commentTable = rs.getString("table_comment");
 				final Set<String> dependencies = rs.getArray("dependencies") != null
 					? new HashSet<>(Arrays.asList((String[])rs.getArray("dependencies").getArray()))
-					: Collections.emptySet();
+					: new HashSet<>();
 
 				if (rs.getString("parent") != null) {
 					dependencies.add(schema + "/" + rs.getString("parent") + ".tbl");
@@ -297,7 +297,7 @@ public class DBAdapterPostgres extends DBAdapter {
 				final String commentTable = rs.getString("table_comment");
 				final Set<String> dependencies = rs.getArray("dependencies") != null
 					? new HashSet<>(Arrays.asList((String[])rs.getArray("dependencies").getArray()))
-					: Collections.emptySet();
+					: new HashSet<>();
 
 				if (rs.getString("parent") != null) {
 					dependencies.add(schema + "/" + rs.getString("parent") + ".tbl");
