@@ -14,6 +14,7 @@ import ru.fusionsoft.dbgit.core.GitMetaDataManager;
 import ru.fusionsoft.dbgit.core.db.FieldType;
 import ru.fusionsoft.dbgit.dbobjects.*;
 import ru.fusionsoft.dbgit.meta.DBGitMetaType;
+import ru.fusionsoft.dbgit.meta.DbObjectNameInSqlPresence;
 import ru.fusionsoft.dbgit.meta.IMetaObject;
 import ru.fusionsoft.dbgit.meta.MetaTable;
 import ru.fusionsoft.dbgit.meta.NameMeta;
@@ -97,7 +98,8 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 				if (existingTable.loadFromDB()){
 					StringProperties existingPKD = existingTable.getTable().getOptions().get("partkeydef");
 					StringProperties restorePKD = restoreTable.getTable().getOptions().get("partkeydef");
-					if(restorePKD != null && (existingPKD == null || !restorePKD.getData().equals(existingPKD.getData()))) {
+					
+					if(partitionColsChanged(restoreTable, existingTable)) {
 						removeMetaObject(existingTable);
 						createTable(st, restoreTable);
 						existingTable.loadFromDB();
@@ -111,6 +113,7 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 
 					ConsoleWriter.detailsPrintln(lang.getValue("general", "restore", "createTable"), messageLevel);
 					createTable(st, restoreTable);
+					existingTable.loadFromDB();
 					ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
 
 				}
@@ -286,6 +289,31 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 		return nm;
 	}
 
+	
+	private String partitionKeyDefinitionOf(MetaTable table){
+		final StringProperties opt = table.getTable().getOptions().get("partkeydef");
+		if(opt != null){
+			return opt.toString();
+		} else {
+			return "";
+		}
+	}
+	private boolean partitionColsChanged(MetaTable rTbl, MetaTable exTbl) throws Exception{
+		final String rPKD = partitionKeyDefinitionOf(rTbl);
+		final String exPKD = partitionKeyDefinitionOf(exTbl);
+		if(rPKD.equals(exPKD)){
+			final MapDifference<String, DBTableField> difference = Maps.difference(rTbl.getFields(), exTbl.getFields());
+			return ! difference.areEqual() && difference.entriesDiffering().entrySet().stream()
+			.filter( 
+				x -> ! x.getValue().leftValue().getTypeSQL().equals(x.getValue().rightValue().getTypeSQL())
+			)
+			.anyMatch( 
+				x -> new DbObjectNameInSqlPresence( x.getKey(), rPKD ).matches() 
+			);
+		} else {
+			return true;
+		}
+	}
 
 	private void restoreTableFields(MetaTable restoreTable, MetaTable existingTable, StatementLogging st) throws Exception {
 		String lastField = "";
@@ -370,9 +398,16 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 		NameMeta nme = getEscapedNameMeta(restoreTable);
 
 		String createTableDdl = MessageFormat.format(
-			"create table {0}.{1}() {2};"
+			"create table {0}.{1}({2}) {3};"
 			,nme.getSchema()
 			,nme.getName()
+			,restoreTable.getFields().values().stream().map( x -> MessageFormat.format(
+				"\n{0} {1} {2}", 
+				x.getName(),
+				x.getTypeSQL().replace("NOT NULL", ""),
+//				x.getIsPrimaryKey() ? "PRIMARY KEY" : "",
+				(x.getDefaultValue() != null && !x.getDefaultValue().isEmpty()) ? "DEFAULT " + x.getDefaultValue() : ""
+			)).collect(Collectors.joining(",", "", "\n"))
 			,restoreTable.getTable().getOptions().getChildren().containsKey("tablespace")
 				? "tablespace " + restoreTable.getTable().getOptions().get("tablespace").getData()
 				: ""
@@ -556,7 +591,9 @@ public class DBRestoreTablePostgres extends DBRestoreAdapter {
 		st.execute("alter table "+ tblSam +" drop column "+ adapter.escapeNameIfNeeded(tblField.getName()));
 	}
 	private boolean isSameTypeSql(DBTableField left, DBTableField right){
-		return left.getTypeSQL().equals(right.getTypeSQL());
+		final String leftTypeSQL = left.getTypeSQL().replace("NOT NULL", "").trim();
+		final String rightTypeSQL = right.getTypeSQL().replace("NOT NULL", "").trim();
+		return leftTypeSQL.equals(rightTypeSQL);
 	}
 
 	private boolean hasNotTypeSql(ValueDifference<DBTableField> field, String typeSql){
