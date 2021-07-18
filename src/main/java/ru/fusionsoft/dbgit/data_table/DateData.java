@@ -21,7 +21,7 @@ public class DateData implements ICellData {
 			isNull = true;
 			value = 0;
 		} else
-			value = rs.getDate(fieldname).getTime();
+			value = rs.getTimestamp(fieldname).getTime();
 
 		return true;
 	}
