@@ -2,22 +2,16 @@ package ru.fusionsoft.dbgit.integration.primitives.path.specific.dbgit.scenarios
 
 import java.io.PrintStream;
 import java.nio.file.Path;
-import ru.fusionsoft.dbgit.integration.primitives.patch.PathPatchCreatingFile;
-import ru.fusionsoft.dbgit.integration.primitives.path.PathWithFiles;
+import ru.fusionsoft.dbgit.integration.primitives.patch.specific.PathPatchDbGitLinkAndAdd;
+import ru.fusionsoft.dbgit.integration.primitives.path.PathPatched;
 import ru.fusionsoft.dbgit.integration.primitives.printstream.DefaultPrintStream;
-import ru.fusionsoft.dbgit.integration.primitives.args.ArgsExplicit;
 import ru.fusionsoft.dbgit.integration.primitives.args.specific.ArgsDbGitLink;
-import ru.fusionsoft.dbgit.integration.primitives.path.PathAfterDbGitRun;
 
-public class PathAfterDbGitLinkAndAdd extends PathAfterDbGitRun {
-    public PathAfterDbGitLinkAndAdd(ArgsDbGitLink argsDbGitLink, CharSequence ignoreChars, PrintStream printStream, Path origin) {
+public class PathAfterDbGitLinkAndAdd extends PathPatched {
+    public PathAfterDbGitLinkAndAdd(ArgsDbGitLink argsDbGitLink, CharSequence ignoreChars, PrintStream printStream, Path workingDirectory) {
         super(
-            new ArgsExplicit("add", "\"*\"", "-v"),
-            printStream,
-            new PathWithFiles(
-                new PathPatchCreatingFile(".dbgit/.dbignore", ignoreChars),
-                new PathAfterDbGitRun(argsDbGitLink, printStream, origin)
-            )
+            new PathPatchDbGitLinkAndAdd(argsDbGitLink, ignoreChars, printStream),
+            workingDirectory
         );
     }
 
