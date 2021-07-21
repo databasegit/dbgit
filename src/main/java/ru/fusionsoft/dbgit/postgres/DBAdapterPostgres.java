@@ -320,26 +320,43 @@ public class DBAdapterPostgres extends DBAdapter {
 	public Map<String, DBTableField>  getTableFields(String schema, String nameTable) {
 		Map<String, DBTableField> listField = new HashMap<String, DBTableField>();
 		String query =
-			"SELECT distinct col.column_name,col.is_nullable,col.data_type, col.udt_name::regtype dtype,col.character_maximum_length, col.column_default, tc.constraint_name, " +
-			"case\r\n" +
-			"	when lower(data_type) in ('integer', 'numeric', 'smallint', 'double precision', 'bigint') then 'number' \r\n" +
-			"	when lower(data_type) in ('character varying', 'char', 'character', 'varchar') then 'string'\r\n" +
-			"	when lower(data_type) in ('timestamp without time zone', 'timestamp with time zone', 'date') then 'date'\r\n" +
-			"	when lower(data_type) in ('boolean') then 'boolean'\r\n" +
-			"	when lower(data_type) in ('text') then 'text'\r\n" +
-			"   when lower(data_type) in ('bytea') then 'binary'" +
-			"	else 'native'\r\n" +
-			"	end tp, " +
-			"    case when lower(data_type) in ('char', 'character') then true else false end fixed, " +
-			"  pgd.description," +
-			"col.*  FROM " +
-			"information_schema.columns col  " +
-			"left join information_schema.key_column_usage kc on col.table_schema = kc.table_schema and col.table_name = kc.table_name and col.column_name=kc.column_name " +
-			"left join information_schema.table_constraints tc on col.table_schema = kc.table_schema and col.table_name = kc.table_name and kc.constraint_name = tc.constraint_name and tc.constraint_type = 'PRIMARY KEY' " +
-			"left join pg_catalog.pg_statio_all_tables st on st.schemaname = col.table_schema and st.relname = col.table_name " +
-			"left join pg_catalog.pg_description pgd on (pgd.objoid=st.relid and pgd.objsubid=col.ordinal_position) " +
-			"where upper(col.table_schema) = upper(:schema) and col.table_name = :table " +
-			"order by col.column_name ";
+			"SELECT \n"
+			+ "    col.column_name,\n"
+			+ "    pgd.description,\n"
+			+ "    col.column_default,\n"
+			+ "    col.is_nullable,\n"
+			+ "    col.udt_name::regtype dtype,\n"
+			+ "    col.character_maximum_length,\n"
+			+ "    col.numeric_precision,\n"
+			+ "    col.numeric_scale,\n"
+			+ "    col.ordinal_position,\n"
+			+ "    case when pkeys.ispk is null then false else pkeys.ispk end ispk,\n"
+			+ "    case\n"
+			+ "        when lower(data_type) in ('integer', 'numeric', 'smallint', 'double precision', 'bigint') then 'number' \n"
+			+ "        when lower(data_type) in ('character varying', 'char', 'character', 'varchar') then 'string'\n"
+			+ "        when lower(data_type) in ('timestamp without time zone', 'timestamp with time zone', 'date') then 'date'\n"
+			+ "        when lower(data_type) in ('boolean') then 'boolean'\n"
+			+ "        when lower(data_type) in ('text') then 'text'\n"
+			+ "        when lower(data_type) in ('bytea') then 'binary'\n"
+			+ "        else 'native'\n"
+			+ "    end tp, \n"
+			+ "    case when lower(data_type) in ('char', 'character') then true else false \n"
+			+ "    end fixed\n"
+			+ "FROM information_schema.columns col  \n"
+			+ "left join (\n"
+			+ "    select \n"
+			+ "        kc.table_schema,\n"
+			+ "        kc.table_name,\n"
+			+ "        kc.column_name,\n"
+			+ "        bool_or(case when tc.constraint_type = 'PRIMARY KEY' then true else false end) ispk\n"
+			+ "    from information_schema.table_constraints tc\n"
+			+ "    inner join information_schema.key_column_usage kc on kc.constraint_name = tc.constraint_name\n"
+			+ "    group by kc.table_schema, kc.table_name, kc.column_name\n"
+			+ ") pkeys on pkeys.table_schema = col.table_schema and pkeys.table_name = col.table_name and pkeys.column_name = col.column_name\n"
+			+ "left join pg_catalog.pg_statio_all_tables st on st.schemaname = col.table_schema and st.relname = col.table_name \n"
+			+ "left join pg_catalog.pg_description pgd on (pgd.objoid=st.relid and pgd.objsubid=col.ordinal_position)  \n"
+			+ "where upper(col.table_schema) = upper(:schema) and col.table_name = :table\n"
+			+ "order by col.column_name ";
 
 		try (
 			PreparedStatement stmt = preparedStatement(getConnection(), query, ImmutableMap.of("schema", schema, "table", nameTable));
@@ -353,17 +370,9 @@ public class DBAdapterPostgres extends DBAdapter {
 				final String descField = rs.getString("description");
 				final String columnDefault = rs.getString("column_default");
 				final boolean isFixed = rs.getBoolean("fixed");
-				final boolean isPrimaryKey = rs.getString("constraint_name") != null;
-				final boolean isNullable = !typeSQL.toLowerCase().contains("not null");
+				final boolean isPrimaryKey = rs.getBoolean("ispk");
+				final boolean isNullable = rs.getString("is_nullable").equals("YES");
 				final FieldType typeUniversal = FieldType.fromString(rs.getString("tp"));
-//				System.out.println((
-//					nameField
-//					+ " > "
-//					+ typeSQL
-//					+ " ("
-//					+ typeUniversal.toString()
-//					+ ")"
-//				));
 				final FieldType actualTypeUniversal = typeUniversal.equals(FieldType.TEXT) ? FieldType.STRING_NATIVE : typeUniversal;
 				final int length = rs.getInt("character_maximum_length");
 				final int precision = rs.getInt("numeric_precision");
