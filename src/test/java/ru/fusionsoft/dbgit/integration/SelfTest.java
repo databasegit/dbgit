@@ -7,7 +7,8 @@ import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import ru.fusionsoft.dbgit.integration.primitives.TestResult;
-import ru.fusionsoft.dbgit.integration.primitives.files.AutoDeletingTempFilePath;
+import ru.fusionsoft.dbgit.integration.primitives.files.AutoDeletingPath;
+import ru.fusionsoft.dbgit.integration.primitives.files.TempFilePath;
 import ru.fusionsoft.dbgit.integration.primitives.patch.PathPatchCreatingFile;
 import ru.fusionsoft.dbgit.integration.primitives.path.PathNotProjectRoot;
 import ru.fusionsoft.dbgit.integration.primitives.path.PathPatched;
@@ -195,7 +196,7 @@ public class SelfTest {
     @Test
     public final void tempFileWorks() throws IOException {
         Path path = new CurrentWorkingDirectory();
-        try (AutoDeletingTempFilePath tempFilePath = new AutoDeletingTempFilePath(new CurrentWorkingDirectory(), "some")) {
+        try (AutoDeletingPath tempFilePath = new AutoDeletingPath(new TempFilePath(new CurrentWorkingDirectory(), "some"))) {
             path = tempFilePath;
             final String data = "123";
             FileUtils.writeStringToFile(tempFilePath.toFile(), data);

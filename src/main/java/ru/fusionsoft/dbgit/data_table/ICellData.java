@@ -1,13 +1,15 @@
 package ru.fusionsoft.dbgit.data_table;
 
+import java.io.IOException;
 import java.sql.ResultSet;
 
+import java.sql.SQLException;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.dbobjects.DBTable;
 
 public interface ICellData {
 	
-	public boolean loadFromDB(ResultSet rs, String fieldname) throws Exception;
+	public boolean loadFromDB(ResultSet rs, String fieldname) throws SQLException, ExceptionDBGit, IOException;
 	
 	public String serialize(DBTable tbl) throws Exception;
 	

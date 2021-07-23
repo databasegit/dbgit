@@ -17,10 +17,14 @@ import ru.fusionsoft.dbgit.integration.primitives.TestResult;
 import ru.fusionsoft.dbgit.integration.primitives.args.ArgsExplicit;
 import ru.fusionsoft.dbgit.integration.primitives.args.specific.ArgsDbGitLinkPgAuto;
 import ru.fusionsoft.dbgit.integration.primitives.args.specific.ArgsDbGitAddRemoteTestRepo;
+import ru.fusionsoft.dbgit.integration.primitives.args.specific.ArgsDbGitRestore;
 import ru.fusionsoft.dbgit.integration.primitives.chars.CommitsFromRepo;
 import ru.fusionsoft.dbgit.integration.primitives.chars.LinesOfUnsafeScalar;
 import ru.fusionsoft.dbgit.integration.primitives.chars.specific.dbgit.CharsDbIgnoreWithDataAndTypes;
 import ru.fusionsoft.dbgit.integration.primitives.chars.specific.dbgit.CharsDbGitConfigBackupEnabled;
+import ru.fusionsoft.dbgit.integration.primitives.chars.specific.dbgit.CharsDbIgnoreWithTypes;
+import ru.fusionsoft.dbgit.integration.primitives.patch.ConnectionPatchExecutingStatement;
+import ru.fusionsoft.dbgit.integration.primitives.patch.PathPatchUsingConnectionFromDbLink;
 import ru.fusionsoft.dbgit.integration.primitives.patch.specific.PathPatchDbGitCheckout;
 import ru.fusionsoft.dbgit.integration.primitives.patch.specific.PathPatchDbGitCheckoutHard;
 import ru.fusionsoft.dbgit.integration.primitives.patch.specific.PathPatchDbGitClonesRepo;
@@ -41,6 +45,7 @@ import ru.fusionsoft.dbgit.integration.primitives.path.PathNotProjectRoot;
 import ru.fusionsoft.dbgit.integration.primitives.path.specific.dbgit.PathWithDbGitRepoCloned;
 import ru.fusionsoft.dbgit.integration.primitives.path.PathWithoutFiles;
 import ru.fusionsoft.dbgit.integration.primitives.path.specific.ProjectTestResourcesCleanDirectoryPath;
+import ru.fusionsoft.dbgit.integration.primitives.path.specific.dbgit.scenarios.PathAfterDbGitRestoreFromDbToDb;
 
 @Tag("integration")
 public class DbGitIntegrationTestBasic {
@@ -300,33 +305,42 @@ public class DbGitIntegrationTestBasic {
 
     @Test
     public final void dbToDbRestoreWorksWithCustomTypes() {
-        final String description = "Hardest sakilla_database sequential add and restore with table data and custom types (mpaa_rating) works";
+        final String description = "Hardest sakilla_database sequential add and restore with table data, custom types and partitions works";
         final TestResult result = new DescribedTestResult<Path>(
             description,
             new SimpleTestResult<>(
-                new PathAfterDbGitRun(
-                    //pagilla to test#databasegit over dvdrental
-                    new ArgsExplicit("restore", "-r", "-v"),
+                new PathAfterDbGitRestoreFromDbToDb(
+                    new ArgsDbGitLinkPgAuto("dvdrental"),
+                    new ArgsDbGitLinkPgAuto(new NameOfDefaultTargetTestDatabase()),
+                    new CharsDbIgnoreWithDataAndTypes(),
+                    new ArgsDbGitRestore("-r", "-v"),
 
-                    new PathAfterDbGitRun(
+                    new PathAfterDbGitRestoreFromDbToDb(
+                        new ArgsDbGitLinkPgAuto("pagilla"),
                         new ArgsDbGitLinkPgAuto(new NameOfDefaultTargetTestDatabase()),
+                        new CharsDbIgnoreWithDataAndTypes(),
+                        new ArgsDbGitRestore("-r", "-v"),
 
-                        //pagilla to local repo
-                        new PathAfterDbGitLinkAndAdd(
-                            new ArgsDbGitLinkPgAuto("pagilla"),
+                        new PathAfterDbGitRestoreFromDbToDb(
+                            new ArgsDbGitLinkPgAuto("dvdrental"),
+                            new ArgsDbGitLinkPgAuto(new NameOfDefaultTargetTestDatabase()),
                             new CharsDbIgnoreWithDataAndTypes(),
+                            new ArgsDbGitRestore("-r", "-v"),
 
-                            //dvdrental to test#databasegit
-                            new PathAfterDbGitRun(
-                                new ArgsExplicit("restore", "-r", "-v"),
+                            new PathAfterDbGitRestoreFromDbToDb(
+                                new ArgsDbGitLinkPgAuto("pagilla"),
+                                new ArgsDbGitLinkPgAuto(new NameOfDefaultTargetTestDatabase()),
+                                new CharsDbIgnoreWithDataAndTypes(),
+                                new ArgsDbGitRestore("-r", "-v"),
+                                new PathPatched(
+                                    new PathPatchUsingConnectionFromDbLink(
+                                        new ConnectionPatchExecutingStatement("DROP SCHEMA IF EXISTS public CASCADE;")
+                                    ),
 
-                                new PathAfterDbGitRun(
-                                    new ArgsDbGitLinkPgAuto(new NameOfDefaultTargetTestDatabase()),
-
-                                    //dvdrental to local repo
-                                    new PathAfterDbGitLinkAndAdd(
-                                        new ArgsDbGitLinkPgAuto("dvdrental"),
-                                        new CharsDbIgnoreWithDataAndTypes(),
+                                    new PathAfterDbGitRun(
+                                        new ArgsDbGitLinkPgAuto(
+                                            new NameOfDefaultTargetTestDatabase()
+                                        ),
 
                                         new PathAfterDbGitRun(
                                             new ArgsExplicit("init"),

@@ -163,7 +163,7 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 			if (!diffTableData.entriesOnlyOnRight().isEmpty()) {
 				ConsoleWriter.detailsPrintln(lang.getValue("general", "restore", "deleting"), messageLevel);
 				StringBuilder deleteQuery = new StringBuilder();
-
+				long insertedRowsNumber = 0;
 				for (RowData rowData : diffTableData.entriesOnlyOnRight().values()) {
 					StringJoiner fieldJoiner = new StringJoiner(",");
 					StringJoiner valuejoiner = new StringJoiner(",");
@@ -183,32 +183,36 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 					String delFields = "(" + fieldJoiner.toString() + ")";
 					String delValues = "(" + valuejoiner.toString() + ")";
 
-					if (delValues.length() > 2){
+					if (delValues.length() > 1){
 						final String ddl = MessageFormat.format(
 							"DELETE FROM {0} WHERE {1} = {2};",
 							tblNameEscaped, delFields, delValues
 						);
 						deleteQuery.append(ddl).append("\n");
-						ConsoleWriter.detailsPrintln(ddl, messageLevel + 1);
+						insertedRowsNumber++;
+//						ConsoleWriter.detailsPrintln(ddl, messageLevel + 1);
 					}
-					if (deleteQuery.length() > 50000) {
+					if (deleteQuery.length() > 16384) {
 						st.execute(deleteQuery.toString());
-						deleteQuery = new StringBuilder();
+						deleteQuery.setLength(0);
 					}
 				}
 				if (deleteQuery.length() > 1) {
 					st.execute(deleteQuery.toString());
 				}
 				ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
+				ConsoleWriter.detailsPrintGreen(lang.getValue("general", "restore", "deletedRows").withParams(String.valueOf(insertedRowsNumber)));
 			}
 
 			//UPDATE
 			if (!diffTableData.entriesDiffering().isEmpty()) {
 				ConsoleWriter.detailsPrintln(lang.getValue("general", "restore", "updating"), messageLevel);
-				String updateQuery = "";
+				StringBuilder updateQuery = new StringBuilder();
 				Map<String, String> primarykeys = new HashMap();
+				long updatedRowsNumber = 0;
 
 				for (ValueDifference<RowData> diffRowData : diffTableData.entriesDiffering().values()) {
+					//TODO wow, wow, wow... what kind of key is used in that maps?
 					if (!diffRowData.leftValue().getHashRow().equals(diffRowData.rightValue().getHashRow())) {
 
 						Map<String, ICellData> tempCols = diffRowData.leftValue().getData(restoreTableData.getFields());
@@ -237,41 +241,61 @@ public class DBRestoreTableDataPostgres extends DBRestoreAdapter {
 							});
 
 
-							updateQuery = "UPDATE " + tblNameEscaped + " SET (" + updFieldJoiner.toString() + ") = "
+							updateQuery.append("UPDATE " + tblNameEscaped + " SET (" + updFieldJoiner.toString() + ") = "
 							+ valuesToString(tempCols.values(), colTypes, restoreTableData.getFields()) + " "
-							+ "WHERE (" + keyFieldsJoiner.toString() + ") = (" + keyValuesJoiner.toString() + ");\n";
+							+ "WHERE (" + keyFieldsJoiner.toString() + ") = (" + keyValuesJoiner.toString() + ");\n");
 
 
-							ConsoleWriter.detailsPrintln(updateQuery, messageLevel);
-							st.execute(updateQuery);
-							updateQuery = "";
+//							ConsoleWriter.detailsPrintln(updateQuery, messageLevel);
+							if (updateQuery.length() > 16384) {
+								st.execute(updateQuery.toString());
+								updateQuery.setLength(0);
+							}
 						}
 
 					}
 				}
+				if (updateQuery.length() > 1) {
+//					ConsoleWriter.println(updateQuery, messageLevel);
+					st.execute(updateQuery.toString());
+					updatedRowsNumber++;
+				}
 
 				ConsoleWriter.detailsPrintGreen(lang.getValue("general", "ok"));
-				if (updateQuery.length() > 1) {
-					ConsoleWriter.println(updateQuery, messageLevel);
-					st.execute(updateQuery);
-				}
+				ConsoleWriter.detailsPrintGreen(lang.getValue("general", "restore", "updatedRows").withParams(String.valueOf(updatedRowsNumber)));
 			}
 
 			//INSERT
 			if (!diffTableData.entriesOnlyOnLeft().isEmpty()) {
 				ConsoleWriter.detailsPrintln(lang.getValue("general", "restore", "inserting"), messageLevel);
+				long insertedRowsCount = 0;
+				StringBuilder insertStatements = new StringBuilder();
+
 				for (RowData rowData : diffTableData.entriesOnlyOnLeft().values()) {
 
-					String insertQuery = MessageFormat.format("INSERT INTO {0}{1}{2};"
+					insertStatements.append( MessageFormat.format("INSERT INTO {0}{1}{2};"
 						, tblNameEscaped, fields
 						, valuesToString(rowData.getData(restoreTableData.getFields()).values(), colTypes, restoreTableData.getFields())
-					);
+					));
+					insertedRowsCount++;
 
-					ConsoleWriter.detailsPrintln(insertQuery, messageLevel+1);
-					st.execute(insertQuery);
+//					ConsoleWriter.detailsPrintln(insertQuery, messageLevel+1);
+					if (insertStatements.length() > 16384) {
+						st.execute(insertStatements.toString());
+						insertStatements.setLength(0);
+					}
 				}
+
+				if (insertStatements.length() > 1) {
+//					ConsoleWriter.println(updateQuery, messageLevel);
+					st.execute(insertStatements.toString());
+					insertedRowsCount++;
+				}
+				
 				ConsoleWriter.detailsPrintln(lang.getValue("general", "ok"), messageLevel);
-			}
+				ConsoleWriter.detailsPrintGreen(lang.getValue("general", "restore", "insertedRows").withParams(String.valueOf(insertedRowsCount)));
+
+			}  
 
 		} catch (Exception e) {
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRestoreError").withParams(restoreTableData.getTable().getSchema() + "." + restoreTableData.getTable().getName())

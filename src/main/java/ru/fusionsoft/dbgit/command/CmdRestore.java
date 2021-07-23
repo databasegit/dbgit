@@ -4,15 +4,22 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import com.diogonunes.jcdp.color.api.Ansi;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 
+import org.cactoos.Scalar;
+import org.cactoos.list.ListEnvelope;
+import org.cactoos.scalar.ScalarOf;
+import org.cactoos.scalar.Sticky;
 import ru.fusionsoft.dbgit.adapters.AdapterFactory;
 import ru.fusionsoft.dbgit.adapters.IDBAdapter;
 import ru.fusionsoft.dbgit.core.*;
@@ -72,6 +79,7 @@ public class CmdRestore implements IDBGitCommand {
 		IMapMetaObject fileObjs = gmdm.loadFileMetaData();
 		IMapMetaObject updateObjs = new TreeMapMetaObject();
 		IMapMetaObject deleteObjs = new TreeMapMetaObject();
+		IMapMetaObject backupObjs = new TreeMapMetaObject();
 
 		if (toMakeBackup) { ConsoleWriter.printlnColor(getLang().getValue("general", "restore", "willMakeBackup").toString(), Ansi.FColor.GREEN, messageLevel+1); } 
 		else { ConsoleWriter.printlnColor(getLang().getValue("general", "restore", "wontMakeBackup").toString(), Ansi.FColor.GREEN, messageLevel+1); }
@@ -140,7 +148,8 @@ public class CmdRestore implements IDBGitCommand {
 
 			// # steps 1,2 are in GitMetaDataManager::restoreDatabase
 
-			ConsoleWriter.println(getLang().getValue("general", "restore", "seekingToRestoreAdditional"),1);
+			ConsoleWriter.println(getLang().getValue("general", "restore", "seekingToRestoreAdditional"), messageLevel+2);
+			Map<String, IMetaObject> updateObjectsCopy = new TreeMapMetaObject(updateObjs.values());
 			Map<String, IMetaObject> affectedTables = new TreeMapMetaObject();
 			Map<String, IMetaObject> foundTables = new TreeMapMetaObject();
 			do {
@@ -148,24 +157,75 @@ public class CmdRestore implements IDBGitCommand {
 					dbObjs.values().stream()
 					.filter(excluded -> {
 						return excluded instanceof MetaTable
-						&& ! updateObjs.containsKey(excluded.getName())
-						&& updateObjs.values().stream().anyMatch(excluded::dependsOn);
+						&& ! updateObjectsCopy.containsKey(excluded.getName())
+						&& updateObjectsCopy.values().stream().anyMatch(excluded::dependsOn);
 					})
 					.collect(Collectors.toMap(IMetaObject::getName, val -> val));
 				affectedTables.putAll(foundTables);
-				updateObjs.putAll(foundTables);
+				updateObjectsCopy.putAll(foundTables);
+				deleteObjs.putAll(foundTables);
+				backupObjs.putAll(foundTables);
 			} while (!foundTables.isEmpty());
 			
 			if(affectedTables.isEmpty()){
-				ConsoleWriter.println(getLang().getValue("general", "restore", "nothingToRestoreAdditional"), 2);
+				ConsoleWriter.println(getLang().getValue("general", "restore", "nothingToRestoreAdditional"), messageLevel+2);
 			} else {
-				affectedTables.forEach((k,v)->ConsoleWriter.println(k, 2));
+				affectedTables.forEach((k,v)->ConsoleWriter.println(k, messageLevel+3));
 			}
 
+			//delete MetaSql (but no UDT's, domains or enums) that are in files and in db to fix errors on table restore
+			ConsoleWriter.println(getLang().getValue("general", "restore", "droppingSqlObjects"), messageLevel+2);
+			for (final IMetaObject object : 
+				new SortedListMetaObject(
+					dbObjs.entrySet().stream()
+					.filter(x -> fileObjs.containsKey(x.getKey()))
+					.map(Map.Entry::getValue)
+					.filter(x -> 
+						x instanceof MetaFunction || 
+						x instanceof MetaProcedure || 
+						x instanceof MetaView || 
+						x instanceof MetaTrigger
+					)
+					.collect(Collectors.toList())
+				).sortFromDependencies()
+			) {
+				ConsoleWriter.println(
+					getLang().getValue("general", "restore", "droppingObject").withParams(object.getName()),
+					messageLevel + 3
+				);
+				adapter
+				.getFactoryRestore()
+				.getAdapterRestore(object.getType(), adapter)
+				.removeMetaObject(object);
+				updateObjs.put(object);
+			}
 
+			// remove table indexes and constraints, which is step(-2) of restoreMetaObject(MetaTable)
+			ConsoleWriter.println(getLang().getValue("general", "restore", "droppingTablesConstraints"), messageLevel + 2);
+			for (IMetaObject table : new ScalarOf<List<IMetaObject>>(
+				ipt -> {
+					ipt.forEach(x -> ConsoleWriter.println(
+						MessageFormat.format("{0} ({1})", x.getName(), x.getUnderlyingDbObject().getDependencies()), 
+						messageLevel + 3
+					));
+					return ipt;
+				},
+				new SortedListMetaObject(
+					dbObjs.entrySet().stream()
+					.filter(x -> updateObjs.containsKey(x.getKey()))
+					.map(Map.Entry::getValue)
+					.filter(x -> x instanceof MetaTable)
+					.collect(Collectors.toList())
+				).sortFromDependencies()
+			).value()) {
+				ConsoleWriter.println(
+					getLang().getValue("general", "restore", "droppingTableConstraints").withParams(table.getName()), 
+					messageLevel + 3
+				);
+				adapter.getFactoryRestore().getAdapterRestore(DBGitMetaType.DBGitTable, adapter).restoreMetaObject(table, - 2);
+			}
 
 			if(toMakeBackup && toMakeChanges) {
-				IMapMetaObject backupObjs = new TreeMapMetaObject();
 				backupObjs.putAll(deleteObjs);
 				backupObjs.putAll(updateObjs);
 				adapter.getBackupAdapterFactory().getBackupAdapter(adapter).backupDatabase(backupObjs);

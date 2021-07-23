@@ -1,10 +1,12 @@
 package ru.fusionsoft.dbgit.data_table;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -25,12 +27,12 @@ public class MapFileData implements ICellData {
 
 	//private String hash = null;
 		
-	public InputStream getBlobData(ResultSet rs, String fieldname) throws Exception {
+	public InputStream getBlobData(ResultSet rs, String fieldname) throws SQLException, ExceptionDBGit {
 		return rs.getBinaryStream(fieldname);
 	}
 	
 	@Override
-	public boolean loadFromDB(ResultSet rs, String fieldname) throws Exception {
+	public boolean loadFromDB(ResultSet rs, String fieldname) throws SQLException, ExceptionDBGit, IOException {
 		InputStream stream = getBlobData(rs, fieldname);		
 		
 		if (stream != null) {

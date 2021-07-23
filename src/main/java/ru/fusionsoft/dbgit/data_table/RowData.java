@@ -1,6 +1,8 @@
 package ru.fusionsoft.dbgit.data_table;
 
+import java.io.IOException;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.text.MessageFormat;
 import java.util.*;
 
@@ -25,7 +27,7 @@ public class RowData {
 	//protected String key;
 	//protected MetaTable metaTable;
 
-	public RowData(ResultSet rs, MetaTable metaTable) throws Exception {
+	public RowData(ResultSet rs, MetaTable metaTable) throws SQLException, ExceptionDBGit, IOException {
 		//this.metaTable = metaTable;
 		loadDataFromRS(rs, metaTable);
 	}
@@ -41,7 +43,7 @@ public class RowData {
 		loadDataFromCSVRecord(record, titleColumns, metaTable);
 	}
 
-	private void loadDataFromRS(ResultSet rs, MetaTable metaTable) throws Exception {
+	private void loadDataFromRS(ResultSet rs, MetaTable metaTable) throws SQLException, ExceptionDBGit, IOException {
 		for (int i = 0; i < rs.getMetaData().getColumnCount(); i++) {
 			String columnName = rs.getMetaData().getColumnName(i+1);
 
@@ -142,15 +144,19 @@ public class RowData {
     }
 
 
-	public String calcRowHash() throws Exception {
-		CalcHash ch = new CalcHash();
-		//for (ICellData cd : data.values()) {
-        for (ICellData cd : rowList) {
-			String str = cd.convertToString();
-			if ( str != null)
-				ch.addData(str);
+	public String calcRowHash() throws ExceptionDBGit {
+    	try {
+			CalcHash ch = new CalcHash();
+			//for (ICellData cd : data.values()) {
+			for (ICellData cd : rowList) {
+				String str = cd.convertToString();
+				if (str != null)
+					ch.addData(str);
+			}
+			return ch.calcHashStr();
+		} catch (Exception ex){
+    		throw new ExceptionDBGit("Error calculate row hash", ex);
 		}
-		return ch.calcHashStr();
 	}
 
 	public Map<String, ICellData> getData(List<String> fields) {

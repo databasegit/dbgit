@@ -12,7 +12,8 @@ import ru.fusionsoft.dbgit.integration.primitives.Args;
 import ru.fusionsoft.dbgit.integration.primitives.Patch;
 import ru.fusionsoft.dbgit.integration.primitives.chars.CharsOf;
 import ru.fusionsoft.dbgit.integration.primitives.chars.CharsOfLines;
-import ru.fusionsoft.dbgit.integration.primitives.files.AutoDeletingTempFilePath;
+import ru.fusionsoft.dbgit.integration.primitives.files.AutoDeletingPath;
+import ru.fusionsoft.dbgit.integration.primitives.files.TempFilePath;
 
 public class PathPatchRunningProcessFrom implements Patch<Path> {
 
@@ -34,8 +35,8 @@ public class PathPatchRunningProcessFrom implements Patch<Path> {
         ));
         
         try (
-            final AutoDeletingTempFilePath tempOutPath = new AutoDeletingTempFilePath(workingDirectory.resolve("../"), "out");
-            final AutoDeletingTempFilePath tempErrPath = new AutoDeletingTempFilePath(workingDirectory.resolve("../"), "err");
+            final AutoDeletingPath tempOutPath = new AutoDeletingPath(new TempFilePath(workingDirectory.resolve("../"), "out"));
+            final AutoDeletingPath tempErrPath = new AutoDeletingPath(new TempFilePath(workingDirectory.resolve("../"), "err"));
         ) {
 
             final Process process = new ProcessBuilder()

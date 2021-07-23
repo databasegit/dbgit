@@ -1,6 +1,7 @@
 package ru.fusionsoft.dbgit.postgres;
 
 import java.sql.Connection;
+import java.text.MessageFormat;
 import java.util.Map;
 
 import ru.fusionsoft.dbgit.adapters.DBRestoreAdapter;
@@ -83,8 +84,10 @@ public class DBRestoreTriggerPostgres extends DBRestoreAdapter {
 			DBTrigger trg = (DBTrigger) trgMeta.getSqlObject();
 			if (trg == null) return;
 
-			String schema = getPhisicalSchema(trg.getSchema());
-			st.execute("DROP FUNCTION IF EXISTS "+adapter.escapeNameIfNeeded(schema)+"."+adapter.escapeNameIfNeeded(trg.getName()));
+			st.execute(MessageFormat.format("DROP TRIGGER IF EXISTS {0} ON {1}",
+				adapter.escapeNameIfNeeded(trg.getName()),
+				trg.getOptions().get("trigger_table").getData()
+			));
 
 		} catch (Exception e) {
 			throw new ExceptionDBGitRestore(lang.getValue("errors", "restore", "objectRemoveError").withParams(obj.getName()), e);

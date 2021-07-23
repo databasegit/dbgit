@@ -2,6 +2,7 @@ package ru.fusionsoft.dbgit.data_table;
 
 import java.sql.ResultSet;
 
+import java.sql.SQLException;
 import ru.fusionsoft.dbgit.core.ExceptionDBGit;
 import ru.fusionsoft.dbgit.dbobjects.DBTable;
 
@@ -11,7 +12,7 @@ public class BooleanData implements ICellData {
 	private boolean isNull = false;
 	
 	@Override
-	public boolean loadFromDB(ResultSet rs, String fieldName) throws Exception {
+	public boolean loadFromDB(ResultSet rs, String fieldName) throws SQLException {
 		value = rs.getBoolean(fieldName);
 		if (rs.wasNull()) {
 			isNull = true;

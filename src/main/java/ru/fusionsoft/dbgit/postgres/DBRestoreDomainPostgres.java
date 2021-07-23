@@ -39,8 +39,8 @@ public class DBRestoreDomainPostgres extends DBRestoreAdapter {
             if (domains.containsKey(restoreDomain.getName())) {
                 final DBDomain currentDomain = domains.get(restoreDomain.getName());
                 if (
-                    ! restoreDomain.getOptions().get("attributes").equals(
-                        currentDomain.getOptions().get("attributes")
+                    ! restoreDomain.getSql().equals(
+                        currentDomain.getSql()
                     )
                 ) {
                     st.execute(MessageFormat.format(
