@@ -79,6 +79,7 @@ public class CmdRestore implements IDBGitCommand {
 		IMapMetaObject fileObjs = gmdm.loadFileMetaData();
 		IMapMetaObject updateObjs = new TreeMapMetaObject();
 		IMapMetaObject deleteObjs = new TreeMapMetaObject();
+		IMapMetaObject backupObjs = new TreeMapMetaObject();
 
 		if (toMakeBackup) { ConsoleWriter.printlnColor(getLang().getValue("general", "restore", "willMakeBackup").toString(), Ansi.FColor.GREEN, messageLevel+1); } 
 		else { ConsoleWriter.printlnColor(getLang().getValue("general", "restore", "wontMakeBackup").toString(), Ansi.FColor.GREEN, messageLevel+1); }
@@ -148,6 +149,7 @@ public class CmdRestore implements IDBGitCommand {
 			// # steps 1,2 are in GitMetaDataManager::restoreDatabase
 
 			ConsoleWriter.println(getLang().getValue("general", "restore", "seekingToRestoreAdditional"), messageLevel+2);
+			Map<String, IMetaObject> updateObjectsCopy = new TreeMapMetaObject(updateObjs.values());
 			Map<String, IMetaObject> affectedTables = new TreeMapMetaObject();
 			Map<String, IMetaObject> foundTables = new TreeMapMetaObject();
 			do {
@@ -155,12 +157,14 @@ public class CmdRestore implements IDBGitCommand {
 					dbObjs.values().stream()
 					.filter(excluded -> {
 						return excluded instanceof MetaTable
-						&& ! updateObjs.containsKey(excluded.getName())
-						&& updateObjs.values().stream().anyMatch(excluded::dependsOn);
+						&& ! updateObjectsCopy.containsKey(excluded.getName())
+						&& updateObjectsCopy.values().stream().anyMatch(excluded::dependsOn);
 					})
 					.collect(Collectors.toMap(IMetaObject::getName, val -> val));
 				affectedTables.putAll(foundTables);
-				updateObjs.putAll(foundTables);
+				updateObjectsCopy.putAll(foundTables);
+				deleteObjs.putAll(foundTables);
+				backupObjs.putAll(foundTables);
 			} while (!foundTables.isEmpty());
 			
 			if(affectedTables.isEmpty()){
@@ -222,7 +226,6 @@ public class CmdRestore implements IDBGitCommand {
 			}
 
 			if(toMakeBackup && toMakeChanges) {
-				IMapMetaObject backupObjs = new TreeMapMetaObject();
 				backupObjs.putAll(deleteObjs);
 				backupObjs.putAll(updateObjs);
 				adapter.getBackupAdapterFactory().getBackupAdapter(adapter).backupDatabase(backupObjs);
