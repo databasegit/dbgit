@@ -308,7 +308,7 @@ public class GitMetaDataManager {
 	    		String filename = files.get(i);
 	    		if (DBGitPath.isServiceFile(filename)) continue;
 
-				ConsoleWriter.println(DBGitLang.getInstance()
+				ConsoleWriter.detailsPrintln(DBGitLang.getInstance()
 					.getValue("general", "meta", "loadFile")
 					.withParams(filename)
 					, messageLevel+1

@@ -313,25 +313,25 @@ public class DbGitIntegrationTestBasic {
                     new ArgsDbGitLinkPgAuto("dvdrental"),
                     new ArgsDbGitLinkPgAuto(new NameOfDefaultTargetTestDatabase()),
                     new CharsDbIgnoreWithDataAndTypes(),
-                    new ArgsDbGitRestore("-r"),
-                    
+                    new ArgsDbGitRestore("-r", "-v"),
+
                     new PathAfterDbGitRestoreFromDbToDb(
                         new ArgsDbGitLinkPgAuto("pagilla"),
                         new ArgsDbGitLinkPgAuto(new NameOfDefaultTargetTestDatabase()),
                         new CharsDbIgnoreWithDataAndTypes(),
-                        new ArgsDbGitRestore("-r"),
+                        new ArgsDbGitRestore("-r", "-v"),
 
                         new PathAfterDbGitRestoreFromDbToDb(
                             new ArgsDbGitLinkPgAuto("dvdrental"),
                             new ArgsDbGitLinkPgAuto(new NameOfDefaultTargetTestDatabase()),
                             new CharsDbIgnoreWithDataAndTypes(),
-                            new ArgsDbGitRestore("-r"),
+                            new ArgsDbGitRestore("-r", "-v"),
 
                             new PathAfterDbGitRestoreFromDbToDb(
                                 new ArgsDbGitLinkPgAuto("pagilla"),
                                 new ArgsDbGitLinkPgAuto(new NameOfDefaultTargetTestDatabase()),
                                 new CharsDbIgnoreWithDataAndTypes(),
-                                new ArgsDbGitRestore("-r"),
+                                new ArgsDbGitRestore("-r", "-v"),
                                 new PathPatched(
                                     new PathPatchUsingConnectionFromDbLink(
                                         new ConnectionPatchExecutingStatement("DROP SCHEMA IF EXISTS public CASCADE;")
