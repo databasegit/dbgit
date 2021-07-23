@@ -6,10 +6,11 @@ import ru.fusionsoft.dbgit.integration.primitives.PatchSequential;
 import ru.fusionsoft.dbgit.integration.primitives.args.ArgsExplicit;
 import ru.fusionsoft.dbgit.integration.primitives.args.specific.ArgsDbGitLink;
 import ru.fusionsoft.dbgit.integration.primitives.args.specific.ArgsDbGitRestore;
+import ru.fusionsoft.dbgit.integration.primitives.chars.specific.dbgit.CharsDbGitConfigBackupEnabled;
 import ru.fusionsoft.dbgit.integration.primitives.patch.PathPatchCreatingFile;
 import ru.fusionsoft.dbgit.integration.primitives.patch.PathPatchRunningDbGit;
 
-public class PathPatchDbGitRestoreFromDbToDb extends PatchSequential<Path>{
+public class PathPatchDbGitRestoreFromDbToDb extends PatchSequential<Path> {
     public PathPatchDbGitRestoreFromDbToDb(
         ArgsDbGitLink sourceDbLinkArgs,
         ArgsDbGitLink targetDbLinkArgs,
@@ -18,12 +19,13 @@ public class PathPatchDbGitRestoreFromDbToDb extends PatchSequential<Path>{
         PrintStream printStream
     ) {
         super(
-           new PathPatchRunningDbGit(new ArgsExplicit("rm", "\"*\"", "-idx"), printStream),
-           new PathPatchDbGitLink(sourceDbLinkArgs, printStream),
-           new PathPatchCreatingFile(".dbgit/.dbignore", dbIgnoreChars),
-           new PathPatchDbGitAdd(printStream), 
-           new PathPatchDbGitLink(targetDbLinkArgs, printStream),
-           new PathPatchDbGitRestore(restoreArgs, printStream)
+            new PathPatchRunningDbGit(new ArgsExplicit("rm", "\"*\"", "-idx", "-v"), printStream),
+            new PathPatchDbGitLink(sourceDbLinkArgs, printStream),
+            new PathPatchCreatingFile(".dbgit/.dbignore", dbIgnoreChars),
+            new PathPatchDbGitAdd(printStream),
+            new PathPatchDbGitLink(targetDbLinkArgs, printStream),
+            new PathPatchCreatingFile(".dbgit/dbgitconfig", new CharsDbGitConfigBackupEnabled()),
+            new PathPatchDbGitRestore(restoreArgs, printStream)
         );
     }
 }
